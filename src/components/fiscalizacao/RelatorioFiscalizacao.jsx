@@ -362,7 +362,7 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
                     const lonHem = lonNum >= 0 ? 'E' : 'W';
                     return `${latDeg}° ${latMin}' ${latSec.toFixed(2)}" ${latHem}, ${lonDeg}° ${lonMin}' ${lonSec.toFixed(2)}" ${lonHem}`;
                 })();
-                drawCell(`Coordenadas (WGS 84-EPSG:4326): ${coordsDms}`, margin, yPos, tableWidth, rowHeight, true);
+                drawCell(`Coordenadas: ${coordsDms}`, margin, yPos, tableWidth, rowHeight, true);
                 yPos += rowHeight;
                 
                 const vistoriaAt = unidade.data_hora_vistoria ? format(new Date(unidade.data_hora_vistoria), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : '-';
