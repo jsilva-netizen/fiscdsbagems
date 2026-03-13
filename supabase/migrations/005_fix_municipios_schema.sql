@@ -1,0 +1,100 @@
+-- 1. Adicionar a coluna codigo_ibge se ela não existir
+ALTER TABLE public.municipios ADD COLUMN IF NOT EXISTS codigo_ibge TEXT;
+
+-- 2. Garantir que a coluna nome tenha uma restrição UNIQUE para permitir o "ON CONFLICT"
+-- Se já houver duplicatas no banco, este comando pode falhar. 
+-- Nesse caso, seria necessário limpar duplicatas antes.
+-- Vamos tentar adicionar a constraint com segurança.
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'municipios_nome_key') THEN
+        ALTER TABLE public.municipios ADD CONSTRAINT municipios_nome_key UNIQUE (nome);
+    END IF;
+EXCEPTION
+    WHEN others THEN
+        RAISE NOTICE 'Não foi possível adicionar a constraint UNIQUE. Verifique se há nomes duplicados na tabela municipios.';
+END $$;
+
+-- 3. Inserir ou Atualizar os Municípios
+INSERT INTO public.municipios (nome, codigo_ibge) VALUES
+('Água Clara', '5000203'),
+('Alcinópolis', '5000252'),
+('Amambai', '5000609'),
+('Anastácio', '5000708'),
+('Anaurilândia', '5000807'),
+('Angélica', '5000856'),
+('Antônio João', '5000906'),
+('Aparecida do Taboado', '5001003'),
+('Aquidauana', '5001102'),
+('Aral Moreira', '5001243'),
+('Bandeirantes', '5001508'),
+('Bataguassu', '5001904'),
+('Batayporã', '5002001'),
+('Bela Vista', '5002100'),
+('Bodoquena', '5002159'),
+('Bonito', '5002209'),
+('Brasilândia', '5002308'),
+('Caarapó', '5002407'),
+('Camapuã', '5002605'),
+('Campo Grande', '5002704'),
+('Caracol', '5002803'),
+('Cassilândia', '5002902'),
+('Chapadão do Sul', '5002951'),
+('Corguinho', '5003108'),
+('Coronel Sapucaia', '5003157'),
+('Corumbá', '5003207'),
+('Costa Rica', '5003256'),
+('Coxim', '5003306'),
+('Deodápolis', '5003454'),
+('Dois Irmãos do Buriti', '5003488'),
+('Douradina', '5003504'),
+('Dourados', '5003702'),
+('Eldorado', '5003751'),
+('Fátima do Sul', '5003801'),
+('Figueirão', '5003900'),
+('Glória de Dourados', '5004007'),
+('Guia Lopes da Laguna', '5004106'),
+('Iguatemi', '5004304'),
+('Inocência', '5004403'),
+('Itaporã', '5004502'),
+('Itaquiraí', '5004601'),
+('Ivinhema', '5004700'),
+('Japorã', '5004809'),
+('Jaraguari', '5004908'),
+('Jardim', '5005004'),
+('Jateí', '5005103'),
+('Juti', '5005152'),
+('Ladário', '5005202'),
+('Laguna Carapã', '5005251'),
+('Maracaju', '5005400'),
+('Miranda', '5005608'),
+('Mundo Novo', '5005681'),
+('Naviraí', '5005707'),
+('Nioaque', '5005806'),
+('Nova Alvorada do Sul', '5006002'),
+('Nova Andradina', '5006200'),
+('Novo Horizonte do Sul', '5006259'),
+('Paraíso das Águas', '5006275'),
+('Paranaíba', '5006309'),
+('Paranhos', '5006358'),
+('Pedro Gomes', '5006408'),
+('Ponta Porã', '5006606'),
+('Porto Murtinho', '5006903'),
+('Ribas do Rio Pardo', '5007109'),
+('Rio Brilhante', '5007208'),
+('Rio Negro', '5007307'),
+('Rio Verde de Mato Grosso', '5007406'),
+('Rochedo', '5007505'),
+('Santa Rita do Pardo', '5007554'),
+('São Gabriel do Oeste', '5007695'),
+('Sete Quedas', '5007703'),
+('Selvíria', '5007802'),
+('Sidrolândia', '5007901'),
+('Sonora', '5007935'),
+('Tacuru', '5007950'),
+('Taquarussu', '5007976'),
+('Terenos', '5008008'),
+('Três Lagoas', '5008305'),
+('Vicentina', '5008404')
+ON CONFLICT (nome) DO UPDATE SET codigo_ibge = EXCLUDED.codigo_ibge;
