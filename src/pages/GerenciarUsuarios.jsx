@@ -14,6 +14,7 @@ import { ArrowLeft, Shield, Loader2, Mail, Trash2, Check } from 'lucide-react';
 export default function GerenciarUsuarios() {
     const queryClient = useQueryClient();
     const [currentUser, setCurrentUser] = useState(null);
+    const [deleteEmail, setDeleteEmail] = useState('');
 
     const { data: usuarios = [], isLoading } = useQuery({
         queryKey: ['usuarios-admin'],
@@ -63,27 +64,8 @@ export default function GerenciarUsuarios() {
 
     const deleteUserMutation = useMutation({
         mutationFn: async ({ userId }) => {
-            // Em produção com Edge Functions: deletaria do Auth e do Profile
-            // Aqui, via Client, só podemos deletar o profile se a policy permitir, ou soft-delete (inativar)
-            // Mas o Auth.admin.deleteUser requer role service_role.
-            
-            // Vamos tentar deletar o profile. Se houver trigger ou policy, pode funcionar.
-            const { error } = await supabase
-                .from('profiles')
-                .delete()
-                .eq('id', userId);
-            
-            if (error) {
-                // Se não puder deletar (FK ou permissão), inativa
-                console.warn('Não foi possível deletar fisicamente, tentando inativar.', error);
-                const { error: updateError } = await supabase
-                    .from('profiles')
-                    .update({ ativo: false })
-                    .eq('id', userId);
-                
-                if (updateError) throw updateError;
-                alert('Usuário inativado com sucesso (exclusão física requer permissão de superadmin).');
-            }
+            const { error } = await supabase.rpc('admin_delete_user', { p_user_id: userId });
+            if (error) throw error;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['usuarios-admin'] });
@@ -95,6 +77,18 @@ export default function GerenciarUsuarios() {
             deleteUserMutation.mutate({ userId });
         }
     };
+
+    const deleteUserByEmailMutation = useMutation({
+        mutationFn: async ({ email }) => {
+            const { error } = await supabase.rpc('admin_delete_user_by_email', { p_email: email });
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['usuarios-admin'] });
+            setDeleteEmail('');
+            alert('Usuário excluído com sucesso.');
+        }
+    });
 
     const toggleStatusMutation = useMutation({
         mutationFn: async ({ userId, novoStatus }) => {
@@ -169,6 +163,37 @@ export default function GerenciarUsuarios() {
                                 </Button>
                             </Link>
                         </div>
+
+                        <Card className="mb-4">
+                            <CardContent className="p-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="deleteEmail">Excluir usuário por e-mail</Label>
+                                    <div className="flex gap-2">
+                                        <Input
+                                            id="deleteEmail"
+                                            type="email"
+                                            placeholder="email@exemplo.com"
+                                            value={deleteEmail}
+                                            onChange={(e) => setDeleteEmail(e.target.value)}
+                                        />
+                                        <Button
+                                            variant="destructive"
+                                            disabled={!deleteEmail || deleteUserByEmailMutation.isPending}
+                                            onClick={() => {
+                                                const email = deleteEmail.trim();
+                                                if (!email) return;
+                                                if (confirm(`Tem certeza que deseja EXCLUIR DEFINITIVAMENTE o usuário ${email}?`)) {
+                                                    deleteUserByEmailMutation.mutate({ email });
+                                                }
+                                            }}
+                                        >
+                                            <Trash2 className="h-4 w-4 mr-2" />
+                                            Excluir
+                                        </Button>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
                         
                         {isLoading ? (
                             <div className="flex justify-center py-12">

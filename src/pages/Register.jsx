@@ -46,7 +46,7 @@ export default function Register() {
                 options: {
                     data: {
                         full_name: fullName,
-                        role: 'user' // Default role
+                        role: 'fiscal'
                     }
                 }
             });
@@ -55,6 +55,9 @@ export default function Register() {
                 // Tratamento específico para Rate Limit (429)
                 if (authError.status === 429 || authError.message?.includes('rate limit')) {
                     throw new Error('Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.');
+                }
+                if (authError.message?.toLowerCase().includes('already registered')) {
+                    throw new Error('Este e-mail já possui cadastro. Use a senha existente para entrar ou peça ao administrador para excluir definitivamente o usuário antes de cadastrar novamente.');
                 }
                 throw authError;
             }
@@ -75,7 +78,7 @@ export default function Register() {
                             id: authData.user.id,
                             email: email,
                             full_name: fullName,
-                            role: 'user',
+                            role: 'fiscal',
                             ativo: false // Padrão inativo
                         });
                     
