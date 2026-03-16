@@ -20,6 +20,9 @@ export type OfflineFoto = {
   width?: number
   height?: number
   syncedAt?: string
+  storagePath?: string
+  attempts?: number
+  lastError?: string
   created_at?: string
 }
 
@@ -203,6 +206,21 @@ export class AppDB extends Dexie {
         }
       }
     })
+    this.version(7)
+      .stores({
+        fotos_local: 'localId, unidadeLocalId, syncedAt, created_at'
+      })
+      .upgrade(async (tx) => {
+        const table = tx.table('fotos_local') as Table<OfflineFoto, UUID>
+        const all = await table.toArray()
+        for (const f of all) {
+          const next: any = { ...f }
+          if (next.attempts === undefined) next.attempts = 0
+          if (next.storagePath === undefined) next.storagePath = undefined
+          if (next.lastError === undefined) next.lastError = undefined
+          await table.put(next)
+        }
+      })
   }
 }
 

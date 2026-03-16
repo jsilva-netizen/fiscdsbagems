@@ -10,8 +10,74 @@ import { db } from '@/lib/offline/db';
 
 export default function RelatorioFiscalizacao({ fiscalizacao }) {
     const [isGenerating, setIsGenerating] = React.useState(false);
+    const [isRequesting, setIsRequesting] = React.useState(false);
+    const [jobId, setJobId] = React.useState(null);
+    const [job, setJob] = React.useState(null);
+    const [error, setError] = React.useState(null);
     const syncStatus = useSyncStatus?.() || { online: true, sessionValid: true, outboxCount: 0, lastSyncAt: undefined };
     const __keepImports = Button && Loader2 && FileText ? null : null;
+
+    const ensureAuth = async () => {
+        const readSession = async () => {
+            const { data, error } = await supabase.auth.getSession();
+            if (error) throw error;
+            const session = data?.session;
+            if (!session?.access_token) throw new Error('Sessão expirada. Faça login novamente.');
+            return session;
+        };
+
+        let session = await readSession();
+        const expMs = session?.expires_at ? session.expires_at * 1000 : 0;
+
+        if (!expMs || expMs < Date.now() + 60_000) {
+            const { data, error } = await supabase.auth.refreshSession();
+            if (error) throw error;
+            session = data?.session || (await readSession());
+        }
+
+        const userRes = await supabase.auth.getUser();
+        if (userRes.error || !userRes.data?.user) {
+            const { data, error } = await supabase.auth.refreshSession();
+            if (error) throw new Error('Sessão inválida. Faça login novamente.');
+            session = data?.session || (await readSession());
+        }
+
+        return session.access_token;
+    };
+
+    const getFunctionHeaders = async () => {
+        const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        if (!anonKey) throw new Error('VITE_SUPABASE_ANON_KEY não configurada no .env(.local).');
+        return { apikey: anonKey, Authorization: `Bearer ${anonKey}` };
+    };
+
+    const invokeEdgeFunction = async (functionName, body) => {
+        const baseUrl = import.meta.env.VITE_SUPABASE_URL;
+        if (!baseUrl) throw new Error('VITE_SUPABASE_URL não configurada no .env(.local).');
+        const headers = await getFunctionHeaders();
+        const jwt = await ensureAuth();
+        const url = `${String(baseUrl).replace(/\/$/, '')}/functions/v1/${functionName}`;
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { ...headers, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...(body || {}), jwt })
+        });
+        const text = await res.text();
+        let json = null;
+        try {
+            json = text ? JSON.parse(text) : null;
+        } catch {
+            json = null;
+        }
+        if (!res.ok) {
+            const msg = json?.error ? String(json.error) : (text || `HTTP ${res.status}`);
+            const err = new Error(msg);
+            err.status = res.status;
+            err.payload = json;
+            throw err;
+        }
+        return json;
+    };
 
     const loadImageAsBase64 = async (url) => {
         return new Promise((resolve, reject) => {
@@ -672,38 +738,172 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
         }
     };
 
-    const canGenerate = syncStatus.online && syncStatus.sessionValid && (syncStatus.outboxCount || 0) === 0 && fiscalizacao?.status === 'finalizada';
+    const resolveServerFiscalizacaoId = async () => {
+        const localFiscId = typeof fiscalizacao.id === 'string' ? fiscalizacao.id : undefined;
+        const map = localFiscId
+            ? await db.id_map.where('local_id').equals(localFiscId).and(m => m.entity === 'fiscalizacoes').first()
+            : null;
+        return map?.server_id || (localFiscId || fiscalizacao.id);
+    };
+
+    const carregarUltimoJob = async () => {
+        try {
+            await ensureAuth();
+            const fiscalizacao_id = await resolveServerFiscalizacaoId();
+            const { data, error: qErr } = await supabase
+                .from('relatorios_jobs')
+                .select('id, status, progress_unidades, progress_fotos, error_message, storage_path, created_at, updated_at')
+                .eq('fiscalizacao_id', fiscalizacao_id)
+                .order('created_at', { ascending: false })
+                .limit(1);
+            if (qErr) throw qErr;
+            const row = Array.isArray(data) ? data[0] : null;
+            if (!row) {
+                setJob(null);
+                setJobId(null);
+                return;
+            }
+
+            setJob(row);
+            const active = row.status === 'queued' || row.status === 'processing';
+            setJobId(active ? row.id : null);
+        } catch (err) {
+            console.error('Erro ao carregar histórico de relatórios:', err);
+            setError(err?.message || 'Erro ao carregar histórico de relatórios.');
+        }
+    };
+
+    const solicitarGeracao = async () => {
+        if (isRequesting) return;
+        setError(null);
+        setIsRequesting(true);
+        try {
+            const fiscalizacao_id = await resolveServerFiscalizacaoId();
+            const data = await invokeEdgeFunction('relatorios_enqueue', { fiscalizacao_id });
+            if (!data?.job_id) throw new Error('Falha ao criar job');
+            setJobId(data.job_id);
+            setJob({ status: 'queued', progress_unidades: 0, progress_fotos: 0 });
+        } catch (err) {
+            console.error('Erro ao solicitar relatório:', err);
+            setError(err?.message || 'Erro ao solicitar relatório.');
+        } finally {
+            setIsRequesting(false);
+        }
+    };
+
+    React.useEffect(() => {
+        if (!jobId) return;
+        let stopped = false;
+        let intervalId;
+        const poll = async () => {
+            try {
+                const data = await invokeEdgeFunction('relatorios_status', { job_id: jobId });
+                if (stopped) return;
+                setJob(data);
+                if (data?.status === 'done' && data?.signed_url) {
+                    stopped = true;
+                    clearInterval(intervalId);
+                    setJobId(null);
+                }
+                if (data?.status === 'error') {
+                    stopped = true;
+                    clearInterval(intervalId);
+                    setJobId(null);
+                    setError(data?.error_message || 'Falha ao gerar relatório.');
+                }
+            } catch (err) {
+                if (stopped) return;
+                setError(err?.message || 'Erro ao consultar status.');
+            }
+        };
+        poll();
+        intervalId = window.setInterval(poll, 3000);
+        return () => {
+            stopped = true;
+            clearInterval(intervalId);
+        };
+    }, [jobId]);
+
+    const isOnlineAndReady = syncStatus.online && syncStatus.sessionValid && (syncStatus.outboxCount || 0) === 0;
+    React.useEffect(() => {
+        if (!isOnlineAndReady) return;
+        carregarUltimoJob();
+    }, [isOnlineAndReady, fiscalizacao?.id]);
+
+    const canGenerate = isOnlineAndReady && fiscalizacao?.status === 'finalizada';
     if (!canGenerate) {
+        const outbox = syncStatus.outboxCount || 0;
+        const msg = !syncStatus.online || !syncStatus.sessionValid || outbox > 0
+            ? 'Sincronize antes para gerar relatório no servidor.'
+            : fiscalizacao?.status !== 'finalizada'
+            ? 'Finalize a fiscalização para gerar relatório no servidor.'
+            : 'Sincronize antes para gerar relatório no servidor.';
         return (
             <div className="space-y-2">
                 <div className="text-sm text-yellow-700 bg-yellow-100 border border-yellow-200 rounded px-3 py-2">
-                    Relatório oficial disponível somente após finalizar e sincronizar.
+                    {msg}
                 </div>
             </div>
         );
     }
+
+    const baixarJob = async (selectedJobId) => {
+        try {
+            const data = await invokeEdgeFunction('relatorios_status', { job_id: selectedJobId });
+            if (data?.signed_url) {
+                window.open(data.signed_url, '_blank', 'noopener,noreferrer');
+            } else {
+                setError('Relatório ainda não está pronto para download.');
+            }
+        } catch (err) {
+            console.error('Erro ao obter URL de download:', err);
+            setError(err?.message || 'Erro ao obter URL de download.');
+        }
+    };
+
+    const isRunning = job?.status && job.status !== 'done' && job.status !== 'error';
+    const isDone = job?.status === 'done';
+
     return (
-        <Button 
-            onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                gerarRelatorio();
-            }}
-            disabled={isGenerating}
-            className="w-full bg-blue-600 hover:bg-blue-700"
-            size="sm"
-        >
-            {isGenerating ? (
-                <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Gerando...
-                </>
-            ) : (
-                <>
-                    <FileText className="h-4 w-4 mr-2" />
-                    Gerar Relatório
-                </>
-            )}
-        </Button>
+        <div className="space-y-2">
+            {error ? (
+                <div className="text-sm text-red-700 bg-red-100 border border-red-200 rounded px-3 py-2">
+                    {error}
+                </div>
+            ) : null}
+            {job?.status ? (
+                <div className="text-xs text-gray-600">
+                    Status: {job.status}
+                    {typeof job.progress_unidades === 'number' ? ` | Unidades: ${job.progress_unidades}` : ''}
+                    {typeof job.progress_fotos === 'number' ? ` | Fotos: ${job.progress_fotos}` : ''}
+                </div>
+            ) : null}
+            <Button
+                onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (isDone) {
+                        baixarJob(job.id);
+                        return;
+                    }
+                    solicitarGeracao();
+                }}
+                disabled={isRequesting || isRunning}
+                className="w-full bg-blue-600 hover:bg-blue-700"
+                size="sm"
+            >
+                {isRequesting || isRunning ? (
+                    <>
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        Gerando relatório...
+                    </>
+                ) : (
+                    <>
+                        <FileText className="h-4 w-4 mr-2" />
+                        {isDone ? 'Baixar Relatório' : 'Gerar Relatório'}
+                    </>
+                )}
+            </Button>
+        </div>
     );
 }

@@ -686,25 +686,47 @@ export async function syncFotosWithProgress(onProgress?: (uploaded: number, tota
   const unsynced = all.filter((f) => !f.syncedAt)
   const total = unsynced.length
   let uploaded = 0
-  for (const f of unsynced) {
-    const blob = base64ToBlob(f.base64)
-    const path = `fiscalizacoes/${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`
-    const doUpload = async () => {
-      const { error } = await supabase.storage.from('fotos_fiscalizacao').upload(path, blob, {
-        contentType: f.mimeType || 'image/jpeg',
-        upsert: false
-      })
-      if (error) throw error
-      const { data: publicRes } = supabase.storage.from('fotos_fiscalizacao').getPublicUrl(path)
-      const url = publicRes.publicUrl
-      await db.fotos_local.update(f.localId as any, { ...f, url, syncedAt: new Date().toISOString() })
-    }
-    try {
-      await withBackoff(() => withTimeout(doUpload, 20000))
-      uploaded++
-      onProgress?.(uploaded, total)
-    } catch {}
+  const concurrency = 3
+  let cursor = 0
+  const nextItem = () => {
+    const i = cursor
+    cursor++
+    return unsynced[i]
   }
+  const worker = async () => {
+    while (true) {
+      const f = nextItem()
+      if (!f) break
+      const blob = base64ToBlob(f.base64)
+      const path = f.storagePath || `fiscalizacoes/unknown/${f.unidadeLocalId}/${f.localId}.jpg`
+      const doUpload = async () => {
+        const { error } = await supabase.storage.from('fotos_fiscalizacao').upload(path, blob, {
+          contentType: f.mimeType || 'image/jpeg',
+          upsert: true
+        })
+        if (error) throw error
+        const { data: publicRes } = supabase.storage.from('fotos_fiscalizacao').getPublicUrl(path)
+        const url = publicRes.publicUrl
+        await db.fotos_local.update(f.localId as any, {
+          url,
+          syncedAt: new Date().toISOString(),
+          storagePath: path,
+          lastError: ''
+        })
+      }
+      try {
+        await withBackoff(() => withTimeout(doUpload, 30000))
+        uploaded++
+        onProgress?.(uploaded, total)
+      } catch (err: any) {
+        const attempts = (f.attempts || 0) + 1
+        const msg = String(err?.message || err || '')
+        await db.fotos_local.update(f.localId as any, { attempts, lastError: msg })
+      }
+    }
+  }
+  const workers = Array.from({ length: Math.max(1, Math.min(concurrency, unsynced.length)) }, () => worker())
+  await Promise.all(workers)
   const byUnidade: Record<string, { url: string; legenda?: string }[]> = {}
   const syncedAll = await db.fotos_local.toArray()
   for (const f of syncedAll.filter((x) => !!x.syncedAt && !!x.url)) {
@@ -785,22 +807,8 @@ export async function runFullSync(): Promise<{ outbox: number; lastSyncAt?: stri
     await withTimeout(() => pruneLocalByServerIds(), 30000)
   } catch {}
   await ensureBaseEntitiesEnqueued()
-  try {
-    await withTimeout(() => syncUp(), 90000)
-  } catch (err: any) {
-    if (String(err?.message || '').includes('Timeout')) {
-      throw new Error('Timeout na etapa de envio (upload)')
-    }
-    throw err
-  }
-  try {
-    await withTimeout(() => syncDown(), 60000)
-  } catch (err: any) {
-    if (String(err?.message || '').includes('Timeout')) {
-      throw new Error('Timeout na etapa de download')
-    }
-    throw err
-  }
+  await syncUp()
+  await syncDown()
   const pending = await getOutboxCount()
   const { lastSyncAt } = await getLastSync()
   return { outbox: pending, lastSyncAt }

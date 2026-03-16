@@ -538,6 +538,9 @@ export const Repository = {
       throw new Error(`Foto após compressão excede ${Math.round(MAX_PHOTO_BYTES / 1024 / 1024)}MB`)
     }
     const localId = uid()
+    const unidade = await db.unidades.get(unidadeId as any)
+    const fiscalizacaoLocalId = unidade?.fiscalizacao_id || 'unknown'
+    const storagePath = `fiscalizacoes/${fiscalizacaoLocalId}/${unidadeId}/${localId}.jpg`
     const item: OfflineFoto = {
       localId,
       unidadeLocalId: unidadeId,
@@ -546,6 +549,9 @@ export const Repository = {
       mimeType: processed.mimeType,
       width: processed.width,
       height: processed.height,
+      storagePath,
+      attempts: 0,
+      lastError: '',
       created_at: now()
     }
     await db.fotos_local.add(item)
@@ -570,7 +576,7 @@ export const Repository = {
   async markLocalFotoSynced(localId: string, publicUrl: string): Promise<void> {
     const item = await db.fotos_local.get(localId as any)
     if (item) {
-      await db.fotos_local.update(localId as any, { ...item, url: publicUrl, syncedAt: now() })
+      await db.fotos_local.update(localId as any, { ...item, url: publicUrl, syncedAt: now(), lastError: '' })
     }
   },
 
