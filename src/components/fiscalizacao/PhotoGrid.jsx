@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Repository } from '@/lib/offline/repository';
-import { MAX_PHOTOS_PER_UNIDADE } from '@/lib/offline/image';
+import { MAX_PHOTOS_PER_UNIDADE, extractCaptureFromImageFile } from '@/lib/offline/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import OptimizedImage from '@/components/fiscalizacao/OptimizedImage.jsx';
@@ -68,14 +68,17 @@ export default function PhotoGrid({
         const files = e.target.files;
         if (!files || files.length === 0) return;
 
+        const isGallery = e.target === fileInputRef.current;
         let gpsFix = lastGpsFixRef.current;
-        try {
-            gpsFix = gpsFix || await getValidatedGpsFix();
-            lastGpsFixRef.current = gpsFix;
-        } catch (err) {
-            alert(err?.message || String(err));
-            e.target.value = '';
-            return;
+        if (!isGallery) {
+            try {
+                gpsFix = gpsFix || await getValidatedGpsFix();
+                lastGpsFixRef.current = gpsFix;
+            } catch (err) {
+                alert(err?.message || String(err));
+                e.target.value = '';
+                return;
+            }
         }
 
         setIsUploading(true);
@@ -94,11 +97,22 @@ export default function PhotoGrid({
                     if (countAtual >= MAX_PHOTOS_PER_UNIDADE) {
                         throw new Error(`Limite de ${MAX_PHOTOS_PER_UNIDADE} fotos por unidade atingido`);
                     }
-                    const takenAt = file?.lastModified ? new Date(file.lastModified).toISOString() : new Date().toISOString();
+                    let capture = null;
+                    if (isGallery) {
+                        capture = await extractCaptureFromImageFile(file);
+                        if (!capture) {
+                            throw new Error('A foto selecionada não contém GPS/timestamp nos metadados (EXIF).');
+                        }
+                        if (typeof capture.accuracyM === 'number' && Number.isFinite(capture.accuracyM) && capture.accuracyM > MAX_GPS_ACCURACY_M) {
+                            throw new Error(`Precisão do GPS da foto insuficiente (${Math.round(capture.accuracyM)}m).`);
+                        }
+                    } else {
+                        capture = { latitude: gpsFix.latitude, longitude: gpsFix.longitude, takenAt: new Date().toISOString() };
+                    }
                     const saved = await Repository.addLocalFotoFromFile(unidadeId, file, {
-                        latitude: gpsFix.latitude,
-                        longitude: gpsFix.longitude,
-                        takenAt
+                        latitude: capture.latitude,
+                        longitude: capture.longitude,
+                        takenAt: capture.takenAt
                     });
                     const novaFoto = {
                         localId: saved.localId,
@@ -162,7 +176,7 @@ export default function PhotoGrid({
                         className="hidden"
                     />
                     <Button 
-                        onClick={() => void openWithGpsGate(fileInputRef)} 
+                        onClick={() => fileInputRef.current?.click()} 
                         size="sm"
                         variant="outline"
                         disabled={isUploading || !isEditable}

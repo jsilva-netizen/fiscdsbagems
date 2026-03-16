@@ -235,6 +235,239 @@ function injectOrReplaceExif(jpeg: Uint8Array, exifApp1: Uint8Array): Uint8Array
   return out
 }
 
+function readAsciiNullTerminated(bytes: Uint8Array): string {
+  let end = bytes.length
+  for (let i = 0; i < bytes.length; i++) {
+    if (bytes[i] === 0) {
+      end = i
+      break
+    }
+  }
+  return String.fromCharCode(...Array.from(bytes.subarray(0, end)))
+}
+
+function parseExifDateTimeString(s: string): Date | undefined {
+  const m = /^(\d{4}):(\d{2}):(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/.exec(s.trim())
+  if (!m) return undefined
+  const y = Number(m[1])
+  const mo = Number(m[2]) - 1
+  const d = Number(m[3])
+  const hh = Number(m[4])
+  const mm = Number(m[5])
+  const ss = Number(m[6])
+  const dt = new Date(y, mo, d, hh, mm, ss)
+  if (Number.isNaN(dt.getTime())) return undefined
+  return dt
+}
+
+type ExifCapture = { latitude: number; longitude: number; takenAt?: string; accuracyM?: number }
+
+function extractCaptureFromJpegBytes(bytes: Uint8Array): ExifCapture | null {
+  if (bytes.length < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8) return null
+  let offset = 2
+  while (offset + 4 < bytes.length) {
+    if (bytes[offset] !== 0xff) break
+    let markerPos = offset
+    while (markerPos < bytes.length && bytes[markerPos] === 0xff) markerPos++
+    if (markerPos >= bytes.length) break
+    const marker = bytes[markerPos]
+    offset = markerPos + 1
+    if (marker === 0xda) break
+    if (marker === 0xd9) break
+    if (offset + 2 > bytes.length) break
+    const segLen = (bytes[offset] << 8) | bytes[offset + 1]
+    if (segLen < 2) break
+    const segStart = offset - 2
+    const segEnd = segStart + 2 + segLen
+    if (segEnd > bytes.length) break
+    if (marker === 0xe1 && isExifApp1Segment(bytes, segStart)) {
+      const payloadStart = segStart + 4
+      const tiffStart = payloadStart + 6
+      if (tiffStart + 8 > segEnd) return null
+      const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+      const endianA = view.getUint8(tiffStart)
+      const endianB = view.getUint8(tiffStart + 1)
+      const little = endianA === 0x49 && endianB === 0x49
+      if (!little && !(endianA === 0x4d && endianB === 0x4d)) return null
+      const magic = view.getUint16(tiffStart + 2, little)
+      if (magic !== 0x002a) return null
+      const ifd0Offset = view.getUint32(tiffStart + 4, little)
+      const ifd0Abs = tiffStart + ifd0Offset
+      if (ifd0Abs + 2 > segEnd) return null
+
+      const typeSize = (type: number) => {
+        if (type === 1) return 1
+        if (type === 2) return 1
+        if (type === 3) return 2
+        if (type === 4) return 4
+        if (type === 5) return 8
+        if (type === 7) return 1
+        return 0
+      }
+
+      const readEntryBytes = (entryOff: number, type: number, count: number): Uint8Array => {
+        const sz = typeSize(type)
+        const total = sz * count
+        if (total <= 0) return new Uint8Array()
+        if (total <= 4) {
+          const out = new Uint8Array(total)
+          for (let i = 0; i < total; i++) out[i] = view.getUint8(entryOff + 8 + i)
+          return out
+        }
+        const valueOffset = view.getUint32(entryOff + 8, little)
+        const abs = tiffStart + valueOffset
+        if (abs + total > segEnd) return new Uint8Array()
+        return bytes.subarray(abs, abs + total)
+      }
+
+      const readAsciiTag = (ifdAbs: number, tagId: number): string | undefined => {
+        const count = view.getUint16(ifdAbs, little)
+        for (let i = 0; i < count; i++) {
+          const eOff = ifdAbs + 2 + i * 12
+          const tag = view.getUint16(eOff, little)
+          if (tag !== tagId) continue
+          const type = view.getUint16(eOff + 2, little)
+          const c = view.getUint32(eOff + 4, little)
+          if (type !== 2 || c <= 0) return undefined
+          const raw = readEntryBytes(eOff, type, c)
+          const s = readAsciiNullTerminated(raw)
+          return s || undefined
+        }
+        return undefined
+      }
+
+      const readLongTag = (ifdAbs: number, tagId: number): number | undefined => {
+        const count = view.getUint16(ifdAbs, little)
+        for (let i = 0; i < count; i++) {
+          const eOff = ifdAbs + 2 + i * 12
+          const tag = view.getUint16(eOff, little)
+          if (tag !== tagId) continue
+          const type = view.getUint16(eOff + 2, little)
+          const c = view.getUint32(eOff + 4, little)
+          if (type !== 4 || c !== 1) return undefined
+          return view.getUint32(eOff + 8, little)
+        }
+        return undefined
+      }
+
+      const readRationals = (ifdAbs: number, tagId: number): { num: number; den: number }[] | undefined => {
+        const count = view.getUint16(ifdAbs, little)
+        for (let i = 0; i < count; i++) {
+          const eOff = ifdAbs + 2 + i * 12
+          const tag = view.getUint16(eOff, little)
+          if (tag !== tagId) continue
+          const type = view.getUint16(eOff + 2, little)
+          const c = view.getUint32(eOff + 4, little)
+          if (type !== 5 || c <= 0) return undefined
+          const raw = readEntryBytes(eOff, type, c)
+          if (raw.length !== c * 8) return undefined
+          const out: { num: number; den: number }[] = []
+          const dv = new DataView(raw.buffer, raw.byteOffset, raw.byteLength)
+          for (let j = 0; j < c; j++) {
+            const num = dv.getUint32(j * 8, little)
+            const den = dv.getUint32(j * 8 + 4, little)
+            out.push({ num, den })
+          }
+          return out
+        }
+        return undefined
+      }
+
+      const IFD0_TAG_DATETIME = 0x0132
+      const IFD0_TAG_EXIF_PTR = 0x8769
+      const IFD0_TAG_GPS_PTR = 0x8825
+      const EXIF_TAG_DATETIME_ORIGINAL = 0x9003
+      const GPS_TAG_LAT_REF = 0x0001
+      const GPS_TAG_LAT = 0x0002
+      const GPS_TAG_LON_REF = 0x0003
+      const GPS_TAG_LON = 0x0004
+      const GPS_TAG_TIME_STAMP = 0x0007
+      const GPS_TAG_DOP = 0x000b
+      const GPS_TAG_DATE_STAMP = 0x001d
+      const GPS_TAG_HPOS_ERR = 0x001f
+
+      const exifPtr = readLongTag(ifd0Abs, IFD0_TAG_EXIF_PTR)
+      const gpsPtr = readLongTag(ifd0Abs, IFD0_TAG_GPS_PTR)
+      const dt0 = readAsciiTag(ifd0Abs, IFD0_TAG_DATETIME)
+
+      let dtOriginal: string | undefined
+      if (typeof exifPtr === 'number') {
+        const exifAbs = tiffStart + exifPtr
+        if (exifAbs + 2 <= segEnd) dtOriginal = readAsciiTag(exifAbs, EXIF_TAG_DATETIME_ORIGINAL)
+      }
+
+      let lat: number | undefined
+      let lon: number | undefined
+      let gpsDate: string | undefined
+      let gpsTime: { num: number; den: number }[] | undefined
+      let accuracyM: number | undefined
+      if (typeof gpsPtr === 'number') {
+        const gpsAbs = tiffStart + gpsPtr
+        if (gpsAbs + 2 <= segEnd) {
+          const latRef = readAsciiTag(gpsAbs, GPS_TAG_LAT_REF)
+          const lonRef = readAsciiTag(gpsAbs, GPS_TAG_LON_REF)
+          const latVals = readRationals(gpsAbs, GPS_TAG_LAT)
+          const lonVals = readRationals(gpsAbs, GPS_TAG_LON)
+          gpsDate = readAsciiTag(gpsAbs, GPS_TAG_DATE_STAMP)
+          gpsTime = readRationals(gpsAbs, GPS_TAG_TIME_STAMP)
+          const hpos = readRationals(gpsAbs, GPS_TAG_HPOS_ERR)
+          const dop = readRationals(gpsAbs, GPS_TAG_DOP)
+          if (hpos && hpos[0]?.den) accuracyM = hpos[0].num / hpos[0].den
+          else if (dop && dop[0]?.den) accuracyM = dop[0].num / dop[0].den
+
+          const toDeg = (ref: string | undefined, vals: { num: number; den: number }[] | undefined): number | undefined => {
+            if (!ref || !vals || vals.length < 3) return undefined
+            const d = vals[0].den ? vals[0].num / vals[0].den : NaN
+            const m = vals[1].den ? vals[1].num / vals[1].den : NaN
+            const s = vals[2].den ? vals[2].num / vals[2].den : NaN
+            if (![d, m, s].every((x) => Number.isFinite(x))) return undefined
+            let dec = d + m / 60 + s / 3600
+            const r = ref.trim().toUpperCase()
+            if (r === 'S' || r === 'W') dec = -dec
+            return dec
+          }
+          lat = toDeg(latRef, latVals)
+          lon = toDeg(lonRef, lonVals)
+        }
+      }
+
+      let takenAt: Date | undefined = dtOriginal ? parseExifDateTimeString(dtOriginal) : undefined
+      if (!takenAt && dt0) takenAt = parseExifDateTimeString(dt0)
+      if (!takenAt && gpsDate && gpsTime && gpsTime.length >= 3) {
+        const dm = /^(\d{4}):(\d{2}):(\d{2})$/.exec(gpsDate.trim())
+        const hh = gpsTime[0].den ? gpsTime[0].num / gpsTime[0].den : NaN
+        const mm = gpsTime[1].den ? gpsTime[1].num / gpsTime[1].den : NaN
+        const ss = gpsTime[2].den ? gpsTime[2].num / gpsTime[2].den : NaN
+        if (dm && [hh, mm, ss].every((x) => Number.isFinite(x))) {
+          const dt = new Date(Number(dm[1]), Number(dm[2]) - 1, Number(dm[3]), Math.floor(hh), Math.floor(mm), Math.floor(ss))
+          if (!Number.isNaN(dt.getTime())) takenAt = dt
+        }
+      }
+
+      if (typeof lat === 'number' && typeof lon === 'number' && Number.isFinite(lat) && Number.isFinite(lon)) {
+        return { latitude: lat, longitude: lon, takenAt: takenAt ? takenAt.toISOString() : undefined, accuracyM }
+      }
+      return null
+    }
+    offset = segEnd
+  }
+  return null
+}
+
+export async function extractCaptureFromImageFile(file: File): Promise<ExifCapture | null> {
+  try {
+    const head = await file.slice(0, 256 * 1024).arrayBuffer()
+    const res = extractCaptureFromJpegBytes(new Uint8Array(head))
+    if (res) return res
+  } catch {}
+  try {
+    const full = await file.arrayBuffer()
+    return extractCaptureFromJpegBytes(new Uint8Array(full))
+  } catch {
+    return null
+  }
+}
+
 async function addExifToJpegBlob(blob: Blob, options: { latitude: number; longitude: number; takenAt: Date }): Promise<Blob> {
   const buf = await blob.arrayBuffer()
   const jpeg = new Uint8Array(buf)
