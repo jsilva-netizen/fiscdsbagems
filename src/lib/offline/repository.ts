@@ -1,6 +1,6 @@
 import { db, Foto, Fiscalizacao, Unidade, ItemChecklist, RespostaChecklist, ConstatacaoManual, OfflineFoto } from './db'
 import { enqueueMutation } from './syncEngine'
-import { compressFileToBlob, MAX_PHOTOS_PER_UNIDADE, MAX_PHOTO_BYTES } from './image'
+import { compressFileToBlob, MAX_DIMENSION, JPEG_QUALITY, MAX_PHOTOS_PER_UNIDADE, MAX_PHOTO_BYTES } from './image'
 import { supabase } from '@/lib/supabase'
 
 const now = () => new Date().toISOString()
@@ -62,6 +62,10 @@ const localFotoPreviewUrl = (f: OfflineFoto): string => {
   if (typeof f.base64 === 'string' && f.base64.trim() !== '') return f.base64
   return ''
 }
+
+const pad2 = (n: number) => String(n).padStart(2, '0')
+const formatDateBR = (d: Date) => `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${d.getFullYear()}`
+const formatTimeBR = (d: Date) => `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`
 
 export const Repository = {
   async listMunicipios(): Promise<{ id: string; nome: string }[]> {
@@ -554,12 +558,25 @@ export const Repository = {
     await enqueueMutation({ unidade_fiscalizada_id: unidadeId, fotos_unidade: normalized }, 'update', 'fotos')
   },
 
-  async addLocalFotoFromFile(unidadeId: string, file: File): Promise<OfflineFoto & { previewUrl: string }> {
+  async addLocalFotoFromFile(
+    unidadeId: string,
+    file: File,
+    capture?: { latitude: number; longitude: number; takenAt?: string }
+  ): Promise<OfflineFoto & { previewUrl: string }> {
     const count = await db.fotos_local.where('unidadeLocalId').equals(unidadeId).count()
     if (count >= MAX_PHOTOS_PER_UNIDADE) {
       throw new Error(`Limite máximo de ${MAX_PHOTOS_PER_UNIDADE} fotos por unidade atingido`)
     }
-    const processed = await compressFileToBlob(file)
+    if (!capture || typeof capture.latitude !== 'number' || typeof capture.longitude !== 'number') {
+      throw new Error('GPS indisponível. Ative a localização e tente novamente.')
+    }
+    const takenAt = capture.takenAt ? new Date(capture.takenAt) : file.lastModified ? new Date(file.lastModified) : new Date()
+    const coordsText = `${capture.latitude.toFixed(6)}, ${capture.longitude.toFixed(6)}`
+    const watermarkLines = [`Data: ${formatDateBR(takenAt)} Hora: ${formatTimeBR(takenAt)}`, `GPS: ${coordsText}`]
+    const processed = await compressFileToBlob(file, MAX_DIMENSION, JPEG_QUALITY, {
+      watermarkLines,
+      exif: { latitude: capture.latitude, longitude: capture.longitude, takenAt }
+    })
     if (processed.byteLength > MAX_PHOTO_BYTES) {
       throw new Error(`Foto após compressão excede ${Math.round(MAX_PHOTO_BYTES / 1024 / 1024)}MB`)
     }

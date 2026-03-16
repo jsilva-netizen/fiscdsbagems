@@ -27,10 +27,56 @@ export default function PhotoGrid({
     const [tempLegendas, setTempLegendas] = useState({});
     const fileInputRef = useRef(null);
     const cameraInputRef = useRef(null);
+    const lastGpsFixRef = useRef(null);
+    const MAX_GPS_ACCURACY_M = 50;
+
+    const getValidatedGpsFix = async () => {
+        if (!('geolocation' in navigator) || !navigator.geolocation) {
+            throw new Error('Geolocalização não suportada neste dispositivo.');
+        }
+        const position = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(
+                resolve,
+                reject,
+                { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+            );
+        });
+        const coords = position?.coords;
+        const latitude = typeof coords?.latitude === 'number' ? coords.latitude : NaN;
+        const longitude = typeof coords?.longitude === 'number' ? coords.longitude : NaN;
+        const accuracy = typeof coords?.accuracy === 'number' ? coords.accuracy : Infinity;
+        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+            throw new Error('Coordenadas GPS indisponíveis. Aguarde o sinal e tente novamente.');
+        }
+        if (!Number.isFinite(accuracy) || accuracy > MAX_GPS_ACCURACY_M) {
+            throw new Error(`Precisão do GPS insuficiente (${Math.round(accuracy)}m). Aguarde melhorar o sinal.`);
+        }
+        return { latitude, longitude, accuracy, takenAt: new Date().toISOString() };
+    };
+
+    const openWithGpsGate = async (ref) => {
+        try {
+            const fix = await getValidatedGpsFix();
+            lastGpsFixRef.current = fix;
+            ref?.current?.click();
+        } catch (err) {
+            alert(err?.message || String(err));
+        }
+    };
 
     const handleFileSelect = async (e) => {
         const files = e.target.files;
         if (!files || files.length === 0) return;
+
+        let gpsFix = lastGpsFixRef.current;
+        try {
+            gpsFix = gpsFix || await getValidatedGpsFix();
+            lastGpsFixRef.current = gpsFix;
+        } catch (err) {
+            alert(err?.message || String(err));
+            e.target.value = '';
+            return;
+        }
 
         setIsUploading(true);
         setTotalUploads(files.length);
@@ -48,7 +94,12 @@ export default function PhotoGrid({
                     if (countAtual >= MAX_PHOTOS_PER_UNIDADE) {
                         throw new Error(`Limite de ${MAX_PHOTOS_PER_UNIDADE} fotos por unidade atingido`);
                     }
-                    const saved = await Repository.addLocalFotoFromFile(unidadeId, file);
+                    const takenAt = file?.lastModified ? new Date(file.lastModified).toISOString() : new Date().toISOString();
+                    const saved = await Repository.addLocalFotoFromFile(unidadeId, file, {
+                        latitude: gpsFix.latitude,
+                        longitude: gpsFix.longitude,
+                        takenAt
+                    });
                     const novaFoto = {
                         localId: saved.localId,
                         url: saved.previewUrl || saved.url || '',
@@ -111,7 +162,7 @@ export default function PhotoGrid({
                         className="hidden"
                     />
                     <Button 
-                        onClick={() => fileInputRef.current?.click()} 
+                        onClick={() => void openWithGpsGate(fileInputRef)} 
                         size="sm"
                         variant="outline"
                         disabled={isUploading || !isEditable}
@@ -129,7 +180,7 @@ export default function PhotoGrid({
                         )}
                     </Button>
                     <Button 
-                        onClick={() => cameraInputRef.current?.click()} 
+                        onClick={() => void openWithGpsGate(cameraInputRef)} 
                         size="sm"
                         disabled={isUploading || !isEditable}
                     >
