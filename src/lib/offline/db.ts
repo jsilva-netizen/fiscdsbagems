@@ -13,7 +13,8 @@ export type Foto = {
 export type OfflineFoto = {
   localId: UUID
   unidadeLocalId: UUID
-  base64: string
+  base64?: string
+  blob?: Blob
   url?: string
   legenda?: string
   mimeType?: string
@@ -130,6 +131,9 @@ export type FilaMutacao = {
   payload: any
   status?: 'pending' | 'done' | 'error'
   created_at?: string
+  attempts?: number
+  lastError?: string
+  nextRetryAt?: string
 }
 
 export type EstadoSync = {
@@ -138,6 +142,13 @@ export type EstadoSync = {
   updated_at?: string
   last_sync_at?: string
   pending_count?: number
+}
+
+export type PendingEntity = {
+  id: UUID
+  entity: string
+  local_id: UUID
+  created_at?: string
 }
 
 export class AppDB extends Dexie {
@@ -155,6 +166,7 @@ export class AppDB extends Dexie {
   fila_mutacoes!: Table<FilaMutacao, UUID>
   estados_sync!: Table<EstadoSync, UUID>
   id_map!: Table<{ local_id: UUID; server_id?: UUID; entity: string }, UUID>
+  pending_entities!: Table<PendingEntity, UUID>
 
   constructor() {
     super('agems_fiscalizacao_offline')
@@ -219,6 +231,22 @@ export class AppDB extends Dexie {
           if (next.storagePath === undefined) next.storagePath = undefined
           if (next.lastError === undefined) next.lastError = undefined
           await table.put(next)
+        }
+      })
+    this.version(8)
+      .stores({
+        fila_mutacoes: 'id, tipo, status, created_at, entity, nextRetryAt',
+        pending_entities: 'id, entity, local_id, created_at'
+      })
+      .upgrade(async (tx) => {
+        const fila = tx.table('fila_mutacoes') as Table<FilaMutacao, UUID>
+        const all = await fila.toArray()
+        for (const m of all) {
+          const next: any = { ...m }
+          if (next.attempts === undefined) next.attempts = 0
+          if (next.lastError === undefined) next.lastError = undefined
+          if (next.nextRetryAt === undefined) next.nextRetryAt = undefined
+          await fila.put(next)
         }
       })
   }

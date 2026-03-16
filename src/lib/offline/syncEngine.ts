@@ -170,6 +170,12 @@ const orderForSyncUp: Entity[] = [
 
 const now = () => new Date().toISOString()
 
+const chunk = <T>(arr: T[], size: number): T[][] => {
+  const out: T[][] = []
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size))
+  return out
+}
+
 async function withBackoff<T>(fn: () => Promise<T>, retries = 4, baseDelayMs = 500): Promise<T> {
   let attempt = 0
   let lastErr: any
@@ -210,6 +216,100 @@ function withTimeout<T>(fn: () => Promise<T>, timeoutMs = 15000): Promise<T> {
   })
 }
 
+async function selectAllPages(q: any, pageSize = 1000): Promise<any[]> {
+  const out: any[] = []
+  let from = 0
+  while (true) {
+    const to = from + pageSize - 1
+    const { data, error } = await q.range(from, to)
+    if (error) throw error
+    const rows = (data || []) as any[]
+    out.push(...rows)
+    if (rows.length < pageSize) break
+    from += pageSize
+  }
+  return out
+}
+
+async function safeSelect(table: string, cols: string): Promise<any[]> {
+  try {
+    return await selectAllPages(supabase.from(table).select(cols))
+  } catch {
+    return await selectAllPages(supabase.from(table).select('*'))
+  }
+}
+
+async function safeSelectSince(table: string, cols: string, since?: string): Promise<any[]> {
+  const run = async (selectCols: string, mode: 'since' | 'created' | 'all', v?: string) => {
+    let q = supabase.from(table).select(selectCols)
+    if (mode === 'since' && v) q = q.or(`updated_at.gte.${v},created_at.gte.${v}`)
+    if (mode === 'created' && v) q = q.gte('created_at', v)
+    return await selectAllPages(q)
+  }
+  if (since) {
+    try {
+      try {
+        return await run(cols, 'since', since)
+      } catch {
+        return await run('*', 'since', since)
+      }
+    } catch {
+      try {
+        return await run(cols, 'created', since)
+      } catch {
+        return await run('*', 'created', since)
+      }
+    }
+  }
+  return safeSelect(table, cols)
+}
+
+function errorInfo(err: any): { status?: number; code?: string; message: string } {
+  const status = typeof err?.status === 'number' ? err.status : typeof err?.code === 'number' ? err.code : undefined
+  const code = typeof err?.code === 'string' ? err.code : undefined
+  const message = String(err?.message || err || '')
+  return { status, code, message }
+}
+
+function isRetryableError(err: any): boolean {
+  const { status, code, message } = errorInfo(err)
+  const msg = message.toLowerCase()
+  if (status === 401 || status === 403) return true
+  if (status === 408 || status === 409 || status === 429) return true
+  if (typeof status === 'number' && status >= 500) return true
+  if (code && ['ECONNRESET', 'ETIMEDOUT', 'EAI_AGAIN', 'ENOTFOUND'].includes(code)) return true
+  if (msg.includes('timeout') || msg.includes('network') || msg.includes('failed to fetch')) return true
+  return false
+}
+
+function computeNextRetryAt(attempts: number, retryable: boolean): string {
+  const cappedAttempts = Math.max(1, Math.min(12, attempts))
+  const base = retryable ? 800 : 10_000
+  const maxDelay = retryable ? 5 * 60_000 : 24 * 60 * 60_000
+  const raw = base * Math.pow(2, cappedAttempts - 1)
+  const delay = Math.min(maxDelay, raw)
+  const jitter = Math.floor(Math.random() * Math.min(1500, Math.floor(delay / 3)))
+  return new Date(Date.now() + delay + jitter).toISOString()
+}
+
+async function fetchExistingIds(table: string, ids: string[]): Promise<Set<string>> {
+  const out = new Set<string>()
+  const parts = chunk(ids, 500)
+  for (const part of parts) {
+    if (part.length === 0) continue
+    const rows = await withBackoff(() =>
+      withTimeout(async () => {
+        const { data, error } = await supabase.from(table).select('id').in('id', part as any)
+        if (error) throw error
+        return (data || []) as any[]
+      }, 15000)
+    )
+    for (const r of rows) out.add(String((r as any)?.id || ''))
+  }
+  out.delete('')
+  return out
+}
+
 export async function enqueueMutation(payload: any, type: MutationType, entity: Entity) {
   const id = crypto?.randomUUID?.() || Math.random().toString(36).slice(2)
   await db.fila_mutacoes.add({
@@ -218,6 +318,9 @@ export async function enqueueMutation(payload: any, type: MutationType, entity: 
     entity,
     payload,
     status: 'pending',
+    attempts: 0,
+    lastError: '',
+    nextRetryAt: undefined,
     created_at: now()
   })
   const pending = await db.fila_mutacoes.where('status').equals('pending').count()
@@ -240,36 +343,57 @@ export async function getLastSync(): Promise<{ lastSyncAt?: string }> {
 
 async function retryOutboxErrors(): Promise<void> {
   const errs = await db.fila_mutacoes.where('status').equals('error').toArray()
+  const nowIso = now()
   for (const e of errs) {
-    await db.fila_mutacoes.update(e.id as any, { status: 'pending' })
+    const nextRetryAt = (e as any).nextRetryAt as string | undefined
+    if (!nextRetryAt || nextRetryAt <= nowIso) {
+      await db.fila_mutacoes.update(e.id as any, { status: 'pending', nextRetryAt: undefined })
+    }
   }
 }
 
 async function ensureBaseEntitiesEnqueued(): Promise<void> {
-  const fiscAll = await db.fiscalizacoes.toArray()
-  for (const f of fiscAll) {
-    const map = await db.id_map.where('local_id').equals(f.id as UUID).and((m) => m.entity === 'fiscalizacoes').first()
-    if (!map?.server_id) {
-      const { data: existsRemote } = await supabase.from('fiscalizacoes').select('id').eq('id', f.id as any).maybeSingle()
-      if (!existsRemote) {
-        const exists = await db.fila_mutacoes.where('entity').equals('fiscalizacoes').and((m) => m.payload?.id === f.id).first()
-        if (!exists) {
-          await enqueueMutation(f, 'insert', 'fiscalizacoes')
-        }
+  const pending = await db.pending_entities.toArray()
+  if (pending.length === 0) return
+
+  const fiscPend = pending.filter((p: any) => p.entity === 'fiscalizacoes')
+  const unPend = pending.filter((p: any) => p.entity === 'unidades')
+
+  if (fiscPend.length > 0) {
+    const ids = fiscPend.map((p: any) => String(p.local_id))
+    const remote = await fetchExistingIds('fiscalizacoes', ids)
+    for (const p of fiscPend) {
+      const id = String((p as any).local_id)
+      if (remote.has(id)) {
+        await db.pending_entities.delete((p as any).id)
+        continue
       }
+      const local = await db.fiscalizacoes.get(id as any)
+      if (!local) {
+        await db.pending_entities.delete((p as any).id)
+        continue
+      }
+      await enqueueMutation(local, 'insert', 'fiscalizacoes')
+      await db.pending_entities.delete((p as any).id)
     }
   }
-  const unidadesAll = await db.unidades.toArray()
-  for (const u of unidadesAll) {
-    const map = await db.id_map.where('local_id').equals(u.id as UUID).and((m) => m.entity === 'unidades').first()
-    if (!map?.server_id) {
-      const { data: existsRemote } = await supabase.from('unidades_fiscalizadas').select('id').eq('id', u.id as any).maybeSingle()
-      if (!existsRemote) {
-        const exists = await db.fila_mutacoes.where('entity').equals('unidades').and((m) => m.payload?.id === u.id).first()
-        if (!exists) {
-          await enqueueMutation(u, 'insert', 'unidades')
-        }
+
+  if (unPend.length > 0) {
+    const ids = unPend.map((p: any) => String(p.local_id))
+    const remote = await fetchExistingIds('unidades_fiscalizadas', ids)
+    for (const p of unPend) {
+      const id = String((p as any).local_id)
+      if (remote.has(id)) {
+        await db.pending_entities.delete((p as any).id)
+        continue
       }
+      const local = await db.unidades.get(id as any)
+      if (!local) {
+        await db.pending_entities.delete((p as any).id)
+        continue
+      }
+      await enqueueMutation(local, 'insert', 'unidades')
+      await db.pending_entities.delete((p as any).id)
     }
   }
 }
@@ -499,10 +623,18 @@ export async function syncUp(): Promise<number> {
         chunk.map(async (m) => {
           try {
             await pushOne(m.entity as Entity, m.tipo as MutationType, m.payload)
-            await db.fila_mutacoes.update(m.id, { status: 'done' })
+            await db.fila_mutacoes.update(m.id, { status: 'done', lastError: '', nextRetryAt: undefined })
+            const localId = m.payload?.id
+            if (localId && (m.entity === 'fiscalizacoes' || m.entity === 'unidades')) {
+              await db.pending_entities.delete(`${m.entity}:${localId}` as any)
+            }
             processed++
-          } catch {
-            await db.fila_mutacoes.update(m.id, { status: 'error' })
+          } catch (err: any) {
+            const attempts = (m as any).attempts ? Number((m as any).attempts) + 1 : 1
+            const retryable = isRetryableError(err)
+            const nextRetryAt = computeNextRetryAt(attempts, retryable)
+            const msg = errorInfo(err).message
+            await db.fila_mutacoes.update(m.id, { status: 'error', attempts, lastError: msg, nextRetryAt })
           }
         })
       )
@@ -525,28 +657,51 @@ export async function syncUp(): Promise<number> {
   return processed
 }
 
+function selectColsForPull(entity: Entity): string {
+  switch (entity) {
+    case 'fiscalizacoes':
+      return 'id,municipio_id,municipio_nome,prestador_servico_id,prestador_servico_nome,fiscal_nome,fiscal_email,data_inicio,data_fim,latitude_inicio,longitude_inicio,status,servicos,numero_termo,created_at,updated_at'
+    case 'unidades':
+      return 'id,fiscalizacao_id,tipo_unidade_id,tipo_unidade_nome,nome_unidade,codigo_unidade,endereco,latitude,longitude,status,total_constatacoes,total_ncs,fotos_unidade,data_hora_vistoria,created_at,updated_at'
+    case 'respostas':
+      return 'id,unidade_fiscalizada_id,item_checklist_id,resposta,observacao,pergunta,numero_constatacao,gera_nc,created_at,updated_at'
+    case 'constatacoes_manuais':
+      return 'id,unidade_fiscalizada_id,numero_constatacao,descricao,gera_nc,artigo_portaria,texto_determinacao,texto_recomendacao,ordem,created_at,updated_at'
+    default:
+      return '*'
+  }
+}
+
 async function pullEntity(entity: Entity, since?: string) {
   const table = entityTableMap[entity]
-  const selectCol = '*'
+  const prefer = selectColsForPull(entity)
   const doRequest = async () => {
-    try {
-      let q = supabase.from(table).select(selectCol)
-      if (since) {
-        q = q.or(`updated_at.gte.${since},created_at.gte.${since}`)
-      }
+    const run = async (cols: string, mode: 'since' | 'created', v?: string) => {
+      let q = supabase.from(table).select(cols)
+      if (mode === 'since' && v) q = q.or(`updated_at.gte.${v},created_at.gte.${v}`)
+      if (mode === 'created' && v) q = q.gte('created_at', v)
       const { data, error } = await q
       if (error) throw error
-      return data || []
+      return (data || []) as any[]
+    }
+    try {
+      try {
+        return await run(prefer, 'since', since)
+      } catch {
+        return await run('*', 'since', since)
+      }
     } catch (err: any) {
       if (since) {
-        const { data, error } = await supabase.from(table).select(selectCol).gte('created_at', since)
-        if (error) throw error
-        return data || []
+        try {
+          return await run(prefer, 'created', since)
+        } catch {
+          return await run('*', 'created', since)
+        }
       }
       throw err
     }
   }
-  const rows = await withBackoff(() => withTimeout(doRequest, 15000))
+  const rows: any[] = await withBackoff(() => withTimeout(doRequest, 15000))
   // aplica dedup por id_map
   for (const row of rows) {
     const server_id = row.id as UUID
@@ -586,11 +741,10 @@ export async function syncDown(): Promise<void> {
   ])
   // itens_checklist e recomendacoes: tabelas adicionais
   await withBackoff(() => withTimeout(async () => {
-    const { data, error } = await supabase.from('municipios').select('*')
-    if (error) throw error
+    const data = await safeSelectSince('municipios', 'id, nome, updated_at', since)
     if (Array.isArray(data)) {
       for (const row of data) {
-        await db.municipios.put(row)
+        await db.municipios.put(row as any)
       }
     }
   }, 15000))
@@ -604,48 +758,52 @@ export async function syncDown(): Promise<void> {
     }
   }
   await withBackoff(() => withTimeout(async () => {
-    const { data, error } = await supabase.from('tipos_unidade').select('*')
-    if (error) throw error
+    const data = await safeSelectSince('tipos_unidade', 'id, nome, codigo, servicos_aplicaveis, ativo, created_at, updated_at', since)
     if (Array.isArray(data)) {
       for (const row of data) {
-        await db.tipos_unidade.put(row)
+        await db.tipos_unidade.put(row as any)
       }
     }
   }, 15000))
   await withBackoff(() => withTimeout(async () => {
-    const { data, error } = await supabase.from('prestadores_servico').select('*')
-    if (error) throw error
+    const data = await safeSelectSince('prestadores_servico', 'id, nome, created_at, updated_at', since)
     if (Array.isArray(data)) {
       for (const row of data) {
-        await db.prestadores.put(row)
+        await db.prestadores.put(row as any)
       }
     }
   }, 15000))
   await withBackoff(() => withTimeout(async () => {
-    const { data, error } = await supabase.from('itens_checklist').select('*')
-    if (error) throw error
+    const data = await safeSelectSince(
+      'itens_checklist',
+      'id, tipo_unidade_id, ordem, pergunta, texto_constatacao_sim, texto_constatacao_nao, gera_nc, artigo_portaria, texto_determinacao, texto_recomendacao, texto_nc, prazo_dias, ativo, created_at, updated_at',
+      since
+    )
     if (Array.isArray(data)) {
       for (const row of data) {
-        await db.itens_checklist.put(row)
+        await db.itens_checklist.put(row as any)
       }
     }
   }, 15000))
   await withBackoff(() => withTimeout(async () => {
-    const { data, error } = await supabase.from('recomendacoes').select('*')
-    if (error) {
+    try {
+      const data = await safeSelectSince(
+        'recomendacoes',
+        'id, unidade_fiscalizada_id, numero_recomendacao, descricao, origem, created_at, updated_at',
+        since
+      )
+      if (Array.isArray(data)) {
+        for (const row of data) {
+          const server_id = (row as any).id as UUID
+          const map = await db.id_map.where('server_id').equals(server_id).first()
+          const local_id = map?.local_id || server_id
+          await db.recomendacoes.put({ ...(row as any), id: local_id })
+        }
+      }
+    } catch (error: any) {
       const status = (error as any)?.status
-      if (status === 400) {
-        return []
-      }
+      if (status === 400) return []
       throw error
-    }
-    if (Array.isArray(data)) {
-      for (const row of data) {
-        const server_id = row.id as UUID
-        const map = await db.id_map.where('server_id').equals(server_id).first()
-        const local_id = map?.local_id || server_id
-        await db.recomendacoes.put({ ...row, id: local_id })
-      }
     }
   }, 15000))
   await db.estados_sync.put({
@@ -675,6 +833,9 @@ async function hardResetLocalData(): Promise<void> {
     await db.fotos_local.clear()
     await db.id_map.clear()
   })
+  await db.transaction('rw', db.pending_entities, async () => {
+    await db.pending_entities.clear()
+  })
   await db.transaction('rw', db.fila_mutacoes, db.estados_sync, async () => {
     await db.fila_mutacoes.clear()
     await db.estados_sync.clear()
@@ -686,7 +847,8 @@ export async function syncFotosWithProgress(onProgress?: (uploaded: number, tota
   const unsynced = all.filter((f) => !f.syncedAt)
   const total = unsynced.length
   let uploaded = 0
-  const concurrency = 3
+  const cpu = typeof navigator !== 'undefined' && typeof (navigator as any).hardwareConcurrency === 'number' ? Number((navigator as any).hardwareConcurrency) : 4
+  const concurrency = Math.max(2, Math.min(6, Math.ceil(cpu / 3)))
   let cursor = 0
   const nextItem = () => {
     const i = cursor
@@ -697,7 +859,11 @@ export async function syncFotosWithProgress(onProgress?: (uploaded: number, tota
     while (true) {
       const f = nextItem()
       if (!f) break
-      const blob = base64ToBlob(f.base64)
+      const blob = f.blob instanceof Blob ? f.blob : typeof f.base64 === 'string' ? base64ToBlob(f.base64) : undefined
+      if (!blob) {
+        await db.fotos_local.update(f.localId as any, { lastError: 'Foto sem conteúdo', attempts: (f.attempts || 0) + 1 })
+        continue
+      }
       const path = f.storagePath || `fiscalizacoes/unknown/${f.unidadeLocalId}/${f.localId}.jpg`
       const doUpload = async () => {
         const { error } = await supabase.storage.from('fotos_fiscalizacao').upload(path, blob, {
@@ -728,30 +894,43 @@ export async function syncFotosWithProgress(onProgress?: (uploaded: number, tota
   const workers = Array.from({ length: Math.max(1, Math.min(concurrency, unsynced.length)) }, () => worker())
   await Promise.all(workers)
   const byUnidade: Record<string, { url: string; legenda?: string }[]> = {}
-  const syncedAll = await db.fotos_local.toArray()
-  for (const f of syncedAll.filter((x) => !!x.syncedAt && !!x.url)) {
+  const syncedAll = await db.fotos_local.where('syncedAt').above('' as any).toArray()
+  for (const f of syncedAll.filter((x) => !!x.url)) {
     const list = byUnidade[f.unidadeLocalId] || []
     list.push({ url: f.url!, legenda: f.legenda })
     byUnidade[f.unidadeLocalId] = list
   }
-  for (const [unidadeId, fotos_unidade] of Object.entries(byUnidade)) {
-    const doUpdate = async () => {
-      const map = await db.id_map.where('local_id').equals(unidadeId as any).and((m) => m.entity === 'unidades').first()
-      const serverId = map?.server_id || unidadeId
-      const { error } = await supabase.from('unidades_fiscalizadas').update({ fotos_unidade, updated_at: new Date().toISOString() }).eq('id', serverId as any)
-      if (error) throw error
-    }
-    await withBackoff(() => withTimeout(doUpdate, 15000))
-    // Após atualizar com sucesso no servidor, remover as fotos locais sincronizadas desta unidade
-    const deletables = await db.fotos_local
-      .where('unidadeLocalId')
-      .equals(unidadeId as any)
-      .and((x) => !!x.syncedAt && !!x.url)
-      .toArray()
-    if (deletables.length > 0) {
-      await db.fotos_local.bulkDelete(deletables.map((d) => d.localId as any))
+  const entries = Object.entries(byUnidade)
+  const unitConcurrency = Math.min(3, Math.max(1, entries.length))
+  let unitCursor = 0
+  const nextUnit = () => {
+    const i = unitCursor
+    unitCursor++
+    return entries[i]
+  }
+  const unitWorker = async () => {
+    while (true) {
+      const pair = nextUnit()
+      if (!pair) break
+      const [unidadeId, fotos_unidade] = pair
+      const doUpdate = async () => {
+        const map = await db.id_map.where('local_id').equals(unidadeId as any).and((m) => m.entity === 'unidades').first()
+        const serverId = map?.server_id || unidadeId
+        const { error } = await supabase.from('unidades_fiscalizadas').update({ fotos_unidade, updated_at: new Date().toISOString() }).eq('id', serverId as any)
+        if (error) throw error
+      }
+      await withBackoff(() => withTimeout(doUpdate, 15000))
+      const deletables = await db.fotos_local
+        .where('unidadeLocalId')
+        .equals(unidadeId as any)
+        .and((x) => !!x.syncedAt && !!x.url)
+        .toArray()
+      if (deletables.length > 0) {
+        await db.fotos_local.bulkDelete(deletables.map((d) => d.localId as any))
+      }
     }
   }
+  await Promise.all(Array.from({ length: unitConcurrency }, () => unitWorker()))
   return uploaded
 }
 

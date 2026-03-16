@@ -1,6 +1,6 @@
 import { db, Foto, Fiscalizacao, Unidade, ItemChecklist, RespostaChecklist, ConstatacaoManual, OfflineFoto } from './db'
 import { enqueueMutation } from './syncEngine'
-import { compressFileToBase64, MAX_PHOTOS_PER_UNIDADE, MAX_PHOTO_BYTES } from './image'
+import { compressFileToBlob, MAX_PHOTOS_PER_UNIDADE, MAX_PHOTO_BYTES } from './image'
 import { supabase } from '@/lib/supabase'
 
 const now = () => new Date().toISOString()
@@ -48,6 +48,20 @@ const normalizeFoto = (f: Partial<Foto>): Foto => ({
   width: typeof f.width === 'number' ? f.width : undefined,
   height: typeof f.height === 'number' ? f.height : undefined
 })
+
+const localFotoUrlCache = new Map<string, string>()
+const localFotoPreviewUrl = (f: OfflineFoto): string => {
+  if (f.url) return f.url
+  const cached = localFotoUrlCache.get(f.localId)
+  if (cached) return cached
+  if (f.blob instanceof Blob) {
+    const u = URL.createObjectURL(f.blob)
+    localFotoUrlCache.set(f.localId, u)
+    return u
+  }
+  if (typeof f.base64 === 'string' && f.base64.trim() !== '') return f.base64
+  return ''
+}
 
 export const Repository = {
   async listMunicipios(): Promise<{ id: string; nome: string }[]> {
@@ -145,6 +159,12 @@ export const Repository = {
       numero_termo: ''
     }
     await withTimeout(() => db.fiscalizacoes.add(item))
+    await db.pending_entities.put({
+      id: `fiscalizacoes:${id}` as any,
+      entity: 'fiscalizacoes',
+      local_id: id,
+      created_at: now()
+    } as any)
     enqueueMutation(item, 'insert', 'fiscalizacoes').catch(() => {})
     return item
   },
@@ -177,6 +197,12 @@ export const Repository = {
     }
     // propriedades locais não indexadas podem ser adicionadas
     await withTimeout(() => db.unidades.add(item as any))
+    await db.pending_entities.put({
+      id: `unidades:${id}` as any,
+      entity: 'unidades',
+      local_id: id,
+      created_at: now()
+    } as any)
     enqueueMutation(item, 'insert', 'unidades').catch(() => {})
     return item
   },
@@ -528,12 +554,12 @@ export const Repository = {
     await enqueueMutation({ unidade_fiscalizada_id: unidadeId, fotos_unidade: normalized }, 'update', 'fotos')
   },
 
-  async addLocalFotoFromFile(unidadeId: string, file: File): Promise<OfflineFoto> {
+  async addLocalFotoFromFile(unidadeId: string, file: File): Promise<OfflineFoto & { previewUrl: string }> {
     const count = await db.fotos_local.where('unidadeLocalId').equals(unidadeId).count()
     if (count >= MAX_PHOTOS_PER_UNIDADE) {
       throw new Error(`Limite máximo de ${MAX_PHOTOS_PER_UNIDADE} fotos por unidade atingido`)
     }
-    const processed = await compressFileToBase64(file)
+    const processed = await compressFileToBlob(file)
     if (processed.byteLength > MAX_PHOTO_BYTES) {
       throw new Error(`Foto após compressão excede ${Math.round(MAX_PHOTO_BYTES / 1024 / 1024)}MB`)
     }
@@ -544,7 +570,7 @@ export const Repository = {
     const item: OfflineFoto = {
       localId,
       unidadeLocalId: unidadeId,
-      base64: processed.base64,
+      blob: processed.blob,
       legenda: '',
       mimeType: processed.mimeType,
       width: processed.width,
@@ -555,11 +581,13 @@ export const Repository = {
       created_at: now()
     }
     await db.fotos_local.add(item)
-    return item
+    const previewUrl = localFotoPreviewUrl(item)
+    return { ...item, previewUrl }
   },
 
   async listLocalFotos(unidadeId: string): Promise<OfflineFoto[]> {
-    return db.fotos_local.where('unidadeLocalId').equals(unidadeId).toArray()
+    const list = await db.fotos_local.where('unidadeLocalId').equals(unidadeId).toArray()
+    return list.map((f) => ({ ...f, url: localFotoPreviewUrl(f) } as any))
   },
 
   async updateLocalFotoLegenda(localId: string, legenda: string): Promise<void> {
@@ -571,6 +599,11 @@ export const Repository = {
 
   async deleteLocalFoto(localId: string): Promise<void> {
     await db.fotos_local.delete(localId as any)
+    const u = localFotoUrlCache.get(localId)
+    if (u) {
+      URL.revokeObjectURL(u)
+      localFotoUrlCache.delete(localId)
+    }
   },
 
   async markLocalFotoSynced(localId: string, publicUrl: string): Promise<void> {

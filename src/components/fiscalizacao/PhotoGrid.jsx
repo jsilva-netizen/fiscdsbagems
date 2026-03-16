@@ -51,7 +51,7 @@ export default function PhotoGrid({
                     const saved = await Repository.addLocalFotoFromFile(unidadeId, file);
                     const novaFoto = {
                         localId: saved.localId,
-                        url: saved.base64,
+                        url: saved.previewUrl || saved.url || '',
                         legenda: saved.legenda || '',
                         mimeType: saved.mimeType,
                         width: saved.width,

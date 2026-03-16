@@ -122,7 +122,7 @@ export default function VistoriarUnidade() {
                 typeof foto === 'string' ? { url: foto } : foto
             );
             const locais = await Repository.listLocalFotos(unidadeId).then(list => 
-                list.map(f => ({ localId: f.localId, url: f.base64, legenda: f.legenda || '', mimeType: f.mimeType, width: f.width, height: f.height }))
+                list.map(f => ({ localId: f.localId, url: f.url || '', legenda: f.legenda || '', mimeType: f.mimeType, width: f.width, height: f.height }))
             );
             setFotos([...(locais || []), ...remotas]);
         };
