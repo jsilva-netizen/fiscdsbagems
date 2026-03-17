@@ -48,6 +48,23 @@ export const deleteFiscalizacaoComImagens = async (fiscalizacaoId) => {
   const serverId = mapLocal?.server_id || fiscalizacaoId
   const localId = mapLocal?.local_id || mapServer?.local_id || fiscalizacaoId
 
+  // Remover relatório gerado (se existir) do Storage
+  try {
+    const { data: jobs } = await supabase.from('relatorios_jobs').select('id,storage_path').eq('fiscalizacao_id', serverId)
+    const paths = []
+    for (const j of jobs || []) {
+      if (j?.storage_path) paths.push(j.storage_path)
+      else if (j?.id) paths.push(`fiscalizacoes/${serverId}/${j.id}.pdf`)
+    }
+    const uniq = Array.from(new Set(paths.filter(Boolean)))
+    if (uniq.length > 0) {
+      await supabase.storage.from('relatorios_fiscalizacao').remove(uniq)
+    }
+    if ((jobs || []).length > 0) {
+      await supabase.from('relatorios_jobs').delete().eq('fiscalizacao_id', serverId)
+    }
+  } catch {}
+
   // Remover arquivos ligados aos Termos de Notificação desta fiscalização
   try {
     const { data: termos } = await supabase
@@ -75,12 +92,30 @@ export const deleteFiscalizacaoComImagens = async (fiscalizacaoId) => {
     .select('id,fotos_unidade')
     .eq('fiscalizacao_id', serverId)
   const fotos = []
+  const unidadeIds = []
   for (const u of unidades || []) {
+    if (u?.id) unidadeIds.push(u.id)
     if (Array.isArray(u?.fotos_unidade)) {
       fotos.push(...u.fotos_unidade)
     }
   }
   await removePathsByBucket(fotos)
+
+  // Remover fotos ligadas a NCs (se houver) desta fiscalização
+  try {
+    if (unidadeIds.length > 0) {
+      const { data: ncs } = await supabase.from('nao_conformidades').select('id,fotos').in('unidade_fiscalizada_id', unidadeIds)
+      const ncFotos = []
+      for (const nc of ncs || []) {
+        const arr = Array.isArray(nc?.fotos) ? nc.fotos : []
+        for (const f of arr) {
+          if (f) ncFotos.push(f)
+        }
+      }
+      await removePathsByBucket(ncFotos)
+    }
+  } catch {}
+
   await supabase.from('fiscalizacoes').delete().eq('id', serverId)
   // limpeza local para refletir imediatamente na UI
   await db.transaction('rw', db.unidades, db.fiscalizacoes, async () => {
