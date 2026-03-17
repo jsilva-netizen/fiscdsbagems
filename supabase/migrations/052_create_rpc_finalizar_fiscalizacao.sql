@@ -31,6 +31,9 @@ declare
   v_ano int;
   v_next_num int := 0;
   v_data_fim timestamptz := now();
+  v_existing_numero_termo text;
+  v_existing_status text;
+  v_existing_data_fim timestamptz;
 begin
   -- Validar fiscalização
   if v_fisc_id is null then
@@ -38,6 +41,20 @@ begin
   end if;
   if not exists (select 1 from public.fiscalizacoes f where f.id = v_fisc_id) then
     return jsonb_build_object('success', false, 'error', 'Fiscalização não encontrada');
+  end if;
+
+  select f.numero_termo, f.status, f.data_fim
+    into v_existing_numero_termo, v_existing_status, v_existing_data_fim
+  from public.fiscalizacoes f
+  where f.id = v_fisc_id
+  for update;
+
+  if v_existing_status = 'finalizada'
+     and v_existing_numero_termo is not null
+     and v_existing_numero_termo ~ '^[0-9]{3}/[0-9]{4}$'
+  then
+    v_numero_termo := v_existing_numero_termo;
+    v_data_fim := coalesce(v_existing_data_fim, v_data_fim);
   end if;
 
   -- Iterar unidades e gerar NC/D/R sequencialmente
@@ -82,39 +99,41 @@ begin
 
   -- Numerar termo sequencial no ano
   v_ano := extract(year from v_data_fim);
-  perform pg_advisory_xact_lock(hashtext('fiscalizacoes_numero_termo_' || v_ano::text));
+  if v_numero_termo is null then
+    perform pg_advisory_xact_lock(hashtext('fiscalizacoes_numero_termo_' || v_ano::text));
 
-  with used as (
-    select (split_part(f.numero_termo, '/', 1))::int as n
-    from public.fiscalizacoes f
-    where f.status = 'finalizada'
-      and f.numero_termo is not null
-      and f.numero_termo ~ '^[0-9]{3}/[0-9]{4}$'
-      and (split_part(f.numero_termo, '/', 2))::int = v_ano
-  ),
-  mx as (
-    select coalesce(max(n), 0) as m from used
-  ),
-  missing as (
-    select gs as n
-    from generate_series(1, (select m from mx) + 1) gs
-    left join used u on u.n = gs
-    where u.n is null
-    order by gs
-    limit 1
-  )
-  select n into v_next_num from missing;
+    with used as (
+      select (split_part(f.numero_termo, '/', 1))::int as n
+      from public.fiscalizacoes f
+      where f.status = 'finalizada'
+        and f.numero_termo is not null
+        and f.numero_termo ~ '^[0-9]{3}/[0-9]{4}$'
+        and (split_part(f.numero_termo, '/', 2))::int = v_ano
+    ),
+    mx as (
+      select coalesce(max(n), 0) as m from used
+    ),
+    missing as (
+      select gs as n
+      from generate_series(1, (select m from mx) + 1) gs
+      left join used u on u.n = gs
+      where u.n is null
+      order by gs
+      limit 1
+    )
+    select n into v_next_num from missing;
 
-  if v_next_num is null or v_next_num < 1 then
-    v_next_num := 1;
+    if v_next_num is null or v_next_num < 1 then
+      v_next_num := 1;
+    end if;
+
+    v_numero_termo := lpad(v_next_num::text, 3, '0') || '/' || v_ano::text;
   end if;
-
-  v_numero_termo := lpad(v_next_num::text, 3, '0') || '/' || v_ano::text;
 
   -- Finalizar fiscalização
   update public.fiscalizacoes f
   set status = 'finalizada',
-      data_fim = v_data_fim,
+      data_fim = case when f.data_fim is null then v_data_fim else f.data_fim end,
       numero_termo = v_numero_termo,
       updated_at = now()
   where f.id = v_fisc_id;

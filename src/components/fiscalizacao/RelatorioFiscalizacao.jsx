@@ -105,6 +105,16 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
             const serverFiscalizacaoId = map?.server_id || (localFiscId || fiscalizacao.id);
             const mapPrest = localPrestId ? await db.id_map.where('local_id').equals(localPrestId).and(m => m.entity === 'prestadores').first() : null;
             const serverPrestadorId = mapPrest?.server_id || (localPrestId || fiscalizacao.prestador_servico_id);
+            let fiscalizacaoOnline = null;
+            try {
+                const { data: fOnline, error: fErr } = await supabase
+                    .from('fiscalizacoes')
+                    .select('numero_termo, municipio_nome, municipio_id, prestador_servico_id, prestador_servico_nome, servicos, servico, data_inicio, data_fim, fiscal_nome')
+                    .eq('id', serverFiscalizacaoId)
+                    .maybeSingle();
+                if (!fErr && fOnline) fiscalizacaoOnline = fOnline;
+            } catch {}
+            const fiscalizacaoForReport = { ...fiscalizacao, ...(fiscalizacaoOnline || {}) };
             // 1. Buscar todas as unidades da fiscalização
             const { data: unidades, error: uError } = await supabase
                 .from('unidades_fiscalizadas')
@@ -159,25 +169,25 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
             pdf.setTextColor(255, 255, 255);
             pdf.setFontSize(20);
             pdf.setFont('helvetica', 'bold');
-            const titulo = fiscalizacao.numero_termo 
-                ? `TERMO DE VISTORIA AGEMS/DSB Nº ${fiscalizacao.numero_termo}` 
+            const titulo = fiscalizacaoForReport.numero_termo 
+                ? `TERMO DE VISTORIA AGEMS/DSB Nº ${fiscalizacaoForReport.numero_termo}` 
                 : 'RELATÓRIO DE FISCALIZAÇÃO';
             pdf.text(titulo, pageWidth / 2, 15, { align: 'center' });
             
             pdf.setFontSize(11);
             pdf.setFont('helvetica', 'normal');
-            let municipioNome = fiscalizacao.municipio_nome || '';
-            if (!municipioNome && fiscalizacao.municipio_id) {
+            let municipioNome = fiscalizacaoForReport.municipio_nome || '';
+            if (!municipioNome && fiscalizacaoForReport.municipio_id) {
                 try {
-                    const { data: mun } = await supabase.from('municipios').select('nome').eq('id', fiscalizacao.municipio_id).maybeSingle();
+                    const { data: mun } = await supabase.from('municipios').select('nome').eq('id', fiscalizacaoForReport.municipio_id).maybeSingle();
                     municipioNome = mun?.nome || '';
                 } catch {}
             }
             pdf.text(municipioNome, pageWidth / 2, 25, { align: 'center' });
-            const servicosList = Array.isArray(fiscalizacao.servicos)
-                ? fiscalizacao.servicos
-                : typeof fiscalizacao.servico === 'string'
-                ? fiscalizacao.servico.split(',').map(s => s.trim()).filter(Boolean)
+            const servicosList = Array.isArray(fiscalizacaoForReport.servicos)
+                ? fiscalizacaoForReport.servicos
+                : typeof fiscalizacaoForReport.servico === 'string'
+                ? fiscalizacaoForReport.servico.split(',').map(s => s.trim()).filter(Boolean)
                 : [];
             if (servicosList.length > 0) {
                 pdf.text(servicosList.join(', '), pageWidth / 2, 33, { align: 'center' });
@@ -202,19 +212,19 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
             }
             pdf.text(`Prestador de Serviços: ${prestadorNome || '-'}`, margin + 2, yPos);
             yPos += 6;
-            const servicoLabel = fiscalizacao.servicos?.length > 1 ? 'Serviços' : 'Serviço';
-            pdf.text(`${servicoLabel}: ${fiscalizacao.servicos?.join(', ')}`, margin + 2, yPos);
+            const servicoLabel = servicosList.length > 1 ? 'Serviços' : 'Serviço';
+            pdf.text(`${servicoLabel}: ${servicosList.join(', ') || '-'}`, margin + 2, yPos);
             yPos += 6;
-            if (fiscalizacao.data_inicio) {
-                pdf.text(`Data Início: ${format(new Date(fiscalizacao.data_inicio), 'dd/MM/yyyy HH:mm', { locale: ptBR })}`, margin + 2, yPos);
+            if (fiscalizacaoForReport.data_inicio) {
+                pdf.text(`Data Início: ${format(new Date(fiscalizacaoForReport.data_inicio), 'dd/MM/yyyy HH:mm', { locale: ptBR })}`, margin + 2, yPos);
                 yPos += 6;
             }
-            if (fiscalizacao.data_fim) {
-                pdf.text(`Data Fim: ${format(new Date(fiscalizacao.data_fim), 'dd/MM/yyyy HH:mm', { locale: ptBR })}`, margin + 2, yPos);
+            if (fiscalizacaoForReport.data_fim) {
+                pdf.text(`Data Fim: ${format(new Date(fiscalizacaoForReport.data_fim), 'dd/MM/yyyy HH:mm', { locale: ptBR })}`, margin + 2, yPos);
                 yPos += 6;
             }
-            if (fiscalizacao.fiscal_nome) {
-                pdf.text(`Fiscal: ${fiscalizacao.fiscal_nome}`, margin + 2, yPos);
+            if (fiscalizacaoForReport.fiscal_nome) {
+                pdf.text(`Fiscal: ${fiscalizacaoForReport.fiscal_nome}`, margin + 2, yPos);
                 yPos += 6;
             }
             yPos += 8;
