@@ -197,6 +197,11 @@ export default function GerenciarTermos() {
 
      const criarTermoMutation = useMutation({
         mutationFn: async (dados) => {
+            const safeDados = { ...dados };
+            if (typeof safeDados.data_protocolo === 'string' && safeDados.data_protocolo.trim() === '') {
+                safeDados.data_protocolo = null;
+            }
+
             if (dados?.fiscalizacao_id) {
                 const { data: existing, error: exErr } = await supabase
                     .from('termos_notificacao')
@@ -210,15 +215,15 @@ export default function GerenciarTermos() {
             }
 
             let dataMaxima = null;
-            if (dados.data_protocolo) {
-                const dp = new Date(dados.data_protocolo + 'T00:00:00');
+            if (safeDados.data_protocolo) {
+                const dp = new Date(safeDados.data_protocolo + 'T00:00:00');
                 const dmax = new Date(dp);
                 dmax.setDate(dmax.getDate() + dados.prazo_resposta_dias);
                 dataMaxima = `${dmax.getFullYear()}-${String(dmax.getMonth() + 1).padStart(2, '0')}-${String(dmax.getDate()).padStart(2, '0')}`;
             }
             
             const { data, error } = await supabase.from('termos_notificacao').insert([{
-                ...dados,
+                ...safeDados,
                 data_maxima_resposta: dataMaxima,
                 data_geracao: new Date().toISOString(),
             }]).select().single();
