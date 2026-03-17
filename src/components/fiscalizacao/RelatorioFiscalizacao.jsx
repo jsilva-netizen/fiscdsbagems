@@ -768,11 +768,16 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
                 try {
                     const st = await invokeEdgeFunction('relatorios_status', { job_id: row.id });
                     if (!st?.signed_url) {
+                        setError(null);
                         setJob(null);
                         setJobId(null);
                         return;
                     }
+                    setJob({ ...row, signed_url: st.signed_url });
+                    setJobId(null);
+                    return;
                 } catch {
+                    setError(null);
                     setJob(null);
                     setJobId(null);
                     return;
@@ -814,6 +819,14 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
             try {
                 const data = await invokeEdgeFunction('relatorios_status', { job_id: jobId });
                 if (stopped) return;
+                if (data?.status === 'done' && !data?.signed_url) {
+                    stopped = true;
+                    clearInterval(intervalId);
+                    setJobId(null);
+                    setJob(null);
+                    setError(null);
+                    return;
+                }
                 setJob(data);
                 if (data?.status === 'done' && data?.signed_url) {
                     stopped = true;
@@ -877,7 +890,7 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
     };
 
     const isRunning = job?.status && job.status !== 'done' && job.status !== 'error';
-    const isDone = job?.status === 'done';
+    const isDone = job?.status === 'done' && !!job?.signed_url;
 
     return (
         <div className="space-y-2">
