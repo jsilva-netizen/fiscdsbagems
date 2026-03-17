@@ -764,6 +764,21 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
                 return;
             }
 
+            if (row.status === 'done') {
+                try {
+                    const st = await invokeEdgeFunction('relatorios_status', { job_id: row.id });
+                    if (!st?.signed_url) {
+                        setJob(null);
+                        setJobId(null);
+                        return;
+                    }
+                } catch {
+                    setJob(null);
+                    setJobId(null);
+                    return;
+                }
+            }
+
             setJob(row);
             const active = row.status === 'queued' || row.status === 'processing';
             setJobId(active ? row.id : null);
