@@ -17,6 +17,7 @@ import TermosKPI from '@/components/termos/TermosKPI';
 import TermosFiltros from '@/components/termos/TermosFiltros';
 
 let cachedTermosBucketName = null;
+let cachedAvailableBuckets = null;
 
 export default function GerenciarTermos() {
 
@@ -185,23 +186,55 @@ export default function GerenciarTermos() {
     };
 
     const uploadFileToStorage = async (file) => {
-        const candidates = [
+        if (!cachedAvailableBuckets) {
+            try {
+                const { data, error } = await supabase.storage.listBuckets();
+                if (!error && Array.isArray(data)) {
+                    cachedAvailableBuckets = data.map((b) => b?.name).filter(Boolean);
+                }
+            } catch {
+            }
+        }
+
+        const fallbackCandidates = [
             'documentos-termos',
             'documentos_termos',
             'documentos-termo',
             'termos-notificacao',
             'termos_notificacao',
+            'documentos',
+            'arquivos',
+            'files',
+            'public',
+            'evidencias-determinacoes',
+            'relatorios_fiscalizacao',
+            'fotos_fiscalizacao',
             'documentos-prestadores',
             'documentos-autos'
         ];
+
+        const rawCandidates = Array.isArray(cachedAvailableBuckets) && cachedAvailableBuckets.length > 0
+            ? [...cachedAvailableBuckets, ...fallbackCandidates]
+            : fallbackCandidates;
+
+        const uniqCandidates = Array.from(new Set(rawCandidates)).filter(Boolean);
+
+        const score = (name) => {
+            const n = String(name || '').toLowerCase();
+            if (n.includes('termo') || n.includes('notific')) return 0;
+            if (n.includes('document') || n.includes('arquivo')) return 1;
+            if (n.includes('evidenc')) return 2;
+            return 3;
+        };
 
         const ext = (file?.name || '').includes('.') ? file.name.split('.').pop() : 'pdf';
         const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
         const filePath = `termos_notificacao/${fileName}`;
 
+        const sorted = [...uniqCandidates].sort((a, b) => score(a) - score(b));
         const bucketOrder = cachedTermosBucketName
-            ? [cachedTermosBucketName, ...candidates.filter((b) => b !== cachedTermosBucketName)]
-            : candidates;
+            ? [cachedTermosBucketName, ...sorted.filter((b) => b !== cachedTermosBucketName)]
+            : sorted;
 
         let lastErr = null;
 
@@ -225,7 +258,9 @@ export default function GerenciarTermos() {
             return data?.publicUrl;
         }
 
-        throw lastErr || new Error('Falha no upload: nenhum bucket disponível.');
+        const attempted = bucketOrder.join(', ');
+        const errMsg = lastErr?.message ? ` (${lastErr.message})` : '';
+        throw new Error(`Falha no upload. Buckets testados: ${attempted}${errMsg}`);
     };
 
     const addDaysToISODate = (isoDate, days) => {
