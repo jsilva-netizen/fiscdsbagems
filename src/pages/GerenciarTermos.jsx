@@ -73,8 +73,8 @@ export default function GerenciarTermos() {
         prazo_resposta_dias: null
     });
 
-    const [quickProtocolo, setQuickProtocolo] = useState({ open: false, termo: null, data: '', protocoloUrl: '', oficioUrl: '' });
-    const [quickResposta, setQuickResposta] = useState({ open: false, termo: null, data: '', respostaUrl: '', oficioUrl: '' });
+    const [quickProtocolo, setQuickProtocolo] = useState({ open: false, termo: null, data: '', protocoloUrl: '', protocoloNome: '', oficioUrl: '', oficioNome: '' });
+    const [quickResposta, setQuickResposta] = useState({ open: false, termo: null, data: '', respostaUrl: '', respostaNome: '', oficioUrl: '', oficioNome: '' });
     const [quickUploading, setQuickUploading] = useState(false);
 
     const { data: fiscalizacoes = [] } = useQuery({
@@ -320,7 +320,9 @@ export default function GerenciarTermos() {
             termo,
             data: termo?.data_protocolo || '',
             protocoloUrl: termo?.arquivo_protocolo_url || '',
-            oficioUrl: termo?.arquivo_oficio_protocolo || ''
+            protocoloNome: '',
+            oficioUrl: termo?.arquivo_oficio_protocolo || '',
+            oficioNome: ''
         });
     };
 
@@ -330,7 +332,9 @@ export default function GerenciarTermos() {
             termo,
             data: termo?.data_recebimento_resposta || '',
             respostaUrl: termo?.arquivo_resposta_url || '',
-            oficioUrl: termo?.arquivo_oficio_resposta || ''
+            respostaNome: '',
+            oficioUrl: termo?.arquivo_oficio_resposta || '',
+            oficioNome: ''
         });
     };
 
@@ -890,7 +894,7 @@ export default function GerenciarTermos() {
                     open={quickProtocolo.open}
                     onOpenChange={(open) => {
                         if (!open) {
-                            setQuickProtocolo({ open: false, termo: null, data: '', protocoloUrl: '', oficioUrl: '' });
+                            setQuickProtocolo({ open: false, termo: null, data: '', protocoloUrl: '', protocoloNome: '', oficioUrl: '', oficioNome: '' });
                         }
                     }}
                 >
@@ -910,17 +914,19 @@ export default function GerenciarTermos() {
 
                             <div className="space-y-2">
                                 <Label className="text-sm">Arquivo de Protocolo / AR (PDF) *</Label>
-                                <Input
+                                <input
+                                    id={`quick-protocolo-ar-${quickProtocolo.termo?.id || 'x'}`}
                                     type="file"
                                     accept=".pdf,application/pdf"
                                     disabled={quickUploading}
+                                    className="hidden"
                                     onChange={async (e) => {
                                         const file = e.target.files?.[0];
                                         if (!file) return;
                                         setQuickUploading(true);
                                         try {
                                             const url = await uploadFileToStorage(file);
-                                            setQuickProtocolo(prev => ({ ...prev, protocoloUrl: url }));
+                                            setQuickProtocolo(prev => ({ ...prev, protocoloUrl: url, protocoloNome: file.name }));
                                         } catch (error) {
                                             alert('Erro ao enviar arquivo: ' + (error?.message || ''));
                                         } finally {
@@ -928,6 +934,19 @@ export default function GerenciarTermos() {
                                         }
                                     }}
                                 />
+                                <Button variant="outline" asChild disabled={quickUploading} className="w-full justify-start">
+                                    <label htmlFor={`quick-protocolo-ar-${quickProtocolo.termo?.id || 'x'}`} className="cursor-pointer w-full flex items-center">
+                                        <Upload className="h-4 w-4 mr-2" />
+                                        {quickUploading ? 'Enviando...' : 'Selecionar AR / Protocolo'}
+                                    </label>
+                                </Button>
+                                <div className="text-xs text-gray-600">
+                                    {quickProtocolo.protocoloNome
+                                        ? quickProtocolo.protocoloNome
+                                        : quickProtocolo.protocoloUrl
+                                        ? 'Arquivo já anexado'
+                                        : 'Nenhum arquivo selecionado'}
+                                </div>
                                 {quickProtocolo.protocoloUrl ? (
                                     <Button
                                         variant="outline"
@@ -943,17 +962,19 @@ export default function GerenciarTermos() {
 
                             <div className="space-y-2">
                                 <Label className="text-sm">Ofício de Protocolo (opcional)</Label>
-                                <Input
+                                <input
+                                    id={`quick-protocolo-oficio-${quickProtocolo.termo?.id || 'x'}`}
                                     type="file"
                                     accept=".pdf,application/pdf"
                                     disabled={quickUploading}
+                                    className="hidden"
                                     onChange={async (e) => {
                                         const file = e.target.files?.[0];
                                         if (!file) return;
                                         setQuickUploading(true);
                                         try {
                                             const url = await uploadFileToStorage(file);
-                                            setQuickProtocolo(prev => ({ ...prev, oficioUrl: url }));
+                                            setQuickProtocolo(prev => ({ ...prev, oficioUrl: url, oficioNome: file.name }));
                                         } catch (error) {
                                             alert('Erro ao enviar arquivo: ' + (error?.message || ''));
                                         } finally {
@@ -961,6 +982,19 @@ export default function GerenciarTermos() {
                                         }
                                     }}
                                 />
+                                <Button variant="outline" asChild disabled={quickUploading} className="w-full justify-start">
+                                    <label htmlFor={`quick-protocolo-oficio-${quickProtocolo.termo?.id || 'x'}`} className="cursor-pointer w-full flex items-center">
+                                        <Upload className="h-4 w-4 mr-2" />
+                                        {quickUploading ? 'Enviando...' : 'Selecionar Ofício'}
+                                    </label>
+                                </Button>
+                                <div className="text-xs text-gray-600">
+                                    {quickProtocolo.oficioNome
+                                        ? quickProtocolo.oficioNome
+                                        : quickProtocolo.oficioUrl
+                                        ? 'Arquivo já anexado'
+                                        : 'Nenhum arquivo selecionado'}
+                                </div>
                                 {quickProtocolo.oficioUrl ? (
                                     <Button
                                         variant="outline"
@@ -977,7 +1011,7 @@ export default function GerenciarTermos() {
                             <div className="flex gap-2 pt-2">
                                 <Button
                                     variant="outline"
-                                    onClick={() => setQuickProtocolo({ open: false, termo: null, data: '', protocoloUrl: '', oficioUrl: '' })}
+                                    onClick={() => setQuickProtocolo({ open: false, termo: null, data: '', protocoloUrl: '', protocoloNome: '', oficioUrl: '', oficioNome: '' })}
                                     className="flex-1"
                                     disabled={quickUploading}
                                 >
@@ -989,37 +1023,34 @@ export default function GerenciarTermos() {
                                     onClick={async () => {
                                         const termo = quickProtocolo.termo;
                                         if (!termo?.id) return;
-                                        if (!quickProtocolo.data) {
-                                            alert('Informe a data de protocolo');
-                                            return;
-                                        }
-                                        if (!quickProtocolo.protocoloUrl) {
-                                            alert('Envie o arquivo de protocolo');
+                                        const hasAny = !!quickProtocolo.data || !!quickProtocolo.protocoloUrl || !!quickProtocolo.oficioUrl;
+                                        if (!hasAny) {
+                                            alert('Anexe o ofício e/ou o AR (ou informe a data) para salvar.');
                                             return;
                                         }
 
                                         setQuickUploading(true);
                                         try {
-                                            const prazo = termo?.prazo_resposta_dias || 30;
-                                            const dataMax = addDaysToISODate(quickProtocolo.data, prazo);
-                                            const after = {
-                                                ...termo,
-                                                data_protocolo: quickProtocolo.data,
-                                                arquivo_protocolo_url: quickProtocolo.protocoloUrl
-                                            };
+                                            const payload = {};
+                                            if (quickProtocolo.data) payload.data_protocolo = quickProtocolo.data;
+                                            if (quickProtocolo.protocoloUrl) payload.arquivo_protocolo_url = quickProtocolo.protocoloUrl;
+                                            if (quickProtocolo.oficioUrl) payload.arquivo_oficio_protocolo = quickProtocolo.oficioUrl;
+
+                                            const finalAR = payload.arquivo_protocolo_url || termo?.arquivo_protocolo_url;
+                                            if (payload.data_protocolo && finalAR) {
+                                                const prazo = termo?.prazo_resposta_dias || 30;
+                                                const dataMax = addDaysToISODate(payload.data_protocolo, prazo);
+                                                if (dataMax) payload.data_maxima_resposta = dataMax;
+                                            }
+
+                                            const after = { ...termo, ...payload };
                                             const status = calcularStatusTermo(after);
-                                            const payload = {
-                                                data_protocolo: quickProtocolo.data,
-                                                arquivo_protocolo_url: quickProtocolo.protocoloUrl,
-                                                arquivo_oficio_protocolo: quickProtocolo.oficioUrl || null,
-                                                data_maxima_resposta: dataMax,
-                                                status
-                                            };
+                                            payload.status = status;
                                             const { error } = await supabase.from('termos_notificacao').update(payload).eq('id', termo.id);
                                             if (error) throw error;
                                             queryClient.invalidateQueries({ queryKey: ['termos-notificacao'] });
-                                            setQuickProtocolo({ open: false, termo: null, data: '', protocoloUrl: '', oficioUrl: '' });
-                                            alert('Protocolo registrado com sucesso!');
+                                            setQuickProtocolo({ open: false, termo: null, data: '', protocoloUrl: '', protocoloNome: '', oficioUrl: '', oficioNome: '' });
+                                            alert('Registro atualizado com sucesso!');
                                         } catch (error) {
                                             alert('Erro ao salvar protocolo: ' + (error?.message || ''));
                                         } finally {
@@ -1038,7 +1069,7 @@ export default function GerenciarTermos() {
                     open={quickResposta.open}
                     onOpenChange={(open) => {
                         if (!open) {
-                            setQuickResposta({ open: false, termo: null, data: '', respostaUrl: '', oficioUrl: '' });
+                            setQuickResposta({ open: false, termo: null, data: '', respostaUrl: '', respostaNome: '', oficioUrl: '', oficioNome: '' });
                         }
                     }}
                 >
@@ -1058,17 +1089,19 @@ export default function GerenciarTermos() {
 
                             <div className="space-y-2">
                                 <Label className="text-sm">Resposta / Manifestação (PDF) *</Label>
-                                <Input
+                                <input
+                                    id={`quick-resposta-arquivo-${quickResposta.termo?.id || 'x'}`}
                                     type="file"
                                     accept=".pdf,application/pdf"
                                     disabled={quickUploading}
+                                    className="hidden"
                                     onChange={async (e) => {
                                         const file = e.target.files?.[0];
                                         if (!file) return;
                                         setQuickUploading(true);
                                         try {
                                             const url = await uploadFileToStorage(file);
-                                            setQuickResposta(prev => ({ ...prev, respostaUrl: url }));
+                                            setQuickResposta(prev => ({ ...prev, respostaUrl: url, respostaNome: file.name }));
                                         } catch (error) {
                                             alert('Erro ao enviar arquivo: ' + (error?.message || ''));
                                         } finally {
@@ -1076,6 +1109,19 @@ export default function GerenciarTermos() {
                                         }
                                     }}
                                 />
+                                <Button variant="outline" asChild disabled={quickUploading} className="w-full justify-start">
+                                    <label htmlFor={`quick-resposta-arquivo-${quickResposta.termo?.id || 'x'}`} className="cursor-pointer w-full flex items-center">
+                                        <Upload className="h-4 w-4 mr-2" />
+                                        {quickUploading ? 'Enviando...' : 'Selecionar Resposta / Manifestação'}
+                                    </label>
+                                </Button>
+                                <div className="text-xs text-gray-600">
+                                    {quickResposta.respostaNome
+                                        ? quickResposta.respostaNome
+                                        : quickResposta.respostaUrl
+                                        ? 'Arquivo já anexado'
+                                        : 'Nenhum arquivo selecionado'}
+                                </div>
                                 {quickResposta.respostaUrl ? (
                                     <Button
                                         variant="outline"
@@ -1091,17 +1137,19 @@ export default function GerenciarTermos() {
 
                             <div className="space-y-2">
                                 <Label className="text-sm">Ofício de Resposta (opcional)</Label>
-                                <Input
+                                <input
+                                    id={`quick-resposta-oficio-${quickResposta.termo?.id || 'x'}`}
                                     type="file"
                                     accept=".pdf,application/pdf"
                                     disabled={quickUploading}
+                                    className="hidden"
                                     onChange={async (e) => {
                                         const file = e.target.files?.[0];
                                         if (!file) return;
                                         setQuickUploading(true);
                                         try {
                                             const url = await uploadFileToStorage(file);
-                                            setQuickResposta(prev => ({ ...prev, oficioUrl: url }));
+                                            setQuickResposta(prev => ({ ...prev, oficioUrl: url, oficioNome: file.name }));
                                         } catch (error) {
                                             alert('Erro ao enviar arquivo: ' + (error?.message || ''));
                                         } finally {
@@ -1109,6 +1157,19 @@ export default function GerenciarTermos() {
                                         }
                                     }}
                                 />
+                                <Button variant="outline" asChild disabled={quickUploading} className="w-full justify-start">
+                                    <label htmlFor={`quick-resposta-oficio-${quickResposta.termo?.id || 'x'}`} className="cursor-pointer w-full flex items-center">
+                                        <Upload className="h-4 w-4 mr-2" />
+                                        {quickUploading ? 'Enviando...' : 'Selecionar Ofício'}
+                                    </label>
+                                </Button>
+                                <div className="text-xs text-gray-600">
+                                    {quickResposta.oficioNome
+                                        ? quickResposta.oficioNome
+                                        : quickResposta.oficioUrl
+                                        ? 'Arquivo já anexado'
+                                        : 'Nenhum arquivo selecionado'}
+                                </div>
                                 {quickResposta.oficioUrl ? (
                                     <Button
                                         variant="outline"
@@ -1125,7 +1186,7 @@ export default function GerenciarTermos() {
                             <div className="flex gap-2 pt-2">
                                 <Button
                                     variant="outline"
-                                    onClick={() => setQuickResposta({ open: false, termo: null, data: '', respostaUrl: '', oficioUrl: '' })}
+                                    onClick={() => setQuickResposta({ open: false, termo: null, data: '', respostaUrl: '', respostaNome: '', oficioUrl: '', oficioNome: '' })}
                                     className="flex-1"
                                     disabled={quickUploading}
                                 >
@@ -1137,35 +1198,35 @@ export default function GerenciarTermos() {
                                     onClick={async () => {
                                         const termo = quickResposta.termo;
                                         if (!termo?.id) return;
-                                        if (!quickResposta.data) {
-                                            alert('Informe a data de recebimento');
-                                            return;
-                                        }
-                                        if (!quickResposta.respostaUrl) {
-                                            alert('Envie o arquivo de resposta');
+                                        const hasAny = !!quickResposta.data || !!quickResposta.respostaUrl || !!quickResposta.oficioUrl;
+                                        if (!hasAny) {
+                                            alert('Anexe o ofício e/ou a resposta (ou informe a data) para salvar.');
                                             return;
                                         }
 
                                         setQuickUploading(true);
                                         try {
-                                            const prazoMax = termo?.data_maxima_resposta;
-                                            const recebeuNoPrazo = prazoMax
-                                                ? new Date(`${quickResposta.data}T00:00:00`).getTime() <= new Date(`${prazoMax}T00:00:00`).getTime()
-                                                : null;
-                                            const after = { ...termo, data_recebimento_resposta: quickResposta.data };
+                                            const payload = {};
+                                            if (quickResposta.data) payload.data_recebimento_resposta = quickResposta.data;
+                                            if (quickResposta.respostaUrl) payload.arquivo_resposta_url = quickResposta.respostaUrl;
+                                            if (quickResposta.oficioUrl) payload.arquivo_oficio_resposta = quickResposta.oficioUrl;
+
+                                            if (payload.data_recebimento_resposta) {
+                                                const prazoMax = termo?.data_maxima_resposta;
+                                                const recebeuNoPrazo = prazoMax
+                                                    ? new Date(`${payload.data_recebimento_resposta}T00:00:00`).getTime() <= new Date(`${prazoMax}T00:00:00`).getTime()
+                                                    : null;
+                                                payload.recebida_no_prazo = recebeuNoPrazo;
+                                            }
+
+                                            const after = { ...termo, ...payload };
                                             const status = calcularStatusTermo(after);
-                                            const payload = {
-                                                data_recebimento_resposta: quickResposta.data,
-                                                arquivo_resposta_url: quickResposta.respostaUrl,
-                                                arquivo_oficio_resposta: quickResposta.oficioUrl || null,
-                                                recebida_no_prazo: recebeuNoPrazo,
-                                                status
-                                            };
+                                            payload.status = status;
                                             const { error } = await supabase.from('termos_notificacao').update(payload).eq('id', termo.id);
                                             if (error) throw error;
                                             queryClient.invalidateQueries({ queryKey: ['termos-notificacao'] });
-                                            setQuickResposta({ open: false, termo: null, data: '', respostaUrl: '', oficioUrl: '' });
-                                            alert('Recebimento registrado com sucesso!');
+                                            setQuickResposta({ open: false, termo: null, data: '', respostaUrl: '', respostaNome: '', oficioUrl: '', oficioNome: '' });
+                                            alert('Registro atualizado com sucesso!');
                                         } catch (error) {
                                             alert('Erro ao salvar recebimento: ' + (error?.message || ''));
                                         } finally {
@@ -1222,7 +1283,7 @@ export default function GerenciarTermos() {
                                                                       size="sm"
                                                                       onClick={() => enviarTermoAssinadoRapido(termo)}
                                                                       disabled={uploadingTermoAssinadoId === termo.id}
-                                                                      className="bg-amber-600 hover:bg-amber-700 text-white"
+                                                                      className="bg-amber-600 hover:bg-amber-700 text-white shadow-sm font-medium"
                                                                   >
                                                                       <Upload className="h-4 w-4 mr-1" />
                                                                       {uploadingTermoAssinadoId === termo.id ? 'Enviando...' : 'Enviar TN'}
@@ -1233,7 +1294,7 @@ export default function GerenciarTermos() {
                                                                       size="sm"
                                                                       onClick={() => abrirQuickProtocolo(termo)}
                                                                       disabled={quickUploading}
-                                                                      className="bg-amber-600 hover:bg-amber-700 text-white"
+                                                                      className="bg-amber-600 hover:bg-amber-700 text-white shadow-sm font-medium"
                                                                   >
                                                                       <Upload className="h-4 w-4 mr-1" />
                                                                       Protocolo
@@ -1244,7 +1305,7 @@ export default function GerenciarTermos() {
                                                                       size="sm"
                                                                       onClick={() => abrirQuickResposta(termo)}
                                                                       disabled={quickUploading}
-                                                                      className="bg-amber-600 hover:bg-amber-700 text-white"
+                                                                      className="bg-amber-600 hover:bg-amber-700 text-white shadow-sm font-medium"
                                                                   >
                                                                       <Upload className="h-4 w-4 mr-1" />
                                                                       Resposta
