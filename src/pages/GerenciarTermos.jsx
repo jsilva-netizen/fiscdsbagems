@@ -16,6 +16,8 @@ import { ArrowLeft, FileText, Trash2, Plus, Download, Upload } from 'lucide-reac
 import TermosKPI from '@/components/termos/TermosKPI';
 import TermosFiltros from '@/components/termos/TermosFiltros';
 
+let cachedTermosBucketName = null;
+
 export default function GerenciarTermos() {
 
 
@@ -69,6 +71,10 @@ export default function GerenciarTermos() {
         camara_tecnica: null,
         prazo_resposta_dias: null
     });
+
+    const [quickProtocolo, setQuickProtocolo] = useState({ open: false, termo: null, data: '', protocoloUrl: '', oficioUrl: '' });
+    const [quickResposta, setQuickResposta] = useState({ open: false, termo: null, data: '', respostaUrl: '', oficioUrl: '' });
+    const [quickUploading, setQuickUploading] = useState(false);
 
     const { data: fiscalizacoes = [] } = useQuery({
         queryKey: ['fiscalizacoes'],
@@ -179,21 +185,64 @@ export default function GerenciarTermos() {
     };
 
     const uploadFileToStorage = async (file) => {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-        const filePath = `${fileName}`;
-        
-        const { error: uploadError } = await supabase.storage
-            .from('documentos-termos')
-            .upload(filePath, file);
+        const candidates = [
+            'documentos-termos',
+            'documentos_termos',
+            'documentos-termo',
+            'termos-notificacao',
+            'termos_notificacao',
+            'documentos-prestadores',
+            'documentos-autos'
+        ];
 
-        if (uploadError) throw uploadError;
+        const ext = (file?.name || '').includes('.') ? file.name.split('.').pop() : 'pdf';
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+        const filePath = `termos_notificacao/${fileName}`;
 
-        const { data: { publicUrl } } = supabase.storage
-            .from('documentos-termos')
-            .getPublicUrl(filePath);
-            
-        return publicUrl;
+        const bucketOrder = cachedTermosBucketName
+            ? [cachedTermosBucketName, ...candidates.filter((b) => b !== cachedTermosBucketName)]
+            : candidates;
+
+        let lastErr = null;
+
+        for (const bucket of bucketOrder) {
+            const { error: uploadError } = await supabase.storage
+                .from(bucket)
+                .upload(filePath, file, { contentType: file?.type || undefined });
+
+            if (uploadError) {
+                lastErr = uploadError;
+                const msg = (uploadError?.message || '').toLowerCase();
+                const status = uploadError?.statusCode;
+                const isBucketMissing = msg.includes('bucket not found') || status === 404;
+                const isNotAllowed = msg.includes('row-level security') || msg.includes('unauthorized') || status === 401 || status === 403;
+                if (isBucketMissing || isNotAllowed) continue;
+                throw uploadError;
+            }
+
+            cachedTermosBucketName = bucket;
+            const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
+            return data?.publicUrl;
+        }
+
+        throw lastErr || new Error('Falha no upload: nenhum bucket disponível.');
+    };
+
+    const addDaysToISODate = (isoDate, days) => {
+        if (!isoDate) return null;
+        const n = Number(days || 0);
+        const base = new Date(`${isoDate}T00:00:00`);
+        if (Number.isNaN(base.getTime())) return null;
+        const d = new Date(base);
+        d.setDate(d.getDate() + n);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    };
+
+    const calcularStatusTermo = (t) => {
+        if (!t?.arquivo_url) return 'pendente_tn';
+        if (!t?.data_protocolo || !t?.arquivo_protocolo_url) return 'pendente_protocolo';
+        if (!t?.data_recebimento_resposta) return 'aguardando_resposta';
+        return 'respondido';
     };
 
     const enviarTermoAssinadoRapido = async (termo) => {
@@ -211,9 +260,11 @@ export default function GerenciarTermos() {
             setUploadingTermoAssinadoId(termo.id);
             try {
                 const url = await uploadFileToStorage(file);
+                const after = { ...termo, arquivo_url: url };
+                const status = calcularStatusTermo(after);
                 const { error } = await supabase
                     .from('termos_notificacao')
-                    .update({ arquivo_url: url })
+                    .update({ arquivo_url: url, status })
                     .eq('id', termo.id);
                 if (error) throw error;
                 queryClient.invalidateQueries({ queryKey: ['termos-notificacao'] });
@@ -226,6 +277,26 @@ export default function GerenciarTermos() {
         };
 
         input.click();
+    };
+
+    const abrirQuickProtocolo = (termo) => {
+        setQuickProtocolo({
+            open: true,
+            termo,
+            data: termo?.data_protocolo || '',
+            protocoloUrl: termo?.arquivo_protocolo_url || '',
+            oficioUrl: termo?.arquivo_oficio_protocolo || ''
+        });
+    };
+
+    const abrirQuickResposta = (termo) => {
+        setQuickResposta({
+            open: true,
+            termo,
+            data: termo?.data_recebimento_resposta || '',
+            respostaUrl: termo?.arquivo_resposta_url || '',
+            oficioUrl: termo?.arquivo_oficio_resposta || ''
+        });
     };
 
      const criarTermoMutation = useMutation({
@@ -259,6 +330,7 @@ export default function GerenciarTermos() {
                 ...safeDados,
                 data_maxima_resposta: dataMaxima,
                 data_geracao: new Date().toISOString(),
+                status: safeDados?.status || 'pendente_tn',
             }]).select().single();
             
             if (error) throw error;
@@ -399,7 +471,7 @@ export default function GerenciarTermos() {
 
     const getStatusFluxo = (termo) => {
             if (!termo.arquivo_url) return 'pendente_tn';
-            if (!termo.data_protocolo) return 'pendente_protocolo';
+            if (!termo.data_protocolo || !termo.arquivo_protocolo_url) return 'pendente_protocolo';
             if (!termo.data_recebimento_resposta) return 'aguardando_resposta';
             return 'respondido';
         };
@@ -759,10 +831,8 @@ export default function GerenciarTermos() {
                                         </Button>
                                         <Button onClick={async () => {
                                             try {
-                                                // Simplified update logic
                                                 const updateData = {};
                                                 if (dadosEditados.data_protocolo) updateData.data_protocolo = dadosEditados.data_protocolo;
-                                                // ... other fields ...
                                                 await supabase.from('termos_notificacao').update(updateData).eq('id', termoDetalhes.id);
                                                 queryClient.invalidateQueries({ queryKey: ['termos-notificacao'] });
                                                 setTermoDetalhes(null);
@@ -781,7 +851,300 @@ export default function GerenciarTermos() {
                     </DialogContent>
                 </Dialog>
 
-                {/* Lista de Termos Criados */}
+                <Dialog
+                    open={quickProtocolo.open}
+                    onOpenChange={(open) => {
+                        if (!open) {
+                            setQuickProtocolo({ open: false, termo: null, data: '', protocoloUrl: '', oficioUrl: '' });
+                        }
+                    }}
+                >
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Registrar Protocolo / AR</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                            <div>
+                                <Label className="text-sm">Data de Protocolo / AR *</Label>
+                                <Input
+                                    type="date"
+                                    value={quickProtocolo.data}
+                                    onChange={(e) => setQuickProtocolo(prev => ({ ...prev, data: e.target.value }))}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="text-sm">Arquivo de Protocolo / AR (PDF) *</Label>
+                                <Input
+                                    type="file"
+                                    accept=".pdf,application/pdf"
+                                    disabled={quickUploading}
+                                    onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+                                        setQuickUploading(true);
+                                        try {
+                                            const url = await uploadFileToStorage(file);
+                                            setQuickProtocolo(prev => ({ ...prev, protocoloUrl: url }));
+                                        } catch (error) {
+                                            alert('Erro ao enviar arquivo: ' + (error?.message || ''));
+                                        } finally {
+                                            setQuickUploading(false);
+                                        }
+                                    }}
+                                />
+                                {quickProtocolo.protocoloUrl ? (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => window.open(quickProtocolo.protocoloUrl, '_blank', 'noopener,noreferrer')}
+                                        className="w-full"
+                                    >
+                                        <Download className="h-4 w-4 mr-2" />
+                                        Ver Protocolo
+                                    </Button>
+                                ) : null}
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="text-sm">Ofício de Protocolo (opcional)</Label>
+                                <Input
+                                    type="file"
+                                    accept=".pdf,application/pdf"
+                                    disabled={quickUploading}
+                                    onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+                                        setQuickUploading(true);
+                                        try {
+                                            const url = await uploadFileToStorage(file);
+                                            setQuickProtocolo(prev => ({ ...prev, oficioUrl: url }));
+                                        } catch (error) {
+                                            alert('Erro ao enviar arquivo: ' + (error?.message || ''));
+                                        } finally {
+                                            setQuickUploading(false);
+                                        }
+                                    }}
+                                />
+                                {quickProtocolo.oficioUrl ? (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => window.open(quickProtocolo.oficioUrl, '_blank', 'noopener,noreferrer')}
+                                        className="w-full"
+                                    >
+                                        <Download className="h-4 w-4 mr-2" />
+                                        Ver Ofício
+                                    </Button>
+                                ) : null}
+                            </div>
+
+                            <div className="flex gap-2 pt-2">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setQuickProtocolo({ open: false, termo: null, data: '', protocoloUrl: '', oficioUrl: '' })}
+                                    className="flex-1"
+                                    disabled={quickUploading}
+                                >
+                                    Cancelar
+                                </Button>
+                                <Button
+                                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                                    disabled={quickUploading}
+                                    onClick={async () => {
+                                        const termo = quickProtocolo.termo;
+                                        if (!termo?.id) return;
+                                        if (!quickProtocolo.data) {
+                                            alert('Informe a data de protocolo');
+                                            return;
+                                        }
+                                        if (!quickProtocolo.protocoloUrl) {
+                                            alert('Envie o arquivo de protocolo');
+                                            return;
+                                        }
+
+                                        setQuickUploading(true);
+                                        try {
+                                            const prazo = termo?.prazo_resposta_dias || 30;
+                                            const dataMax = addDaysToISODate(quickProtocolo.data, prazo);
+                                            const after = {
+                                                ...termo,
+                                                data_protocolo: quickProtocolo.data,
+                                                arquivo_protocolo_url: quickProtocolo.protocoloUrl
+                                            };
+                                            const status = calcularStatusTermo(after);
+                                            const payload = {
+                                                data_protocolo: quickProtocolo.data,
+                                                arquivo_protocolo_url: quickProtocolo.protocoloUrl,
+                                                arquivo_oficio_protocolo: quickProtocolo.oficioUrl || null,
+                                                data_maxima_resposta: dataMax,
+                                                status
+                                            };
+                                            const { error } = await supabase.from('termos_notificacao').update(payload).eq('id', termo.id);
+                                            if (error) throw error;
+                                            queryClient.invalidateQueries({ queryKey: ['termos-notificacao'] });
+                                            setQuickProtocolo({ open: false, termo: null, data: '', protocoloUrl: '', oficioUrl: '' });
+                                            alert('Protocolo registrado com sucesso!');
+                                        } catch (error) {
+                                            alert('Erro ao salvar protocolo: ' + (error?.message || ''));
+                                        } finally {
+                                            setQuickUploading(false);
+                                        }
+                                    }}
+                                >
+                                    Salvar
+                                </Button>
+                            </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
+                <Dialog
+                    open={quickResposta.open}
+                    onOpenChange={(open) => {
+                        if (!open) {
+                            setQuickResposta({ open: false, termo: null, data: '', respostaUrl: '', oficioUrl: '' });
+                        }
+                    }}
+                >
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Registrar Recebimento de Resposta</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                            <div>
+                                <Label className="text-sm">Data de recebimento *</Label>
+                                <Input
+                                    type="date"
+                                    value={quickResposta.data}
+                                    onChange={(e) => setQuickResposta(prev => ({ ...prev, data: e.target.value }))}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="text-sm">Resposta / Manifestação (PDF) *</Label>
+                                <Input
+                                    type="file"
+                                    accept=".pdf,application/pdf"
+                                    disabled={quickUploading}
+                                    onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+                                        setQuickUploading(true);
+                                        try {
+                                            const url = await uploadFileToStorage(file);
+                                            setQuickResposta(prev => ({ ...prev, respostaUrl: url }));
+                                        } catch (error) {
+                                            alert('Erro ao enviar arquivo: ' + (error?.message || ''));
+                                        } finally {
+                                            setQuickUploading(false);
+                                        }
+                                    }}
+                                />
+                                {quickResposta.respostaUrl ? (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => window.open(quickResposta.respostaUrl, '_blank', 'noopener,noreferrer')}
+                                        className="w-full"
+                                    >
+                                        <Download className="h-4 w-4 mr-2" />
+                                        Ver Resposta
+                                    </Button>
+                                ) : null}
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="text-sm">Ofício de Resposta (opcional)</Label>
+                                <Input
+                                    type="file"
+                                    accept=".pdf,application/pdf"
+                                    disabled={quickUploading}
+                                    onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+                                        setQuickUploading(true);
+                                        try {
+                                            const url = await uploadFileToStorage(file);
+                                            setQuickResposta(prev => ({ ...prev, oficioUrl: url }));
+                                        } catch (error) {
+                                            alert('Erro ao enviar arquivo: ' + (error?.message || ''));
+                                        } finally {
+                                            setQuickUploading(false);
+                                        }
+                                    }}
+                                />
+                                {quickResposta.oficioUrl ? (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => window.open(quickResposta.oficioUrl, '_blank', 'noopener,noreferrer')}
+                                        className="w-full"
+                                    >
+                                        <Download className="h-4 w-4 mr-2" />
+                                        Ver Ofício
+                                    </Button>
+                                ) : null}
+                            </div>
+
+                            <div className="flex gap-2 pt-2">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setQuickResposta({ open: false, termo: null, data: '', respostaUrl: '', oficioUrl: '' })}
+                                    className="flex-1"
+                                    disabled={quickUploading}
+                                >
+                                    Cancelar
+                                </Button>
+                                <Button
+                                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                                    disabled={quickUploading}
+                                    onClick={async () => {
+                                        const termo = quickResposta.termo;
+                                        if (!termo?.id) return;
+                                        if (!quickResposta.data) {
+                                            alert('Informe a data de recebimento');
+                                            return;
+                                        }
+                                        if (!quickResposta.respostaUrl) {
+                                            alert('Envie o arquivo de resposta');
+                                            return;
+                                        }
+
+                                        setQuickUploading(true);
+                                        try {
+                                            const prazoMax = termo?.data_maxima_resposta;
+                                            const recebeuNoPrazo = prazoMax
+                                                ? new Date(`${quickResposta.data}T00:00:00`).getTime() <= new Date(`${prazoMax}T00:00:00`).getTime()
+                                                : null;
+                                            const after = { ...termo, data_recebimento_resposta: quickResposta.data };
+                                            const status = calcularStatusTermo(after);
+                                            const payload = {
+                                                data_recebimento_resposta: quickResposta.data,
+                                                arquivo_resposta_url: quickResposta.respostaUrl,
+                                                arquivo_oficio_resposta: quickResposta.oficioUrl || null,
+                                                recebida_no_prazo: recebeuNoPrazo,
+                                                status
+                                            };
+                                            const { error } = await supabase.from('termos_notificacao').update(payload).eq('id', termo.id);
+                                            if (error) throw error;
+                                            queryClient.invalidateQueries({ queryKey: ['termos-notificacao'] });
+                                            setQuickResposta({ open: false, termo: null, data: '', respostaUrl: '', oficioUrl: '' });
+                                            alert('Recebimento registrado com sucesso!');
+                                        } catch (error) {
+                                            alert('Erro ao salvar recebimento: ' + (error?.message || ''));
+                                        } finally {
+                                            setQuickUploading(false);
+                                        }
+                                    }}
+                                >
+                                    Salvar
+                                </Button>
+                            </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
                 <div className="space-y-4">
                     {termosFiltrados.length === 0 ? (
                         <Card className="p-8">
@@ -814,61 +1177,84 @@ export default function GerenciarTermos() {
                                                   const fluxo = getStatusFluxo(termo);
                                                   const badge = getStatusBadge(fluxo);
                                                   return (
-                                                      <Badge className={badge.color}>
-                                                          {badge.label}
-                                                      </Badge>
+                                                      <>
+                                                          <Badge className={badge.color}>
+                                                              {badge.label}
+                                                          </Badge>
+                                                          <div className="flex gap-2">
+                                                              {fluxo === 'pendente_tn' ? (
+                                                                  <Button
+                                                                      size="sm"
+                                                                      onClick={() => enviarTermoAssinadoRapido(termo)}
+                                                                      disabled={uploadingTermoAssinadoId === termo.id}
+                                                                      className="bg-amber-600 hover:bg-amber-700 text-white"
+                                                                  >
+                                                                      <Upload className="h-4 w-4 mr-1" />
+                                                                      {uploadingTermoAssinadoId === termo.id ? 'Enviando...' : 'Enviar TN'}
+                                                                  </Button>
+                                                              ) : null}
+                                                              {fluxo === 'pendente_protocolo' ? (
+                                                                  <Button
+                                                                      size="sm"
+                                                                      onClick={() => abrirQuickProtocolo(termo)}
+                                                                      disabled={quickUploading}
+                                                                      className="bg-amber-600 hover:bg-amber-700 text-white"
+                                                                  >
+                                                                      <Upload className="h-4 w-4 mr-1" />
+                                                                      Protocolo
+                                                                  </Button>
+                                                              ) : null}
+                                                              {fluxo === 'aguardando_resposta' ? (
+                                                                  <Button
+                                                                      size="sm"
+                                                                      onClick={() => abrirQuickResposta(termo)}
+                                                                      disabled={quickUploading}
+                                                                      className="bg-amber-600 hover:bg-amber-700 text-white"
+                                                                  >
+                                                                      <Upload className="h-4 w-4 mr-1" />
+                                                                      Resposta
+                                                                  </Button>
+                                                              ) : null}
+                                                              <Button
+                                                                  size="sm"
+                                                                  variant="outline"
+                                                                  onClick={() => setTermoDetalhes(termo)}
+                                                              >
+                                                                  Editar
+                                                              </Button>
+                                                              <AlertDialog 
+                                                                    open={deleteConfirmation.open && deleteConfirmation.termoId === termo.id}
+                                                                    onOpenChange={(open) => {
+                                                                        if (!open) {
+                                                                            setDeleteConfirmation({ open: false, termoId: null, step: 1, inputValue: '' });
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    <AlertDialogTrigger asChild>
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="outline"
+                                                                            className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                                                                            onClick={() => setDeleteConfirmation({ open: true, termoId: termo.id, step: 1, inputValue: '' })}
+                                                                        >
+                                                                            <Trash2 className="h-4 w-4 mr-1" />
+                                                                            Excluir
+                                                                        </Button>
+                                                                    </AlertDialogTrigger>
+                                                                    <AlertDialogContent>
+                                                                        <AlertDialogHeader>
+                                                                            <AlertDialogTitle>Excluir Termo?</AlertDialogTitle>
+                                                                        </AlertDialogHeader>
+                                                                        <AlertDialogFooter>
+                                                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                                            <Button variant="destructive" onClick={() => excluirTermoMutation.mutate(termo.id)}>Excluir</Button>
+                                                                        </AlertDialogFooter>
+                                                                    </AlertDialogContent>
+                                                                </AlertDialog>
+                                                          </div>
+                                                      </>
                                                   );
                                               })()}
-                                              <div className="flex gap-2">
-                                                  {getStatusFluxo(termo) === 'pendente_tn' ? (
-                                                      <Button
-                                                          size="sm"
-                                                          onClick={() => enviarTermoAssinadoRapido(termo)}
-                                                          disabled={uploadingTermoAssinadoId === termo.id}
-                                                          className="bg-amber-600 hover:bg-amber-700 text-white"
-                                                      >
-                                                          <Upload className="h-4 w-4 mr-1" />
-                                                          {uploadingTermoAssinadoId === termo.id ? 'Enviando...' : 'Enviar TN'}
-                                                      </Button>
-                                                  ) : null}
-                                                  <Button
-                                                      size="sm"
-                                                      variant="outline"
-                                                      onClick={() => setTermoDetalhes(termo)}
-                                                  >
-                                                      Editar
-                                                  </Button>
-                                                   <AlertDialog 
-                                                         open={deleteConfirmation.open && deleteConfirmation.termoId === termo.id}
-                                                         onOpenChange={(open) => {
-                                                             if (!open) {
-                                                                 setDeleteConfirmation({ open: false, termoId: null, step: 1, inputValue: '' });
-                                                             }
-                                                         }}
-                                                     >
-                                                         <AlertDialogTrigger asChild>
-                                                             <Button
-                                                                 size="sm"
-                                                                 variant="outline"
-                                                                 className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-                                                                 onClick={() => setDeleteConfirmation({ open: true, termoId: termo.id, step: 1, inputValue: '' })}
-                                                             >
-                                                                 <Trash2 className="h-4 w-4 mr-1" />
-                                                                 Excluir
-                                                             </Button>
-                                                         </AlertDialogTrigger>
-                                                         <AlertDialogContent>
-                                                             {/* ... Delete Dialog Content ... */}
-                                                             <AlertDialogHeader>
-                                                                 <AlertDialogTitle>Excluir Termo?</AlertDialogTitle>
-                                                             </AlertDialogHeader>
-                                                             <AlertDialogFooter>
-                                                                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                                 <Button variant="destructive" onClick={() => excluirTermoMutation.mutate(termo.id)}>Excluir</Button>
-                                                             </AlertDialogFooter>
-                                                         </AlertDialogContent>
-                                                     </AlertDialog>
-                                              </div>
                                          </div>
                                     </div>
                                 </CardContent>
