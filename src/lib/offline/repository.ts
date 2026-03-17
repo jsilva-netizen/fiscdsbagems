@@ -572,7 +572,7 @@ export const Repository = {
     }
     const takenAt = capture.takenAt ? new Date(capture.takenAt) : file.lastModified ? new Date(file.lastModified) : new Date()
     const coordsText = `${capture.latitude.toFixed(6)}, ${capture.longitude.toFixed(6)}`
-    const watermarkLines = [`Data: ${formatDateBR(takenAt)} Hora: ${formatTimeBR(takenAt)}`, `GPS: ${coordsText}`]
+    const watermarkLines = [`${formatDateBR(takenAt)} ${formatTimeBR(takenAt)}`, coordsText]
     const processed = await compressFileToBlob(file, MAX_DIMENSION, JPEG_QUALITY, {
       watermarkLines,
       exif: { latitude: capture.latitude, longitude: capture.longitude, takenAt }
