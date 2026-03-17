@@ -29,7 +29,7 @@ declare
   v_total_unidades int := 0;
   v_numero_termo text;
   v_ano int;
-  v_count_finalizadas int := 0;
+  v_next_num int := 0;
   v_data_fim timestamptz := now();
 begin
   -- Validar fiscalização
@@ -82,12 +82,34 @@ begin
 
   -- Numerar termo sequencial no ano
   v_ano := extract(year from v_data_fim);
-  select count(*) into v_count_finalizadas
-  from public.fiscalizacoes f
-  where f.status = 'finalizada'
-    and extract(year from f.data_fim) = v_ano;
+  perform pg_advisory_xact_lock(hashtext('fiscalizacoes_numero_termo_' || v_ano::text));
 
-  v_numero_termo := lpad((v_count_finalizadas + 1)::text, 3, '0') || '/' || v_ano::text;
+  with used as (
+    select (split_part(f.numero_termo, '/', 1))::int as n
+    from public.fiscalizacoes f
+    where f.status = 'finalizada'
+      and f.numero_termo is not null
+      and f.numero_termo ~ '^[0-9]{3}/[0-9]{4}$'
+      and (split_part(f.numero_termo, '/', 2))::int = v_ano
+  ),
+  mx as (
+    select coalesce(max(n), 0) as m from used
+  ),
+  missing as (
+    select gs as n
+    from generate_series(1, (select m from mx) + 1) gs
+    left join used u on u.n = gs
+    where u.n is null
+    order by gs
+    limit 1
+  )
+  select n into v_next_num from missing;
+
+  if v_next_num is null or v_next_num < 1 then
+    v_next_num := 1;
+  end if;
+
+  v_numero_termo := lpad(v_next_num::text, 3, '0') || '/' || v_ano::text;
 
   -- Finalizar fiscalização
   update public.fiscalizacoes f
