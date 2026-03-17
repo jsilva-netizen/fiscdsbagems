@@ -12,7 +12,7 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogFooter, AlertDialogCancel, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, FileText, Trash2, Plus, Download } from 'lucide-react';
+import { ArrowLeft, FileText, Trash2, Plus, Download, Upload } from 'lucide-react';
 import TermosKPI from '@/components/termos/TermosKPI';
 import TermosFiltros from '@/components/termos/TermosFiltros';
 
@@ -41,6 +41,7 @@ export default function GerenciarTermos() {
         arquivo_protocolo_url: ''
     });
     const [uploadingFile, setUploadingFile] = useState(false);
+    const [uploadingTermoAssinadoId, setUploadingTermoAssinadoId] = useState(null);
     const [uploadingProtocoloData, setUploadingProtocoloData] = useState(false);
     const [oficioProtocoloTemp, setOficioProtocoloTemp] = useState(null);
 
@@ -193,6 +194,38 @@ export default function GerenciarTermos() {
             .getPublicUrl(filePath);
             
         return publicUrl;
+    };
+
+    const enviarTermoAssinadoRapido = async (termo) => {
+        if (!termo?.id) return;
+        if (uploadingTermoAssinadoId) return;
+
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.pdf,application/pdf';
+        input.multiple = false;
+
+        input.onchange = async () => {
+            const file = input.files?.[0];
+            if (!file) return;
+            setUploadingTermoAssinadoId(termo.id);
+            try {
+                const url = await uploadFileToStorage(file);
+                const { error } = await supabase
+                    .from('termos_notificacao')
+                    .update({ arquivo_url: url })
+                    .eq('id', termo.id);
+                if (error) throw error;
+                queryClient.invalidateQueries({ queryKey: ['termos-notificacao'] });
+                alert('TN assinado enviado com sucesso!');
+            } catch (error) {
+                alert('Erro ao enviar TN assinado: ' + (error?.message || ''));
+            } finally {
+                setUploadingTermoAssinadoId(null);
+            }
+        };
+
+        input.click();
     };
 
      const criarTermoMutation = useMutation({
@@ -777,10 +810,27 @@ export default function GerenciarTermos() {
                                              </div>
                                          </div>
                                          <div className="flex flex-col gap-3 items-end">
-                                              <Badge className={getStatusBadge(getStatusFluxo(termo)).color}>
-                                                  {getStatusBadge(getStatusFluxo(termo)).label}
-                                              </Badge>
+                                              {(() => {
+                                                  const fluxo = getStatusFluxo(termo);
+                                                  const badge = getStatusBadge(fluxo);
+                                                  return (
+                                                      <Badge className={badge.color}>
+                                                          {badge.label}
+                                                      </Badge>
+                                                  );
+                                              })()}
                                               <div className="flex gap-2">
+                                                  {getStatusFluxo(termo) === 'pendente_tn' ? (
+                                                      <Button
+                                                          size="sm"
+                                                          onClick={() => enviarTermoAssinadoRapido(termo)}
+                                                          disabled={uploadingTermoAssinadoId === termo.id}
+                                                          className="bg-amber-600 hover:bg-amber-700 text-white"
+                                                      >
+                                                          <Upload className="h-4 w-4 mr-1" />
+                                                          {uploadingTermoAssinadoId === termo.id ? 'Enviando...' : 'Enviar TN'}
+                                                      </Button>
+                                                  ) : null}
                                                   <Button
                                                       size="sm"
                                                       variant="outline"
