@@ -285,6 +285,46 @@ export default function GerenciarTermos() {
         return m?.nome || 'N/A';
     };
 
+    const normalizeTexto = (v) => {
+        return (v || '')
+            .toString()
+            .trim()
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/\s+/g, ' ');
+    };
+
+    const resolveMunicipioIdFromNome = (nome) => {
+        const alvo = normalizeTexto(nome).replace(/^municipio de\s+/, '');
+        if (!alvo) return null;
+        const exato = municipios.find(m => normalizeTexto(m.nome) === alvo);
+        if (exato?.id) return exato.id;
+        const parcial = municipios.find(m => normalizeTexto(m.nome).includes(alvo) || alvo.includes(normalizeTexto(m.nome)));
+        return parcial?.id || null;
+    };
+
+    const resolvePrestadorIdFromNome = (nome) => {
+        const alvo = normalizeTexto(nome);
+        if (!alvo) return null;
+        const exato = prestadores.find(p => normalizeTexto(p.nome) === alvo);
+        if (exato?.id) return exato.id;
+        const parcial = prestadores.find(p => normalizeTexto(p.nome).includes(alvo) || alvo.includes(normalizeTexto(p.nome)));
+        return parcial?.id || null;
+    };
+
+    const getMunicipioLabel = (f) => {
+        const byId = getMunicipioNome(f?.municipio_id);
+        if (byId !== 'N/A') return byId;
+        return f?.municipio_nome || 'N/A';
+    };
+
+    const getPrestadorLabel = (f) => {
+        const byId = getPrestadorNome(f?.prestador_servico_id);
+        if (byId !== 'N/A') return byId;
+        return f?.prestador_servico_nome || 'N/A';
+    };
+
     const getStatusFluxo = (termo) => {
             if (!termo.arquivo_url) return 'pendente_tn';
             if (!termo.data_protocolo) return 'pendente_protocolo';
@@ -414,10 +454,17 @@ export default function GerenciarTermos() {
                                     <Select 
                                         value={selectedFiscalizacao?.id || ''} 
                                         onValueChange={(v) => {
-                                            const fisc = fiscalizacoes.find(f => f.id === v);
+                                            const fiscBase = fiscalizacoes.find(f => f.id === v);
+                                            if (!fiscBase) {
+                                                setSelectedFiscalizacao(null);
+                                                return;
+                                            }
+                                            const municipio_id = fiscBase.municipio_id || resolveMunicipioIdFromNome(fiscBase.municipio_nome);
+                                            const prestador_servico_id = fiscBase.prestador_servico_id || resolvePrestadorIdFromNome(fiscBase.prestador_servico_nome);
+                                            const fisc = { ...fiscBase, municipio_id, prestador_servico_id };
                                             setSelectedFiscalizacao(fisc);
-                                            if (fisc) {
-                                                setTermoForm({ ...termoForm, municipio_id: fisc.municipio_id });
+                                            if (municipio_id) {
+                                                setTermoForm(prev => ({ ...prev, municipio_id }));
                                             }
                                         }}
                                     >
@@ -430,7 +477,7 @@ export default function GerenciarTermos() {
                                                 .filter(f => !termos.some(t => t.fiscalizacao_id === f.id))
                                                 .map(f => (
                                                     <SelectItem key={f.id} value={f.id}>
-                                                        {f.numero_termo} - {getMunicipioNome(f.municipio_id)} - {getPrestadorNome(f.prestador_servico_id)}
+                                                        {f.numero_termo} - {getMunicipioLabel(f)} - {getPrestadorLabel(f)}
                                                     </SelectItem>
                                                 ))}
                                         </SelectContent>
