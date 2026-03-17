@@ -197,6 +197,18 @@ export default function GerenciarTermos() {
 
      const criarTermoMutation = useMutation({
         mutationFn: async (dados) => {
+            if (dados?.fiscalizacao_id) {
+                const { data: existing, error: exErr } = await supabase
+                    .from('termos_notificacao')
+                    .select('id')
+                    .eq('fiscalizacao_id', dados.fiscalizacao_id)
+                    .limit(1);
+                if (exErr) throw exErr;
+                if (Array.isArray(existing) && existing[0]?.id) {
+                    throw new Error('Já existe Termo de Notificação para esta fiscalização.');
+                }
+            }
+
             let dataMaxima = null;
             if (dados.data_protocolo) {
                 const dp = new Date(dados.data_protocolo + 'T00:00:00');
@@ -209,7 +221,6 @@ export default function GerenciarTermos() {
                 ...dados,
                 data_maxima_resposta: dataMaxima,
                 data_geracao: new Date().toISOString(),
-                // numero_termo_notificacao is mapped from dados.numero_termo_notificacao
             }]).select().single();
             
             if (error) throw error;
@@ -232,12 +243,23 @@ export default function GerenciarTermos() {
                 arquivo_url: '',
                 arquivo_protocolo_url: ''
             });
+        },
+        onError: (err) => {
+            const msg = err?.message || 'Erro ao criar termo.';
+            alert(msg);
         }
     });
 
     const handleCriarTermo = () => {
-        if (!selectedFiscalizacao?.prestador_servico_id) {
-            alert('Fiscalização sem prestador de serviço');
+        if (criarTermoMutation.isPending) return;
+
+        if (!selectedFiscalizacao?.id) {
+            alert('Selecione uma fiscalização');
+            return;
+        }
+
+        if (!termoForm.camara_tecnica) {
+            alert('Selecione a Câmara Técnica Setorial');
             return;
         }
 
@@ -251,11 +273,23 @@ export default function GerenciarTermos() {
             return;
         }
 
+        const prestadorId = selectedFiscalizacao.prestador_servico_id || resolvePrestadorIdFromNome(selectedFiscalizacao.prestador_servico_nome);
+        if (!prestadorId) {
+            alert('Fiscalização sem prestador de serviço');
+            return;
+        }
+
+        const municipioId = termoForm.municipio_id || selectedFiscalizacao.municipio_id || resolveMunicipioIdFromNome(selectedFiscalizacao.municipio_nome);
+        if (!municipioId) {
+            alert('Fiscalização sem município');
+            return;
+        }
+
         criarTermoMutation.mutate({
             ...termoForm,
             fiscalizacao_id: selectedFiscalizacao.id,
-            prestador_servico_id: selectedFiscalizacao.prestador_servico_id,
-            municipio_id: termoForm.municipio_id || selectedFiscalizacao.municipio_id
+            prestador_servico_id: prestadorId,
+            municipio_id: municipioId
         });
     };
 
@@ -528,9 +562,9 @@ export default function GerenciarTermos() {
                                 <Button
                                     onClick={handleCriarTermo}
                                     className="flex-1 bg-blue-600 hover:bg-blue-700"
-                                    disabled={!termoForm.numero_processo || !termoForm.numero_rfp}
+                                    disabled={criarTermoMutation.isPending || !termoForm.numero_processo || !termoForm.numero_rfp}
                                 >
-                                    Criar Termo
+                                    {criarTermoMutation.isPending ? 'Criando...' : 'Criar Termo'}
                                 </Button>
                             </div>
                         </div>
