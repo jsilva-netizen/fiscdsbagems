@@ -318,6 +318,64 @@ export default function ResponderTermo() {
     });
   };
 
+  const fotoKey = (foto, unidadeId, idx) => {
+    if (!foto) return `${unidadeId}:${idx}`;
+    if (foto.bucket && foto.path) return `${foto.bucket}:${foto.path}`;
+    const url = foto.url || foto;
+    const parsed = Repository.parseStorageUrl(url);
+    if (parsed) return `${parsed.bucket}:${parsed.path}`;
+    return String(url || `${unidadeId}:${idx}`);
+  };
+
+  const resolveFotoUrl = (foto, unidadeId, idx) => {
+    const k = fotoKey(foto, unidadeId, idx);
+    return signedFotosByKey[k] || '';
+  };
+
+  const fotosPorUnidade = useMemo(() => {
+    return (unidadesFiscalizadas || []).map((u) => {
+      const fotos = Array.isArray(u?.fotos_unidade) ? u.fotos_unidade : [];
+      return {
+        unidade: u,
+        fotos,
+      };
+    });
+  }, [unidadesFiscalizadas]);
+
+  const temEvidencias = useMemo(() => {
+    for (const item of fotosPorUnidade) {
+      if (Array.isArray(item?.fotos) && item.fotos.length > 0) return true;
+    }
+    return false;
+  }, [fotosPorUnidade]);
+
+  useEffect(() => {
+    if (!evidenciasOpen) return;
+    let cancelled = false;
+    const run = async () => {
+      const next = {};
+      for (const item of fotosPorUnidade) {
+        const unidadeId = item?.unidade?.id || 'unidade';
+        const fotos = Array.isArray(item?.fotos) ? item.fotos : [];
+        for (let i = 0; i < fotos.length; i++) {
+          const foto = fotos[i];
+          const k = fotoKey(foto, unidadeId, i);
+          if (next[k]) continue;
+          try {
+            const source = typeof foto === 'string' ? foto : foto?.url ? foto : foto;
+            const signed = await Repository.getSignedUrlFromAny(source);
+            if (signed) next[k] = signed;
+          } catch {}
+        }
+      }
+      if (!cancelled) setSignedFotosByKey(next);
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [evidenciasOpen, fotosPorUnidade]);
+
   if (!termoId || !termo) {
     return (
       <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
@@ -382,64 +440,6 @@ export default function ResponderTermo() {
     doc.text('Assinatura digital do responsável:', 14, 140);
     doc.save(`termo_envio_${tn || termo.id}.pdf`);
   };
-
-  const fotoKey = (foto, unidadeId, idx) => {
-    if (!foto) return `${unidadeId}:${idx}`;
-    if (foto.bucket && foto.path) return `${foto.bucket}:${foto.path}`;
-    const url = foto.url || foto;
-    const parsed = Repository.parseStorageUrl(url);
-    if (parsed) return `${parsed.bucket}:${parsed.path}`;
-    return String(url || `${unidadeId}:${idx}`);
-  };
-
-  const resolveFotoUrl = (foto, unidadeId, idx) => {
-    const k = fotoKey(foto, unidadeId, idx);
-    return signedFotosByKey[k] || '';
-  };
-
-  const fotosPorUnidade = useMemo(() => {
-    return (unidadesFiscalizadas || []).map((u) => {
-      const fotos = Array.isArray(u?.fotos_unidade) ? u.fotos_unidade : [];
-      return {
-        unidade: u,
-        fotos,
-      };
-    });
-  }, [unidadesFiscalizadas]);
-
-  const temEvidencias = useMemo(() => {
-    for (const item of fotosPorUnidade) {
-      if (Array.isArray(item?.fotos) && item.fotos.length > 0) return true;
-    }
-    return false;
-  }, [fotosPorUnidade]);
-
-  useEffect(() => {
-    if (!evidenciasOpen) return;
-    let cancelled = false;
-    const run = async () => {
-      const next = {};
-      for (const item of fotosPorUnidade) {
-        const unidadeId = item?.unidade?.id || 'unidade';
-        const fotos = Array.isArray(item?.fotos) ? item.fotos : [];
-        for (let i = 0; i < fotos.length; i++) {
-          const foto = fotos[i];
-          const k = fotoKey(foto, unidadeId, i);
-          if (next[k]) continue;
-          try {
-            const source = typeof foto === 'string' ? foto : foto?.url ? foto : foto;
-            const signed = await Repository.getSignedUrlFromAny(source);
-            if (signed) next[k] = signed;
-          } catch {}
-        }
-      }
-      if (!cancelled) setSignedFotosByKey(next);
-    };
-    void run();
-    return () => {
-      cancelled = true;
-    };
-  }, [evidenciasOpen, fotosPorUnidade]);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
