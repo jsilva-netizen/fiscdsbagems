@@ -79,31 +79,26 @@ export default function ResponderTermo() {
       text = new TextDecoder().decode(bytes);
     }
 
-    const m = text.match(/\/ByteRange\s*\[\s*(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*\]/);
-    if (!m) return { valid: false, reason: 'ByteRange não encontrado' };
-    const a = Number(m[1]);
-    const b = Number(m[2]);
-    const c = Number(m[3]);
-    const d = Number(m[4]);
+    const matches = Array.from(text.matchAll(/\/ByteRange\s*\[\s*(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*\]/g));
+    if (matches.length === 0) return { valid: false, reason: 'ByteRange não encontrado' };
     const fileLen = bytes.length;
-
-    if (![a, b, c, d].every(Number.isFinite)) return { valid: false, reason: 'ByteRange inválido' };
-    if (a !== 0 || b <= 0 || c <= 0 || d <= 0) return { valid: false, reason: 'ByteRange inválido' };
-    if (c < a + b) return { valid: false, reason: 'ByteRange inválido' };
-    if (c + d > fileLen) return { valid: false, reason: 'Assinatura incompleta (ByteRange inválido)' };
-    if (c + d < fileLen) {
-      const tail = bytes.slice(c + d);
-      let onlyWhitespace = true;
-      for (let i = 0; i < tail.length; i++) {
-        const ch = tail[i];
-        if (ch === 0x00 || ch === 0x09 || ch === 0x0a || ch === 0x0d || ch === 0x20) continue;
-        onlyWhitespace = false;
-        break;
-      }
-      if (!onlyWhitespace) return { valid: false, reason: 'Assinatura incompleta (ByteRange não cobre o arquivo)' };
+    let best = null;
+    for (const mm of matches) {
+      const a = Number(mm[1]);
+      const b = Number(mm[2]);
+      const c = Number(mm[3]);
+      const d = Number(mm[4]);
+      if (![a, b, c, d].every(Number.isFinite)) continue;
+      if (a !== 0 || b <= 0 || c <= 0 || d <= 0) continue;
+      if (c < a + b) continue;
+      if (c + d > fileLen) continue;
+      const gap = c - (a + b);
+      if (gap <= 0) continue;
+      const score = c + d;
+      if (!best || score > best.score) best = { a, b, c, d, gap, score };
     }
-    const gap = c - (a + b);
-    if (gap <= 0) return { valid: false, reason: 'Assinatura incompleta (gap inválido)' };
+
+    if (!best) return { valid: false, reason: 'ByteRange inválido' };
 
     const contentsMatch = text.match(/\/Contents\s*<([0-9A-Fa-f]+)>/);
     const contentsHex = contentsMatch?.[1] || '';
