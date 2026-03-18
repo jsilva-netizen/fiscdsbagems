@@ -89,6 +89,8 @@ export type ItemChecklist = {
   texto_nc?: string
   prazo_dias?: number
   ativo?: boolean
+  created_at?: string
+  updated_at?: string
 }
 
 export type RespostaChecklist = {

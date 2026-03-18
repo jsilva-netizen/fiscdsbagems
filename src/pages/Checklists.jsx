@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { createPageUrl } from '@/utils';
 import * as XLSX from 'xlsx';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Repository } from '@/lib/offline/repository';
+import { supabase } from '@/lib/supabase';
+import { useOnlineStatus } from '@/lib/OnlineStatusContext.jsx';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -23,6 +24,7 @@ import ItemChecklistForm from '@/components/admin/ItemChecklistForm';
 
 export default function Checklists() {
     const queryClient = useQueryClient();
+    const { online } = useOnlineStatus();
     const urlParams = new URLSearchParams(window.location.search);
     const tipoIdFromUrl = urlParams.get('tipo');
     
@@ -35,8 +37,12 @@ export default function Checklists() {
     const { data: tipos = [] } = useQuery({
         queryKey: ['tipos-unidade'],
         queryFn: async () => {
-            const data = await Repository.listTiposUnidade();
-            return data;
+            const { data, error } = await supabase
+                .from('tipos_unidade')
+                .select('id, nome, codigo, servicos_aplicaveis, ativo, created_at, updated_at')
+                .order('nome', { ascending: true });
+            if (error) throw error;
+            return data || [];
         }
     });
 
@@ -44,15 +50,25 @@ export default function Checklists() {
         queryKey: ['itens-checklist', selectedTipo],
         queryFn: async () => {
             if (!selectedTipo) return [];
-            const data = await Repository.getItensChecklist(selectedTipo);
-            return data;
+            const { data, error } = await supabase
+                .from('itens_checklist')
+                .select('id, tipo_unidade_id, ordem, pergunta, texto_constatacao_sim, texto_constatacao_nao, gera_nc, artigo_portaria, texto_determinacao, texto_recomendacao, texto_nc, prazo_dias, ativo, created_at, updated_at')
+                .eq('tipo_unidade_id', selectedTipo)
+                .order('ordem', { ascending: true })
+                .order('created_at', { ascending: true });
+            if (error) throw error;
+            return data || [];
         },
         enabled: !!selectedTipo
     });
 
     const createMutation = useMutation({
         mutationFn: async (data) => {
-            await Repository.createItemChecklist(data);
+            const now = new Date().toISOString();
+            const id = crypto?.randomUUID?.() || Math.random().toString(36).slice(2);
+            const payload = { ...data, id, created_at: now, updated_at: now };
+            const { error } = await supabase.from('itens_checklist').insert(payload);
+            if (error) throw error;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['itens-checklist'] });
@@ -63,7 +79,9 @@ export default function Checklists() {
 
     const updateMutation = useMutation({
         mutationFn: async ({ id, data }) => {
-            await Repository.updateItemChecklist(id, data);
+            const now = new Date().toISOString();
+            const { error } = await supabase.from('itens_checklist').update({ ...data, updated_at: now }).eq('id', id);
+            if (error) throw error;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['itens-checklist'] });
@@ -74,7 +92,8 @@ export default function Checklists() {
 
     const deleteMutation = useMutation({
         mutationFn: async (id) => {
-            await Repository.deleteItemChecklist(id);
+            const { error } = await supabase.from('itens_checklist').delete().eq('id', id);
+            if (error) throw error;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['itens-checklist'] });
@@ -102,6 +121,11 @@ export default function Checklists() {
     const handleImport = async (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
+        if (!online) {
+            alert('Importação disponível somente online.');
+            e.target.value = '';
+            return;
+        }
 
         setImporting(true);
         try {
@@ -123,12 +147,18 @@ export default function Checklists() {
             let itensImportados = 0;
             const erros = [];
 
-            const todosTipos = await Repository.listTiposUnidade();
-            const tiposMap = new Map(); // Key: nome ou codigo -> Value: ID
-            todosTipos?.forEach(t => {
-                tiposMap.set(t.nome.toLowerCase(), t.id);
-                if (t.codigo) tiposMap.set(t.codigo.toLowerCase(), t.id);
+            const { data: tiposExistentes, error: tiposExistentesError } = await supabase
+                .from('tipos_unidade')
+                .select('id, nome, codigo');
+            if (tiposExistentesError) throw tiposExistentesError;
+            const tiposMap = new Map();
+            (tiposExistentes || []).forEach(t => {
+                if (t?.nome) tiposMap.set(String(t.nome).toLowerCase(), t.id);
+                if (t?.codigo) tiposMap.set(String(t.codigo).toLowerCase(), t.id);
             });
+
+            const tiposParaCriar = new Map();
+            const itensParaCriar = [];
 
             for (let i = 0; i < dataLines.length; i++) {
                 try {
@@ -157,21 +187,30 @@ export default function Checklists() {
                     }
 
                     // Buscar Tipo ID
-                    let tipoId = tiposMap.get(tipo_unidade_nome.toLowerCase()) || tiposMap.get(tipo_unidade_codigo?.toLowerCase());
+                    const nomeKey = tipo_unidade_nome.toLowerCase();
+                    const codigoKey = tipo_unidade_codigo ? tipo_unidade_codigo.toLowerCase() : '';
+                    let tipoId = tiposMap.get(nomeKey) || (codigoKey ? tiposMap.get(codigoKey) : undefined);
 
                     if (!tipoId) {
-                        const novoTipo = await Repository.createTipoUnidade({
-                            nome: tipo_unidade_nome,
-                            codigo: tipo_unidade_codigo || '',
-                            servicos_aplicaveis: servico ? [servico] : [],
-                            ativo: true
-                        });
-                        tipoId = novoTipo.id;
-                        tiposMap.set(tipo_unidade_nome.toLowerCase(), tipoId);
+                        const tipoKey = codigoKey || nomeKey;
+                        const existing = tiposParaCriar.get(tipoKey);
+                        if (!existing) {
+                            tiposParaCriar.set(tipoKey, {
+                                nome: tipo_unidade_nome,
+                                codigo: tipo_unidade_codigo || '',
+                                servicos_aplicaveis: servico ? [servico] : [],
+                                ativo: true
+                            });
+                        } else {
+                            const next = new Set([...(existing.servicos_aplicaveis || []), ...(servico ? [servico] : [])]);
+                            tiposParaCriar.set(tipoKey, { ...existing, servicos_aplicaveis: Array.from(next) });
+                        }
                     }
 
-                    await Repository.createItemChecklist({
-                        tipo_unidade_id: tipoId,
+                    itensParaCriar.push({
+                        __linha: i,
+                        __tipo_nome_key: nomeKey,
+                        __tipo_codigo_key: codigoKey,
                         ordem: parseInt(ordem) || 0,
                         pergunta: pergunta || '',
                         texto_constatacao_sim: texto_constatacao_sim || '',
@@ -184,11 +223,62 @@ export default function Checklists() {
                         prazo_dias: parseInt(prazo_dias) || 30,
                         ativo: true
                     });
-                    itensImportados++;
 
                 } catch (error) {
                     erros.push(`Linha ${i + 2}: ${error.message}`);
                 }
+            }
+
+            const now = new Date().toISOString();
+            const tiposCriados = [];
+            const tiposRows = Array.from(tiposParaCriar.values()).map((t) => ({
+                id: crypto?.randomUUID?.() || Math.random().toString(36).slice(2),
+                ...t,
+                created_at: now,
+                updated_at: now
+            }));
+            for (let offset = 0; offset < tiposRows.length; offset += 100) {
+                const chunk = tiposRows.slice(offset, offset + 100);
+                const { data: inserted, error } = await supabase.from('tipos_unidade').insert(chunk).select('id, nome, codigo');
+                if (error) throw error;
+                (inserted || []).forEach((t) => tiposCriados.push(t));
+            }
+            tiposCriados.forEach((t) => {
+                if (t?.nome) tiposMap.set(String(t.nome).toLowerCase(), t.id);
+                if (t?.codigo) tiposMap.set(String(t.codigo).toLowerCase(), t.id);
+            });
+
+            const itensRows = [];
+            for (const item of itensParaCriar) {
+                const tipoId = tiposMap.get(item.__tipo_nome_key) || (item.__tipo_codigo_key ? tiposMap.get(item.__tipo_codigo_key) : undefined);
+                if (!tipoId) {
+                    erros.push(`Linha ${item.__linha + 2}: tipo_unidade não encontrado para item`);
+                    continue;
+                }
+                itensRows.push({
+                    id: crypto?.randomUUID?.() || Math.random().toString(36).slice(2),
+                    tipo_unidade_id: tipoId,
+                    ordem: item.ordem,
+                    pergunta: item.pergunta,
+                    texto_constatacao_sim: item.texto_constatacao_sim,
+                    texto_constatacao_nao: item.texto_constatacao_nao,
+                    gera_nc: item.gera_nc,
+                    artigo_portaria: item.artigo_portaria,
+                    texto_determinacao: item.texto_determinacao,
+                    texto_recomendacao: item.texto_recomendacao,
+                    texto_nc: item.texto_nc,
+                    prazo_dias: item.prazo_dias,
+                    ativo: item.ativo,
+                    created_at: now,
+                    updated_at: now
+                });
+            }
+
+            for (let offset = 0; offset < itensRows.length; offset += 200) {
+                const chunk = itensRows.slice(offset, offset + 200);
+                const { error } = await supabase.from('itens_checklist').insert(chunk);
+                if (error) throw error;
+                itensImportados += chunk.length;
             }
             
             alert(`✅ Importação concluída!\n${itensImportados} itens importados`);

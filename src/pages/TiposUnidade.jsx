@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { createPageUrl } from '@/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Repository } from '@/lib/offline/repository';
+import { supabase } from '@/lib/supabase';
+import { useOnlineStatus } from '@/lib/OnlineStatusContext.jsx';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -17,6 +18,7 @@ const SERVICOS = ['Abastecimento de Água', 'Esgotamento Sanitário', 'Manejo de
 
 export default function TiposUnidade() {
     const queryClient = useQueryClient();
+    const { online } = useOnlineStatus();
     const [showForm, setShowForm] = useState(false);
     const [editing, setEditing] = useState(null);
     const [deleteConfirmation, setDeleteConfirmation] = useState({ open: false, tipoId: null, step: 1, inputValue: '' });
@@ -30,15 +32,24 @@ export default function TiposUnidade() {
     const { data: tipos = [], isLoading } = useQuery({
         queryKey: ['tipos-unidade'],
         queryFn: async () => {
-            const data = await Repository.listTiposUnidade();
-            return data;
+            const { data, error } = await supabase
+                .from('tipos_unidade')
+                .select('id, nome, codigo, servicos_aplicaveis, ativo, created_at, updated_at')
+                .order('nome', { ascending: true });
+            if (error) throw error;
+            return data || [];
         }
     });
 
     const createMutation = useMutation({
         mutationFn: async (data) => {
-            const res = await Repository.createTipoUnidade(data);
-            return res;
+            if (!online) throw new Error('Operação disponível somente online.');
+            const now = new Date().toISOString();
+            const id = crypto?.randomUUID?.() || Math.random().toString(36).slice(2);
+            const payload = { ...data, id, created_at: now, updated_at: now };
+            const { error } = await supabase.from('tipos_unidade').insert(payload);
+            if (error) throw error;
+            return { id };
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['tipos-unidade'] });
@@ -48,7 +59,10 @@ export default function TiposUnidade() {
 
     const updateMutation = useMutation({
         mutationFn: async ({ id, data }) => {
-            await Repository.updateTipoUnidade(id, data);
+            if (!online) throw new Error('Operação disponível somente online.');
+            const now = new Date().toISOString();
+            const { error } = await supabase.from('tipos_unidade').update({ ...data, updated_at: now }).eq('id', id);
+            if (error) throw error;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['tipos-unidade'] });
@@ -58,7 +72,9 @@ export default function TiposUnidade() {
 
     const deleteMutation = useMutation({
         mutationFn: async (id) => {
-            await Repository.deleteTipoUnidade(id);
+            if (!online) throw new Error('Operação disponível somente online.');
+            const { error } = await supabase.from('tipos_unidade').delete().eq('id', id);
+            if (error) throw error;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['tipos-unidade'] });

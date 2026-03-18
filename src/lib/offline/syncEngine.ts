@@ -130,7 +130,9 @@ function serializePayload(entity: Entity, type: MutationType, payload: any): any
         'texto_recomendacao',
         'texto_nc',
         'prazo_dias',
-        'ativo'
+        'ativo',
+        'created_at',
+        'updated_at'
       ])
     case 'prestadores':
       return pick(payload, [
@@ -239,7 +241,7 @@ async function safeSelect(table: string, cols: string): Promise<any[]> {
   }
 }
 
-async function safeSelectSince(table: string, cols: string, since?: string): Promise<any[]> {
+async function safeSelectSince(table: string, cols: string, since?: string, preferStrategy: 'updated' | 'or' = 'updated'): Promise<any[]> {
   const run = async (selectCols: string, mode: 'since' | 'created' | 'all', v?: string, strategy: 'updated' | 'or' = 'updated') => {
     let q = supabase.from(table).select(selectCols)
     if (mode === 'since' && v) {
@@ -249,18 +251,20 @@ async function safeSelectSince(table: string, cols: string, since?: string): Pro
     return await selectAllPages(q)
   }
   if (since) {
+    const primary = preferStrategy
+    const secondary: 'updated' | 'or' = primary === 'or' ? 'updated' : 'or'
     try {
       try {
         try {
-          return await run(cols, 'since', since, 'updated')
+          return await run(cols, 'since', since, primary)
         } catch {
-          return await run(cols, 'since', since, 'or')
+          return await run(cols, 'since', since, secondary)
         }
       } catch {
         try {
-          return await run('*', 'since', since, 'updated')
+          return await run('*', 'since', since, primary)
         } catch {
-          return await run('*', 'since', since, 'or')
+          return await run('*', 'since', since, secondary)
         }
       }
     } catch {
@@ -776,7 +780,7 @@ export async function syncDown(): Promise<void> {
     }
   }
   await withBackoff(() => withTimeout(async () => {
-    const data = await safeSelectSince('tipos_unidade', 'id, nome, codigo, servicos_aplicaveis, ativo, created_at, updated_at', since)
+    const data = await safeSelectSince('tipos_unidade', 'id, nome, codigo, servicos_aplicaveis, ativo, created_at, updated_at', undefined, 'or')
     if (Array.isArray(data)) {
       for (const row of data) {
         await db.tipos_unidade.put(row as any)
@@ -795,7 +799,8 @@ export async function syncDown(): Promise<void> {
     const data = await safeSelectSince(
       'itens_checklist',
       'id, tipo_unidade_id, ordem, pergunta, texto_constatacao_sim, texto_constatacao_nao, gera_nc, artigo_portaria, texto_determinacao, texto_recomendacao, texto_nc, prazo_dias, ativo, created_at, updated_at',
-      since
+      undefined,
+      'or'
     )
     if (Array.isArray(data)) {
       for (const row of data) {

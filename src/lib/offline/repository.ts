@@ -331,7 +331,7 @@ export const Repository = {
   
   async createItemChecklist(data: Omit<ItemChecklist, 'id'>): Promise<string> {
     const id = uid()
-    const item = { ...data, id, created_at: now() }
+    const item = { ...data, id, created_at: now(), updated_at: now() }
     await db.itens_checklist.add(item as any)
     await enqueueMutation(item, 'insert', 'itens_checklist')
     return id
@@ -340,9 +340,9 @@ export const Repository = {
   async updateItemChecklist(id: string, changes: Partial<ItemChecklist>): Promise<void> {
     const cur = await db.itens_checklist.get(id as any)
     if (cur) {
-      const next = { ...cur, ...changes }
+      const next = { ...cur, ...changes, updated_at: now() }
       await db.itens_checklist.update(id as any, next)
-      await enqueueMutation({ id, ...changes }, 'update', 'itens_checklist')
+      await enqueueMutation({ id, ...changes, updated_at: now() }, 'update', 'itens_checklist')
     }
   },
   
