@@ -433,7 +433,67 @@ async function generatePdfForJob(adminClient: any, job: any) {
     await updateJob(adminClient, job.id, { progress_fotos: processedFotos })
   }
 
-  const preparePhotoBytes = async (fotoUrl: string) => {
+  const parseStorageUrl = (url: string) => {
+    const raw = String(url || '').trim()
+    if (!raw) return null
+    if (raw.startsWith('storage://')) {
+      const remainder = raw.slice('storage://'.length)
+      const slash = remainder.indexOf('/')
+      if (slash === -1) return null
+      const bucket = remainder.slice(0, slash)
+      let path = remainder.slice(slash + 1)
+      const q = path.indexOf('?')
+      if (q !== -1) path = path.slice(0, q)
+      if (!bucket || !path) return null
+      return { bucket, path }
+    }
+    const publicMarker = '/storage/v1/object/public/'
+    const signMarker = '/storage/v1/object/sign/'
+    let marker = ''
+    let idx = raw.indexOf(publicMarker)
+    if (idx !== -1) marker = publicMarker
+    else {
+      idx = raw.indexOf(signMarker)
+      if (idx !== -1) marker = signMarker
+    }
+    if (!marker) return null
+    const remainder = raw.slice(idx + marker.length)
+    const slash = remainder.indexOf('/')
+    if (slash === -1) return null
+    const bucket = remainder.slice(0, slash)
+    let path = remainder.slice(slash + 1)
+    const q = path.indexOf('?')
+    if (q !== -1) path = path.slice(0, q)
+    if (!bucket || !path) return null
+    return { bucket, path }
+  }
+
+  const resolveToSignedUrl = async (input: unknown, expiresInSeconds = 60 * 60) => {
+    if (!input) return ''
+    if (typeof input === 'object') {
+      const anyObj: any = input as any
+      if (anyObj.bucket && anyObj.path) {
+        const { data, error } = await adminClient.storage.from(String(anyObj.bucket)).createSignedUrl(String(anyObj.path), expiresInSeconds)
+        if (error) return ''
+        return String(data?.signedUrl || '')
+      }
+      if (typeof anyObj.url === 'string') return await resolveToSignedUrl(anyObj.url, expiresInSeconds)
+    }
+    if (typeof input === 'string') {
+      const raw = input.trim()
+      if (!raw) return ''
+      if (raw.startsWith('data:')) return raw
+      const parsed = parseStorageUrl(raw)
+      if (!parsed) return raw
+      const { data, error } = await adminClient.storage.from(parsed.bucket).createSignedUrl(parsed.path, expiresInSeconds)
+      if (error) return ''
+      return String(data?.signedUrl || '')
+    }
+    return ''
+  }
+
+  const preparePhotoBytes = async (fotoInput: unknown) => {
+    const fotoUrl = await resolveToSignedUrl(fotoInput)
     if (!fotoUrl) return null
     try {
       const buf = await fetchArrayBuffer(fotoUrl, 25000)
@@ -673,10 +733,9 @@ async function generatePdfForJob(adminClient: any, job: any) {
       for (let chunkStart = 0; chunkStart < fotosRaw.length; chunkStart += PHOTO_CHUNK_SIZE) {
         const chunk = fotosRaw.slice(chunkStart, chunkStart + PHOTO_CHUNK_SIZE)
         const prepared = await mapWithConcurrency(chunk, PHOTO_PREP_CONCURRENCY, async (foto, innerIdx) => {
-          const fotoUrl = typeof foto === 'string' ? foto : String(foto?.url || '')
           const legenda = typeof foto === 'object' ? String(foto?.legenda || '') : ''
-          const bytes = await preparePhotoBytes(fotoUrl)
-          return { bytes, legenda, fotoUrl, innerIdx }
+          const bytes = await preparePhotoBytes(foto)
+          return { bytes, legenda, innerIdx }
         })
 
         for (const p of prepared) {

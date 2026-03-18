@@ -195,6 +195,13 @@ export default function AnalisarResposta() {
         return resp?.status || 'pendente';
     };
 
+    const extractConstatacaoNumeroFromNc = (nc) => {
+        const text = String(nc?.descricao || '');
+        if (!text) return '';
+        const m = text.match(/constataç[aã]o\s*(?:n[ºo]\s*)?(C\d+)/i);
+        return m?.[1] ? String(m[1]).toUpperCase() : '';
+    };
+
     const detIndexById = useMemo(() => {
         const m = new Map();
         determinacoes.forEach((d, idx) => m.set(d.id, idx));
@@ -441,6 +448,7 @@ export default function AnalisarResposta() {
                                         const bloqueado = !podeAnalisar(index);
                                         const nc = ncs.find((n) => n.id === det.nao_conformidade_id);
                                         const constatacao = nc?.resposta_checklist_id ? respostasChecklist.find((r) => r.id === nc.resposta_checklist_id) : null;
+                                        const numeroConstatacaoRef = extractConstatacaoNumeroFromNc(nc) || (constatacao?.numero_constatacao ? String(constatacao.numero_constatacao) : '');
                                         const statusIcon = status === 'atendida' ? <CheckCircle className="h-5 w-5 text-green-600" /> :
                                                         status === 'nao_atendida' ? <XCircle className="h-5 w-5 text-red-600" /> :
                                                         status === 'aguardando_analise' ? <AlertCircle className="h-5 w-5 text-yellow-600" /> :
@@ -465,7 +473,7 @@ export default function AnalisarResposta() {
                                                                 {constatacao && (
                                                                     <div>
                                                                         <span className="font-medium">Constatação:</span>{' '}
-                                                                        {constatacao.numero_constatacao || 'N/A'} {constatacao.pergunta ? `- ${constatacao.pergunta}` : ''}
+                                                                        {numeroConstatacaoRef || 'N/A'} {constatacao.pergunta ? `- ${constatacao.pergunta}` : ''}
                                                                     </div>
                                                                 )}
                                                             </div>
