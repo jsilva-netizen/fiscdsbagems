@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Link } from 'react-router-dom';
@@ -16,8 +16,14 @@ export default function Login() {
     const [password, setPassword] = useState('');
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
-    const { login } = useAuth();
+    const { login, isAuthenticated, isLoading } = useAuth();
     const navigate = useNavigate();
+
+    useEffect(() => {
+        if (!isLoading && isAuthenticated) {
+            navigate('/', { replace: true });
+        }
+    }, [isAuthenticated, isLoading, navigate]);
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -26,7 +32,6 @@ export default function Login() {
 
         try {
             await login(email, password);
-            navigate('/');
         } catch (err) {
             setError(err.message || 'Erro ao realizar login. Verifique suas credenciais.');
         } finally {
