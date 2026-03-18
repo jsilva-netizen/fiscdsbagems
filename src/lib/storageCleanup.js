@@ -156,7 +156,7 @@ export const deleteFiscalizacaoComImagens = async (fiscalizacaoId) => {
 export const deleteTermoNotificacaoComDependencias = async (termoId) => {
   const { data: termo, error: termoErr } = await supabase
     .from('termos_notificacao')
-    .select('id,fiscalizacao_id,prestador_servico_id,arquivo_url,arquivo_protocolo_url,arquivo_oficio_protocolo,arquivo_oficio_resposta,arquivos_resposta')
+    .select('id,fiscalizacao_id,prestador_servico_id,arquivo_url,arquivo_rfp_url,arquivo_tn_prestador_url,arquivo_protocolo_url,arquivo_oficio_protocolo,arquivo_oficio_resposta,arquivos_resposta')
     .eq('id', termoId)
     .maybeSingle()
   if (termoErr) throw termoErr
@@ -164,6 +164,8 @@ export const deleteTermoNotificacaoComDependencias = async (termoId) => {
 
   const anexos = []
   if (termo.arquivo_url) anexos.push(termo.arquivo_url)
+  if (termo.arquivo_rfp_url) anexos.push(termo.arquivo_rfp_url)
+  if (termo.arquivo_tn_prestador_url) anexos.push(termo.arquivo_tn_prestador_url)
   if (termo.arquivo_protocolo_url) anexos.push(termo.arquivo_protocolo_url)
   if (termo.arquivo_oficio_protocolo) anexos.push(termo.arquivo_oficio_protocolo)
   if (termo.arquivo_oficio_resposta) anexos.push(termo.arquivo_oficio_resposta)
@@ -219,6 +221,8 @@ export const deleteTermoNotificacaoComDependencias = async (termoId) => {
       if (m?.arquivo_url) arqs.push(m.arquivo_url)
     }
     await removePathsByBucket(arqs)
+    await supabase.from('manifestacoes_auto').delete().in('auto_infracao_id', autoIds)
+    await supabase.from('pareceres_tecnicos').delete().in('auto_id', autoIds)
     await supabase.from('julgamentos').delete().in('auto_id', autoIds)
     await supabase.from('autos_infracao').delete().in('id', autoIds)
   }

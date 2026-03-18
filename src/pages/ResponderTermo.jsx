@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import OptimizedImage from '@/components/fiscalizacao/OptimizedImage.jsx';
-import { ArrowLeft, UploadCloud, CheckCircle, AlertCircle, Lock, Download, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, UploadCloud, CheckCircle, AlertCircle, Lock, Download, Image as ImageIcon, Send } from 'lucide-react';
 
 export default function ResponderTermo() {
   const [searchParams] = useSearchParams();
@@ -26,6 +26,8 @@ export default function ResponderTermo() {
   const [enviandoTermoEnvio, setEnviandoTermoEnvio] = useState(false);
   const [evidenciasOpen, setEvidenciasOpen] = useState(false);
   const [signedFotosByKey, setSignedFotosByKey] = useState({});
+  const [salvandoDetId, setSalvandoDetId] = useState(null);
+  const [enviandoDetId, setEnviandoDetId] = useState(null);
 
   const openArquivo = async (arq) => {
     try {
@@ -231,6 +233,9 @@ export default function ResponderTermo() {
       await queryClient.invalidateQueries({ queryKey: ['respostas-determinacao'] });
       alert('Rascunho salvo');
     },
+    onError: (err) => {
+      alert('Erro ao salvar rascunho: ' + (err?.message || String(err)));
+    },
   });
 
   const enviarRespostaMutation = useMutation({
@@ -262,6 +267,10 @@ export default function ResponderTermo() {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['respostas-determinacao'] });
+      alert('Resposta enviada para análise');
+    },
+    onError: (err) => {
+      alert('Erro ao enviar resposta: ' + (err?.message || String(err)));
     },
   });
 
@@ -283,6 +292,9 @@ export default function ResponderTermo() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['termo', termoId] });
       alert('Resposta ao TN enviada para análise');
+    },
+    onError: (err) => {
+      alert('Erro ao enviar resposta ao TN: ' + (err?.message || String(err)));
     },
   });
 
@@ -688,11 +700,35 @@ export default function ResponderTermo() {
                               />
                               <Button
                                 variant="outline"
-                                onClick={() => salvarDraftMutation.mutate({ detId: det.id })}
-                                disabled={!isFormValid(det.id) || bloqueado}
+                                onClick={async () => {
+                                  if (!isFormValid(det.id) || bloqueado) return;
+                                  setSalvandoDetId(det.id);
+                                  try {
+                                    await salvarDraftMutation.mutateAsync({ detId: det.id });
+                                  } finally {
+                                    setSalvandoDetId(null);
+                                  }
+                                }}
+                                disabled={!isFormValid(det.id) || bloqueado || salvandoDetId === det.id}
                               >
                                 <UploadCloud className="h-4 w-4 mr-1" />
-                                Salvar rascunho
+                                {salvandoDetId === det.id ? 'Salvando...' : 'Salvar rascunho'}
+                              </Button>
+                              <Button
+                                onClick={async () => {
+                                  if (!isFormValid(det.id) || bloqueado) return;
+                                  setEnviandoDetId(det.id);
+                                  try {
+                                    await enviarRespostaMutation.mutateAsync({ detId: det.id });
+                                  } finally {
+                                    setEnviandoDetId(null);
+                                  }
+                                }}
+                                disabled={!isFormValid(det.id) || bloqueado || enviandoDetId === det.id}
+                                className="bg-blue-600 hover:bg-blue-700"
+                              >
+                                <Send className="h-4 w-4 mr-1" />
+                                {enviandoDetId === det.id ? 'Enviando...' : 'Enviar resposta'}
                               </Button>
                             </div>
 
@@ -781,13 +817,11 @@ export default function ResponderTermo() {
                   setEnviandoTN(true);
                   try {
                     await enviarTNMutation.mutateAsync();
-                  } catch (err) {
-                    alert('Erro ao enviar resposta ao TN: ' + (err?.message || String(err)));
                   } finally {
                     setEnviandoTN(false);
                   }
                 }}
-                disabled={enviandoTN || !termoEnvioOk}
+                disabled={enviandoTN}
                 className="bg-purple-600 hover:bg-purple-700"
               >
                 {enviandoTN ? 'Enviando...' : 'Enviar resposta para análise'}

@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogFooter, AlertDialogCancel, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ArrowLeft, FileText, Trash2, Plus, Download, Upload } from 'lucide-react';
@@ -509,7 +509,10 @@ export default function GerenciarTermos() {
              queryClient.invalidateQueries({ queryKey: ['autos-todos'] }); 
              alert('Termo excluído!');
              setDeleteConfirmation({ open: false, termoId: null, step: 1, inputValue: '' });
-         }
+         },
+         onError: (err) => {
+             alert('Erro ao excluir termo: ' + (err?.message || String(err)));
+         },
      });
 
     const getPrestadorNome = (id) => {
@@ -1582,13 +1585,58 @@ export default function GerenciarTermos() {
                                                                         </Button>
                                                                     </AlertDialogTrigger>
                                                                     <AlertDialogContent>
-                                                                        <AlertDialogHeader>
-                                                                            <AlertDialogTitle>Excluir Termo?</AlertDialogTitle>
-                                                                        </AlertDialogHeader>
-                                                                        <AlertDialogFooter>
-                                                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                                            <Button variant="destructive" onClick={() => excluirTermoMutation.mutate(termo.id)}>Excluir</Button>
-                                                                        </AlertDialogFooter>
+                                                                        {deleteConfirmation.step === 1 ? (
+                                                                            <>
+                                                                                <AlertDialogHeader>
+                                                                                    <AlertDialogTitle className="text-red-600">Excluir Termo de Notificação?</AlertDialogTitle>
+                                                                                    <AlertDialogDescription className="space-y-2">
+                                                                                        <p>Você está prestes a excluir permanentemente:</p>
+                                                                                        <p className="font-semibold text-gray-900">{termo.numero_termo_notificacao || termo.numero_termo}</p>
+                                                                                        <p className="text-red-600">Esta ação não pode ser desfeita e também removerá os arquivos e registros vinculados.</p>
+                                                                                    </AlertDialogDescription>
+                                                                                </AlertDialogHeader>
+                                                                                <AlertDialogFooter>
+                                                                                    <AlertDialogCancel disabled={excluirTermoMutation.isPending}>Cancelar</AlertDialogCancel>
+                                                                                    <Button
+                                                                                        variant="destructive"
+                                                                                        disabled={excluirTermoMutation.isPending}
+                                                                                        onClick={() => setDeleteConfirmation(prev => ({ ...prev, step: 2, inputValue: '' }))}
+                                                                                    >
+                                                                                        Continuar
+                                                                                    </Button>
+                                                                                </AlertDialogFooter>
+                                                                            </>
+                                                                        ) : (
+                                                                            <>
+                                                                                <AlertDialogHeader>
+                                                                                    <AlertDialogTitle className="text-red-600">Confirmação Final</AlertDialogTitle>
+                                                                                    <AlertDialogDescription className="space-y-3">
+                                                                                        <p>Para confirmar a exclusão, digite <span className="font-bold">EXCLUIR</span> no campo abaixo:</p>
+                                                                                        <Input
+                                                                                            placeholder="Digite EXCLUIR"
+                                                                                            value={deleteConfirmation.inputValue}
+                                                                                            onChange={(e) => setDeleteConfirmation(prev => ({ ...prev, inputValue: e.target.value }))}
+                                                                                            className="mt-2"
+                                                                                        />
+                                                                                    </AlertDialogDescription>
+                                                                                </AlertDialogHeader>
+                                                                                <AlertDialogFooter>
+                                                                                    <AlertDialogCancel
+                                                                                        disabled={excluirTermoMutation.isPending}
+                                                                                        onClick={() => setDeleteConfirmation({ open: false, termoId: null, step: 1, inputValue: '' })}
+                                                                                    >
+                                                                                        Cancelar
+                                                                                    </AlertDialogCancel>
+                                                                                    <Button
+                                                                                        variant="destructive"
+                                                                                        disabled={deleteConfirmation.inputValue !== 'EXCLUIR' || excluirTermoMutation.isPending}
+                                                                                        onClick={() => excluirTermoMutation.mutate(termo.id)}
+                                                                                    >
+                                                                                        {excluirTermoMutation.isPending ? 'Excluindo...' : 'Excluir Permanentemente'}
+                                                                                    </Button>
+                                                                                </AlertDialogFooter>
+                                                                            </>
+                                                                        )}
                                                                     </AlertDialogContent>
                                                                 </AlertDialog>
                                                           </div>

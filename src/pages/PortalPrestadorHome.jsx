@@ -4,15 +4,17 @@ import { Repository } from '@/lib/offline/repository';
 import { useAuth } from '@/lib/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { createPageUrl } from '@/utils';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Clock, AlertTriangle } from 'lucide-react';
+import { FileText, Clock, AlertTriangle, LogOut } from 'lucide-react';
 
 export default function PortalPrestadorHome() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [prestadorId, setPrestadorId] = useState(null);
+  const [saindo, setSaindo] = useState(false);
+  const navigate = useNavigate();
 
   const { data: profile } = useQuery({
     queryKey: ['profile', user?.id],
@@ -143,6 +145,19 @@ export default function PortalPrestadorHome() {
     }
   };
 
+  const formatRfp = (termo) => {
+    const raw = termo?.numero_rfp;
+    if (!raw) return '—';
+    const str = String(raw).trim();
+    if (/^RFP\//i.test(str) && str.includes('/')) return str;
+    const camara = termo?.camara_tecnica ? String(termo.camara_tecnica).trim() : '';
+    const anoBase = termo?.data_geracao || termo?.created_at || termo?.updated_at || Date.now();
+    const ano = new Date(anoBase).getFullYear();
+    const num = String(parseInt(str.replace(/\D/g, '') || '0', 10)).padStart(3, '0');
+    if (!camara) return str;
+    return `RFP/DSB/${camara}/${num}/${ano}`;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-6xl mx-auto">
@@ -153,6 +168,25 @@ export default function PortalPrestadorHome() {
               Prestador: <span className="font-medium text-gray-900">{prestador?.nome || '—'}</span>
             </p>
           </div>
+          <Button
+            variant="outline"
+            disabled={saindo}
+            onClick={async () => {
+              if (saindo) return;
+              setSaindo(true);
+              try {
+                await logout();
+                navigate('/login', { replace: true });
+              } catch (err) {
+                alert('Erro ao sair: ' + (err?.message || String(err)));
+              } finally {
+                setSaindo(false);
+              }
+            }}
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Sair
+          </Button>
         </div>
 
         <div className="grid grid-cols-4 gap-4 mb-8">
@@ -210,7 +244,7 @@ export default function PortalPrestadorHome() {
                     : 'Responder TN';
 
               const municipioNome = municipioNomeById[termo?.municipio_id] || termo?.municipio_nome || '—';
-              const numeroRfp = termo?.numero_rfp ? String(termo.numero_rfp) : '—';
+              const numeroRfp = formatRfp(termo);
               const determinacoesCount = termo?.fiscalizacao_id ? (determinacoesCountByFiscalizacaoId[termo.fiscalizacao_id] || 0) : 0;
 
               return (
