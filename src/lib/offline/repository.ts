@@ -545,7 +545,7 @@ export const Repository = {
   async uploadTermoNotificacaoFile(
     file: File,
     termoId: string,
-    kind: 'tn_agems' | 'rfp_agems' | 'tn_prestador'
+    kind: 'tn_agems' | 'rfp_agems' | 'tn_prestador' | 'termo_envio'
   ): Promise<{ url: string; nome: string; tipo: string; tamanho: number; data_upload: string; path: string; bucket: string }> {
     const nomeOriginal = file?.name || 'arquivo.pdf'
     const ext = nomeOriginal.includes('.') ? (nomeOriginal.split('.').pop() || '').toLowerCase() : ''
