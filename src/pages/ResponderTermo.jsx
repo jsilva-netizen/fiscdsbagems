@@ -47,69 +47,6 @@ export default function ResponderTermo() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   };
 
-  const bytesIncludes = (haystack, needle) => {
-    if (!haystack || !needle || needle.length === 0) return false;
-    outer: for (let i = 0; i <= haystack.length - needle.length; i++) {
-      for (let j = 0; j < needle.length; j++) {
-        if (haystack[i + j] !== needle[j]) continue outer;
-      }
-      return true;
-    }
-    return false;
-  };
-
-  const validatePdfDigitalSignature = async (file) => {
-    const buf = await file.arrayBuffer();
-    const bytes = new Uint8Array(buf);
-    const enc = (s) => new TextEncoder().encode(s);
-    const hasByteRangeToken = bytesIncludes(bytes, enc('/ByteRange'));
-    const hasSigDict = bytesIncludes(bytes, enc('/Type/Sig')) || bytesIncludes(bytes, enc('/Type /Sig'));
-    const hasSubFilter =
-      bytesIncludes(bytes, enc('/SubFilter')) &&
-      (bytesIncludes(bytes, enc('adbe.pkcs7')) || bytesIncludes(bytes, enc('ETSI.CAdES')));
-
-    if (!hasByteRangeToken || !(hasSigDict || hasSubFilter)) {
-      return { valid: false, reason: 'PDF sem marcação de assinatura digital' };
-    }
-
-    let text = '';
-    try {
-      text = new TextDecoder('latin1').decode(bytes);
-    } catch {
-      text = new TextDecoder().decode(bytes);
-    }
-
-    const matches = Array.from(text.matchAll(/\/ByteRange\s*\[\s*(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*\]/g));
-    if (matches.length === 0) return { valid: false, reason: 'ByteRange não encontrado' };
-    const fileLen = bytes.length;
-    let best = null;
-    for (const mm of matches) {
-      const a = Number(mm[1]);
-      const b = Number(mm[2]);
-      const c = Number(mm[3]);
-      const d = Number(mm[4]);
-      if (![a, b, c, d].every(Number.isFinite)) continue;
-      if (a !== 0 || b <= 0 || c <= 0 || d <= 0) continue;
-      if (c < a + b) continue;
-      if (c + d > fileLen) continue;
-      const gap = c - (a + b);
-      if (gap <= 0) continue;
-      const score = c + d;
-      if (!best || score > best.score) best = { a, b, c, d, gap, score };
-    }
-
-    if (!best) return { valid: false, reason: 'ByteRange inválido' };
-
-    const contentsMatch = text.match(/\/Contents\s*<([0-9A-Fa-f]+)>/);
-    const contentsHex = contentsMatch?.[1] || '';
-    if (contentsHex.length < 512) return { valid: false, reason: 'Conteúdo de assinatura ausente' };
-
-    const looksPkcs7 = /adbe\.pkcs7|ETSI\.CAdES/i.test(text);
-    if (!looksPkcs7) return { valid: false, reason: 'SubFilter de assinatura não identificado' };
-
-    return { valid: true, reason: '' };
-  };
-
   const { data: termo } = useQuery({
     queryKey: ['termo', termoId],
     queryFn: async () => {
@@ -552,11 +489,6 @@ export default function ResponderTermo() {
                     if (!file) return;
                     setUploadingTnPrestador(true);
                     try {
-                      const sig = await validatePdfDigitalSignature(file);
-                      if (!sig.valid) {
-                        alert(sig.reason || 'Não foi possível validar a assinatura digital neste PDF.');
-                        return;
-                      }
                       const up = await Repository.uploadTermoNotificacaoFile(file, termo.id, 'tn_prestador');
                       const storageRef = `storage://${up.bucket}/${up.path}`;
                       const inicio = isoToday();
@@ -775,7 +707,7 @@ export default function ResponderTermo() {
               </CardHeader>
               <CardContent>
                 <div className="text-sm text-gray-700 mb-3">
-                  Baixe o modelo do termo de envio, assine digitalmente e envie o PDF assinado. O envio da resposta só será liberado após a validação da assinatura.
+                  Baixe o modelo do termo de envio, assine digitalmente e envie o PDF assinado. O envio da resposta só será liberado após o envio deste arquivo.
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Button variant="outline" onClick={downloadTermoEnvioModelo} type="button">
@@ -791,11 +723,6 @@ export default function ResponderTermo() {
                       if (!file) return;
                       setEnviandoTermoEnvio(true);
                       try {
-                        const sig = await validatePdfDigitalSignature(file);
-                        if (!sig.valid) {
-                          alert(sig.reason || 'Não foi possível validar a assinatura digital neste PDF.');
-                          return;
-                        }
                         const up = await Repository.uploadTermoNotificacaoFile(file, termo.id, 'termo_envio');
                         const meta = { ...up, categoria: 'termo_envio', assinatura_digital_valida: true };
                         await Repository.appendArquivoRespostaTermoOnline(termo.id, meta);
