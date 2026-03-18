@@ -4,6 +4,8 @@ export type UUID = string
 
 export type Foto = {
   url: string
+  bucket?: string
+  path?: string
   legenda?: string
   mimeType?: string
   width?: number

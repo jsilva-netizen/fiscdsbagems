@@ -50,26 +50,37 @@ export default function PhotoGrid({
         let cancelled = false;
         const run = async () => {
             const next = { ...signedByKey };
+            const pending = [];
             for (const foto of fotos || []) {
                 if (!foto) continue;
                 if (foto.bucket && foto.path) {
                     const k = `${foto.bucket}:${foto.path}`;
-                    if (!next[k]) {
-                        const signed = await Repository.getSignedUrlFromBucket(foto.bucket, foto.path, 60 * 30);
-                        next[k] = signed;
-                    }
+                    if (!next[k]) pending.push({ k, bucket: foto.bucket, path: foto.path });
                     continue;
                 }
                 const url = foto.url || '';
                 const parsed = Repository.parseStorageUrl(url);
                 if (parsed) {
                     const k = `${parsed.bucket}:${parsed.path}`;
-                    if (!next[k]) {
-                        const signed = await Repository.getSignedUrlFromBucket(parsed.bucket, parsed.path, 60 * 30);
-                        next[k] = signed;
-                    }
+                    if (!next[k]) pending.push({ k, bucket: parsed.bucket, path: parsed.path });
                 }
             }
+            const concurrency = Math.min(4, Math.max(1, pending.length));
+            let cursor = 0;
+            const worker = async () => {
+                while (true) {
+                    const i = cursor;
+                    cursor++;
+                    const item = pending[i];
+                    if (!item) break;
+                    try {
+                        const signed = await Repository.getSignedUrlFromBucket(item.bucket, item.path, 60 * 30);
+                        next[item.k] = signed;
+                    } catch {
+                    }
+                }
+            };
+            await Promise.all(Array.from({ length: concurrency }, () => worker()));
             if (!cancelled) setSignedByKey(next);
         };
         void run();
@@ -129,66 +140,75 @@ export default function PhotoGrid({
             }
         }
 
+            const filesArray = Array.from(files);
+            const allowed = Math.max(0, MAX_PHOTOS_PER_UNIDADE - (fotos?.length || 0));
+            const filesToProcess = filesArray.slice(0, allowed);
+            if (filesToProcess.length === 0) {
+                alert(`Limite de ${MAX_PHOTOS_PER_UNIDADE} fotos por unidade atingido`);
+                e.target.value = '';
+                return;
+            }
+            if (filesToProcess.length < filesArray.length) {
+                alert(`Apenas ${filesToProcess.length} foto(s) serão adicionadas por limite de ${MAX_PHOTOS_PER_UNIDADE} por unidade.`);
+            }
+
         setIsUploading(true);
-        setTotalUploads(files.length);
+            setTotalUploads(filesToProcess.length);
         setUploadProgress(0);
 
-        const filesArray = Array.from(files);
-        let processados = 0;
-        let erros = 0;
-
         try {
-            // Processar uma imagem por vez (fila sequencial)
-            for (const file of filesArray) {
-                try {
-                    const countAtual = fotos.length + processados;
-                    if (countAtual >= MAX_PHOTOS_PER_UNIDADE) {
-                        throw new Error(`Limite de ${MAX_PHOTOS_PER_UNIDADE} fotos por unidade atingido`);
-                    }
-                    let capture = null;
-                    if (isGallery) {
-                        capture = await extractCaptureFromImageFile(file);
-                        if (!capture) {
-                            throw new Error('A foto selecionada não contém GPS/timestamp nos metadados (EXIF).');
+                let processados = 0;
+                let erros = 0;
+                let cursor = 0;
+                const concurrency = Math.min(2, Math.max(1, filesToProcess.length));
+                const nextFile = () => {
+                    const i = cursor;
+                    cursor++;
+                    return filesToProcess[i];
+                };
+                const worker = async () => {
+                    while (true) {
+                        const file = nextFile();
+                        if (!file) break;
+                        try {
+                            let capture = null;
+                            if (isGallery) {
+                                capture = await extractCaptureFromImageFile(file);
+                                if (!capture) {
+                                    throw new Error('A foto selecionada não contém GPS/timestamp nos metadados (EXIF).');
+                                }
+                                if (typeof capture.accuracyM === 'number' && Number.isFinite(capture.accuracyM) && capture.accuracyM > MAX_GPS_ACCURACY_M) {
+                                    throw new Error(`Precisão do GPS da foto insuficiente (${Math.round(capture.accuracyM)}m).`);
+                                }
+                            } else {
+                                capture = { latitude: gpsFix.latitude, longitude: gpsFix.longitude, takenAt: new Date().toISOString() };
+                            }
+                            const saved = await Repository.addLocalFotoFromFile(unidadeId, file, {
+                                latitude: capture.latitude,
+                                longitude: capture.longitude,
+                                takenAt: capture.takenAt
+                            });
+                            const novaFoto = {
+                                localId: saved.localId,
+                                url: saved.previewUrl || saved.url || '',
+                                legenda: saved.legenda || '',
+                                mimeType: saved.mimeType,
+                                width: saved.width,
+                                height: saved.height,
+                                data_hora: new Date().toISOString()
+                            };
+                            onAddFoto(novaFoto);
+                            processados++;
+                            setUploadProgress(processados);
+                        } catch (fileErr) {
+                            console.error('Erro ao processar arquivo:', file.name, fileErr);
+                            erros++;
                         }
-                        if (typeof capture.accuracyM === 'number' && Number.isFinite(capture.accuracyM) && capture.accuracyM > MAX_GPS_ACCURACY_M) {
-                            throw new Error(`Precisão do GPS da foto insuficiente (${Math.round(capture.accuracyM)}m).`);
-                        }
-                    } else {
-                        capture = { latitude: gpsFix.latitude, longitude: gpsFix.longitude, takenAt: new Date().toISOString() };
                     }
-                    const saved = await Repository.addLocalFotoFromFile(unidadeId, file, {
-                        latitude: capture.latitude,
-                        longitude: capture.longitude,
-                        takenAt: capture.takenAt
-                    });
-                    const novaFoto = {
-                        localId: saved.localId,
-                        url: saved.previewUrl || saved.url || '',
-                        legenda: saved.legenda || '',
-                        mimeType: saved.mimeType,
-                        width: saved.width,
-                        height: saved.height,
-                        data_hora: new Date().toISOString()
-                    };
-                    onAddFoto(novaFoto);
+                };
+                await Promise.all(Array.from({ length: concurrency }, () => worker()));
 
-                    processados++;
-                    setUploadProgress(processados);
-                    
-                    // Delay entre uploads para evitar rate limit
-                    if (processados < filesArray.length) {
-                        await new Promise(resolve => setTimeout(resolve, 300));
-                    }
-                } catch (fileErr) {
-                    console.error('Erro ao processar arquivo:', file.name, fileErr);
-                    erros++;
-                }
-            }
-            
-            if (erros > 0) {
-                alert(`${erros} arquivo(s) não puderam ser adicionados. ${processados} adicionados com sucesso.`);
-            }
+                if (erros > 0) alert(`${erros} arquivo(s) não puderam ser adicionados. ${processados} adicionados com sucesso.`);
         } catch (err) {
             console.error('Erro geral no upload:', err);
             alert('Erro ao processar imagens: ' + err.message);

@@ -43,11 +43,30 @@ const uid = () => {
 
 const normalizeFoto = (f: Partial<Foto>): Foto => ({
   url: String(f.url || ''),
+  bucket: typeof (f as any)?.bucket === 'string' ? String((f as any).bucket) : undefined,
+  path: typeof (f as any)?.path === 'string' ? String((f as any).path) : undefined,
   legenda: f.legenda || '',
   mimeType: f.mimeType,
   width: typeof f.width === 'number' ? f.width : undefined,
   height: typeof f.height === 'number' ? f.height : undefined
 })
+
+const isLocalUrl = (url: string): boolean => {
+  const u = String(url || '')
+  if (!u) return true
+  return (
+    u.startsWith('blob:') ||
+    u.startsWith('data:') ||
+    u.startsWith('file:') ||
+    u.startsWith('filesystem:') ||
+    u.startsWith('capacitor:')
+  )
+}
+
+const toStorageUrl = (bucket: string, path: string): string => {
+  if (!bucket || !path) return ''
+  return `storage://${bucket}/${path}`
+}
 
 const localFotoUrlCache = new Map<string, string>()
 const localFotoPreviewUrl = (f: OfflineFoto): string => {
@@ -720,7 +739,30 @@ export const Repository = {
 
   async updateUnidadeFotos(unidadeId: string, fotos: Partial<Foto>[]): Promise<void> {
     const unidade = await db.unidades.get(unidadeId)
-    const normalized = fotos.map(normalizeFoto)
+    const input = Array.isArray(fotos) ? fotos : []
+    const hasLocal = input.some((f) => isLocalUrl(String((f as any)?.url || '')))
+    const remoteOnly = input
+      .filter((f) => {
+        const url = String((f as any)?.url || '')
+        if (!url) return false
+        if (isLocalUrl(url)) return false
+        return true
+      })
+      .map((f) => {
+        const anyF: any = f as any
+        const bucket = typeof anyF.bucket === 'string' ? String(anyF.bucket) : ''
+        const path = typeof anyF.path === 'string' ? String(anyF.path) : ''
+        if (bucket && path) {
+          return normalizeFoto({ ...f, url: toStorageUrl(bucket, path), bucket, path })
+        }
+        const url = String(anyF.url || '')
+        const parsed = Repository.parseStorageUrl(url)
+        if (parsed) {
+          return normalizeFoto({ ...f, url: toStorageUrl(parsed.bucket, parsed.path), bucket: parsed.bucket, path: parsed.path })
+        }
+        return normalizeFoto(f)
+      })
+    const normalized = remoteOnly
     if (unidade) {
       await db.unidades.update(unidadeId, {
         ...unidade,
@@ -744,7 +786,9 @@ export const Repository = {
         created_at: now()
       } as any)
     }
-    await enqueueMutation({ unidade_fiscalizada_id: unidadeId, fotos_unidade: normalized }, 'update', 'fotos')
+    if (!hasLocal) {
+      await enqueueMutation({ unidade_fiscalizada_id: unidadeId, fotos_unidade: normalized }, 'update', 'fotos')
+    }
   },
 
   async addLocalFotoFromFile(

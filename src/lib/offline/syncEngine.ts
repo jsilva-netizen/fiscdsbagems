@@ -240,18 +240,28 @@ async function safeSelect(table: string, cols: string): Promise<any[]> {
 }
 
 async function safeSelectSince(table: string, cols: string, since?: string): Promise<any[]> {
-  const run = async (selectCols: string, mode: 'since' | 'created' | 'all', v?: string) => {
+  const run = async (selectCols: string, mode: 'since' | 'created' | 'all', v?: string, strategy: 'updated' | 'or' = 'updated') => {
     let q = supabase.from(table).select(selectCols)
-    if (mode === 'since' && v) q = q.or(`updated_at.gte.${v},created_at.gte.${v}`)
+    if (mode === 'since' && v) {
+      q = strategy === 'or' ? q.or(`updated_at.gte.${v},created_at.gte.${v}`) : q.gte('updated_at', v)
+    }
     if (mode === 'created' && v) q = q.gte('created_at', v)
     return await selectAllPages(q)
   }
   if (since) {
     try {
       try {
-        return await run(cols, 'since', since)
+        try {
+          return await run(cols, 'since', since, 'updated')
+        } catch {
+          return await run(cols, 'since', since, 'or')
+        }
       } catch {
-        return await run('*', 'since', since)
+        try {
+          return await run('*', 'since', since, 'updated')
+        } catch {
+          return await run('*', 'since', since, 'or')
+        }
       }
     } catch {
       try {
@@ -676,19 +686,27 @@ async function pullEntity(entity: Entity, since?: string) {
   const table = entityTableMap[entity]
   const prefer = selectColsForPull(entity)
   const doRequest = async () => {
-    const run = async (cols: string, mode: 'since' | 'created', v?: string) => {
+    const run = async (cols: string, mode: 'since' | 'created', v?: string, strategy: 'updated' | 'or' = 'updated') => {
       let q = supabase.from(table).select(cols)
-      if (mode === 'since' && v) q = q.or(`updated_at.gte.${v},created_at.gte.${v}`)
+      if (mode === 'since' && v) {
+        q = strategy === 'or' ? q.or(`updated_at.gte.${v},created_at.gte.${v}`) : q.gte('updated_at', v)
+      }
       if (mode === 'created' && v) q = q.gte('created_at', v)
-      const { data, error } = await q
-      if (error) throw error
-      return (data || []) as any[]
+      return await selectAllPages(q)
     }
     try {
       try {
-        return await run(prefer, 'since', since)
+        try {
+          return await run(prefer, 'since', since, 'updated')
+        } catch {
+          return await run(prefer, 'since', since, 'or')
+        }
       } catch {
-        return await run('*', 'since', since)
+        try {
+          return await run('*', 'since', since, 'updated')
+        } catch {
+          return await run('*', 'since', since, 'or')
+        }
       }
     } catch (err: any) {
       if (since) {
@@ -913,7 +931,37 @@ export async function syncFotosWithProgress(onProgress?: (uploaded: number, tota
       const doUpdate = async () => {
         const map = await db.id_map.where('local_id').equals(unidadeId as any).and((m) => m.entity === 'unidades').first()
         const serverId = map?.server_id || unidadeId
-        const { error } = await supabase.from('unidades_fiscalizadas').update({ fotos_unidade, updated_at: new Date().toISOString() }).eq('id', serverId as any)
+        const { data: existingRow, error: existingErr } = await supabase
+          .from('unidades_fiscalizadas')
+          .select('fotos_unidade')
+          .eq('id', serverId as any)
+          .maybeSingle()
+        if (existingErr) throw existingErr
+        const existing = Array.isArray((existingRow as any)?.fotos_unidade) ? ((existingRow as any).fotos_unidade as any[]) : []
+        const byKey = new Map<string, any>()
+        const keyOf = (x: any): string => {
+          const b = typeof x?.bucket === 'string' ? x.bucket : ''
+          const p = typeof x?.path === 'string' ? x.path : ''
+          if (b && p) return `${b}:${p}`
+          const u = typeof x?.url === 'string' ? x.url : ''
+          if (!u) return ''
+          return u
+        }
+        for (const x of existing) {
+          const k = keyOf(x)
+          if (k) byKey.set(k, x)
+        }
+        for (const x of fotos_unidade as any[]) {
+          const k = keyOf(x)
+          if (!k) continue
+          const prev = byKey.get(k)
+          byKey.set(k, prev ? { ...prev, ...x } : x)
+        }
+        const merged = Array.from(byKey.values())
+        const { error } = await supabase
+          .from('unidades_fiscalizadas')
+          .update({ fotos_unidade: merged, updated_at: new Date().toISOString() })
+          .eq('id', serverId as any)
         if (error) throw error
       }
       await withBackoff(() => withTimeout(doUpdate, 15000))
@@ -980,7 +1028,22 @@ export async function runFullSync(): Promise<{ outbox: number; lastSyncAt?: stri
   }
   await retryOutboxErrors()
   try {
-    await withTimeout(() => pruneLocalByServerIds(), 30000)
+    const st = await db.estados_sync.get('global' as UUID)
+    const lastPruneAt = (st as any)?.last_prune_at as string | undefined
+    const shouldPrune = !lastPruneAt || (Number.isFinite(Date.parse(lastPruneAt)) && Date.now() - Date.parse(lastPruneAt) > 24 * 60 * 60 * 1000)
+    if (shouldPrune) {
+      try {
+        await withTimeout(() => pruneLocalByServerIds(), 30000)
+      } finally {
+        await db.estados_sync.put({
+          ...(st as any),
+          id: 'global' as UUID,
+          entidade: 'global',
+          updated_at: now(),
+          last_prune_at: now()
+        } as any)
+      }
+    }
   } catch {}
   await ensureBaseEntitiesEnqueued()
   await syncUp()
