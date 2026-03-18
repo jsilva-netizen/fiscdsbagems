@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Repository } from '@/lib/offline/repository';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -28,7 +28,7 @@ export default function AnalisarResposta() {
         dentro_prazo: true
     });
     const [confirmDialog, setConfirmDialog] = useState({ open: false, determinacao: null });
-    const [analisandoIA, setAnalisandoIA] = useState(false);
+    const [signedEvidencias, setSignedEvidencias] = useState({});
 
     const openArquivo = async (arq) => {
         try {
@@ -140,7 +140,6 @@ export default function AnalisarResposta() {
             if (resposta) {
                 const data = await Repository.updateRespostaDeterminacaoOnline(resposta.id, {
                     status,
-                    manifestacao_prestador: manifestacao,
                     descricao_atendimento: descricao,
                     data_resposta: new Date().toISOString()
                 });
@@ -214,8 +213,68 @@ export default function AnalisarResposta() {
             if (!by.has(uid)) by.set(uid, []);
             by.get(uid).push(det);
         }
+        for (const [uid, dets] of by.entries()) {
+            dets.sort((a, b) => {
+                const numA = parseInt(String(a?.numero_determinacao || '').replace(/\D/g, '') || '0', 10);
+                const numB = parseInt(String(b?.numero_determinacao || '').replace(/\D/g, '') || '0', 10);
+                if (Number.isFinite(numA) && Number.isFinite(numB) && numA !== numB) return numA - numB;
+                return String(a?.numero_determinacao || '').localeCompare(String(b?.numero_determinacao || ''), 'pt-BR');
+            });
+        }
         return by;
     }, [determinacoes]);
+
+    const evidenciaKey = (ev, idx) => {
+        if (!ev) return `idx:${idx}`;
+        if (ev.bucket && ev.path) return `${ev.bucket}:${ev.path}`;
+        const url = ev.url || ev;
+        const parsed = Repository.parseStorageUrl(url);
+        if (parsed) return `${parsed.bucket}:${parsed.path}`;
+        return String(url || `idx:${idx}`);
+    };
+
+    const isImageEvidence = (ev) => {
+        const tipo = String(ev?.tipo || '');
+        if (tipo.startsWith('image/')) return true;
+        const nome = String(ev?.nome || ev?.path || ev?.url || ev || '');
+        return /\.(png|jpe?g|webp|gif|bmp)$/i.test(nome);
+    };
+
+    const evidenciasAtuais = useMemo(() => {
+        if (!detalheDeterminacao) return [];
+        const respDet = respostas.find(r => r.determinacao_id === detalheDeterminacao.id);
+        const evidenciasResp = Array.isArray(respDet?.evidencias) ? respDet.evidencias : [];
+        const arquivosResposta = Array.isArray(termo?.arquivos_resposta) ? termo.arquivos_resposta : [];
+        const evidenciasFallback = arquivosResposta.filter(
+            (a) => a?.categoria === 'evidencia_determinacao' && a?.determinacao_id === detalheDeterminacao.id
+        );
+        return [...evidenciasResp, ...evidenciasFallback].filter(Boolean);
+    }, [detalheDeterminacao, respostas, termo]);
+
+    useEffect(() => {
+        let alive = true;
+        const load = async () => {
+            if (!detalheDeterminacao) {
+                setSignedEvidencias({});
+                return;
+            }
+            const next = {};
+            await Promise.all(
+                (evidenciasAtuais || []).map(async (ev, idx) => {
+                    if (!isImageEvidence(ev)) return;
+                    try {
+                        const signed = await Repository.getSignedUrlFromAny(ev);
+                        if (signed) next[evidenciaKey(ev, idx)] = signed;
+                    } catch {}
+                })
+            );
+            if (alive) setSignedEvidencias(next);
+        };
+        load();
+        return () => {
+            alive = false;
+        };
+    }, [detalheDeterminacao, evidenciasAtuais]);
 
     const podeAnalisar = (index) => {
         if (index === 0) return true;
@@ -372,7 +431,7 @@ export default function AnalisarResposta() {
                             <Card key={unidade.id}>
                                 <CardHeader className="pb-3">
                                     <CardTitle className="text-base">
-                                        Unidade: {unidade.nome_unidade || unidade.tipo_unidade_nome || unidade.codigo_unidade || unidade.id}
+                                        Unidade: {unidade.codigo_unidade || unidade.codigo || unidade.id}
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
@@ -466,73 +525,70 @@ export default function AnalisarResposta() {
 
                                 <div className="border-t pt-4">
                                     <p className="font-medium mb-2">Evidências anexadas pelo prestador:</p>
-                                    {(() => {
-                                        const respDet = respostas.find(r => r.determinacao_id === detalheDeterminacao.id);
-                                        const evidenciasResp = Array.isArray(respDet?.evidencias) ? respDet.evidencias : [];
-                                        const arquivosResposta = Array.isArray(termo?.arquivos_resposta) ? termo.arquivos_resposta : [];
-                                        const evidenciasFallback = arquivosResposta.filter(
-                                            (a) => a?.categoria === 'evidencia_determinacao' && a?.determinacao_id === detalheDeterminacao.id
-                                        );
-                                        const evidencias = [...evidenciasResp, ...evidenciasFallback].filter(Boolean);
-                                        if (evidencias.length === 0) {
-                                            return <p className="text-sm text-gray-500">Nenhuma evidência anexada</p>;
-                                        }
-                                        return (
+                                    {evidenciasAtuais.length === 0 ? (
+                                        <p className="text-sm text-gray-500">Nenhuma evidência anexada</p>
+                                    ) : (
+                                        <>
+                                            {evidenciasAtuais.some(isImageEvidence) ? (
+                                                <div className="grid grid-cols-3 gap-2 mb-3">
+                                                    {evidenciasAtuais
+                                                        .map((ev, idx) => ({ ev, idx }))
+                                                        .filter(({ ev }) => isImageEvidence(ev))
+                                                        .map(({ ev, idx }) => {
+                                                            const key = evidenciaKey(ev, idx);
+                                                            const src = signedEvidencias[key] || '';
+                                                            return (
+                                                                <button
+                                                                    key={key}
+                                                                    type="button"
+                                                                    onClick={() => void openArquivo(ev)}
+                                                                    className="aspect-square rounded border overflow-hidden bg-gray-50"
+                                                                    title={ev?.nome || 'Evidência'}
+                                                                >
+                                                                    {src ? (
+                                                                        <img
+                                                                            src={src}
+                                                                            alt={ev?.nome || 'Evidência'}
+                                                                            className="w-full h-full object-cover"
+                                                                        />
+                                                                    ) : (
+                                                                        <div className="w-full h-full flex items-center justify-center text-xs text-gray-500">
+                                                                            Carregando...
+                                                                        </div>
+                                                                    )}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                </div>
+                                            ) : null}
                                             <div className="flex flex-wrap gap-2">
-                                                {evidencias.map((ev, idx) => (
+                                                {evidenciasAtuais.map((ev, idx) => (
                                                     <Button
-                                                        key={idx}
+                                                        key={evidenciaKey(ev, idx)}
                                                         variant="outline"
                                                         size="sm"
                                                         onClick={() => void openArquivo(ev)}
                                                     >
-                                                        {ev.nome || 'Arquivo'}
+                                                        {ev?.nome || 'Arquivo'}
                                                     </Button>
                                                 ))}
                                             </div>
-                                        )
-                                    })()}
+                                        </>
+                                    )}
                                 </div>
 
                                 <div className="border-t pt-4">
                                     <p className="font-medium mb-2">Manifestação do Prestador:</p>
                                     <Textarea
-                                        placeholder="Insira aqui o que o prestador manifestou sobre esta determinação..."
                                         value={analiseForm.manifestacao_prestador || ''}
-                                        onChange={(e) => setAnaliseForm({ ...analiseForm, manifestacao_prestador: e.target.value })}
                                         className="min-h-24"
+                                        readOnly
                                     />
                                 </div>
 
                                 <div className="border-t pt-4">
                                     <div className="flex justify-between items-center mb-2">
                                         <p className="font-medium">Sua Análise:</p>
-                                        <Button
-                                            type="button"
-                                            size="sm"
-                                            variant="outline"
-                                            onClick={async () => {
-                                                alert('A análise com IA está temporariamente desativada nesta versão.');
-                                                /*
-                                                if (!analiseForm.manifestacao_prestador) {
-                                                    alert('Insira a manifestação do prestador primeiro');
-                                                    return;
-                                                }
-                                                
-                                                setAnalisandoIA(true);
-                                                try {
-                                                    // Implementação futura com Supabase Edge Functions ou OpenAI directly
-                                                } catch (error) {
-                                                    alert('Erro ao gerar análise: ' + error.message);
-                                                } finally {
-                                                    setAnalisandoIA(false);
-                                                }
-                                                */
-                                            }}
-                                            disabled={analisandoIA || !analiseForm.manifestacao_prestador}
-                                        >
-                                            {analisandoIA ? 'Gerando análise...' : '🤖 Gerar Análise com IA'}
-                                        </Button>
                                     </div>
                                     <Textarea
                                         placeholder="Descreva sua análise técnica sobre a resposta do prestador..."
