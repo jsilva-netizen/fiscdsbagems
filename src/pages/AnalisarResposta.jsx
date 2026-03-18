@@ -468,7 +468,12 @@ export default function AnalisarResposta() {
                                     <p className="font-medium mb-2">Evidências anexadas pelo prestador:</p>
                                     {(() => {
                                         const respDet = respostas.find(r => r.determinacao_id === detalheDeterminacao.id);
-                                        const evidencias = Array.isArray(respDet?.evidencias) ? respDet.evidencias : [];
+                                        const evidenciasResp = Array.isArray(respDet?.evidencias) ? respDet.evidencias : [];
+                                        const arquivosResposta = Array.isArray(termo?.arquivos_resposta) ? termo.arquivos_resposta : [];
+                                        const evidenciasFallback = arquivosResposta.filter(
+                                            (a) => a?.categoria === 'evidencia_determinacao' && a?.determinacao_id === detalheDeterminacao.id
+                                        );
+                                        const evidencias = [...evidenciasResp, ...evidenciasFallback].filter(Boolean);
                                         if (evidencias.length === 0) {
                                             return <p className="text-sm text-gray-500">Nenhuma evidência anexada</p>;
                                         }

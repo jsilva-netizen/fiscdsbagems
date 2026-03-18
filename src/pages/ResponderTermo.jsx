@@ -89,8 +89,19 @@ export default function ResponderTermo() {
 
     if (![a, b, c, d].every(Number.isFinite)) return { valid: false, reason: 'ByteRange inválido' };
     if (a !== 0 || b <= 0 || c <= 0 || d <= 0) return { valid: false, reason: 'ByteRange inválido' };
-    if (c <= b) return { valid: false, reason: 'ByteRange inválido' };
-    if (c + d !== fileLen) return { valid: false, reason: 'Assinatura incompleta (ByteRange não cobre o arquivo)' };
+    if (c < a + b) return { valid: false, reason: 'ByteRange inválido' };
+    if (c + d > fileLen) return { valid: false, reason: 'Assinatura incompleta (ByteRange inválido)' };
+    if (c + d < fileLen) {
+      const tail = bytes.slice(c + d);
+      let onlyWhitespace = true;
+      for (let i = 0; i < tail.length; i++) {
+        const ch = tail[i];
+        if (ch === 0x00 || ch === 0x09 || ch === 0x0a || ch === 0x0d || ch === 0x20) continue;
+        onlyWhitespace = false;
+        break;
+      }
+      if (!onlyWhitespace) return { valid: false, reason: 'Assinatura incompleta (ByteRange não cobre o arquivo)' };
+    }
     const gap = c - (a + b);
     if (gap <= 0) return { valid: false, reason: 'Assinatura incompleta (gap inválido)' };
 
@@ -193,19 +204,25 @@ export default function ResponderTermo() {
 
   useEffect(() => {
     if (determinacoes.length > 0) {
+      const arquivosResposta = Array.isArray(termo?.arquivos_resposta) ? termo.arquivos_resposta : []
       const initial = {};
       for (const det of determinacoes) {
         const resp = respostas.find((r) => r.determinacao_id === det.id);
+        const fallbackEv = arquivosResposta.filter(
+          (a) => a?.categoria === 'evidencia_determinacao' && a?.determinacao_id === det.id
+        );
+        const evidenciasResp = Array.isArray(resp?.evidencias) ? resp.evidencias : [];
+        const evidencias = [...evidenciasResp, ...fallbackEv].filter(Boolean);
         initial[det.id] = {
           manifestacao_prestador: resp?.manifestacao_prestador || '',
           descricao_atendimento: resp?.descricao_atendimento || '',
-          evidencias: Array.isArray(resp?.evidencias) ? resp.evidencias : [],
+          evidencias,
           status: resp?.status || '',
         };
       }
       setForms(initial);
     }
-  }, [determinacoes, respostas]);
+  }, [determinacoes, respostas, termo]);
 
   const salvarDraftMutation = useMutation({
     mutationFn: async ({ detId }) => {
@@ -306,6 +323,13 @@ export default function ResponderTermo() {
       const meta = await Repository.uploadEvidenciaDeterminacao(file, detId);
       metas.push(meta);
     }
+    try {
+      for (const m of metas) {
+        const persisted = { ...m, categoria: 'evidencia_determinacao', determinacao_id: detId };
+        await Repository.appendArquivoRespostaTermoOnline(termoId, persisted);
+      }
+      await queryClient.invalidateQueries({ queryKey: ['termo', termoId] });
+    } catch {}
     setForms((prev) => {
       const cur = prev[detId] || {};
       return {

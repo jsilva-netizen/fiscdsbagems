@@ -467,14 +467,34 @@ export const Repository = {
   
   async updateRespostaDeterminacaoOnline(id: string, changes: any): Promise<any> {
     const { data, error } = await supabase.from('respostas_determinacao').update(changes).eq('id', id).select().single()
-    if (error) throw error
-    return data
+    if (!error) return data
+    const msg = String((error as any)?.message || '').toLowerCase()
+    const mentionsMissingColumn =
+      msg.includes('could not find') || msg.includes('does not exist') || msg.includes('column')
+    if (mentionsMissingColumn && msg.includes('evidencias')) {
+      const next = { ...(changes || {}) }
+      delete (next as any).evidencias
+      const retry = await supabase.from('respostas_determinacao').update(next).eq('id', id).select().single()
+      if (retry.error) throw retry.error
+      return retry.data
+    }
+    throw error
   },
   
   async createRespostaDeterminacaoOnline(payload: any): Promise<any> {
     const { data, error } = await supabase.from('respostas_determinacao').insert(payload).select().single()
-    if (error) throw error
-    return data
+    if (!error) return data
+    const msg = String((error as any)?.message || '').toLowerCase()
+    const mentionsMissingColumn =
+      msg.includes('could not find') || msg.includes('does not exist') || msg.includes('column')
+    if (mentionsMissingColumn && msg.includes('evidencias')) {
+      const next = { ...(payload || {}) }
+      delete (next as any).evidencias
+      const retry = await supabase.from('respostas_determinacao').insert(next).select().single()
+      if (retry.error) throw retry.error
+      return retry.data
+    }
+    throw error
   },
   
   async gerarNumeroAutoOnline(): Promise<string> {

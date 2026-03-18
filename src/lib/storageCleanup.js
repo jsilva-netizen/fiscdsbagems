@@ -176,21 +176,39 @@ export const deleteTermoNotificacaoComDependencias = async (termoId) => {
   }
   await removePathsByBucket(anexos)
 
-  const { data: respostas, error: respErr } = await supabase
-    .from('respostas_determinacao')
-    .select('id,evidencias')
+  const { data: unidades, error: unidadesErr } = await supabase
+    .from('unidades_fiscalizadas')
+    .select('id')
     .eq('fiscalizacao_id', termo.fiscalizacao_id)
-    .eq('prestador_servico_id', termo.prestador_servico_id)
-  if (respErr) throw respErr
-  const evidencias = []
-  for (const r of respostas || []) {
-    const ev = Array.isArray(r?.evidencias) ? r.evidencias : []
-    for (const item of ev) {
-      if (typeof item === 'string') evidencias.push(item)
-      else if (item?.url) evidencias.push(item.url)
-    }
+  if (unidadesErr) throw unidadesErr
+  const unidadeIds = (unidades || []).map((u) => u.id).filter(Boolean)
+  if (unidadeIds.length > 0) {
+    const { data: dets, error: detErr } = await supabase
+      .from('determinacoes')
+      .select('id')
+      .in('unidade_fiscalizada_id', unidadeIds)
+    if (detErr) throw detErr
+    const detIds = Array.from(new Set((dets || []).map((d) => d.id).filter(Boolean)))
+    try {
+      for (const detId of detIds) {
+        let offset = 0
+        while (true) {
+          const { data: files, error: listErr } = await supabase.storage
+            .from('evidencias-determinacoes')
+            .list(detId, { limit: 1000, offset })
+          if (listErr) break
+          const paths = (files || [])
+            .filter((f) => f?.name)
+            .map((f) => `${detId}/${f.name}`)
+          if (paths.length > 0) {
+            await supabase.storage.from('evidencias-determinacoes').remove(paths)
+          }
+          if (!files || files.length < 1000) break
+          offset += 1000
+        }
+      }
+    } catch {}
   }
-  await removePathsByBucket(evidencias)
   await supabase
     .from('respostas_determinacao')
     .delete()
