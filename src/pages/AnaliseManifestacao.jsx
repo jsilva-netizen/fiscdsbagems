@@ -170,16 +170,14 @@ export default function AnaliseManifestacao() {
         
         if (stats.total === 0) return { label: 'Sem determinações', color: 'bg-gray-500' };
         
-        // Se ainda não tem AM (resposta não foi registrada)
-        if (!termo.numero_am) {
+        const temRespostasParaAnalise = stats.aguardandoAnalise > 0 || stats.atendidas > 0 || stats.naoAtendidas > 0;
+        if (!temRespostasParaAnalise) {
             return { label: 'Aguardando Resposta', color: 'bg-blue-600' };
         }
-        
-        // Se tem AM e todas as determinações foram analisadas
+
         if (stats.atendidas + stats.naoAtendidas === stats.total) {
             return { label: 'Análise Concluída', color: 'bg-green-600' };
         } else {
-            // Se tem AM mas ainda há determinações aguardando análise
             return { label: 'Aguardando Análise', color: 'bg-yellow-600' };
         }
     };
@@ -685,7 +683,7 @@ export default function AnaliseManifestacao() {
                                             </div>
                                             <div className="flex flex-col gap-2 items-end">
                                                 <Badge className={statusInfo.color}>{statusInfo.label}</Badge>
-                                                {stats.total > 0 && termo.numero_am && (
+                                                {stats.total > 0 && (stats.aguardandoAnalise > 0 || stats.atendidas > 0 || stats.naoAtendidas > 0) && (
                                                      <Link to={createPageUrl('AnalisarResposta') + `?termo=${termo.id}`}>
                                                          <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
                                                              Analisar Determinações
