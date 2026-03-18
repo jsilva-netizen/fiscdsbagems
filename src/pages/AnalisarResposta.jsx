@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Repository } from '@/lib/offline/repository';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -70,6 +70,34 @@ export default function AnalisarResposta() {
             });
         },
         enabled: unidadesFiscalizadas.length > 0
+    });
+
+    const unidadeIds = useMemo(() => unidadesFiscalizadas.map((u) => u.id), [unidadesFiscalizadas]);
+
+    const { data: ncs = [] } = useQuery({
+        queryKey: ['nao-conformidades', unidadeIds.join(',')],
+        queryFn: async () => {
+            const data = await Repository.listNaoConformidadesOnlineByUnidades(unidadeIds);
+            return data || [];
+        },
+        enabled: unidadeIds.length > 0
+    });
+
+    const respostaChecklistIds = useMemo(() => {
+        const ids = [];
+        for (const nc of ncs || []) {
+            if (nc?.resposta_checklist_id) ids.push(nc.resposta_checklist_id);
+        }
+        return Array.from(new Set(ids));
+    }, [ncs]);
+
+    const { data: respostasChecklist = [] } = useQuery({
+        queryKey: ['respostas-checklist', respostaChecklistIds.join(',')],
+        queryFn: async () => {
+            const data = await Repository.listRespostasChecklistOnlineByIds(respostaChecklistIds);
+            return data || [];
+        },
+        enabled: respostaChecklistIds.length > 0
     });
 
     const { data: respostas = [] } = useQuery({
@@ -158,6 +186,27 @@ export default function AnalisarResposta() {
         const resp = respostas.find(r => r.determinacao_id === detId);
         return resp?.status || 'pendente';
     };
+
+    const detIndexById = useMemo(() => {
+        const m = new Map();
+        determinacoes.forEach((d, idx) => m.set(d.id, idx));
+        return m;
+    }, [determinacoes]);
+
+    const unidadesOrdenadas = useMemo(() => {
+        return unidadesFiscalizadas.slice().sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
+    }, [unidadesFiscalizadas]);
+
+    const determinacoesPorUnidade = useMemo(() => {
+        const by = new Map();
+        for (const det of determinacoes) {
+            const uid = det?.unidade_fiscalizada_id;
+            if (!uid) continue;
+            if (!by.has(uid)) by.set(uid, []);
+            by.get(uid).push(det);
+        }
+        return by;
+    }, [determinacoes]);
 
     const podeAnalisar = (index) => {
         if (index === 0) return true;
@@ -262,77 +311,131 @@ export default function AnalisarResposta() {
                                 <span className="font-medium">Serviços:</span> {fiscalizacao?.servicos?.join(', ') || 'N/A'}
                             </div>
                         </div>
-                        {termo.arquivos_resposta?.length > 0 && (
+                        {(() => {
+                            const arquivos = Array.isArray(termo.arquivos_resposta) ? termo.arquivos_resposta : [];
+                            const assinatura = arquivos.find((a) => a?.categoria === 'assinatura');
+                            const anexos = arquivos.filter((a) => a?.categoria !== 'assinatura');
+                            if (!assinatura && anexos.length === 0) return null;
+                            return (
                             <div className="mt-4 pt-4 border-t">
-                                <p className="font-medium mb-2">Arquivo de Resposta do Prestador:</p>
-                                {termo.arquivos_resposta.map((arquivo, idx) => (
-                                    <Button
-                                        key={idx}
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => window.open(`https://docs.google.com/viewer?url=${encodeURIComponent(arquivo.url)}&embedded=true`, '_blank')}
-                                        className="mr-2"
-                                    >
-                                        <Download className="h-4 w-4 mr-2" />
-                                        Visualizar PDF
-                                    </Button>
-                                ))}
+                                {assinatura && (
+                                    <div className="mb-3">
+                                        <p className="font-medium mb-2">Assinatura do prestador:</p>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => window.open(assinatura.url, '_blank')}
+                                        >
+                                            <Download className="h-4 w-4 mr-2" />
+                                            Visualizar assinatura
+                                        </Button>
+                                    </div>
+                                )}
+                                {anexos.length > 0 && (
+                                    <div>
+                                        <p className="font-medium mb-2">Arquivos de resposta:</p>
+                                        {anexos.map((arquivo, idx) => (
+                                            <Button
+                                                key={idx}
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => window.open(`https://docs.google.com/viewer?url=${encodeURIComponent(arquivo.url)}&embedded=true`, '_blank')}
+                                                className="mr-2"
+                                            >
+                                                <Download className="h-4 w-4 mr-2" />
+                                                Visualizar PDF
+                                            </Button>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
-                        )}
+                            );
+                        })()}
                     </CardContent>
                 </Card>
 
                 {/* Lista de Determinações */}
                 <div className="space-y-4">
-                    {determinacoes.map((det, index) => {
-                        const status = getStatusResposta(det.id);
-                        const bloqueado = !podeAnalisar(index);
-                        const statusIcon = status === 'atendida' ? <CheckCircle className="h-5 w-5 text-green-600" /> :
-                                          status === 'nao_atendida' ? <XCircle className="h-5 w-5 text-red-600" /> :
-                                          status === 'aguardando_analise' ? <AlertCircle className="h-5 w-5 text-yellow-600" /> :
-                                          <AlertCircle className="h-5 w-5 text-gray-400" />;
-
+                    {unidadesOrdenadas.map((unidade) => {
+                        const dets = determinacoesPorUnidade.get(unidade.id) || [];
+                        if (dets.length === 0) return null;
                         return (
-                            <Card key={det.id} className={bloqueado ? 'opacity-50' : 'hover:shadow-lg transition-shadow'}>
-                                <CardContent className="p-4">
-                                    <div className="flex justify-between items-start">
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                {statusIcon}
-                                                <h3 className="font-semibold text-lg">{det.numero_determinacao}</h3>
-                                                {bloqueado && <Lock className="h-4 w-4 text-gray-400" />}
-                                            </div>
-                                            <p className="text-sm text-gray-600 mb-2">{det.descricao}</p>
-                                            <div className="flex gap-2">
-                                                {status === 'atendida' && <Badge className="bg-green-600">Acatada</Badge>}
-                                                {status === 'nao_atendida' && <Badge className="bg-red-600">Não acatada - AI Gerado</Badge>}
-                                                {status === 'aguardando_analise' && <Badge className="bg-yellow-600">Aguardando Análise</Badge>}
-                                                {status === 'pendente' && <Badge className="bg-gray-500">Pendente</Badge>}
-                                            </div>
-                                        </div>
-                                        <div className="flex gap-2">
-                                            {(status === 'atendida' || status === 'nao_atendida') && (
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    onClick={() => handleAbrirAnalise(det, index)}
-                                                >
-                                                    <Eye className="h-4 w-4 mr-1" />
-                                                    Visualizar
-                                                </Button>
-                                            )}
-                                            {status !== 'atendida' && status !== 'nao_atendida' && (
-                                                <Button
-                                                    size="sm"
-                                                    onClick={() => handleAbrirAnalise(det, index)}
-                                                    disabled={bloqueado}
-                                                    className="bg-blue-600 hover:bg-blue-700"
-                                                >
-                                                    Analisar
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </div>
+                            <Card key={unidade.id}>
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="text-base">
+                                        Unidade: {unidade.nome_unidade || unidade.tipo_unidade_nome || unidade.codigo_unidade || unidade.id}
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    {dets.map((det) => {
+                                        const index = detIndexById.get(det.id) ?? 0;
+                                        const status = getStatusResposta(det.id);
+                                        const bloqueado = !podeAnalisar(index);
+                                        const nc = ncs.find((n) => n.id === det.nao_conformidade_id);
+                                        const constatacao = nc?.resposta_checklist_id ? respostasChecklist.find((r) => r.id === nc.resposta_checklist_id) : null;
+                                        const statusIcon = status === 'atendida' ? <CheckCircle className="h-5 w-5 text-green-600" /> :
+                                                        status === 'nao_atendida' ? <XCircle className="h-5 w-5 text-red-600" /> :
+                                                        status === 'aguardando_analise' ? <AlertCircle className="h-5 w-5 text-yellow-600" /> :
+                                                        <AlertCircle className="h-5 w-5 text-gray-400" />;
+
+                                        return (
+                                            <Card key={det.id} className={bloqueado ? 'opacity-50' : 'hover:shadow-lg transition-shadow'}>
+                                                <CardContent className="p-4">
+                                                    <div className="flex justify-between items-start">
+                                                        <div className="flex-1">
+                                                            <div className="flex items-center gap-2 mb-2">
+                                                                {statusIcon}
+                                                                <h3 className="font-semibold text-lg">{det.numero_determinacao}</h3>
+                                                                {bloqueado && <Lock className="h-4 w-4 text-gray-400" />}
+                                                            </div>
+                                                            <div className="text-xs text-gray-600 space-y-1 mb-2">
+                                                                {nc && (
+                                                                    <div>
+                                                                        <span className="font-medium">NC:</span> {nc.numero_nc || 'N/A'} {nc.descricao ? `- ${nc.descricao}` : ''}
+                                                                    </div>
+                                                                )}
+                                                                {constatacao && (
+                                                                    <div>
+                                                                        <span className="font-medium">Constatação:</span>{' '}
+                                                                        {constatacao.numero_constatacao || 'N/A'} {constatacao.pergunta ? `- ${constatacao.pergunta}` : ''}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            <p className="text-sm text-gray-600 mb-2">{det.descricao}</p>
+                                                            <div className="flex gap-2">
+                                                                {status === 'atendida' && <Badge className="bg-green-600">Acatada</Badge>}
+                                                                {status === 'nao_atendida' && <Badge className="bg-red-600">Não acatada - AI Gerado</Badge>}
+                                                                {status === 'aguardando_analise' && <Badge className="bg-yellow-600">Aguardando Análise</Badge>}
+                                                                {status === 'pendente' && <Badge className="bg-gray-500">Pendente</Badge>}
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex gap-2">
+                                                            {(status === 'atendida' || status === 'nao_atendida') && (
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    onClick={() => handleAbrirAnalise(det, index)}
+                                                                >
+                                                                    <Eye className="h-4 w-4 mr-1" />
+                                                                    Visualizar
+                                                                </Button>
+                                                            )}
+                                                            {status !== 'atendida' && status !== 'nao_atendida' && (
+                                                                <Button
+                                                                    size="sm"
+                                                                    onClick={() => handleAbrirAnalise(det, index)}
+                                                                    disabled={bloqueado}
+                                                                    className="bg-blue-600 hover:bg-blue-700"
+                                                                >
+                                                                    Analisar
+                                                                </Button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+                                        );
+                                    })}
                                 </CardContent>
                             </Card>
                         );

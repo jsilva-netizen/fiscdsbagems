@@ -365,6 +365,20 @@ export const Repository = {
     if (error) throw error
     return data || []
   },
+
+  async listNaoConformidadesOnlineByUnidades(unidadeIds: string[]): Promise<any[]> {
+    if (!Array.isArray(unidadeIds) || unidadeIds.length === 0) return []
+    const { data, error } = await supabase.from('nao_conformidades').select('*').in('unidade_fiscalizada_id', unidadeIds)
+    if (error) throw error
+    return data || []
+  },
+
+  async listRespostasChecklistOnlineByIds(ids: string[]): Promise<any[]> {
+    if (!Array.isArray(ids) || ids.length === 0) return []
+    const { data, error } = await supabase.from('respostas_checklist').select('*').in('id', ids)
+    if (error) throw error
+    return data || []
+  },
   
   async updateRespostaDeterminacaoOnline(id: string, changes: any): Promise<any> {
     const { data, error } = await supabase.from('respostas_determinacao').update(changes).eq('id', id).select().single()
@@ -430,6 +444,29 @@ export const Repository = {
     const { data: pub } = await supabase.storage.from(bucket).getPublicUrl(path)
     const meta = { url: pub?.publicUrl || '', nome: nomeOriginal, tipo: file.type || 'application/octet-stream', tamanho: file.size || 0, data_upload: new Date().toISOString(), path }
     return meta
+  },
+
+  async uploadAssinaturaTermo(file: File, termoId: string): Promise<{ url: string; nome: string; tipo: string; tamanho: number; data_upload: string; path: string }> {
+    const bucket = 'evidencias-determinacoes'
+    const nomeOriginal = file?.name || 'assinatura.png'
+    const ts = Date.now()
+    const rand = Math.random().toString(36).slice(2, 8)
+    const path = `assinaturas/${termoId}/${ts}-${rand}.png`
+    const { error: upErr } = await supabase.storage.from(bucket).upload(path, file, { upsert: false, contentType: file.type || 'image/png' })
+    if (upErr) throw upErr
+    const { data: pub } = await supabase.storage.from(bucket).getPublicUrl(path)
+    const meta = { url: pub?.publicUrl || '', nome: nomeOriginal, tipo: file.type || 'image/png', tamanho: file.size || 0, data_upload: new Date().toISOString(), path }
+    return meta
+  },
+
+  async appendArquivoRespostaTermoOnline(termoId: string, meta: any): Promise<any> {
+    const { data: termo, error: getErr } = await supabase.from('termos_notificacao').select('arquivos_resposta').eq('id', termoId).maybeSingle()
+    if (getErr) throw getErr
+    const cur = Array.isArray(termo?.arquivos_resposta) ? termo.arquivos_resposta : []
+    const next = [...cur.filter((x: any) => x?.path !== meta?.path), meta]
+    const { data, error } = await supabase.from('termos_notificacao').update({ arquivos_resposta: next, updated_at: new Date().toISOString() }).eq('id', termoId).select().single()
+    if (error) throw error
+    return data
   },
   
   async finalizeTNResponses(termoId: string, receivedAt?: string): Promise<any> {

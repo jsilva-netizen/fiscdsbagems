@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ArrowLeft, FileText, Trash2, Plus, Download, Upload } from 'lucide-react';
 import TermosKPI from '@/components/termos/TermosKPI';
 import TermosFiltros from '@/components/termos/TermosFiltros';
+import { deleteTermoNotificacaoComDependencias } from '@/lib/storageCleanup';
 
 let cachedTermosBucketName = null;
 let cachedAvailableBuckets = null;
@@ -446,9 +447,7 @@ export default function GerenciarTermos() {
          mutationFn: async (id) => {
              const termo = termos.find(t => t.id === id);
              if (!termo) throw new Error('Termo não encontrado');
-             
-             const { error } = await supabase.from('termos_notificacao').delete().eq('id', id);
-             if (error) throw error;
+             await deleteTermoNotificacaoComDependencias(id);
          },
          onSuccess: () => {
              queryClient.invalidateQueries({ queryKey: ['termos-notificacao'] });

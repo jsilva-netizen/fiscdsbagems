@@ -9,12 +9,15 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ArrowLeft, Shield, Loader2, Mail, Trash2, Check } from 'lucide-react';
 
 export default function GerenciarUsuarios() {
     const queryClient = useQueryClient();
     const [currentUser, setCurrentUser] = useState(null);
     const [deleteEmail, setDeleteEmail] = useState('');
+    const [vinculoDialog, setVinculoDialog] = useState({ open: false, user: null, mode: 'approve' });
+    const [prestadorSelecionado, setPrestadorSelecionado] = useState('');
 
     const { data: usuarios = [], isLoading } = useQuery({
         queryKey: ['usuarios-admin'],
@@ -25,6 +28,18 @@ export default function GerenciarUsuarios() {
                 .order('full_name');
             if (error) throw error;
             return data;
+        }
+    });
+
+    const { data: prestadores = [] } = useQuery({
+        queryKey: ['prestadores-servico-admin'],
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from('prestadores_servico')
+                .select('id,nome')
+                .order('nome');
+            if (error) throw error;
+            return data || [];
         }
     });
 
@@ -91,18 +106,89 @@ export default function GerenciarUsuarios() {
     });
 
     const toggleStatusMutation = useMutation({
-        mutationFn: async ({ userId, novoStatus }) => {
+        mutationFn: async ({ userId, novoStatus, prestadorId }) => {
             // Se estivermos aprovando (ativando), também podemos confirmar o email se necessário
             if (novoStatus === true) {
                 // Tenta atualizar no Auth (pode falhar se não for service_role, mas não custa tentar se for admin)
                 // Na verdade, via Client só podemos mexer no profile.
             }
 
+            if (novoStatus === true && prestadorId) {
+                const { data: cur, error: getErr } = await supabase
+                    .from('profiles')
+                    .select('prestador_servico_id')
+                    .eq('id', userId)
+                    .maybeSingle();
+                if (getErr) throw getErr;
+                const currentPrestador = cur?.prestador_servico_id;
+                if (currentPrestador && currentPrestador !== prestadorId) {
+                    const { error: clearErr } = await supabase
+                        .from('prestadores_servico')
+                        .update({ user_id: null })
+                        .eq('id', currentPrestador);
+                    if (clearErr) throw clearErr;
+                }
+
+                const { error: clearOldErr } = await supabase
+                    .from('prestadores_servico')
+                    .update({ user_id: null })
+                    .eq('user_id', userId)
+                    .neq('id', prestadorId);
+                if (clearOldErr) throw clearOldErr;
+
+                const { error: upPrestErr } = await supabase
+                    .from('prestadores_servico')
+                    .update({ user_id: userId })
+                    .eq('id', prestadorId);
+                if (upPrestErr) throw upPrestErr;
+            }
+
             const { error } = await supabase
                 .from('profiles')
-                .update({ ativo: novoStatus })
+                .update({ ativo: novoStatus, ...(prestadorId ? { prestador_servico_id: prestadorId } : {}) })
                 .eq('id', userId);
             
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['usuarios-admin'] });
+        }
+    });
+
+    const vincularPrestadorMutation = useMutation({
+        mutationFn: async ({ userId, prestadorId }) => {
+            const { data: cur, error: getErr } = await supabase
+                .from('profiles')
+                .select('prestador_servico_id')
+                .eq('id', userId)
+                .maybeSingle();
+            if (getErr) throw getErr;
+            const currentPrestador = cur?.prestador_servico_id;
+            if (currentPrestador && currentPrestador !== prestadorId) {
+                const { error: clearErr } = await supabase
+                    .from('prestadores_servico')
+                    .update({ user_id: null })
+                    .eq('id', currentPrestador);
+                if (clearErr) throw clearErr;
+            }
+
+            const { error: clearOldErr } = await supabase
+                .from('prestadores_servico')
+                .update({ user_id: null })
+                .eq('user_id', userId)
+                .neq('id', prestadorId);
+            if (clearOldErr) throw clearOldErr;
+
+            const { error: upPrestErr } = await supabase
+                .from('prestadores_servico')
+                .update({ user_id: userId })
+                .eq('id', prestadorId);
+            if (upPrestErr) throw upPrestErr;
+
+            const { error } = await supabase
+                .from('profiles')
+                .update({ prestador_servico_id: prestadorId })
+                .eq('id', userId);
             if (error) throw error;
         },
         onSuccess: () => {
@@ -127,6 +213,7 @@ export default function GerenciarUsuarios() {
     };
 
     const isAdmin = currentUser?.role === 'admin';
+    const getPrestadorNome = (id) => prestadores.find((p) => p.id === id)?.nome || 'N/A';
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -234,6 +321,14 @@ export default function GerenciarUsuarios() {
                                                         <Mail className="h-4 w-4" />
                                                         {usuario.email}
                                                     </div>
+                                                    {usuario.role === 'prestador' && (
+                                                        <div className="text-sm text-gray-700 mb-2">
+                                                            <span className="font-medium">Prestador vinculado:</span>{' '}
+                                                            {usuario.prestador_servico_id ? getPrestadorNome(usuario.prestador_servico_id) : (
+                                                                <span className="text-yellow-700">Não vinculado</span>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                     <p className="text-xs text-gray-500">
                                                         Criado em {(usuario.created_at || usuario.created_date) ? new Date(usuario.created_at || usuario.created_date).toLocaleDateString('pt-BR') : '-'}
                                                     </p>
@@ -255,6 +350,19 @@ export default function GerenciarUsuarios() {
                                                                     <SelectItem value="admin">Admin</SelectItem>
                                                                 </SelectContent>
                                                             </Select>
+                                                            {usuario.role === 'prestador' && (
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    onClick={() => {
+                                                                        setPrestadorSelecionado(usuario.prestador_servico_id || '');
+                                                                        setVinculoDialog({ open: true, user: usuario, mode: 'link' });
+                                                                    }}
+                                                                    disabled={toggleStatusMutation.isPending || deleteUserMutation.isPending}
+                                                                >
+                                                                    Vincular
+                                                                </Button>
+                                                            )}
                                                             <Button
                                                                 size="sm"
                                                                 variant={usuario.ativo ? "destructive" : "default"}
@@ -263,6 +371,11 @@ export default function GerenciarUsuarios() {
                                                                     if (usuario.ativo) {
                                                                         handleDeleteUser(usuario.id, usuario.full_name);
                                                                     } else {
+                                                                        if (usuario.role === 'prestador' && !usuario.prestador_servico_id) {
+                                                                            setPrestadorSelecionado('');
+                                                                            setVinculoDialog({ open: true, user: usuario, mode: 'approve' });
+                                                                            return;
+                                                                        }
                                                                         handleToggleStatus(usuario.id, usuario.full_name, usuario.ativo);
                                                                     }
                                                                 }}
@@ -289,6 +402,82 @@ export default function GerenciarUsuarios() {
                     </>
                 )}
             </div>
+
+            <Dialog
+                open={vinculoDialog.open}
+                onOpenChange={(open) => {
+                    if (!open) setVinculoDialog({ open: false, user: null, mode: 'approve' });
+                    else setVinculoDialog((prev) => ({ ...prev, open: true }));
+                }}
+            >
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>{vinculoDialog.mode === 'approve' ? 'Vincular prestador para aprovar usuário' : 'Vincular prestador ao usuário'}</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-3">
+                        <div className="text-sm text-gray-700">
+                            <div><span className="font-medium">Usuário:</span> {vinculoDialog.user?.full_name}</div>
+                            <div><span className="font-medium">Email:</span> {vinculoDialog.user?.email}</div>
+                        </div>
+                        <div>
+                            <Label>Prestador de serviço</Label>
+                            <Select value={prestadorSelecionado} onValueChange={setPrestadorSelecionado}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecione um prestador" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {prestadores.map((p) => (
+                                        <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="flex gap-2 justify-end">
+                            <Button
+                                variant="outline"
+                                onClick={() => setVinculoDialog({ open: false, user: null, mode: 'approve' })}
+                                type="button"
+                            >
+                                Cancelar
+                            </Button>
+                            <Button
+                                className="bg-green-600 hover:bg-green-700"
+                                disabled={!prestadorSelecionado || toggleStatusMutation.isPending || vincularPrestadorMutation.isPending}
+                                onClick={() => {
+                                    const u = vinculoDialog.user;
+                                    if (!u?.id) return;
+                                    if (vinculoDialog.mode === 'approve') {
+                                        toggleStatusMutation.mutate(
+                                            { userId: u.id, novoStatus: true, prestadorId: prestadorSelecionado },
+                                            {
+                                                onSuccess: () => {
+                                                    setVinculoDialog({ open: false, user: null, mode: 'approve' });
+                                                    setPrestadorSelecionado('');
+                                                    alert('Usuário aprovado e vinculado ao prestador.');
+                                                }
+                                            }
+                                        );
+                                    } else {
+                                        vincularPrestadorMutation.mutate(
+                                            { userId: u.id, prestadorId: prestadorSelecionado },
+                                            {
+                                                onSuccess: () => {
+                                                    setVinculoDialog({ open: false, user: null, mode: 'approve' });
+                                                    setPrestadorSelecionado('');
+                                                    alert('Vínculo com prestador atualizado.');
+                                                }
+                                            }
+                                        );
+                                    }
+                                }}
+                                type="button"
+                            >
+                                {vinculoDialog.mode === 'approve' ? 'Aprovar e vincular' : 'Salvar vínculo'}
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

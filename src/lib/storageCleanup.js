@@ -126,3 +126,76 @@ export const deleteFiscalizacaoComImagens = async (fiscalizacaoId) => {
     await db.fiscalizacoes.delete(localId)
   })
 }
+
+export const deleteTermoNotificacaoComDependencias = async (termoId) => {
+  const { data: termo, error: termoErr } = await supabase
+    .from('termos_notificacao')
+    .select('id,fiscalizacao_id,prestador_servico_id,arquivo_url,arquivo_protocolo_url,arquivo_oficio_protocolo,arquivo_oficio_resposta,arquivos_resposta')
+    .eq('id', termoId)
+    .maybeSingle()
+  if (termoErr) throw termoErr
+  if (!termo) return
+
+  const anexos = []
+  if (termo.arquivo_url) anexos.push(termo.arquivo_url)
+  if (termo.arquivo_protocolo_url) anexos.push(termo.arquivo_protocolo_url)
+  if (termo.arquivo_oficio_protocolo) anexos.push(termo.arquivo_oficio_protocolo)
+  if (termo.arquivo_oficio_resposta) anexos.push(termo.arquivo_oficio_resposta)
+  const resp = Array.isArray(termo.arquivos_resposta) ? termo.arquivos_resposta : []
+  for (const arq of resp) {
+    if (typeof arq === 'string') anexos.push(arq)
+    else if (arq?.url) anexos.push(arq.url)
+  }
+  await removePathsByBucket(anexos)
+
+  const { data: respostas, error: respErr } = await supabase
+    .from('respostas_determinacao')
+    .select('id,evidencias')
+    .eq('fiscalizacao_id', termo.fiscalizacao_id)
+    .eq('prestador_servico_id', termo.prestador_servico_id)
+  if (respErr) throw respErr
+  const evidencias = []
+  for (const r of respostas || []) {
+    const ev = Array.isArray(r?.evidencias) ? r.evidencias : []
+    for (const item of ev) {
+      if (typeof item === 'string') evidencias.push(item)
+      else if (item?.url) evidencias.push(item.url)
+    }
+  }
+  await removePathsByBucket(evidencias)
+  await supabase
+    .from('respostas_determinacao')
+    .delete()
+    .eq('fiscalizacao_id', termo.fiscalizacao_id)
+    .eq('prestador_servico_id', termo.prestador_servico_id)
+
+  const { data: autos, error: autosErr } = await supabase
+    .from('autos_infracao')
+    .select('id,arquivo_url,arquivo_protocolo_oficio,arquivo_protocolo_ai_recebido,arquivo_defesa_oficio,arquivo_defesa')
+    .eq('fiscalizacao_id', termo.fiscalizacao_id)
+    .eq('prestador_servico_id', termo.prestador_servico_id)
+  if (autosErr) throw autosErr
+  const autoIds = []
+  const autoArquivos = []
+  for (const a of autos || []) {
+    if (a?.id) autoIds.push(a.id)
+    if (a?.arquivo_url) autoArquivos.push(a.arquivo_url)
+    if (a?.arquivo_protocolo_oficio) autoArquivos.push(a.arquivo_protocolo_oficio)
+    if (a?.arquivo_protocolo_ai_recebido) autoArquivos.push(a.arquivo_protocolo_ai_recebido)
+    if (a?.arquivo_defesa_oficio) autoArquivos.push(a.arquivo_defesa_oficio)
+    if (a?.arquivo_defesa) autoArquivos.push(a.arquivo_defesa)
+  }
+  await removePathsByBucket(autoArquivos)
+  if (autoIds.length > 0) {
+    const { data: manifs } = await supabase.from('manifestacoes_auto').select('arquivo_url').in('auto_infracao_id', autoIds)
+    const arqs = []
+    for (const m of manifs || []) {
+      if (m?.arquivo_url) arqs.push(m.arquivo_url)
+    }
+    await removePathsByBucket(arqs)
+    await supabase.from('julgamentos').delete().in('auto_id', autoIds)
+    await supabase.from('autos_infracao').delete().in('id', autoIds)
+  }
+
+  await supabase.from('termos_notificacao').delete().eq('id', termoId)
+}
