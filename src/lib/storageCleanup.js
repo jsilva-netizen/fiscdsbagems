@@ -1,16 +1,42 @@
 import { supabase } from '@/lib/supabase'
 import { db } from '@/lib/offline/db'
 
-const parsePublicUrl = (url) => {
-  if (typeof url !== 'string') return null
-  const marker = '/storage/v1/object/public/'
-  const idx = url.indexOf(marker)
-  if (idx === -1) return null
+const parseStorageRef = (input) => {
+  if (!input) return null
+  if (typeof input === 'object') {
+    if (input.bucket && input.path) return { bucket: input.bucket, path: input.path }
+    if (typeof input.url === 'string') return parseStorageRef(input.url)
+  }
+  if (typeof input !== 'string') return null
+  const url = input
+  if (url.startsWith('storage://')) {
+    const remainder = url.slice('storage://'.length)
+    const slash = remainder.indexOf('/')
+    if (slash === -1) return null
+    const bucket = remainder.slice(0, slash)
+    let path = remainder.slice(slash + 1)
+    const q = path.indexOf('?')
+    if (q !== -1) path = path.slice(0, q)
+    if (!bucket || !path) return null
+    return { bucket, path }
+  }
+  const publicMarker = '/storage/v1/object/public/'
+  const signMarker = '/storage/v1/object/sign/'
+  let marker = ''
+  let idx = url.indexOf(publicMarker)
+  if (idx !== -1) marker = publicMarker
+  else {
+    idx = url.indexOf(signMarker)
+    if (idx !== -1) marker = signMarker
+  }
+  if (!marker) return null
   const remainder = url.slice(idx + marker.length)
   const slash = remainder.indexOf('/')
   if (slash === -1) return null
   const bucket = remainder.slice(0, slash)
-  const path = remainder.slice(slash + 1)
+  let path = remainder.slice(slash + 1)
+  const q = path.indexOf('?')
+  if (q !== -1) path = path.slice(0, q)
   if (!bucket || !path) return null
   return { bucket, path }
 }
@@ -19,7 +45,7 @@ const removePathsByBucket = async (items) => {
   const byBucket = {}
   for (const it of items) {
     if (!it) continue
-    const parsed = parsePublicUrl(typeof it === 'string' ? it : it.url)
+    const parsed = parseStorageRef(it)
     if (!parsed) continue
     byBucket[parsed.bucket] = byBucket[parsed.bucket] || new Set()
     byBucket[parsed.bucket].add(parsed.path)

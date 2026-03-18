@@ -12,10 +12,12 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogFooter, AlertDialogCancel, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { ArrowLeft, FileText, Trash2, Plus, Download, Upload } from 'lucide-react';
 import TermosKPI from '@/components/termos/TermosKPI';
 import TermosFiltros from '@/components/termos/TermosFiltros';
 import { deleteTermoNotificacaoComDependencias } from '@/lib/storageCleanup';
+import { Repository } from '@/lib/offline/repository';
 
 let cachedTermosBucketName = null;
 let cachedAvailableBuckets = null;
@@ -55,14 +57,26 @@ export default function GerenciarTermos() {
     const [deleteConfirmation, setDeleteConfirmation] = useState({ open: false, termoId: null, step: 1, inputValue: '' });
     const [termoDetalhes, setTermoDetalhes] = useState(null);
     const [termoAssinadoTemp, setTermoAssinadoTemp] = useState(null);
+    const [rfpAssinadoTemp, setRfpAssinadoTemp] = useState(null);
+    const [tnPrestadorTemp, setTnPrestadorTemp] = useState(null);
     const [dataProtocoloOpen, setDataProtocoloOpen] = useState(false);
     const [protocoNoTemp, setProtocoloTemp] = useState(null);
     const [uploadingProtocolo, setUploadingProtocolo] = useState(false);
+
+    const openArquivo = async (arq) => {
+        try {
+            const signed = await Repository.getSignedUrlFromAny(arq);
+            if (signed) window.open(signed, '_blank', 'noopener,noreferrer');
+        } catch (err) {
+            alert('Erro ao abrir arquivo: ' + (err?.message || String(err)));
+        }
+    };
 
     const [respostaOpenId, setRespostaOpenId] = useState(null);
     const [alteracoesPendentes, setAlteracoesPendentes] = useState(false);
     const [dadosEditados, setDadosEditados] = useState({
         data_protocolo: null,
+        data_inicio_prazo: null,
         arquivo_protocolo_url: null,
         arquivo_oficio_protocolo: null,
         data_recebimento_resposta: null,
@@ -71,7 +85,8 @@ export default function GerenciarTermos() {
         numero_processo: null,
         fiscalizacao_id: null,
         camara_tecnica: null,
-        prazo_resposta_dias: null
+        prazo_resposta_dias: null,
+        assinatura_prestador_valida: null
     });
 
     const [quickProtocolo, setQuickProtocolo] = useState({ open: false, termo: null, data: '', protocoloUrl: '', protocoloNome: '', oficioUrl: '', oficioNome: '' });
@@ -255,8 +270,7 @@ export default function GerenciarTermos() {
             }
 
             cachedTermosBucketName = bucket;
-            const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
-            return data?.publicUrl;
+            return `storage://${bucket}/${filePath}`;
         }
 
         const attempted = bucketOrder.join(', ');
@@ -275,10 +289,17 @@ export default function GerenciarTermos() {
     };
 
     const calcularStatusTermo = (t) => {
-        if (!t?.arquivo_url) return 'pendente_tn';
-        if (!t?.data_protocolo || !t?.arquivo_protocolo_url) return 'pendente_protocolo';
-        if (!t?.data_recebimento_resposta) return 'aguardando_resposta';
-        return 'respondido';
+        if (!t?.arquivo_url || !t?.arquivo_rfp_url) return 'pendente_tn';
+        if (!t?.arquivo_tn_prestador_url || !t?.assinatura_prestador_valida) return 'aguardando_assinatura_prestador';
+        if (t?.data_recebimento_resposta) return 'respondido';
+        if (t?.data_maxima_resposta) {
+            const hoje = new Date();
+            hoje.setHours(0, 0, 0, 0);
+            const dataMax = new Date(`${t.data_maxima_resposta}T00:00:00`);
+            dataMax.setHours(0, 0, 0, 0);
+            if (hoje > dataMax) return 'prazo_vencido';
+        }
+        return 'aguardando_resposta';
     };
 
     const enviarTermoAssinadoRapido = async (termo) => {
@@ -307,6 +328,40 @@ export default function GerenciarTermos() {
                 alert('TN assinado enviado com sucesso!');
             } catch (error) {
                 alert('Erro ao enviar TN assinado: ' + (error?.message || ''));
+            } finally {
+                setUploadingTermoAssinadoId(null);
+            }
+        };
+
+        input.click();
+    };
+
+    const enviarRfpAssinadoRapido = async (termo) => {
+        if (!termo?.id) return;
+        if (uploadingTermoAssinadoId) return;
+
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.pdf,application/pdf';
+        input.multiple = false;
+
+        input.onchange = async () => {
+            const file = input.files?.[0];
+            if (!file) return;
+            setUploadingTermoAssinadoId(termo.id);
+            try {
+                const url = await uploadFileToStorage(file);
+                const after = { ...termo, arquivo_rfp_url: url };
+                const status = calcularStatusTermo(after);
+                const { error } = await supabase
+                    .from('termos_notificacao')
+                    .update({ arquivo_rfp_url: url, status })
+                    .eq('id', termo.id);
+                if (error) throw error;
+                queryClient.invalidateQueries({ queryKey: ['termos-notificacao'] });
+                alert('RFP assinado enviado com sucesso!');
+            } catch (error) {
+                alert('Erro ao enviar RFP assinado: ' + (error?.message || ''));
             } finally {
                 setUploadingTermoAssinadoId(null);
             }
@@ -508,10 +563,11 @@ export default function GerenciarTermos() {
     };
 
     const getStatusFluxo = (termo) => {
-            if (!termo.arquivo_url) return 'pendente_tn';
-            if (!termo.data_protocolo || !termo.arquivo_protocolo_url) return 'pendente_protocolo';
-            if (!termo.data_recebimento_resposta) return 'aguardando_resposta';
-            return 'respondido';
+            if (!termo?.arquivo_url || !termo?.arquivo_rfp_url) return 'pendente_tn';
+            if (!termo?.arquivo_tn_prestador_url || !termo?.assinatura_prestador_valida) return 'aguardando_assinatura_prestador';
+            if (termo?.data_recebimento_resposta) return 'respondido';
+            if (verificaPrazoVencido(termo)) return 'prazo_vencido';
+            return 'aguardando_resposta';
         };
 
     const verificaPrazoVencido = (termo) => {
@@ -528,9 +584,7 @@ export default function GerenciarTermos() {
         if (filtros.camaraTecnica && termo.camara_tecnica !== filtros.camaraTecnica) return false;
         if (filtros.status) {
             const status = getStatusFluxo(termo);
-            if (filtros.status === 'prazo_vencido') {
-                if (status !== 'aguardando_resposta' || !verificaPrazoVencido(termo)) return false;
-            } else if (status !== filtros.status) {
+            if (status !== filtros.status) {
                 return false;
             }
         }
@@ -541,9 +595,10 @@ export default function GerenciarTermos() {
 
     const getStatusBadge = (status) => {
             const statusMap = {
-                pendente_tn: { label: 'Pendente - TN Assinado', color: 'bg-yellow-500' },
-                pendente_protocolo: { label: 'Pendente - Protocolo', color: 'bg-yellow-500' },
+                pendente_tn: { label: 'Pendente - TN/RFP (AGEMS)', color: 'bg-yellow-500' },
+                aguardando_assinatura_prestador: { label: 'Aguardando Assinatura (Prestador)', color: 'bg-orange-600' },
                 aguardando_resposta: { label: 'Aguardando Resposta', color: 'bg-green-600' },
+                prazo_vencido: { label: 'Prazo Vencido', color: 'bg-red-600' },
                 respondido: { label: 'Respondido', color: 'bg-purple-600' }
             };
             return statusMap[status] || { label: 'Criado', color: 'bg-blue-500' };
@@ -724,9 +779,12 @@ export default function GerenciarTermos() {
                           if (!open) {
                               setTermoDetalhes(null);
                               setTermoAssinadoTemp(null);
+                              setRfpAssinadoTemp(null);
+                              setTnPrestadorTemp(null);
                               setAlteracoesPendentes(false);
                               setDadosEditados({
                                   data_protocolo: null,
+                                  data_inicio_prazo: null,
                                   arquivo_protocolo_url: null,
                                   arquivo_oficio_protocolo: null,
                                   data_recebimento_resposta: null,
@@ -735,7 +793,8 @@ export default function GerenciarTermos() {
                                   numero_processo: null,
                                   fiscalizacao_id: null,
                                   camara_tecnica: null,
-                                  prazo_resposta_dias: null
+                                  prazo_resposta_dias: null,
+                                  assinatura_prestador_valida: null
                               });
                               setProtocoloTemp(null);
                               setOficioProtocoloTemp(null);
@@ -789,50 +848,220 @@ export default function GerenciarTermos() {
                                 </div>
 
                                 <div className="border-t pt-4">
-                                    <h3 className="font-semibold mb-3">Termo de Notificação Assinado</h3>
-                                    <div className="space-y-2">
-                                        <Input
-                                            type="file"
-                                            accept=".pdf"
-                                            onChange={async (e) => {
-                                                const file = e.target.files?.[0];
-                                                if (file) {
-                                                    setUploadingFile(true);
-                                                    try {
-                                                        const url = await uploadFileToStorage(file);
-                                                        setTermoAssinadoTemp(url);
-                                                    } catch (error) {
-                                                        alert('Erro ao enviar arquivo: ' + error.message);
-                                                    } finally {
-                                                        setUploadingFile(false);
+                                    <h3 className="font-semibold mb-3">Arquivos do TN</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div className="space-y-2">
+                                            <Label className="text-sm">TN assinado (AGEMS)</Label>
+                                            <Input
+                                                type="file"
+                                                accept=".pdf,application/pdf"
+                                                onChange={async (e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        setUploadingFile(true);
+                                                        try {
+                                                            const url = await uploadFileToStorage(file);
+                                                            setTermoAssinadoTemp(url);
+                                                        } catch (error) {
+                                                            alert('Erro ao enviar arquivo: ' + error.message);
+                                                        } finally {
+                                                            setUploadingFile(false);
+                                                        }
                                                     }
-                                                }
-                                            }}
-                                            disabled={uploadingFile}
-                                        />
-                                        {termoAssinadoTemp && (
-                                            <Button onClick={async () => {
-                                                try {
-                                                    await supabase.from('termos_notificacao').update({
-                                                        arquivo_url: termoAssinadoTemp
-                                                    }).eq('id', termoDetalhes.id);
-                                                    queryClient.invalidateQueries({ queryKey: ['termos-notificacao'] });
-                                                    setTermoDetalhes({ ...termoDetalhes, arquivo_url: termoAssinadoTemp });
-                                                    setTermoAssinadoTemp(null);
-                                                    alert('Salvo com sucesso!');
-                                                } catch (error) {
-                                                    alert('Erro ao salvar');
-                                                }
-                                            }} className="w-full" size="sm">
-                                                Salvar
-                                            </Button>
-                                        )}
-                                        {termoDetalhes.arquivo_url && (
-                                            <Button variant="outline" onClick={() => window.open(termoDetalhes.arquivo_url)} className="w-full" size="sm">
-                                                <Download className="h-4 w-4 mr-2" />
-                                                Baixar Termo Assinado
-                                            </Button>
-                                        )}
+                                                }}
+                                                disabled={uploadingFile}
+                                            />
+                                            {termoAssinadoTemp && (
+                                                <Button
+                                                    onClick={async () => {
+                                                        try {
+                                                            const after = { ...termoDetalhes, arquivo_url: termoAssinadoTemp };
+                                                            const status = calcularStatusTermo(after);
+                                                            await supabase.from('termos_notificacao').update({
+                                                                arquivo_url: termoAssinadoTemp,
+                                                                status,
+                                                                updated_at: new Date().toISOString()
+                                                            }).eq('id', termoDetalhes.id);
+                                                            queryClient.invalidateQueries({ queryKey: ['termos-notificacao'] });
+                                                            setTermoDetalhes({ ...termoDetalhes, arquivo_url: termoAssinadoTemp, status });
+                                                            setTermoAssinadoTemp(null);
+                                                            alert('Salvo com sucesso!');
+                                                        } catch (error) {
+                                                            alert('Erro ao salvar');
+                                                        }
+                                                    }}
+                                                    className="w-full"
+                                                    size="sm"
+                                                >
+                                                    Salvar
+                                                </Button>
+                                            )}
+                                            {termoDetalhes.arquivo_url && (
+                                                <Button variant="outline" onClick={() => void openArquivo(termoDetalhes.arquivo_url)} className="w-full" size="sm">
+                                                    <Download className="h-4 w-4 mr-2" />
+                                                    Baixar TN (AGEMS)
+                                                </Button>
+                                            )}
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label className="text-sm">RFP assinado (AGEMS)</Label>
+                                            <Input
+                                                type="file"
+                                                accept=".pdf,application/pdf"
+                                                onChange={async (e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        setUploadingFile(true);
+                                                        try {
+                                                            const url = await uploadFileToStorage(file);
+                                                            setRfpAssinadoTemp(url);
+                                                        } catch (error) {
+                                                            alert('Erro ao enviar arquivo: ' + error.message);
+                                                        } finally {
+                                                            setUploadingFile(false);
+                                                        }
+                                                    }
+                                                }}
+                                                disabled={uploadingFile}
+                                            />
+                                            {rfpAssinadoTemp && (
+                                                <Button
+                                                    onClick={async () => {
+                                                        try {
+                                                            const after = { ...termoDetalhes, arquivo_rfp_url: rfpAssinadoTemp };
+                                                            const status = calcularStatusTermo(after);
+                                                            await supabase.from('termos_notificacao').update({
+                                                                arquivo_rfp_url: rfpAssinadoTemp,
+                                                                status,
+                                                                updated_at: new Date().toISOString()
+                                                            }).eq('id', termoDetalhes.id);
+                                                            queryClient.invalidateQueries({ queryKey: ['termos-notificacao'] });
+                                                            setTermoDetalhes({ ...termoDetalhes, arquivo_rfp_url: rfpAssinadoTemp, status });
+                                                            setRfpAssinadoTemp(null);
+                                                            alert('Salvo com sucesso!');
+                                                        } catch (error) {
+                                                            alert('Erro ao salvar');
+                                                        }
+                                                    }}
+                                                    className="w-full"
+                                                    size="sm"
+                                                >
+                                                    Salvar
+                                                </Button>
+                                            )}
+                                            {termoDetalhes.arquivo_rfp_url && (
+                                                <Button variant="outline" onClick={() => void openArquivo(termoDetalhes.arquivo_rfp_url)} className="w-full" size="sm">
+                                                    <Download className="h-4 w-4 mr-2" />
+                                                    Baixar RFP (AGEMS)
+                                                </Button>
+                                            )}
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label className="text-sm">TN assinado (prestador)</Label>
+                                            <Input
+                                                type="file"
+                                                accept=".pdf,application/pdf"
+                                                onChange={async (e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        setUploadingFile(true);
+                                                        try {
+                                                            const url = await uploadFileToStorage(file);
+                                                            setTnPrestadorTemp(url);
+                                                        } catch (error) {
+                                                            alert('Erro ao enviar arquivo: ' + error.message);
+                                                        } finally {
+                                                            setUploadingFile(false);
+                                                        }
+                                                    }
+                                                }}
+                                                disabled={uploadingFile}
+                                            />
+                                            <div className="flex items-center gap-2">
+                                                <Checkbox
+                                                    checked={dadosEditados.assinatura_prestador_valida !== null
+                                                        ? !!dadosEditados.assinatura_prestador_valida
+                                                        : !!termoDetalhes.assinatura_prestador_valida}
+                                                    onCheckedChange={(v) => {
+                                                        setDadosEditados(prev => ({ ...prev, assinatura_prestador_valida: !!v }));
+                                                        setAlteracoesPendentes(true);
+                                                    }}
+                                                />
+                                                <Label className="text-sm">Assinatura válida</Label>
+                                            </div>
+                                            <div>
+                                                <Label className="text-sm">Início do prazo</Label>
+                                                <Input
+                                                    type="date"
+                                                    value={dadosEditados.data_inicio_prazo !== null
+                                                        ? (dadosEditados.data_inicio_prazo || '')
+                                                        : (termoDetalhes.data_inicio_prazo || '')}
+                                                    onChange={(e) => {
+                                                        setDadosEditados(prev => ({ ...prev, data_inicio_prazo: e.target.value }));
+                                                        setAlteracoesPendentes(true);
+                                                    }}
+                                                />
+                                            </div>
+                                            {tnPrestadorTemp && (
+                                                <Button
+                                                    onClick={async () => {
+                                                        try {
+                                                            const inicio = (dadosEditados.data_inicio_prazo !== null
+                                                                ? dadosEditados.data_inicio_prazo
+                                                                : termoDetalhes.data_inicio_prazo) || new Date().toISOString().slice(0, 10);
+                                                            const prazoDias = dadosEditados.prazo_resposta_dias !== null
+                                                                ? dadosEditados.prazo_resposta_dias
+                                                                : (termoDetalhes.prazo_resposta_dias || 30);
+                                                            const dataMax = addDaysToISODate(inicio, prazoDias);
+                                                            const assinaturaValida = dadosEditados.assinatura_prestador_valida !== null
+                                                                ? !!dadosEditados.assinatura_prestador_valida
+                                                                : !!termoDetalhes.assinatura_prestador_valida;
+                                                            const after = {
+                                                                ...termoDetalhes,
+                                                                arquivo_tn_prestador_url: tnPrestadorTemp,
+                                                                assinatura_prestador_valida: assinaturaValida,
+                                                                data_inicio_prazo: inicio,
+                                                                data_maxima_resposta: dataMax
+                                                            };
+                                                            const status = calcularStatusTermo(after);
+                                                            await supabase.from('termos_notificacao').update({
+                                                                arquivo_tn_prestador_url: tnPrestadorTemp,
+                                                                assinatura_prestador_valida: assinaturaValida,
+                                                                data_inicio_prazo: inicio,
+                                                                data_maxima_resposta: dataMax,
+                                                                status,
+                                                                updated_at: new Date().toISOString()
+                                                            }).eq('id', termoDetalhes.id);
+                                                            queryClient.invalidateQueries({ queryKey: ['termos-notificacao'] });
+                                                            setTermoDetalhes({
+                                                                ...termoDetalhes,
+                                                                arquivo_tn_prestador_url: tnPrestadorTemp,
+                                                                assinatura_prestador_valida: assinaturaValida,
+                                                                data_inicio_prazo: inicio,
+                                                                data_maxima_resposta: dataMax,
+                                                                status
+                                                            });
+                                                            setTnPrestadorTemp(null);
+                                                            alert('Salvo com sucesso!');
+                                                        } catch (error) {
+                                                            alert('Erro ao salvar');
+                                                        }
+                                                    }}
+                                                    className="w-full"
+                                                    size="sm"
+                                                >
+                                                    Salvar
+                                                </Button>
+                                            )}
+                                            {termoDetalhes.arquivo_tn_prestador_url && (
+                                                <Button variant="outline" onClick={() => void openArquivo(termoDetalhes.arquivo_tn_prestador_url)} className="w-full" size="sm">
+                                                    <Download className="h-4 w-4 mr-2" />
+                                                    Baixar TN (prestador)
+                                                </Button>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
 
@@ -870,10 +1099,26 @@ export default function GerenciarTermos() {
                                         <Button onClick={async () => {
                                             try {
                                                 const updateData = {};
-                                                if (dadosEditados.data_protocolo) updateData.data_protocolo = dadosEditados.data_protocolo;
+                                                if (dadosEditados.numero_processo !== null) updateData.numero_processo = dadosEditados.numero_processo || null;
+                                                if (dadosEditados.prazo_resposta_dias !== null) updateData.prazo_resposta_dias = dadosEditados.prazo_resposta_dias || 30;
+                                                if (dadosEditados.data_protocolo !== null) updateData.data_protocolo = dadosEditados.data_protocolo || null;
+                                                if (dadosEditados.data_inicio_prazo !== null) updateData.data_inicio_prazo = dadosEditados.data_inicio_prazo || null;
+                                                if (dadosEditados.assinatura_prestador_valida !== null) updateData.assinatura_prestador_valida = !!dadosEditados.assinatura_prestador_valida;
+
+                                                const afterBase = { ...termoDetalhes, ...updateData };
+                                                const basePrazo = afterBase.data_inicio_prazo || afterBase.data_protocolo || null;
+                                                const prazoDias = afterBase.prazo_resposta_dias || 30;
+                                                if (basePrazo) {
+                                                    updateData.data_maxima_resposta = addDaysToISODate(basePrazo, prazoDias);
+                                                }
+
+                                                const after = { ...afterBase, ...updateData };
+                                                updateData.status = calcularStatusTermo(after);
+                                                updateData.updated_at = new Date().toISOString();
+
                                                 await supabase.from('termos_notificacao').update(updateData).eq('id', termoDetalhes.id);
                                                 queryClient.invalidateQueries({ queryKey: ['termos-notificacao'] });
-                                                setTermoDetalhes(null);
+                                                setTermoDetalhes({ ...termoDetalhes, ...updateData });
                                                 setAlteracoesPendentes(false);
                                                 alert('Alterações salvas!');
                                             } catch (error) {
@@ -950,7 +1195,7 @@ export default function GerenciarTermos() {
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => window.open(quickProtocolo.protocoloUrl, '_blank', 'noopener,noreferrer')}
+                                        onClick={() => void openArquivo(quickProtocolo.protocoloUrl)}
                                         className="w-full"
                                     >
                                         <Download className="h-4 w-4 mr-2" />
@@ -998,7 +1243,7 @@ export default function GerenciarTermos() {
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => window.open(quickProtocolo.oficioUrl, '_blank', 'noopener,noreferrer')}
+                                        onClick={() => void openArquivo(quickProtocolo.oficioUrl)}
                                         className="w-full"
                                     >
                                         <Download className="h-4 w-4 mr-2" />
@@ -1125,7 +1370,7 @@ export default function GerenciarTermos() {
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => window.open(quickResposta.respostaUrl, '_blank', 'noopener,noreferrer')}
+                                        onClick={() => void openArquivo(quickResposta.respostaUrl)}
                                         className="w-full"
                                     >
                                         <Download className="h-4 w-4 mr-2" />
@@ -1173,7 +1418,7 @@ export default function GerenciarTermos() {
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => window.open(quickResposta.oficioUrl, '_blank', 'noopener,noreferrer')}
+                                        onClick={() => void openArquivo(quickResposta.oficioUrl)}
                                         className="w-full"
                                     >
                                         <Download className="h-4 w-4 mr-2" />
@@ -1277,7 +1522,7 @@ export default function GerenciarTermos() {
                                                               {badge.label}
                                                           </Badge>
                                                           <div className="flex gap-2">
-                                                              {fluxo === 'pendente_tn' ? (
+                                                              {fluxo === 'pendente_tn' && !termo?.arquivo_url ? (
                                                                   <Button
                                                                       size="sm"
                                                                       onClick={() => enviarTermoAssinadoRapido(termo)}
@@ -1288,18 +1533,18 @@ export default function GerenciarTermos() {
                                                                       {uploadingTermoAssinadoId === termo.id ? 'Enviando...' : 'Enviar TN'}
                                                                   </Button>
                                                               ) : null}
-                                                              {fluxo === 'pendente_protocolo' ? (
+                                                              {fluxo === 'pendente_tn' && !termo?.arquivo_rfp_url ? (
                                                                   <Button
                                                                       size="sm"
-                                                                      onClick={() => abrirQuickProtocolo(termo)}
-                                                                      disabled={quickUploading}
+                                                                      onClick={() => enviarRfpAssinadoRapido(termo)}
+                                                                      disabled={uploadingTermoAssinadoId === termo.id}
                                                                       className="bg-amber-600 hover:bg-amber-700 text-white shadow-sm font-medium"
                                                                   >
                                                                       <Upload className="h-4 w-4 mr-1" />
-                                                                      Protocolo
+                                                                      {uploadingTermoAssinadoId === termo.id ? 'Enviando...' : 'Enviar RFP'}
                                                                   </Button>
                                                               ) : null}
-                                                              {fluxo === 'aguardando_resposta' ? (
+                                                              {(fluxo === 'aguardando_resposta' || fluxo === 'prazo_vencido') ? (
                                                                   <Button
                                                                       size="sm"
                                                                       onClick={() => abrirQuickResposta(termo)}

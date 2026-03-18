@@ -3,10 +3,19 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Repository } from '@/lib/offline/repository';
 import { FileText, Upload, Download, Trash2 } from 'lucide-react';
 
 export default function DocumentosManager({ documentos = [], onUpload, onDelete, isUploading }) {
     const [tipoSelecionado, setTipoSelecionado] = useState('outro');
+    const openArquivo = async (arq) => {
+        try {
+            const signed = await Repository.getSignedUrlFromAny(arq);
+            if (signed) window.open(signed, '_blank', 'noopener,noreferrer');
+        } catch (err) {
+            alert('Erro ao abrir arquivo: ' + (err?.message || String(err)));
+        }
+    };
 
     const getTipoBadge = (tipo) => {
         const colors = {
@@ -99,7 +108,7 @@ export default function DocumentosManager({ documentos = [], onUpload, onDelete,
                                     <Button
                                         size="sm"
                                         variant="ghost"
-                                        onClick={() => window.open(doc.url)}
+                                        onClick={() => void openArquivo(doc)}
                                     >
                                         <Download className="h-4 w-4" />
                                     </Button>

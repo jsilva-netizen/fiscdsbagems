@@ -30,6 +30,15 @@ export default function AnalisarResposta() {
     const [confirmDialog, setConfirmDialog] = useState({ open: false, determinacao: null });
     const [analisandoIA, setAnalisandoIA] = useState(false);
 
+    const openArquivo = async (arq) => {
+        try {
+            const signed = await Repository.getSignedUrlFromAny(arq);
+            if (signed) window.open(signed, '_blank');
+        } catch (err) {
+            alert('Erro ao abrir arquivo: ' + (err?.message || String(err)));
+        }
+    };
+
     const { data: termo } = useQuery({
         queryKey: ['termo', termoId],
         queryFn: async () => {
@@ -324,7 +333,7 @@ export default function AnalisarResposta() {
                                         <Button
                                             variant="outline"
                                             size="sm"
-                                            onClick={() => window.open(assinatura.url, '_blank')}
+                                            onClick={() => void openArquivo(assinatura)}
                                         >
                                             <Download className="h-4 w-4 mr-2" />
                                             Visualizar assinatura
@@ -333,13 +342,13 @@ export default function AnalisarResposta() {
                                 )}
                                 {anexos.length > 0 && (
                                     <div>
-                                        <p className="font-medium mb-2">Arquivos de resposta:</p>
+                                        <p className="font-medium mb-2">Arquivos da resposta ao TN:</p>
                                         {anexos.map((arquivo, idx) => (
                                             <Button
                                                 key={idx}
                                                 variant="outline"
                                                 size="sm"
-                                                onClick={() => window.open(`https://docs.google.com/viewer?url=${encodeURIComponent(arquivo.url)}&embedded=true`, '_blank')}
+                                                onClick={() => void openArquivo(arquivo)}
                                                 className="mr-2"
                                             >
                                                 <Download className="h-4 w-4 mr-2" />
@@ -470,7 +479,7 @@ export default function AnalisarResposta() {
                                                         key={idx}
                                                         variant="outline"
                                                         size="sm"
-                                                        onClick={() => window.open(ev.url, '_blank')}
+                                                        onClick={() => void openArquivo(ev)}
                                                     >
                                                         {ev.nome || 'Arquivo'}
                                                     </Button>

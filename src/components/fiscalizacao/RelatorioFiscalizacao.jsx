@@ -79,7 +79,64 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
         return json;
     };
 
-    const loadImageAsBase64 = async (url) => {
+    const parseStorageUrl = (url) => {
+        if (typeof url !== 'string' || !url) return null;
+        if (url.startsWith('storage://')) {
+            const remainder = url.slice('storage://'.length);
+            const slash = remainder.indexOf('/');
+            if (slash === -1) return null;
+            const bucket = remainder.slice(0, slash);
+            let path = remainder.slice(slash + 1);
+            const q = path.indexOf('?');
+            if (q !== -1) path = path.slice(0, q);
+            if (!bucket || !path) return null;
+            return { bucket, path };
+        }
+        const publicMarker = '/storage/v1/object/public/';
+        const signMarker = '/storage/v1/object/sign/';
+        let marker = '';
+        let idx = url.indexOf(publicMarker);
+        if (idx !== -1) marker = publicMarker;
+        else {
+            idx = url.indexOf(signMarker);
+            if (idx !== -1) marker = signMarker;
+        }
+        if (!marker) return null;
+        const remainder = url.slice(idx + marker.length);
+        const slash = remainder.indexOf('/');
+        if (slash === -1) return null;
+        const bucket = remainder.slice(0, slash);
+        let path = remainder.slice(slash + 1);
+        const q = path.indexOf('?');
+        if (q !== -1) path = path.slice(0, q);
+        if (!bucket || !path) return null;
+        return { bucket, path };
+    };
+
+    const resolveToSignedUrl = async (input, expiresInSeconds = 60 * 30) => {
+        if (!input) return '';
+        if (typeof input === 'object') {
+            if (input.bucket && input.path) {
+                const { data, error } = await supabase.storage.from(input.bucket).createSignedUrl(input.path, expiresInSeconds);
+                if (error) throw error;
+                return data?.signedUrl || '';
+            }
+            if (typeof input.url === 'string') return resolveToSignedUrl(input.url, expiresInSeconds);
+        }
+        if (typeof input === 'string') {
+            if (input.startsWith('data:')) return input;
+            const parsed = parseStorageUrl(input);
+            if (!parsed) return input;
+            const { data, error } = await supabase.storage.from(parsed.bucket).createSignedUrl(parsed.path, expiresInSeconds);
+            if (error) throw error;
+            return data?.signedUrl || '';
+        }
+        return '';
+    };
+
+    const loadImageAsBase64 = async (input) => {
+        const url = await resolveToSignedUrl(input);
+        if (!url) throw new Error('URL de imagem indisponível');
         return new Promise((resolve, reject) => {
             const img = new Image();
             img.crossOrigin = 'Anonymous';
@@ -668,10 +725,9 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
                     const fotosBase64 = [];
                     for (const foto of fotos) {
                         try {
-                            const fotoUrl = typeof foto === 'string' ? foto : foto.url;
-                            const base64 = await loadImageAsBase64(fotoUrl);
+                            const base64 = await loadImageAsBase64(foto);
                             fotosBase64.push({ 
-                                url: fotoUrl,
+                                ref: foto,
                                 legenda: typeof foto === 'object' ? foto.legenda : null,
                                 base64 
                             });

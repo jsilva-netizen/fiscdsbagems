@@ -49,8 +49,9 @@ export default function ExportarImportar() {
       for (const unidade of unidades || []) {
         const arr = Array.isArray(unidade?.fotos_unidade) ? unidade.fotos_unidade : [];
         for (const f of arr) {
-          const u = typeof f === 'string' ? f : f?.url;
-          if (u) fotosSet.add(u);
+          if (typeof f === 'string' && f) fotosSet.add(f);
+          else if (f?.bucket && f?.path) fotosSet.add(JSON.stringify({ bucket: f.bucket, path: f.path }));
+          else if (typeof f?.url === 'string' && f.url) fotosSet.add(f.url);
         }
       }
       for (const nc of ncs) {
@@ -64,8 +65,9 @@ export default function ExportarImportar() {
         if (termo?.arquivo_protocolo_url) fotosSet.add(termo.arquivo_protocolo_url);
         const arr = Array.isArray(termo?.arquivos_resposta) ? termo.arquivos_resposta : [];
         for (const a of arr) {
-          const u = typeof a === 'string' ? a : a?.url;
-          if (u) fotosSet.add(u);
+          if (typeof a === 'string' && a) fotosSet.add(a);
+          else if (a?.bucket && a?.path) fotosSet.add(JSON.stringify({ bucket: a.bucket, path: a.path }));
+          else if (typeof a?.url === 'string' && a.url) fotosSet.add(a.url);
         }
       }
       const pacote = {
@@ -80,7 +82,13 @@ export default function ExportarImportar() {
         recomendacoes: recs,
         constatacoes_manuais: consts,
         termos_notificacao: termos,
-        fotos_urls: Array.from(fotosSet),
+        fotos_urls: Array.from(fotosSet).map((x) => {
+          if (typeof x !== 'string') return x;
+          if (x.startsWith('{') && x.endsWith('}')) {
+            try { return JSON.parse(x); } catch { return x; }
+          }
+          return x;
+        }),
       };
       const blob = new Blob([JSON.stringify(pacote, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -121,9 +129,55 @@ export default function ExportarImportar() {
     reader.readAsText(file);
   };
 
+  const parseStorageUrl = (url) => {
+    if (typeof url !== 'string' || !url) return null;
+    if (url.startsWith('storage://')) {
+      const remainder = url.slice('storage://'.length);
+      const slash = remainder.indexOf('/');
+      if (slash === -1) return null;
+      const bucket = remainder.slice(0, slash);
+      let path = remainder.slice(slash + 1);
+      const q = path.indexOf('?');
+      if (q !== -1) path = path.slice(0, q);
+      if (!bucket || !path) return null;
+      return { bucket, path };
+    }
+    const publicMarker = '/storage/v1/object/public/';
+    const signMarker = '/storage/v1/object/sign/';
+    let marker = '';
+    let idx = url.indexOf(publicMarker);
+    if (idx !== -1) marker = publicMarker;
+    else {
+      idx = url.indexOf(signMarker);
+      if (idx !== -1) marker = signMarker;
+    }
+    if (!marker) return null;
+    const remainder = url.slice(idx + marker.length);
+    const slash = remainder.indexOf('/');
+    if (slash === -1) return null;
+    const bucket = remainder.slice(0, slash);
+    let path = remainder.slice(slash + 1);
+    const q = path.indexOf('?');
+    if (q !== -1) path = path.slice(0, q);
+    if (!bucket || !path) return null;
+    return { bucket, path };
+  };
+
   const reuploadFoto = async (urlOriginal, urlMap) => {
-    if (!urlOriginal || urlMap[urlOriginal]) return urlMap[urlOriginal] || urlOriginal;
+    if (!urlOriginal) return urlOriginal;
+    if (typeof urlOriginal === 'object' && urlOriginal?.bucket && urlOriginal?.path) return urlOriginal;
+    const key = typeof urlOriginal === 'string' ? urlOriginal : JSON.stringify(urlOriginal);
+    if (urlMap[key]) return urlMap[key];
     try {
+      if (typeof urlOriginal === 'string') {
+        const parsed = parseStorageUrl(urlOriginal);
+        if (parsed) {
+          const ref = { bucket: parsed.bucket, path: parsed.path };
+          urlMap[key] = ref;
+          return ref;
+        }
+      }
+
       const response = await fetch(urlOriginal);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const blob = await response.blob();
@@ -133,12 +187,11 @@ export default function ExportarImportar() {
       const path = `migracao/${format(new Date(), 'yyyyMMdd_HHmmss')}/${name}.${ext}`;
       const { error: upErr } = await supabase.storage.from('fotos_fiscalizacao').upload(path, blob, { contentType: blob.type || 'image/jpeg' });
       if (upErr) throw upErr;
-      const { data } = supabase.storage.from('fotos_fiscalizacao').getPublicUrl(path);
-      const publicUrl = data?.publicUrl || urlOriginal;
-      urlMap[urlOriginal] = publicUrl;
-      return publicUrl;
+      const ref = { bucket: 'fotos_fiscalizacao', path };
+      urlMap[key] = ref;
+      return ref;
     } catch {
-      urlMap[urlOriginal] = urlOriginal;
+      urlMap[key] = urlOriginal;
       return urlOriginal;
     }
   };
@@ -178,7 +231,8 @@ export default function ExportarImportar() {
           const resultado = await reuploadFoto(url, urlMap);
           if (resultado !== url) ok++;
           else falhou++;
-          addLog(`[${ok + falhou}/${totalFotos}] ${resultado !== url ? '✓' : '⚠ mantida'} ${url.split('/').pop().substring(0, 40)}`);
+          const label = typeof url === 'string' ? (url.split('/').pop() || url).substring(0, 40) : `${url?.bucket || 'ref'}:${String(url?.path || '').substring(0, 40)}`;
+          addLog(`[${ok + falhou}/${totalFotos}] ${resultado !== url ? '✓' : '⚠ mantida'} ${label}`);
         }
         addLog(`✓ Fotos: ${ok} re-uploadadas, ${falhou} mantidas como URL original`);
       }

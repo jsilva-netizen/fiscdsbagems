@@ -52,7 +52,8 @@ export default function TermosFiltros({ onFilterChange, filtros }) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={null}>Todos</SelectItem>
-              <SelectItem value="pendente_tn">Pendente TN Assinado</SelectItem>
+              <SelectItem value="pendente_tn">Pendente TN/RFP (AGEMS)</SelectItem>
+              <SelectItem value="aguardando_assinatura_prestador">Aguardando Assinatura Prestador</SelectItem>
               <SelectItem value="pendente_protocolo">Pendente Protocolo</SelectItem>
               <SelectItem value="aguardando_resposta">Aguardando Resposta</SelectItem>
               <SelectItem value="prazo_vencido">Prazo Vencido</SelectItem>

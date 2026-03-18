@@ -17,9 +17,11 @@ const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
 const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
 
-const LayoutWrapper = ({ children, currentPageName }) => Layout ?
-  <Layout currentPageName={currentPageName}>{children}</Layout>
-  : <>{children}</>;
+const RoleAwareLayout = ({ children, currentPageName }) => {
+  const { user } = useAuth();
+  if (user?.role === 'prestador') return <>{children}</>;
+  return Layout ? <Layout currentPageName={currentPageName}>{children}</Layout> : <>{children}</>;
+};
 
 // Componente para proteger rotas privadas
 const ProtectedRoute = ({ children }) => {
@@ -75,9 +77,9 @@ function App() {
           path: "/",
           element: (
             <ProtectedRoute>
-              <LayoutWrapper currentPageName={mainPageKey}>
+              <RoleAwareLayout currentPageName={mainPageKey}>
                 <MainPage />
-              </LayoutWrapper>
+              </RoleAwareLayout>
             </ProtectedRoute>
           ),
         },
@@ -85,9 +87,9 @@ function App() {
           path: "/ExportarImportar",
           element: (
             <ProtectedRoute>
-              <LayoutWrapper currentPageName={'ExportarImportar'}>
+              <RoleAwareLayout currentPageName={'ExportarImportar'}>
                 <ExportarImportar />
-              </LayoutWrapper>
+              </RoleAwareLayout>
             </ProtectedRoute>
           ),
         },
@@ -95,9 +97,9 @@ function App() {
           path: `/${path}`,
           element: (
             <ProtectedRoute>
-              <LayoutWrapper currentPageName={path}>
+              <RoleAwareLayout currentPageName={path}>
                 <Page />
-              </LayoutWrapper>
+              </RoleAwareLayout>
             </ProtectedRoute>
           ),
         })),

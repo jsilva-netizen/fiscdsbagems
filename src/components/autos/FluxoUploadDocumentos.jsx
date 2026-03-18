@@ -25,12 +25,7 @@ export default function FluxoUploadDocumentos({ auto, onUpdate }) {
                 .upload(filePath, file);
 
             if (uploadError) throw uploadError;
-
-            const { data: publicUrlData } = supabase.storage
-                .from('documentos-autos')
-                .getPublicUrl(filePath);
-
-            const file_url = publicUrlData.publicUrl;
+            const file_url = `storage://documentos-autos/${filePath}`;
             
             const updateData = {};
             let novoStatus = auto.status;

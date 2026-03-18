@@ -19,12 +19,52 @@ export default function ResponderTermo() {
   const queryClient = useQueryClient();
   const [forms, setForms] = useState({});
   const [enviandoTN, setEnviandoTN] = useState(false);
+  const [uploadingTnPrestador, setUploadingTnPrestador] = useState(false);
   const [assinaturaOpen, setAssinaturaOpen] = useState(false);
   const [assinaturaNome, setAssinaturaNome] = useState('');
   const [assinaturaSalvando, setAssinaturaSalvando] = useState(false);
   const canvasRef = useRef(null);
   const drawingRef = useRef(false);
   const lastPointRef = useRef({ x: 0, y: 0 });
+
+  const openArquivo = async (arq) => {
+    try {
+      const signed = await Repository.getSignedUrlFromAny(arq);
+      if (signed) window.open(signed, '_blank');
+    } catch (err) {
+      alert('Erro ao abrir arquivo: ' + (err?.message || String(err)));
+    }
+  };
+
+  const isoToday = () => new Date().toISOString().slice(0, 10);
+
+  const addDaysToIsoDate = (dateStr, days) => {
+    if (!dateStr) return null;
+    const d = new Date(dateStr + 'T00:00:00');
+    d.setDate(d.getDate() + (parseInt(days || 0, 10) || 0));
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  const bytesIncludes = (haystack, needle) => {
+    if (!haystack || !needle || needle.length === 0) return false;
+    outer: for (let i = 0; i <= haystack.length - needle.length; i++) {
+      for (let j = 0; j < needle.length; j++) {
+        if (haystack[i + j] !== needle[j]) continue outer;
+      }
+      return true;
+    }
+    return false;
+  };
+
+  const detectPdfDigitalSignature = async (file) => {
+    const buf = await file.arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    const enc = (s) => new TextEncoder().encode(s);
+    const hasByteRange = bytesIncludes(bytes, enc('/ByteRange')) || bytesIncludes(bytes, enc('/ByteRange['));
+    const hasSigDict = bytesIncludes(bytes, enc('/Type/Sig')) || bytesIncludes(bytes, enc('/Type /Sig'));
+    const hasSubFilter = bytesIncludes(bytes, enc('/SubFilter')) && (bytesIncludes(bytes, enc('adbe.pkcs7')) || bytesIncludes(bytes, enc('ETSI.CAdES')));
+    return hasByteRange && (hasSigDict || hasSubFilter);
+  };
 
   const { data: termo } = useQuery({
     queryKey: ['termo', termoId],
@@ -192,7 +232,7 @@ export default function ResponderTermo() {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['termo', termoId] });
-      alert('TN enviado para análise');
+      alert('Resposta ao TN enviada para análise');
     },
   });
 
@@ -235,6 +275,7 @@ export default function ResponderTermo() {
 
   const podeResponder = (index) => {
     if (termo?.status === 'respondido') return false;
+    if (!termo?.assinatura_prestador_valida || !termo?.arquivo_tn_prestador_url) return false;
     if (index === 0) return true;
     const detAnterior = determinacoes[index - 1];
     const statusAnterior = getStatusResposta(detAnterior.id);
@@ -250,6 +291,8 @@ export default function ResponderTermo() {
     const s = getStatusResposta(d.id);
     return s === 'aguardando_analise' || s === 'rascunho';
   });
+
+  const assinaturaTnOk = !!termo?.arquivo_tn_prestador_url && !!termo?.assinatura_prestador_valida;
 
   const assinaturaExistente = Array.isArray(termo?.arquivos_resposta)
     ? termo.arquivos_resposta.find((a) => a?.categoria === 'assinatura')
@@ -344,8 +387,91 @@ export default function ResponderTermo() {
                 {termo.data_maxima_resposta || 'N/A'}
               </div>
             </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {termo?.arquivo_url ? (
+                <Button variant="outline" onClick={() => void openArquivo(termo.arquivo_url)}>
+                  Baixar TN (AGEMS)
+                </Button>
+              ) : (
+                <Badge variant="outline" className="text-gray-600 border-gray-300">
+                  TN ainda não disponível
+                </Badge>
+              )}
+              {termo?.arquivo_rfp_url ? (
+                <Button variant="outline" onClick={() => void openArquivo(termo.arquivo_rfp_url)}>
+                  Baixar RFP (AGEMS)
+                </Button>
+              ) : null}
+              {assinaturaTnOk ? (
+                <Badge className="bg-green-600 flex items-center gap-1">
+                  <CheckCircle className="h-3 w-3" />
+                  TN assinado (prestador)
+                </Badge>
+              ) : (
+                <Badge className="bg-yellow-600">Aguardando assinatura do prestador</Badge>
+              )}
+            </div>
           </CardContent>
         </Card>
+
+        {!assinaturaTnOk && (
+          <Card className="mb-6 border-yellow-200">
+            <CardHeader>
+              <CardTitle>Assinar o TN</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm text-gray-700 mb-3">
+                Baixe o TN assinado pela AGEMS, assine digitalmente e envie o PDF assinado. O prazo começa a contar após o envio.
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Input
+                  type="file"
+                  accept=".pdf,application/pdf"
+                  disabled={uploadingTnPrestador || !termo?.arquivo_url}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setUploadingTnPrestador(true);
+                    try {
+                      const ok = await detectPdfDigitalSignature(file);
+                      if (!ok) {
+                        alert('Não foi possível detectar uma assinatura digital válida neste PDF.');
+                        return;
+                      }
+                      const up = await Repository.uploadTermoNotificacaoFile(file, termo.id, 'tn_prestador');
+                      const storageRef = `storage://${up.bucket}/${up.path}`;
+                      const inicio = isoToday();
+                      const prazoDias = parseInt(termo?.prazo_resposta_dias || 30, 10) || 30;
+                      const dataMaxima = addDaysToIsoDate(inicio, prazoDias);
+                      await Repository.updateTermoNotificacaoOnline(termo.id, {
+                        arquivo_tn_prestador_url: storageRef,
+                        assinatura_prestador_valida: true,
+                        data_assinatura_prestador: new Date().toISOString(),
+                        data_inicio_prazo: inicio,
+                        data_maxima_resposta: dataMaxima,
+                        status: termo?.status === 'respondido' ? 'respondido' : 'aguardando_resposta',
+                        updated_at: new Date().toISOString(),
+                      });
+                      await queryClient.invalidateQueries({ queryKey: ['termo', termoId] });
+                      await queryClient.invalidateQueries({ queryKey: ['termos-prestador'] });
+                      alert('TN assinado enviado com sucesso!');
+                    } catch (err) {
+                      alert('Erro ao enviar TN assinado: ' + (err?.message || String(err)));
+                    } finally {
+                      setUploadingTnPrestador(false);
+                      e.target.value = '';
+                    }
+                  }}
+                />
+                {uploadingTnPrestador ? (
+                  <Badge variant="outline" className="text-gray-600 border-gray-300">
+                    Enviando...
+                  </Badge>
+                ) : null}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="space-y-4">
           {determinacoes.map((det, index) => {
@@ -356,7 +482,8 @@ export default function ResponderTermo() {
             const constatacao = nc?.resposta_checklist_id ? respostasChecklist.find((r) => r.id === nc.resposta_checklist_id) : null;
             const bloqueadoSequencia = !podeResponder(index);
             const bloqueadoPorEnvio = status === 'aguardando_analise';
-            const bloqueado = bloqueadoSequencia || bloqueadoPorEnvio;
+            const bloqueadoPorAssinatura = !assinaturaTnOk;
+            const bloqueado = bloqueadoSequencia || bloqueadoPorEnvio || bloqueadoPorAssinatura;
             return (
               <Card key={det.id} className="hover:shadow-lg transition-shadow">
                 <CardContent className="p-4">
@@ -403,6 +530,12 @@ export default function ResponderTermo() {
                           <Badge variant="outline" className="text-yellow-700 border-yellow-200 bg-yellow-50 flex items-center gap-1">
                             <AlertCircle className="h-3 w-3" />
                             Enviada
+                          </Badge>
+                        )}
+                        {bloqueadoPorAssinatura && (
+                          <Badge variant="outline" className="text-gray-600 border-gray-300 flex items-center gap-1">
+                            <Lock className="h-3 w-3" />
+                            Assine o TN
                           </Badge>
                         )}
                       </div>
@@ -470,7 +603,7 @@ export default function ResponderTermo() {
                         {evidencias.length > 0 && (
                           <div className="flex flex-wrap gap-2 mt-2">
                             {evidencias.map((ev, idx) => (
-                              <Badge key={idx} variant="outline" className="cursor-pointer" onClick={() => window.open(ev.url, '_blank')}>
+                              <Badge key={idx} variant="outline" className="cursor-pointer" onClick={() => void openArquivo(ev)}>
                                 {ev.nome}
                               </Badge>
                             ))}
@@ -488,10 +621,10 @@ export default function ResponderTermo() {
         <div className="mt-6 flex justify-end">
           <Button
             onClick={() => setAssinaturaOpen(true)}
-            disabled={!todasRespondidas || enviandoTN}
+            disabled={!todasRespondidas || enviandoTN || !assinaturaTnOk}
             className="bg-purple-600 hover:bg-purple-700"
           >
-            {enviandoTN ? 'Enviando...' : 'Enviar TN para Análise'}
+            {enviandoTN ? 'Enviando...' : 'Enviar resposta para análise'}
           </Button>
         </div>
 
@@ -508,7 +641,7 @@ export default function ResponderTermo() {
         >
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Assinatura digital do prestador</DialogTitle>
+              <DialogTitle>Assinatura digital da resposta ao TN</DialogTitle>
             </DialogHeader>
 
             {assinaturaExistente && (
@@ -566,7 +699,7 @@ export default function ResponderTermo() {
                         await enviarTNMutation.mutateAsync();
                         setAssinaturaOpen(false);
                       } catch (err) {
-                        alert('Erro ao enviar TN: ' + (err?.message || String(err)));
+                        alert('Erro ao enviar resposta: ' + (err?.message || String(err)));
                       } finally {
                         setAssinaturaSalvando(false);
                         setEnviandoTN(false);
@@ -576,7 +709,7 @@ export default function ResponderTermo() {
                     className="bg-purple-600 hover:bg-purple-700"
                     type="button"
                   >
-                    {assinaturaSalvando ? 'Salvando...' : 'Assinar e enviar'}
+                    {assinaturaSalvando ? 'Salvando...' : 'Assinar e enviar resposta'}
                   </Button>
                 </div>
               </div>

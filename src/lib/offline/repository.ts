@@ -68,6 +68,85 @@ const formatDateBR = (d: Date) => `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)
 const formatTimeBR = (d: Date) => `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`
 
 export const Repository = {
+  parseStorageUrl(url: string): { bucket: string; path: string } | null {
+    if (typeof url !== 'string' || !url) return null
+    if (url.startsWith('storage://')) {
+      const remainder = url.slice('storage://'.length)
+      const slash = remainder.indexOf('/')
+      if (slash === -1) return null
+      const bucket = remainder.slice(0, slash)
+      let path = remainder.slice(slash + 1)
+      const q = path.indexOf('?')
+      if (q !== -1) path = path.slice(0, q)
+      if (!bucket || !path) return null
+      return { bucket, path }
+    }
+    const publicMarker = '/storage/v1/object/public/'
+    const signMarker = '/storage/v1/object/sign/'
+    let marker = ''
+    let idx = url.indexOf(publicMarker)
+    if (idx !== -1) marker = publicMarker
+    else {
+      idx = url.indexOf(signMarker)
+      if (idx !== -1) marker = signMarker
+    }
+    if (!marker) return null
+    const remainder = url.slice(idx + marker.length)
+    const slash = remainder.indexOf('/')
+    if (slash === -1) return null
+    const bucket = remainder.slice(0, slash)
+    let path = remainder.slice(slash + 1)
+    const q = path.indexOf('?')
+    if (q !== -1) path = path.slice(0, q)
+    if (!bucket || !path) return null
+    return { bucket, path }
+  },
+
+  async createSignedUrl(bucket: string, path: string, expiresInSeconds = 60 * 30): Promise<string> {
+    if (!bucket || !path) throw new Error('Bucket ou path inválidos')
+    const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, expiresInSeconds)
+    if (error) throw error
+    return data?.signedUrl || ''
+  },
+
+  async getSignedUrlFromAny(input: any, expiresInSeconds = 60 * 30): Promise<string> {
+    if (!input) return ''
+    if (typeof input === 'string') {
+      const parsed = Repository.parseStorageUrl(input)
+      if (!parsed) return input
+      return Repository.createSignedUrl(parsed.bucket, parsed.path, expiresInSeconds)
+    }
+    const bucket = input?.bucket
+    const path = input?.path
+    if (bucket && path) {
+      return Repository.createSignedUrl(bucket, path, expiresInSeconds)
+    }
+    const url = input?.url
+    const parsed = Repository.parseStorageUrl(url)
+    if (!parsed) return url || ''
+    return Repository.createSignedUrl(parsed.bucket, parsed.path, expiresInSeconds)
+  },
+
+  async getSignedUrlFromBucket(bucket: string, urlOrPath: any, expiresInSeconds = 60 * 30): Promise<string> {
+    if (!urlOrPath) return ''
+    if (typeof urlOrPath === 'string') {
+      const parsed = Repository.parseStorageUrl(urlOrPath)
+      if (parsed) return Repository.createSignedUrl(parsed.bucket, parsed.path, expiresInSeconds)
+      return Repository.createSignedUrl(bucket, urlOrPath, expiresInSeconds)
+    }
+    if (urlOrPath?.bucket && urlOrPath?.path) {
+      return Repository.createSignedUrl(urlOrPath.bucket, urlOrPath.path, expiresInSeconds)
+    }
+    if (typeof urlOrPath?.url === 'string') {
+      const parsed = Repository.parseStorageUrl(urlOrPath.url)
+      if (parsed) return Repository.createSignedUrl(parsed.bucket, parsed.path, expiresInSeconds)
+    }
+    if (typeof urlOrPath?.path === 'string') {
+      return Repository.createSignedUrl(bucket, urlOrPath.path, expiresInSeconds)
+    }
+    return ''
+  },
+
   async listMunicipios(): Promise<{ id: string; nome: string }[]> {
     const list = await db.municipios.toArray()
     return list.slice().sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
@@ -312,6 +391,12 @@ export const Repository = {
     if (error) throw error
     return data || null
   },
+
+  async updateTermoNotificacaoOnline(id: string, changes: any): Promise<any> {
+    const { data, error } = await supabase.from('termos_notificacao').update(changes).eq('id', id).select().single()
+    if (error) throw error
+    return data
+  },
   
   async listDeterminacoesOnlineByUnidades(unidadeIds: string[]): Promise<any[]> {
     if (!Array.isArray(unidadeIds) || unidadeIds.length === 0) return []
@@ -432,7 +517,7 @@ export const Repository = {
     return data
   },
   
-  async uploadEvidenciaDeterminacao(file: File, determinacaoId: string): Promise<{ url: string; nome: string; tipo: string; tamanho: number; data_upload: string; path: string }> {
+  async uploadEvidenciaDeterminacao(file: File, determinacaoId: string): Promise<{ url: string; nome: string; tipo: string; tamanho: number; data_upload: string; path: string; bucket: string }> {
     const bucket = 'evidencias-determinacoes'
     const nomeOriginal = file?.name || 'arquivo'
     const ext = nomeOriginal.includes('.') ? nomeOriginal.split('.').pop() : ''
@@ -441,12 +526,11 @@ export const Repository = {
     const path = `${determinacaoId}/${ts}-${rand}${ext ? '.' + ext : ''}`
     const { error: upErr } = await supabase.storage.from(bucket).upload(path, file, { upsert: false, contentType: file.type })
     if (upErr) throw upErr
-    const { data: pub } = await supabase.storage.from(bucket).getPublicUrl(path)
-    const meta = { url: pub?.publicUrl || '', nome: nomeOriginal, tipo: file.type || 'application/octet-stream', tamanho: file.size || 0, data_upload: new Date().toISOString(), path }
+    const meta = { url: '', nome: nomeOriginal, tipo: file.type || 'application/octet-stream', tamanho: file.size || 0, data_upload: new Date().toISOString(), path, bucket }
     return meta
   },
 
-  async uploadAssinaturaTermo(file: File, termoId: string): Promise<{ url: string; nome: string; tipo: string; tamanho: number; data_upload: string; path: string }> {
+  async uploadAssinaturaTermo(file: File, termoId: string): Promise<{ url: string; nome: string; tipo: string; tamanho: number; data_upload: string; path: string; bucket: string }> {
     const bucket = 'evidencias-determinacoes'
     const nomeOriginal = file?.name || 'assinatura.png'
     const ts = Date.now()
@@ -454,9 +538,57 @@ export const Repository = {
     const path = `assinaturas/${termoId}/${ts}-${rand}.png`
     const { error: upErr } = await supabase.storage.from(bucket).upload(path, file, { upsert: false, contentType: file.type || 'image/png' })
     if (upErr) throw upErr
-    const { data: pub } = await supabase.storage.from(bucket).getPublicUrl(path)
-    const meta = { url: pub?.publicUrl || '', nome: nomeOriginal, tipo: file.type || 'image/png', tamanho: file.size || 0, data_upload: new Date().toISOString(), path }
+    const meta = { url: '', nome: nomeOriginal, tipo: file.type || 'image/png', tamanho: file.size || 0, data_upload: new Date().toISOString(), path, bucket }
     return meta
+  },
+
+  async uploadTermoNotificacaoFile(
+    file: File,
+    termoId: string,
+    kind: 'tn_agems' | 'rfp_agems' | 'tn_prestador'
+  ): Promise<{ url: string; nome: string; tipo: string; tamanho: number; data_upload: string; path: string; bucket: string }> {
+    const nomeOriginal = file?.name || 'arquivo.pdf'
+    const ext = nomeOriginal.includes('.') ? (nomeOriginal.split('.').pop() || '').toLowerCase() : ''
+    const ts = Date.now()
+    const rand = Math.random().toString(36).slice(2, 8)
+    const baseExt = ext && ext.length <= 6 ? ext : 'pdf'
+    const path = `termos_notificacao/${kind}/${termoId}/${ts}-${rand}.${baseExt}`
+    const candidates = [
+      'termos-notificacao',
+      'termos_notificacao',
+      'documentos-termos',
+      'documentos_termos',
+      'documentos-termo',
+      'documentos',
+      'arquivos'
+    ]
+
+    let lastErr: any = null
+    for (const bucket of candidates) {
+      const { error } = await supabase.storage.from(bucket).upload(path, file, {
+        upsert: false,
+        contentType: file?.type || 'application/pdf'
+      })
+      if (!error) {
+        return {
+          url: '',
+          nome: nomeOriginal,
+          tipo: file?.type || 'application/pdf',
+          tamanho: file?.size || 0,
+          data_upload: new Date().toISOString(),
+          path,
+          bucket
+        }
+      }
+      lastErr = error
+      const msg = String(error?.message || '').toLowerCase()
+      const status = (error as any)?.statusCode
+      const isBucketMissing = msg.includes('bucket not found') || status === 404
+      const isNotAllowed = msg.includes('row-level security') || msg.includes('unauthorized') || status === 401 || status === 403
+      if (isBucketMissing || isNotAllowed) continue
+      throw error
+    }
+    throw lastErr || new Error('Falha ao enviar arquivo do termo')
   },
 
   async appendArquivoRespostaTermoOnline(termoId: string, meta: any): Promise<any> {

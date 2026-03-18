@@ -130,15 +130,13 @@ export default function DetalhePrestador() {
                 .upload(filePath, file);
 
             if (uploadError) throw uploadError;
-
-            const { data: { publicUrl } } = supabase.storage
-                .from('documentos-prestadores')
-                .getPublicUrl(filePath);
+            const storageRef = `storage://documentos-prestadores/${filePath}`;
 
             const novoDoc = {
                 nome: file.name,
                 tipo,
-                url: publicUrl,
+                url: storageRef,
+                bucket: 'documentos-prestadores',
                 path: filePath, // Save path for deletion
                 data_upload: new Date().toISOString()
             };

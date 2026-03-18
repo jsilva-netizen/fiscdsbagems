@@ -94,13 +94,8 @@ export default function GestaoAutos() {
                 .upload(filePath, file);
 
             if (uploadError) throw uploadError;
-
-            const { data: { publicUrl } } = supabase.storage
-                .from('documentos-autos')
-                .getPublicUrl(filePath);
-
             await supabase.from('autos_infracao').update({
-                arquivo_url: publicUrl
+                arquivo_url: `storage://documentos-autos/${filePath}`
             }).eq('id', autoId);
 
             queryClient.invalidateQueries({ queryKey: ['autos-infracao'] });

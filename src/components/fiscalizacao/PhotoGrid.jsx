@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Repository } from '@/lib/offline/repository';
@@ -29,6 +29,54 @@ export default function PhotoGrid({
     const cameraInputRef = useRef(null);
     const lastGpsFixRef = useRef(null);
     const MAX_GPS_ACCURACY_M = 50;
+    const [signedByKey, setSignedByKey] = useState({});
+
+    const resolveFotoSrc = (foto) => {
+        if (!foto) return '';
+        if (foto.bucket && foto.path) {
+            const k = `${foto.bucket}:${foto.path}`;
+            return signedByKey[k] || '';
+        }
+        const url = foto.url || '';
+        const parsed = Repository.parseStorageUrl(url);
+        if (parsed) {
+            const k = `${parsed.bucket}:${parsed.path}`;
+            return signedByKey[k] || '';
+        }
+        return url;
+    };
+
+    useEffect(() => {
+        let cancelled = false;
+        const run = async () => {
+            const next = { ...signedByKey };
+            for (const foto of fotos || []) {
+                if (!foto) continue;
+                if (foto.bucket && foto.path) {
+                    const k = `${foto.bucket}:${foto.path}`;
+                    if (!next[k]) {
+                        const signed = await Repository.getSignedUrlFromBucket(foto.bucket, foto.path, 60 * 30);
+                        next[k] = signed;
+                    }
+                    continue;
+                }
+                const url = foto.url || '';
+                const parsed = Repository.parseStorageUrl(url);
+                if (parsed) {
+                    const k = `${parsed.bucket}:${parsed.path}`;
+                    if (!next[k]) {
+                        const signed = await Repository.getSignedUrlFromBucket(parsed.bucket, parsed.path, 60 * 30);
+                        next[k] = signed;
+                    }
+                }
+            }
+            if (!cancelled) setSignedByKey(next);
+        };
+        void run();
+        return () => {
+            cancelled = true;
+        };
+    }, [fotos]);
 
     const getValidatedGpsFix = async () => {
         if (!('geolocation' in navigator) || !navigator.geolocation) {
@@ -216,13 +264,13 @@ export default function PhotoGrid({
             {/* Grid de fotos */}
             {fotos.length > 0 && (
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {fotos.filter(f => f?.url).map((foto, index) => (
+                    {fotos.filter(f => !!(f?.url || (f?.bucket && f?.path))).map((foto, index) => (
                         <div 
-                            key={`foto-${index}-${foto.url.split('/').pop()}`}
+                            key={`foto-${index}-${(foto?.bucket && foto?.path) ? `${foto.bucket}:${foto.path}` : (foto?.url || '').split('/').pop()}`}
                             className="relative group rounded-lg overflow-hidden border"
                         >
                             <OptimizedImage 
-                                src={foto.url} 
+                                src={resolveFotoSrc(foto)} 
                                 alt={`Foto ${index + 1}`}
                                 className="w-full h-32 object-cover cursor-pointer"
                                 onClick={() => setSelectedFoto(foto)}
@@ -301,7 +349,7 @@ export default function PhotoGrid({
                     </div>
                     <div className="flex-1 flex items-center justify-center p-4">
                         <OptimizedImage 
-                            src={selectedFoto.url} 
+                            src={resolveFotoSrc(selectedFoto)} 
                             alt="Foto ampliada" 
                             className="max-w-full max-h-full object-contain"
                         />

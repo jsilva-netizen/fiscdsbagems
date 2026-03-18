@@ -871,10 +871,7 @@ export async function syncFotosWithProgress(onProgress?: (uploaded: number, tota
           upsert: true
         })
         if (error) throw error
-        const { data: publicRes } = supabase.storage.from('fotos_fiscalizacao').getPublicUrl(path)
-        const url = publicRes.publicUrl
         await db.fotos_local.update(f.localId as any, {
-          url,
           syncedAt: new Date().toISOString(),
           storagePath: path,
           lastError: ''
@@ -893,11 +890,11 @@ export async function syncFotosWithProgress(onProgress?: (uploaded: number, tota
   }
   const workers = Array.from({ length: Math.max(1, Math.min(concurrency, unsynced.length)) }, () => worker())
   await Promise.all(workers)
-  const byUnidade: Record<string, { url: string; legenda?: string }[]> = {}
+  const byUnidade: Record<string, { bucket: string; path: string; legenda?: string }[]> = {}
   const syncedAll = await db.fotos_local.where('syncedAt').above('' as any).toArray()
-  for (const f of syncedAll.filter((x) => !!x.url)) {
+  for (const f of syncedAll.filter((x) => !!x.storagePath)) {
     const list = byUnidade[f.unidadeLocalId] || []
-    list.push({ url: f.url!, legenda: f.legenda })
+    list.push({ bucket: 'fotos_fiscalizacao', path: f.storagePath!, legenda: f.legenda })
     byUnidade[f.unidadeLocalId] = list
   }
   const entries = Object.entries(byUnidade)
@@ -923,7 +920,7 @@ export async function syncFotosWithProgress(onProgress?: (uploaded: number, tota
       const deletables = await db.fotos_local
         .where('unidadeLocalId')
         .equals(unidadeId as any)
-        .and((x) => !!x.syncedAt && !!x.url)
+        .and((x) => !!x.syncedAt && !!x.storagePath)
         .toArray()
       if (deletables.length > 0) {
         await db.fotos_local.bulkDelete(deletables.map((d) => d.localId as any))

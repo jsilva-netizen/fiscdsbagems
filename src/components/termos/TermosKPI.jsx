@@ -2,9 +2,9 @@ import { FileText, Clock, AlertCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 
 export default function TermosKPI({ termos }) {
-  const pendenteTNAssinado = termos.filter(t => !t.arquivo_url).length;
-  const pendenteProtocolo = termos.filter(t => t.arquivo_url && !t.data_protocolo).length;
-  const aguardandoResposta = termos.filter(t => t.arquivo_url && t.data_protocolo && !t.data_recebimento_resposta).length;
+  const pendenteTNAssinado = termos.filter(t => !t.arquivo_url || !t.arquivo_rfp_url).length;
+  const aguardandoAssinaturaPrestador = termos.filter(t => t.arquivo_url && t.arquivo_rfp_url && !t.arquivo_tn_prestador_url).length;
+  const aguardandoResposta = termos.filter(t => t.arquivo_tn_prestador_url && t.assinatura_prestador_valida && !t.data_recebimento_resposta).length;
 
   const verificaPrazoVencido = (termo) => {
       if (!termo.data_maxima_resposta) return false;
@@ -15,14 +15,14 @@ export default function TermosKPI({ termos }) {
       return hoje > dataMax;
   };
 
-  const prazoVencido = termos.filter(t => t.arquivo_url && t.data_protocolo && !t.data_recebimento_resposta && verificaPrazoVencido(t)).length;
+  const prazoVencido = termos.filter(t => t.arquivo_tn_prestador_url && t.assinatura_prestador_valida && !t.data_recebimento_resposta && verificaPrazoVencido(t)).length;
   const respondidos = termos.filter(t => t.data_recebimento_resposta).length;
   const total = termos.length;
 
   const kpis = [
     { label: 'Total de TNs', value: total, color: 'bg-blue-50', textColor: 'text-blue-600', icon: FileText },
     { label: 'Pendente TN Assinado', value: pendenteTNAssinado, color: 'bg-yellow-50', textColor: 'text-yellow-600', icon: AlertCircle },
-    { label: 'Pendente Protocolo', value: pendenteProtocolo, color: 'bg-orange-50', textColor: 'text-orange-600', icon: Clock },
+    { label: 'Aguardando Assinatura', value: aguardandoAssinaturaPrestador, color: 'bg-orange-50', textColor: 'text-orange-600', icon: Clock },
     { label: 'Aguardando Resposta', value: aguardandoResposta, color: 'bg-green-50', textColor: 'text-green-600', icon: FileText },
     { label: 'Prazo Vencido', value: prazoVencido, color: 'bg-red-50', textColor: 'text-red-600', icon: AlertCircle },
     { label: 'Respondidos', value: respondidos, color: 'bg-purple-50', textColor: 'text-purple-600', icon: FileText },
