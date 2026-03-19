@@ -57,6 +57,12 @@ const removePathsByBucket = async (items) => {
   }
 }
 
+const safeRemovePathsByBucket = async (items) => {
+  try {
+    await removePathsByBucket(items)
+  } catch {}
+}
+
 export const deleteUnidadeComImagens = async (unidadeId) => {
   const { data: unidade } = await supabase
     .from('unidades_fiscalizadas')
@@ -64,8 +70,9 @@ export const deleteUnidadeComImagens = async (unidadeId) => {
     .eq('id', unidadeId)
     .maybeSingle()
   const fotos = Array.isArray(unidade?.fotos_unidade) ? unidade.fotos_unidade : []
-  await removePathsByBucket(fotos)
-  await supabase.from('unidades_fiscalizadas').delete().eq('id', unidadeId)
+  await safeRemovePathsByBucket(fotos)
+  const { error } = await supabase.from('unidades_fiscalizadas').delete().eq('id', unidadeId)
+  if (error) throw error
 }
 
 export const deleteFiscalizacaoComImagens = async (fiscalizacaoId) => {
@@ -107,7 +114,7 @@ export const deleteFiscalizacaoComImagens = async (fiscalizacaoId) => {
         else if (arq?.url) anexos.push(arq.url)
       }
     }
-    await removePathsByBucket(anexos)
+    await safeRemovePathsByBucket(anexos)
     if ((termos || []).length > 0) {
       await supabase.from('termos_notificacao').delete().eq('fiscalizacao_id', serverId)
     }
@@ -125,7 +132,7 @@ export const deleteFiscalizacaoComImagens = async (fiscalizacaoId) => {
       fotos.push(...u.fotos_unidade)
     }
   }
-  await removePathsByBucket(fotos)
+  await safeRemovePathsByBucket(fotos)
 
   // Remover fotos ligadas a NCs (se houver) desta fiscalização
   try {
@@ -138,11 +145,12 @@ export const deleteFiscalizacaoComImagens = async (fiscalizacaoId) => {
           if (f) ncFotos.push(f)
         }
       }
-      await removePathsByBucket(ncFotos)
+      await safeRemovePathsByBucket(ncFotos)
     }
   } catch {}
 
-  await supabase.from('fiscalizacoes').delete().eq('id', serverId)
+  const { error: delFiscErr } = await supabase.from('fiscalizacoes').delete().eq('id', serverId)
+  if (delFiscErr) throw delFiscErr
   // limpeza local para refletir imediatamente na UI
   await db.transaction('rw', db.unidades, db.fiscalizacoes, async () => {
     const unidadesLocal = await db.unidades.where('fiscalizacao_id').equals(localId).toArray()
@@ -174,7 +182,7 @@ export const deleteTermoNotificacaoComDependencias = async (termoId) => {
     if (typeof arq === 'string') anexos.push(arq)
     else if (arq?.url) anexos.push(arq.url)
   }
-  await removePathsByBucket(anexos)
+  await safeRemovePathsByBucket(anexos)
 
   const { data: unidades, error: unidadesErr } = await supabase
     .from('unidades_fiscalizadas')
@@ -209,11 +217,12 @@ export const deleteTermoNotificacaoComDependencias = async (termoId) => {
       }
     } catch {}
   }
-  await supabase
+  const { error: respDetErr } = await supabase
     .from('respostas_determinacao')
     .delete()
     .eq('fiscalizacao_id', termo.fiscalizacao_id)
     .eq('prestador_servico_id', termo.prestador_servico_id)
+  if (respDetErr) throw respDetErr
 
   const { data: autos, error: autosErr } = await supabase
     .from('autos_infracao')
@@ -231,19 +240,24 @@ export const deleteTermoNotificacaoComDependencias = async (termoId) => {
     if (a?.arquivo_defesa_oficio) autoArquivos.push(a.arquivo_defesa_oficio)
     if (a?.arquivo_defesa) autoArquivos.push(a.arquivo_defesa)
   }
-  await removePathsByBucket(autoArquivos)
+  await safeRemovePathsByBucket(autoArquivos)
   if (autoIds.length > 0) {
     const { data: manifs } = await supabase.from('manifestacoes_auto').select('arquivo_url').in('auto_infracao_id', autoIds)
     const arqs = []
     for (const m of manifs || []) {
       if (m?.arquivo_url) arqs.push(m.arquivo_url)
     }
-    await removePathsByBucket(arqs)
-    await supabase.from('manifestacoes_auto').delete().in('auto_infracao_id', autoIds)
-    await supabase.from('pareceres_tecnicos').delete().in('auto_id', autoIds)
-    await supabase.from('julgamentos').delete().in('auto_id', autoIds)
-    await supabase.from('autos_infracao').delete().in('id', autoIds)
+    await safeRemovePathsByBucket(arqs)
+    const { error: delManifsErr } = await supabase.from('manifestacoes_auto').delete().in('auto_infracao_id', autoIds)
+    if (delManifsErr) throw delManifsErr
+    const { error: delParecErr } = await supabase.from('pareceres_tecnicos').delete().in('auto_id', autoIds)
+    if (delParecErr) throw delParecErr
+    const { error: delJulgErr } = await supabase.from('julgamentos').delete().in('auto_id', autoIds)
+    if (delJulgErr) throw delJulgErr
+    const { error: delAutosErr } = await supabase.from('autos_infracao').delete().in('id', autoIds)
+    if (delAutosErr) throw delAutosErr
   }
 
-  await supabase.from('termos_notificacao').delete().eq('id', termoId)
+  const { error: delTermoErr } = await supabase.from('termos_notificacao').delete().eq('id', termoId)
+  if (delTermoErr) throw delTermoErr
 }
