@@ -81,6 +81,44 @@ export const deleteFiscalizacaoComImagens = async (fiscalizacaoId) => {
   const serverId = mapLocal?.server_id || fiscalizacaoId
   const localId = mapLocal?.local_id || mapServer?.local_id || fiscalizacaoId
 
+  try {
+    const { data: autos, error: autosErr } = await supabase
+      .from('autos_infracao')
+      .select('id,arquivo_url,arquivo_protocolo_oficio,arquivo_protocolo_ai_recebido,arquivo_defesa_oficio,arquivo_defesa')
+      .eq('fiscalizacao_id', serverId)
+    if (autosErr) throw autosErr
+    const autoIds = []
+    const autoArquivos = []
+    for (const a of autos || []) {
+      if (a?.id) autoIds.push(a.id)
+      if (a?.arquivo_url) autoArquivos.push(a.arquivo_url)
+      if (a?.arquivo_protocolo_oficio) autoArquivos.push(a.arquivo_protocolo_oficio)
+      if (a?.arquivo_protocolo_ai_recebido) autoArquivos.push(a.arquivo_protocolo_ai_recebido)
+      if (a?.arquivo_defesa_oficio) autoArquivos.push(a.arquivo_defesa_oficio)
+      if (a?.arquivo_defesa) autoArquivos.push(a.arquivo_defesa)
+    }
+    await safeRemovePathsByBucket(autoArquivos)
+    if (autoIds.length > 0) {
+      const { data: manifs } = await supabase.from('manifestacoes_auto').select('arquivo_url').in('auto_infracao_id', autoIds)
+      const arqs = []
+      for (const m of manifs || []) {
+        if (m?.arquivo_url) arqs.push(m.arquivo_url)
+      }
+      await safeRemovePathsByBucket(arqs)
+      const { error: delManifsErr } = await supabase.from('manifestacoes_auto').delete().in('auto_infracao_id', autoIds)
+      if (delManifsErr) throw delManifsErr
+      const { error: delParecErr } = await supabase.from('pareceres_tecnicos').delete().in('auto_id', autoIds)
+      if (delParecErr) throw delParecErr
+      const { error: delJulgErr } = await supabase.from('julgamentos').delete().in('auto_id', autoIds)
+      if (delJulgErr) throw delJulgErr
+      const { error: delAutosErr } = await supabase.from('autos_infracao').delete().in('id', autoIds)
+      if (delAutosErr) throw delAutosErr
+    }
+  } catch {}
+
+  const { error: delRespDetErr } = await supabase.from('respostas_determinacao').delete().eq('fiscalizacao_id', serverId)
+  if (delRespDetErr) throw delRespDetErr
+
   // Remover relatório gerado (se existir) do Storage
   try {
     const { data: jobs } = await supabase.from('relatorios_jobs').select('id,storage_path').eq('fiscalizacao_id', serverId)
