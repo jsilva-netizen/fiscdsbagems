@@ -413,7 +413,8 @@ async function ensureBaseEntitiesEnqueued(): Promise<void> {
 }
 
 async function pruneLocalByServerIds(): Promise<void> {
-  const { data: fiscRows } = await supabase.from('fiscalizacoes').select('id')
+  const { data: fiscRows, error: fiscErr } = await supabase.from('fiscalizacoes').select('id')
+  if (fiscErr) throw fiscErr
   const serverFisc = new Set<string>((fiscRows || []).map((r: any) => r.id))
   const locals = await db.fiscalizacoes.toArray()
   for (const f of locals) {
@@ -753,7 +754,11 @@ async function pullEntity(entity: Entity, since?: string) {
 
 export async function syncDown(): Promise<void> {
   const st = await db.estados_sync.get('global' as UUID)
-  const since = st?.last_sync_at
+  let since = st?.last_sync_at
+  if (since) {
+    const [fCount, uCount] = await Promise.all([db.fiscalizacoes.count(), db.unidades.count()])
+    if ((fCount || 0) === 0 && (uCount || 0) === 0) since = undefined
+  }
   // baixa diffs das entidades solicitadas em paralelo
   await Promise.all([
     pullEntity('fiscalizacoes', since),
@@ -1039,7 +1044,6 @@ export async function runFullSync(): Promise<{ outbox: number; lastSyncAt?: stri
     if (shouldPrune) {
       try {
         await withTimeout(() => pruneLocalByServerIds(), 30000)
-      } finally {
         await db.estados_sync.put({
           ...(st as any),
           id: 'global' as UUID,
@@ -1047,7 +1051,7 @@ export async function runFullSync(): Promise<{ outbox: number; lastSyncAt?: stri
           updated_at: now(),
           last_prune_at: now()
         } as any)
-      }
+      } catch {}
     }
   } catch {}
   await ensureBaseEntitiesEnqueued()
