@@ -113,8 +113,7 @@ function serializePayload(entity: Entity, type: MutationType, payload: any): any
         'codigo',
         'servicos_aplicaveis',
         'ativo',
-        'created_at',
-        'updated_at'
+        'created_at'
       ])
     case 'itens_checklist':
       return pick(payload, [
@@ -131,8 +130,7 @@ function serializePayload(entity: Entity, type: MutationType, payload: any): any
         'texto_nc',
         'prazo_dias',
         'ativo',
-        'created_at',
-        'updated_at'
+        'created_at'
       ])
     case 'prestadores':
       return pick(payload, [
@@ -785,7 +783,7 @@ export async function syncDown(): Promise<void> {
     }
   }
   await withBackoff(() => withTimeout(async () => {
-    const data = await safeSelectSince('tipos_unidade', 'id, nome, codigo, servicos_aplicaveis, ativo, created_at, updated_at', undefined, 'or')
+    const data = await safeSelectSince('tipos_unidade', 'id, nome, codigo, servicos_aplicaveis, ativo, created_at', undefined, 'or')
     if (Array.isArray(data)) {
       for (const row of data) {
         await db.tipos_unidade.put(row as any)
@@ -803,7 +801,7 @@ export async function syncDown(): Promise<void> {
   await withBackoff(() => withTimeout(async () => {
     const data = await safeSelectSince(
       'itens_checklist',
-      'id, tipo_unidade_id, ordem, pergunta, texto_constatacao_sim, texto_constatacao_nao, gera_nc, artigo_portaria, texto_determinacao, texto_recomendacao, texto_nc, prazo_dias, ativo, created_at, updated_at',
+      'id, tipo_unidade_id, ordem, pergunta, texto_constatacao_sim, texto_constatacao_nao, gera_nc, artigo_portaria, texto_determinacao, texto_recomendacao, texto_nc, prazo_dias, ativo, created_at, created_date, updated_date',
       undefined,
       'or'
     )

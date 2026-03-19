@@ -34,7 +34,7 @@ export default function TiposUnidade() {
         queryFn: async () => {
             const { data, error } = await supabase
                 .from('tipos_unidade')
-                .select('id, nome, codigo, servicos_aplicaveis, ativo, created_at, updated_at')
+                .select('id, nome, codigo, servicos_aplicaveis, ativo, created_at')
                 .order('nome', { ascending: true });
             if (error) throw error;
             return data || [];
@@ -44,9 +44,8 @@ export default function TiposUnidade() {
     const createMutation = useMutation({
         mutationFn: async (data) => {
             if (!online) throw new Error('Operação disponível somente online.');
-            const now = new Date().toISOString();
             const id = crypto?.randomUUID?.() || Math.random().toString(36).slice(2);
-            const payload = { ...data, id, created_at: now, updated_at: now };
+            const payload = { ...data, id };
             const { error } = await supabase.from('tipos_unidade').insert(payload);
             if (error) throw error;
             return { id };
@@ -60,8 +59,7 @@ export default function TiposUnidade() {
     const updateMutation = useMutation({
         mutationFn: async ({ id, data }) => {
             if (!online) throw new Error('Operação disponível somente online.');
-            const now = new Date().toISOString();
-            const { error } = await supabase.from('tipos_unidade').update({ ...data, updated_at: now }).eq('id', id);
+            const { error } = await supabase.from('tipos_unidade').update({ ...data }).eq('id', id);
             if (error) throw error;
         },
         onSuccess: () => {

@@ -39,7 +39,7 @@ export default function Checklists() {
         queryFn: async () => {
             const { data, error } = await supabase
                 .from('tipos_unidade')
-                .select('id, nome, codigo, servicos_aplicaveis, ativo, created_at, updated_at')
+                .select('id, nome, codigo, servicos_aplicaveis, ativo, created_at')
                 .order('nome', { ascending: true });
             if (error) throw error;
             return data || [];
@@ -52,7 +52,7 @@ export default function Checklists() {
             if (!selectedTipo) return [];
             const { data, error } = await supabase
                 .from('itens_checklist')
-                .select('id, tipo_unidade_id, ordem, pergunta, texto_constatacao_sim, texto_constatacao_nao, gera_nc, artigo_portaria, texto_determinacao, texto_recomendacao, texto_nc, prazo_dias, ativo, created_at, updated_at')
+                .select('id, tipo_unidade_id, ordem, pergunta, texto_constatacao_sim, texto_constatacao_nao, gera_nc, artigo_portaria, texto_determinacao, texto_recomendacao, texto_nc, prazo_dias, ativo, created_at')
                 .eq('tipo_unidade_id', selectedTipo)
                 .order('ordem', { ascending: true })
                 .order('created_at', { ascending: true });
@@ -64,9 +64,8 @@ export default function Checklists() {
 
     const createMutation = useMutation({
         mutationFn: async (data) => {
-            const now = new Date().toISOString();
             const id = crypto?.randomUUID?.() || Math.random().toString(36).slice(2);
-            const payload = { ...data, id, created_at: now, updated_at: now };
+            const payload = { ...data, id };
             const { error } = await supabase.from('itens_checklist').insert(payload);
             if (error) throw error;
         },
@@ -79,8 +78,7 @@ export default function Checklists() {
 
     const updateMutation = useMutation({
         mutationFn: async ({ id, data }) => {
-            const now = new Date().toISOString();
-            const { error } = await supabase.from('itens_checklist').update({ ...data, updated_at: now }).eq('id', id);
+            const { error } = await supabase.from('itens_checklist').update({ ...data }).eq('id', id);
             if (error) throw error;
         },
         onSuccess: () => {
@@ -229,13 +227,10 @@ export default function Checklists() {
                 }
             }
 
-            const now = new Date().toISOString();
             const tiposCriados = [];
             const tiposRows = Array.from(tiposParaCriar.values()).map((t) => ({
                 id: crypto?.randomUUID?.() || Math.random().toString(36).slice(2),
-                ...t,
-                created_at: now,
-                updated_at: now
+                ...t
             }));
             for (let offset = 0; offset < tiposRows.length; offset += 100) {
                 const chunk = tiposRows.slice(offset, offset + 100);
@@ -268,9 +263,7 @@ export default function Checklists() {
                     texto_recomendacao: item.texto_recomendacao,
                     texto_nc: item.texto_nc,
                     prazo_dias: item.prazo_dias,
-                    ativo: item.ativo,
-                    created_at: now,
-                    updated_at: now
+                    ativo: item.ativo
                 });
             }
 
