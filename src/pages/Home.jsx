@@ -268,6 +268,37 @@ export default function Home() {
                             >
                                 {syncing ? 'Sincronizando...' : 'Sincronizar'}
                             </Button>
+                            
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-blue-200 hover:text-white hover:bg-white/10 ml-2"
+                                title="Baixar backup local de emergência"
+                                onClick={async () => {
+                                    try {
+                                        const { db } = await import('@/lib/offline/db');
+                                        const tabelas = ['fiscalizacoes', 'unidades', 'respostas', 'constatacoes_manuais', 'recomendacoes', 'fila_mutacoes', 'fotos'];
+                                        const backup = {};
+                                        for (const t of tabelas) {
+                                            if (db[t]) {
+                                                backup[t] = await db[t].toArray();
+                                            }
+                                        }
+                                        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+                                        const url = URL.createObjectURL(blob);
+                                        const a = document.createElement('a');
+                                        a.href = url;
+                                        a.download = `backup_emergencia_android_${new Date().getTime()}.json`;
+                                        a.click();
+                                        URL.revokeObjectURL(url);
+                                        toast({ title: 'Backup concluído', description: 'Arquivo baixado com sucesso.' });
+                                    } catch (err) {
+                                        toast({ title: 'Erro no backup', description: err.message, variant: 'destructive' });
+                                    }
+                                }}
+                            >
+                                <AlertTriangle className="h-4 w-4" />
+                            </Button>
                         </div>
                         
                     </div>
