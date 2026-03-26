@@ -903,6 +903,14 @@ export const Repository = {
       await enqueueMutation({ id: unidadeId, status }, 'update', 'unidades')
     }
   },
+
+  async updateUnidadeCodigo(unidadeId: string, codigo_unidade: string): Promise<void> {
+    const u = await db.unidades.get(unidadeId)
+    if (u) {
+      await db.unidades.update(unidadeId, { ...u, codigo_unidade, updated_at: now() })
+    }
+    await enqueueMutation({ id: unidadeId, codigo_unidade, updated_at: now() }, 'update', 'unidades')
+  },
   
   async finalizarFiscalizacao(fiscalizacaoId: string): Promise<void> {
     const unidades = await db.unidades.where('fiscalizacao_id').equals(fiscalizacaoId).toArray()

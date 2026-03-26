@@ -42,6 +42,8 @@ export default function VistoriarUnidade() {
     const [showConfirmaExclusao, setShowConfirmaExclusao] = useState(false);
     const [constatacaoParaExcluir, setConstatacaoParaExcluir] = useState(null);
     const [filaRespostas, setFilaRespostas] = useState([]);
+    const [showEditarCodigoUnidade, setShowEditarCodigoUnidade] = useState(false);
+    const [novoCodigoUnidade, setNovoCodigoUnidade] = useState('');
 
     // Queries
     const { data: unidade, isLoading: loadingUnidade } = useQuery({
@@ -471,6 +473,21 @@ export default function VistoriarUnidade() {
         }
     });
 
+    const atualizarCodigoUnidadeMutation = useMutation({
+        mutationFn: async () => {
+            const trimmed = String(novoCodigoUnidade || '').trim();
+            await Repository.updateUnidadeCodigo(unidadeId, trimmed);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['unidade', unidadeId] });
+            queryClient.invalidateQueries({ queryKey: ['unidades-fiscalizacao'] });
+            setShowEditarCodigoUnidade(false);
+        },
+        onError: (err) => {
+            alert(err.message);
+        }
+    });
+
     const salvarAlteracoesMutation = useMutation({
         mutationFn: async () => {
             console.log('🔵 Iniciando salvamento de alterações da unidade:', unidadeId);
@@ -545,6 +562,7 @@ export default function VistoriarUnidade() {
     const totalRespondidas = Object.keys(respostas).length;
     const totalItens = Array.isArray(itensChecklist) ? itensChecklist.length : 0;
     const progresso = totalItens > 0 ? Math.round((totalRespondidas / totalItens) * 100) : 0;
+    const podeEditarCodigoUnidade = unidade?.status !== 'finalizada' || modoEdicao;
 
     return (
         <div className="min-h-screen bg-gray-100 pb-24">
@@ -563,6 +581,24 @@ export default function VistoriarUnidade() {
                             {unidade?.nome_unidade && (
                                 <p className="text-blue-200 text-sm">{unidade.nome_unidade}</p>
                             )}
+                            <div className="flex items-center gap-2 text-blue-200 text-xs mt-1">
+                                <span>Código:</span>
+                                <span className="text-white">{unidade?.codigo_unidade || '-'}</span>
+                                {podeEditarCodigoUnidade && (
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-6 px-2 text-blue-200 hover:text-white hover:bg-white/10"
+                                        onClick={() => {
+                                            setNovoCodigoUnidade(unidade?.codigo_unidade || '');
+                                            setShowEditarCodigoUnidade(true);
+                                        }}
+                                    >
+                                        <Pencil className="h-3 w-3 mr-1" />
+                                        Editar
+                                    </Button>
+                                )}
+                            </div>
                         </div>
                     </div>
                     
@@ -851,6 +887,47 @@ export default function VistoriarUnidade() {
                             </Button>
                             <Button variant="outline" onClick={() => setShowAddRecomendacao(false)}>
                                 Cancelar
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={showEditarCodigoUnidade} onOpenChange={setShowEditarCodigoUnidade}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Editar código da unidade</DialogTitle>
+                        <DialogDescription>
+                            Altera apenas o código/identificador desta unidade.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>Novo código</Label>
+                            <Input
+                                value={novoCodigoUnidade}
+                                onChange={(e) => setNovoCodigoUnidade(e.target.value)}
+                                placeholder="Ex: ETA-001"
+                                disabled={atualizarCodigoUnidadeMutation.isPending}
+                            />
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <Button
+                                variant="outline"
+                                onClick={() => setShowEditarCodigoUnidade(false)}
+                                disabled={atualizarCodigoUnidadeMutation.isPending}
+                            >
+                                Cancelar
+                            </Button>
+                            <Button
+                                onClick={() => atualizarCodigoUnidadeMutation.mutate()}
+                                disabled={atualizarCodigoUnidadeMutation.isPending}
+                            >
+                                {atualizarCodigoUnidadeMutation.isPending ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    'Salvar'
+                                )}
                             </Button>
                         </div>
                     </div>

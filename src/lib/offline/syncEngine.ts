@@ -587,6 +587,10 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
         if (error) throw error
         return data || []
       }
+    } else if (entity === 'unidades' && type === 'update') {
+      const { data, error } = await supabase.from(table).update(safe).eq('id', safe.id as any).select()
+      if (error) throw error
+      return data || []
     } else {
       const { data, error } = await supabase.from(table).upsert(safe, upsertOptions).select()
       if (error) throw error
