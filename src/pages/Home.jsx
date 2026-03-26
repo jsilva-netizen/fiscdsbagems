@@ -229,13 +229,13 @@ export default function Home() {
                             {online ? <Wifi className="h-4 w-4 text-green-400" /> : <WifiOff className="h-4 w-4 text-red-400" />}
                             {online ? 'Online' : 'Offline'}
                         </Badge>
-                        <Badge variant="outline" className="border-white text-white flex items-center gap-1">
+                        <Badge variant="outline" className="border-white text-white hidden sm:flex items-center gap-1">
                             <History className="h-4 w-4 text-blue-200" />
                             Última sync: {lastSyncAt ? format(new Date(lastSyncAt), 'dd/MM HH:mm', { locale: ptBR }) : '—'}
                         </Badge>
-                        <div className="ml-auto flex items-center gap-2">
+                        <div className="ml-auto flex items-center gap-2 overflow-hidden">
                             {syncing && syncProgress && (
-                                <span className="text-xs text-blue-200 hidden md:inline-block">
+                                <span className="text-xs text-blue-200 truncate max-w-[120px] sm:max-w-none">
                                     {syncProgress}
                                 </span>
                             )}
