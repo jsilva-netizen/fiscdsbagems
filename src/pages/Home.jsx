@@ -293,71 +293,85 @@ export default function Home() {
                                 title="Recuperar fotos órfãs"
                                 onClick={async () => {
                                     try {
-                                        toast({ title: 'Buscando fotos órfãs...', description: 'Isso pode levar alguns minutos. Aguarde.' });
+                                        toast({ title: 'Buscando fotos órfãs...', description: 'Varrendo a nuvem. Isso pode levar alguns minutos...' });
                                         const { db } = await import('@/lib/offline/db');
                                         const { supabase } = await import('@/lib/supabase');
                                         
-                                        const unidades = await db.unidades.toArray();
                                         let recuperadas = 0;
                                         
-                                        for (const u of unidades) {
-                                            const localId = u.id;
-                                            const fiscId = u.fiscalizacao_id;
-                                            
-                                            // Resolve server ID
-                                            const map = await db.id_map.where('local_id').equals(localId).first();
-                                            const serverId = map?.server_id || localId;
-                                            
-                                            // Paths possiveis onde as fotos podem ter sido salvas
-                                            const possiblePaths = [
-                                                `fiscalizacoes/${fiscId}/${localId}`,
-                                                `fiscalizacoes/unknown/${localId}`
-                                            ];
-                                            
-                                            const allPhotos = [];
-                                            for (const folder of possiblePaths) {
-                                                const { data: files } = await supabase.storage.from('fotos_fiscalizacao').list(folder);
-                                                if (files && files.length > 0) {
-                                                    for (const f of files) {
-                                                        if (f.name && f.name !== '.emptyFolderPlaceholder') {
-                                                            allPhotos.push({
-                                                                bucket: 'fotos_fiscalizacao',
-                                                                path: `${folder}/${f.name}`
-                                                            });
-                                                        }
-                                                    }
-                                                }
+                                        // Mapa de local_id para server_id para ajudar a cruzar as pastas
+                                        const idMaps = await db.id_map.toArray();
+                                        const localToServer = {};
+                                        idMaps.forEach(m => {
+                                            if (m.local_id && m.server_id) {
+                                                localToServer[m.local_id] = m.server_id;
                                             }
-                                            
-                                            if (allPhotos.length > 0) {
-                                                // Verifica o que já tem na unidade no servidor
-                                                const { data: serverUnit } = await supabase.from('unidades_fiscalizadas').select('fotos_unidade').eq('id', serverId).maybeSingle();
-                                                if (serverUnit) {
-                                                    const existing = Array.isArray(serverUnit.fotos_unidade) ? serverUnit.fotos_unidade : [];
-                                                    const merged = [...existing];
-                                                    
-                                                    // Evita duplicatas
-                                                    for (const p of allPhotos) {
-                                                        if (!merged.find(x => x.path === p.path)) {
-                                                            merged.push(p);
+                                        });
+
+                                        // Busca todas as fiscalizações que temos locais (ou já tenta olhar no server)
+                                        const { data: fiscFolders } = await supabase.storage.from('fotos_fiscalizacao').list('fiscalizacoes', { limit: 1000 });
+                                        
+                                        if (fiscFolders) {
+                                            for (const fFolder of fiscFolders) {
+                                                if (!fFolder.name || fFolder.name === '.emptyFolderPlaceholder') continue;
+                                                
+                                                const { data: unitFolders } = await supabase.storage.from('fotos_fiscalizacao').list(`fiscalizacoes/${fFolder.name}`, { limit: 1000 });
+                                                
+                                                if (unitFolders) {
+                                                    for (const uFolder of unitFolders) {
+                                                        if (!uFolder.name || uFolder.name === '.emptyFolderPlaceholder') continue;
+                                                        
+                                                        const folderName = uFolder.name;
+                                                        const path = `fiscalizacoes/${fFolder.name}/${folderName}`;
+                                                        
+                                                        const { data: files } = await supabase.storage.from('fotos_fiscalizacao').list(path, { limit: 1000 });
+                                                        
+                                                        if (files && files.length > 0) {
+                                                            const validFiles = files.filter(f => f.name && f.name !== '.emptyFolderPlaceholder');
+                                                            if (validFiles.length === 0) continue;
+
+                                                            let targetServerId = folderName;
+                                                            if (localToServer[folderName]) {
+                                                                targetServerId = localToServer[folderName];
+                                                            }
+
+                                                            // Busca unidade no servidor
+                                                            const { data: serverUnit } = await supabase.from('unidades_fiscalizadas').select('id, fotos_unidade').eq('id', targetServerId).maybeSingle();
+                                                            
+                                                            if (serverUnit) {
+                                                                const existing = Array.isArray(serverUnit.fotos_unidade) ? serverUnit.fotos_unidade : [];
+                                                                const merged = [...existing];
+                                                                let added = 0;
+                                                                
+                                                                for (const f of validFiles) {
+                                                                    const photoPath = `${path}/${f.name}`;
+                                                                    if (!merged.find(x => x.path === photoPath)) {
+                                                                        merged.push({
+                                                                            bucket: 'fotos_fiscalizacao',
+                                                                            path: photoPath
+                                                                        });
+                                                                        added++;
+                                                                    }
+                                                                }
+                                                                
+                                                                if (added > 0) {
+                                                                    await supabase.from('unidades_fiscalizadas').update({
+                                                                        fotos_unidade: merged,
+                                                                        updated_at: new Date().toISOString()
+                                                                    }).eq('id', serverUnit.id);
+                                                                    recuperadas += added;
+                                                                }
+                                                            }
                                                         }
-                                                    }
-                                                    
-                                                    if (merged.length > existing.length) {
-                                                        await supabase.from('unidades_fiscalizadas').update({
-                                                            fotos_unidade: merged,
-                                                            updated_at: new Date().toISOString()
-                                                        }).eq('id', serverId);
-                                                        recuperadas += (merged.length - existing.length);
                                                     }
                                                 }
                                             }
                                         }
                                         
                                         if (recuperadas > 0) {
-                                            toast({ title: 'Sucesso!', description: `Recuperadas e vinculadas ${recuperadas} fotos.` });
+                                            toast({ title: 'Sucesso!', description: `Recuperadas e vinculadas ${recuperadas} fotos na nuvem. Sincronize para baixar.` });
                                         } else {
-                                            toast({ title: 'Aviso', description: 'Nenhuma foto órfã encontrada para as unidades locais.' });
+                                            toast({ title: 'Aviso', description: 'Nenhuma foto solta encontrada nas pastas do servidor.' });
                                         }
                                     } catch (err) {
                                         toast({ title: 'Erro', description: err.message, variant: 'destructive' });
@@ -479,87 +493,6 @@ export default function Home() {
                                 }}
                             >
                                 <AlertTriangle className="h-4 w-4" />
-                            </Button>
-
-                            <Button
-                                size="sm"
-                                variant="ghost"
-                                className="text-blue-200 hover:text-white hover:bg-white/10 ml-2"
-                                title="Recuperar Fotos Órfãs"
-                                onClick={async () => {
-                                    try {
-                                        toast({ title: 'Buscando fotos órfãs...', description: 'Isso pode levar alguns minutos. Aguarde.' });
-                                        const { db } = await import('@/lib/offline/db');
-                                        const { supabase } = await import('@/lib/supabase');
-                                        
-                                        const unidades = await db.unidades.toArray();
-                                        let recuperadas = 0;
-                                        
-                                        for (const u of unidades) {
-                                            const localId = u.id;
-                                            const fiscId = u.fiscalizacao_id;
-                                            
-                                            // Resolve server ID
-                                            const map = await db.id_map.where('local_id').equals(localId).first();
-                                            const serverId = map?.server_id || localId;
-                                            
-                                            // Paths possiveis onde as fotos podem ter sido salvas
-                                            const possiblePaths = [
-                                                `fiscalizacoes/${fiscId}/${localId}`,
-                                                `fiscalizacoes/unknown/${localId}`
-                                            ];
-                                            
-                                            const allPhotos = [];
-                                            for (const folder of possiblePaths) {
-                                                const { data: files } = await supabase.storage.from('fotos_fiscalizacao').list(folder);
-                                                if (files && files.length > 0) {
-                                                    for (const f of files) {
-                                                        if (f.name && f.name !== '.emptyFolderPlaceholder') {
-                                                            allPhotos.push({
-                                                                bucket: 'fotos_fiscalizacao',
-                                                                path: `${folder}/${f.name}`
-                                                            });
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                            
-                                            if (allPhotos.length > 0) {
-                                                // Verifica o que já tem na unidade no servidor
-                                                const { data: serverUnit } = await supabase.from('unidades_fiscalizadas').select('fotos_unidade').eq('id', serverId).maybeSingle();
-                                                if (serverUnit) {
-                                                    const existing = Array.isArray(serverUnit.fotos_unidade) ? serverUnit.fotos_unidade : [];
-                                                    const merged = [...existing];
-                                                    
-                                                    // Evita duplicatas
-                                                    for (const p of allPhotos) {
-                                                        if (!merged.find(x => x.path === p.path)) {
-                                                            merged.push(p);
-                                                        }
-                                                    }
-                                                    
-                                                    if (merged.length > existing.length) {
-                                                        await supabase.from('unidades_fiscalizadas').update({
-                                                            fotos_unidade: merged,
-                                                            updated_at: new Date().toISOString()
-                                                        }).eq('id', serverId);
-                                                        recuperadas += (merged.length - existing.length);
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        
-                                        if (recuperadas > 0) {
-                                            toast({ title: 'Sucesso!', description: `Recuperadas e vinculadas ${recuperadas} fotos.` });
-                                        } else {
-                                            toast({ title: 'Aviso', description: 'Nenhuma foto órfã nova encontrada para as unidades locais.' });
-                                        }
-                                    } catch (err) {
-                                        toast({ title: 'Erro', description: err.message, variant: 'destructive' });
-                                    }
-                                }}
-                            >
-                                <History className="h-4 w-4" />
                             </Button>
                         </div>
                         
