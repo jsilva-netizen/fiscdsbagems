@@ -23,6 +23,7 @@ export default function Home() {
     const [isMobile, setIsMobile] = useState(false);
     const { online, lastSyncAt, refetchSyncStatus } = useSyncStatus?.() || { online: true, lastSyncAt: undefined, refetchSyncStatus: () => {} };
     const [syncing, setSyncing] = useState(false);
+    const [syncProgress, setSyncProgress] = useState('');
     const { toast } = useToast();
     const queryClient = useQueryClient();
     
@@ -232,7 +233,12 @@ export default function Home() {
                             <History className="h-4 w-4 text-blue-200" />
                             Última sync: {lastSyncAt ? format(new Date(lastSyncAt), 'dd/MM HH:mm', { locale: ptBR }) : '—'}
                         </Badge>
-                        <div className="ml-auto">
+                        <div className="ml-auto flex items-center gap-2">
+                            {syncing && syncProgress && (
+                                <span className="text-xs text-blue-200 hidden md:inline-block">
+                                    {syncProgress}
+                                </span>
+                            )}
                             <Button
                                 size="sm"
                                 variant="outline"
@@ -240,6 +246,7 @@ export default function Home() {
                                 className="border-white text-white bg-white/10 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
                                 onClick={async () => {
                                     setSyncing(true)
+                                    setSyncProgress('Iniciando...')
                                     try {
                                         try {
                                             const persisted = await navigator.storage?.persisted?.()
@@ -247,18 +254,26 @@ export default function Home() {
                                                 await navigator.storage.persist()
                                             }
                                         } catch {}
-                                        const res = await runFullSync()
+                                        const res = await runFullSync((msg, isError) => {
+                                            setSyncProgress(msg)
+                                            if (isError) {
+                                                console.error('[Sync Error]', msg)
+                                            }
+                                        })
                                         // Atualiza imediatamente todos os dados em cache relevantes
                                         await queryClient.invalidateQueries()
                                         await queryClient.refetchQueries()
+                                        setSyncProgress('')
                                         toast({
                                             title: 'Sincronização concluída',
                                             description: res.lastSyncAt ? `Atualizado em ${format(new Date(res.lastSyncAt), 'dd/MM HH:mm', { locale: ptBR })}` : 'Dados atualizados'
                                         })
                                     } catch (err) {
+                                        setSyncProgress('Erro na sincronização')
                                         toast({
                                             title: 'Falha na sincronização',
-                                            description: err?.message || 'Verifique sua conexão e tente novamente'
+                                            description: err?.message || 'Verifique sua conexão e tente novamente',
+                                            variant: 'destructive'
                                         })
                                     } finally {
                                         setSyncing(false)

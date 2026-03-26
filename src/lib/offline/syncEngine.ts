@@ -608,7 +608,8 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
   }
 }
 
-export async function syncUp(): Promise<number> {
+export async function syncUp(onProgress?: (msg: string, isError?: boolean) => void): Promise<number> {
+  const log = (msg: string, isError = false) => { if (onProgress) onProgress(msg, isError) }
   const pendingAll = await db.fila_mutacoes.where('status').equals('pending').toArray()
   const sorted = pendingAll
     .slice()
@@ -629,8 +630,9 @@ export async function syncUp(): Promise<number> {
     groupByEntity[k] = arr
   }
   const limit = 4
-  const runBatch = async (items: typeof sorted) => {
+  const runBatch = async (items: typeof sorted, entityName: string) => {
     for (let i = 0; i < items.length; i += limit) {
+      log(`Enviando ${entityName} (${i + 1} de ${items.length})...`)
       const chunk = items.slice(i, i + limit)
       await Promise.all(
         chunk.map(async (m) => {
@@ -656,10 +658,13 @@ export async function syncUp(): Promise<number> {
   for (const entity of orderForSyncUp) {
     const items = groupByEntity[entity] || []
     if (items.length > 0) {
-      await runBatch(items)
+      await runBatch(items, entity)
     }
   }
-  await syncFotosWithProgress()
+  log('Sincronizando fotos...')
+  await syncFotosWithProgress((uploaded, total) => {
+    log(`Enviando fotos... ${uploaded}/${total}`)
+  })
   const pending = await db.fila_mutacoes.where('status').equals('pending').count()
   await db.estados_sync.put({
     id: 'global' as UUID,
@@ -750,13 +755,15 @@ async function pullEntity(entity: Entity, since?: string) {
   }
 }
 
-export async function syncDown(): Promise<void> {
+export async function syncDown(onProgress?: (msg: string, isError?: boolean) => void): Promise<void> {
+  const log = (msg: string, isError = false) => { if (onProgress) onProgress(msg, isError) }
   const st = await db.estados_sync.get('global' as UUID)
   let since = st?.last_sync_at
   if (since) {
     const [fCount, uCount] = await Promise.all([db.fiscalizacoes.count(), db.unidades.count()])
     if ((fCount || 0) === 0 && (uCount || 0) === 0) since = undefined
   }
+  log('Baixando dados base...')
   // baixa diffs das entidades solicitadas em paralelo
   await Promise.all([
     pullEntity('fiscalizacoes', since),
@@ -765,6 +772,7 @@ export async function syncDown(): Promise<void> {
     pullEntity('constatacoes_manuais', since)
   ])
   // itens_checklist e recomendacoes: tabelas adicionais
+  log('Baixando municípios...')
   await withBackoff(() => withTimeout(async () => {
     const data = await safeSelectSince('municipios', 'id, nome, updated_at', since)
     if (Array.isArray(data)) {
@@ -782,6 +790,7 @@ export async function syncDown(): Promise<void> {
       }
     }
   }
+  log('Baixando tipos de unidade...')
   await withBackoff(() => withTimeout(async () => {
     const data = await safeSelectSince('tipos_unidade', 'id, nome, codigo, servicos_aplicaveis, ativo, created_at', undefined, 'or')
     if (Array.isArray(data)) {
@@ -790,6 +799,7 @@ export async function syncDown(): Promise<void> {
       }
     }
   }, 15000))
+  log('Baixando prestadores...')
   await withBackoff(() => withTimeout(async () => {
     const data = await safeSelectSince('prestadores_servico', 'id, nome, created_at, updated_at', since)
     if (Array.isArray(data)) {
@@ -798,6 +808,7 @@ export async function syncDown(): Promise<void> {
       }
     }
   }, 15000))
+  log('Baixando checklist...')
   await withBackoff(() => withTimeout(async () => {
     const data = await safeSelectSince(
       'itens_checklist',
@@ -811,6 +822,7 @@ export async function syncDown(): Promise<void> {
       }
     }
   }, 15000))
+  log('Baixando recomendações...')
   await withBackoff(() => withTimeout(async () => {
     try {
       const data = await safeSelectSince(
@@ -972,14 +984,18 @@ export async function syncFotosWithProgress(onProgress?: (uploaded: number, tota
           .eq('id', serverId as any)
         if (error) throw error
       }
-      await withBackoff(() => withTimeout(doUpdate, 15000))
-      const deletables = await db.fotos_local
-        .where('unidadeLocalId')
-        .equals(unidadeId as any)
-        .and((x) => !!x.syncedAt && !!x.storagePath)
-        .toArray()
-      if (deletables.length > 0) {
-        await db.fotos_local.bulkDelete(deletables.map((d) => d.localId as any))
+      try {
+        await withBackoff(() => withTimeout(doUpdate, 15000))
+        const deletables = await db.fotos_local
+          .where('unidadeLocalId')
+          .equals(unidadeId as any)
+          .and((x) => !!x.syncedAt && !!x.storagePath)
+          .toArray()
+        if (deletables.length > 0) {
+          await db.fotos_local.bulkDelete(deletables.map((d) => d.localId as any))
+        }
+      } catch (err) {
+        console.error(`Erro ao atualizar fotos da unidade ${unidadeId}:`, err)
       }
     }
   }
@@ -1021,19 +1037,28 @@ async function authRefresh(): Promise<void> {
   }
 }
 
-export async function runFullSync(): Promise<{ outbox: number; lastSyncAt?: string }> {
+export async function runFullSync(onProgress?: (msg: string, isError?: boolean) => void): Promise<{ outbox: number; lastSyncAt?: string }> {
+  const log = (msg: string, isError = false) => { if (onProgress) onProgress(msg, isError) }
+  
+  log('Verificando conexão com o servidor...')
   const ok = await withTimeout(() => reachability(), 5000)
   if (!ok) {
+    log('Servidor indisponível. Verifique a conexão.', true)
     throw new Error('Servidor indisponível. Verifique a URL do Supabase ou sua conexão.')
   }
   try {
+    log('Atualizando sessão...')
     await withTimeout(() => authRefresh(), 6000)
   } catch (err: any) {
     if (String(err?.message || '').includes('Timeout')) {
+      log('Timeout na autenticação.', true)
       throw new Error('Timeout na etapa de autenticação')
     }
+    log('Erro na autenticação.', true)
     throw err
   }
+  
+  log('Reprocessando erros anteriores...')
   await retryOutboxErrors()
   try {
     const st = await db.estados_sync.get('global' as UUID)
@@ -1041,6 +1066,7 @@ export async function runFullSync(): Promise<{ outbox: number; lastSyncAt?: stri
     const shouldPrune = !lastPruneAt || (Number.isFinite(Date.parse(lastPruneAt)) && Date.now() - Date.parse(lastPruneAt) > 24 * 60 * 60 * 1000)
     if (shouldPrune) {
       try {
+        log('Limpando dados antigos...')
         await withTimeout(() => pruneLocalByServerIds(), 30000)
         await db.estados_sync.put({
           ...(st as any),
@@ -1052,9 +1078,17 @@ export async function runFullSync(): Promise<{ outbox: number; lastSyncAt?: stri
       } catch {}
     }
   } catch {}
+  
+  log('Enfileirando dados pendentes...')
   await ensureBaseEntitiesEnqueued()
-  await syncUp()
-  await syncDown()
+  
+  log('Enviando dados (Sync Up)...')
+  await syncUp(onProgress)
+  
+  log('Baixando dados (Sync Down)...')
+  await syncDown(onProgress)
+  
+  log('Sincronização finalizada.')
   const pending = await getOutboxCount()
   const { lastSyncAt } = await getLastSync()
   return { outbox: pending, lastSyncAt }

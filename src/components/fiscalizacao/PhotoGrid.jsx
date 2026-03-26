@@ -33,15 +33,16 @@ export default function PhotoGrid({
 
     const resolveFotoSrc = (foto) => {
         if (!foto) return '';
+        const baseUrl = (import.meta.env.VITE_SUPABASE_URL || '');
         if (foto.bucket && foto.path) {
             const k = `${foto.bucket}:${foto.path}`;
-            return signedByKey[k] || '';
+            return signedByKey[k] || `${baseUrl}/storage/v1/object/public/${foto.bucket}/${foto.path}`;
         }
         const url = foto.url || '';
         const parsed = Repository.parseStorageUrl(url);
         if (parsed) {
             const k = `${parsed.bucket}:${parsed.path}`;
-            return signedByKey[k] || '';
+            return signedByKey[k] || `${baseUrl}/storage/v1/object/public/${parsed.bucket}/${parsed.path}`;
         }
         return url;
     };
