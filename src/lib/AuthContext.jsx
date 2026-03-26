@@ -11,7 +11,9 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const AUTH_CACHE_KEY = 'agms_auth_cache_v1';
+    const LOGOUT_INTENT_KEY = 'agms_logout_intent_v1';
     const AUTH_CACHE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+    const LOGOUT_INTENT_MAX_AGE_MS = 10 * 1000;
 
     const readAuthCache = () => {
       try {
@@ -48,6 +50,18 @@ export const AuthProvider = ({ children }) => {
       }
     };
 
+    const consumeLogoutIntent = () => {
+      try {
+        const raw = localStorage.getItem(LOGOUT_INTENT_KEY);
+        localStorage.removeItem(LOGOUT_INTENT_KEY);
+        const ts = raw ? Number(raw) : 0;
+        if (!Number.isFinite(ts) || ts <= 0) return false;
+        return Date.now() - ts <= LOGOUT_INTENT_MAX_AGE_MS;
+      } catch {
+        return false;
+      }
+    };
+
     const tryRestoreSession = async () => {
       const cache = readAuthCache();
       if (!cache) return null;
@@ -71,11 +85,15 @@ export const AuthProvider = ({ children }) => {
       if (!session?.user) return;
 
       try {
-        const { data: profileRow, error } = await supabase
-          .from('profiles')
-          .select('ativo, role')
-          .eq('id', session.user.id)
-          .maybeSingle();
+        const profileRes = await Promise.race([
+          supabase
+            .from('profiles')
+            .select('ativo, role')
+            .eq('id', session.user.id)
+            .maybeSingle(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 4000)),
+        ]);
+        const { data: profileRow, error } = profileRes || {};
         let profile = profileRow;
         if (error) {
           profile = null;
@@ -148,6 +166,24 @@ export const AuthProvider = ({ children }) => {
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (cancelled) return;
       if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+        const isUserDeleted = event === 'USER_DELETED';
+        const manual = !isUserDeleted && consumeLogoutIntent();
+        if (manual || isUserDeleted) {
+          clearAuthCache();
+          setUser(null);
+          setSession(null);
+          setIsAuthenticated(false);
+          setIsLoading(false);
+          return;
+        }
+        const cache = readAuthCache();
+        if (cache?.user) {
+          setUser(cache.user);
+          setSession(cache.session || null);
+          setIsAuthenticated(true);
+          setIsLoading(false);
+          return;
+        }
         clearAuthCache();
         setUser(null);
         setSession(null);
@@ -219,6 +255,10 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
+    try {
+      localStorage.setItem('agms_logout_intent_v1', String(Date.now()));
+    } catch {
+    }
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
     try {

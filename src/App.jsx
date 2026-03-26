@@ -32,23 +32,37 @@ const ProtectedRoute = ({ children }) => {
 
   useEffect(() => {
     let cancelled = false;
+    let fallbackTimer = null;
     const run = async () => {
       if (isLoading || isAuthenticated) {
         setOfflineBypass({ checked: true, allow: false });
         return;
       }
+      fallbackTimer = setTimeout(() => {
+        if (cancelled) return;
+        setOfflineBypass({ checked: true, allow: false });
+      }, 1500);
       try {
         const count = await db.fiscalizacoes.where('status').equals('em_andamento').count();
         if (cancelled) return;
+        if (fallbackTimer) {
+          clearTimeout(fallbackTimer);
+          fallbackTimer = null;
+        }
         setOfflineBypass({ checked: true, allow: count > 0 });
       } catch {
         if (cancelled) return;
+        if (fallbackTimer) {
+          clearTimeout(fallbackTimer);
+          fallbackTimer = null;
+        }
         setOfflineBypass({ checked: true, allow: false });
       }
     };
     void run();
     return () => {
       cancelled = true;
+      if (fallbackTimer) clearTimeout(fallbackTimer);
     };
   }, [isLoading, isAuthenticated]);
 
