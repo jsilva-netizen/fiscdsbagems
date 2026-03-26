@@ -221,6 +221,16 @@ export default function Home() {
                         <p>AGEMS - Agência Estadual de Regulação de Serviços Públicos</p>
                         <p className="text-xs text-blue-400 mt-1">Mato Grosso do Sul</p>
                     </div>
+                    
+                    {/* Mensagem de Progresso (Movida para cima da barra) */}
+                    {syncing && syncProgress && (
+                        <div className="mt-4 text-center">
+                            <span className="text-sm font-medium text-blue-200 bg-blue-900/50 px-3 py-1 rounded-full">
+                                {syncProgress}
+                            </span>
+                        </div>
+                    )}
+
                     <div className="mt-4 flex items-center gap-2 rounded-lg border border-blue-800 bg-blue-900 text-white px-3 py-2 shadow">
                         <Badge variant="outline" className="border-white text-white flex items-center gap-1">
                             {online ? <Wifi className="h-4 w-4 text-green-400" /> : <WifiOff className="h-4 w-4 text-red-400" />}
@@ -230,12 +240,7 @@ export default function Home() {
                             <History className="h-4 w-4 text-blue-200" />
                             Última sync: {lastSyncAt ? format(new Date(lastSyncAt), 'dd/MM HH:mm', { locale: ptBR }) : '—'}
                         </Badge>
-                        <div className="ml-auto flex items-center gap-2 overflow-hidden">
-                            {syncing && syncProgress && (
-                                <span className="text-xs text-blue-200 truncate max-w-[120px] sm:max-w-none">
-                                    {syncProgress}
-                                </span>
-                            )}
+                        <div className="ml-auto flex items-center gap-2">
                             <Button
                                 size="sm"
                                 variant="outline"
@@ -360,6 +365,51 @@ export default function Home() {
                                 }}
                             >
                                 <Image className="h-4 w-4" />
+                            </Button>
+
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-blue-200 hover:text-white hover:bg-white/10 ml-2"
+                                title="Recuperar Dados Presos"
+                                onClick={async () => {
+                                    try {
+                                        toast({ title: 'Recuperando dados...', description: 'Enviando itens pendentes que podem estar travados.' });
+                                        const { db } = await import('@/lib/offline/db');
+                                        
+                                        // Marca todos os itens da fila de mutações como 'pending' para forçar reenvio
+                                        const errorItems = await db.fila_mutacoes.where('status').equals('error').toArray();
+                                        if (errorItems.length > 0) {
+                                            for (const item of errorItems) {
+                                                await db.fila_mutacoes.update(item.id, { status: 'pending', nextRetryAt: undefined, attempts: 0 });
+                                            }
+                                        }
+
+                                        // Chama o sync completo
+                                        setSyncing(true);
+                                        setSyncProgress('Iniciando...');
+                                        const res = await runFullSync((msg, isError) => {
+                                            setSyncProgress(msg);
+                                        });
+                                        
+                                        await queryClient.invalidateQueries();
+                                        await queryClient.refetchQueries();
+                                        setSyncProgress('');
+                                        
+                                        toast({
+                                            title: 'Recuperação concluída',
+                                            description: `Dados enviados. Atualizado em ${res.lastSyncAt ? format(new Date(res.lastSyncAt), 'dd/MM HH:mm', { locale: ptBR }) : 'agora'}`
+                                        });
+                                    } catch (err) {
+                                        setSyncProgress('Erro na recuperação');
+                                        toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+                                    } finally {
+                                        setSyncing(false);
+                                        refetchSyncStatus?.();
+                                    }
+                                }}
+                            >
+                                <History className="h-4 w-4" />
                             </Button>
 
                             <Button

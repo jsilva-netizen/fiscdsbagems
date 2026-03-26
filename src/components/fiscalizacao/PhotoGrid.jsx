@@ -285,9 +285,9 @@ export default function PhotoGrid({
             {/* Grid de fotos */}
             {fotos.length > 0 && (
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {fotos.filter(f => !!(f?.url || (f?.bucket && f?.path))).map((foto, index) => (
+                    {fotos.filter(f => !!(f?.url || (f?.bucket && f?.path) || f?.localId)).map((foto, index) => (
                         <div 
-                            key={`foto-${index}-${(foto?.bucket && foto?.path) ? `${foto.bucket}:${foto.path}` : (foto?.url || '').split('/').pop()}`}
+                            key={`foto-${index}-${(foto?.bucket && foto?.path) ? `${foto.bucket}:${foto.path}` : (foto?.url || foto?.localId || '').split('/').pop()}`}
                             className="relative group rounded-lg overflow-hidden border"
                         >
                             <OptimizedImage 
