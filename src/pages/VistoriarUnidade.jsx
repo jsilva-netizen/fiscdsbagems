@@ -44,6 +44,8 @@ export default function VistoriarUnidade() {
     const [filaRespostas, setFilaRespostas] = useState([]);
     const [showEditarCodigoUnidade, setShowEditarCodigoUnidade] = useState(false);
     const [novoCodigoUnidade, setNovoCodigoUnidade] = useState('');
+    const [showEditarEnderecoUnidade, setShowEditarEnderecoUnidade] = useState(false);
+    const [novoEnderecoUnidade, setNovoEnderecoUnidade] = useState('');
 
     // Queries
     const { data: unidade, isLoading: loadingUnidade } = useQuery({
@@ -488,6 +490,21 @@ export default function VistoriarUnidade() {
         }
     });
 
+    const atualizarEnderecoUnidadeMutation = useMutation({
+        mutationFn: async () => {
+            const trimmed = String(novoEnderecoUnidade || '').trim();
+            await Repository.updateUnidadeEndereco(unidadeId, trimmed);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['unidade', unidadeId] });
+            queryClient.invalidateQueries({ queryKey: ['unidades-fiscalizacao'] });
+            setShowEditarEnderecoUnidade(false);
+        },
+        onError: (err) => {
+            alert(err.message);
+        }
+    });
+
     const salvarAlteracoesMutation = useMutation({
         mutationFn: async () => {
             console.log('🔵 Iniciando salvamento de alterações da unidade:', unidadeId);
@@ -563,6 +580,7 @@ export default function VistoriarUnidade() {
     const totalItens = Array.isArray(itensChecklist) ? itensChecklist.length : 0;
     const progresso = totalItens > 0 ? Math.round((totalRespondidas / totalItens) * 100) : 0;
     const podeEditarCodigoUnidade = unidade?.status !== 'finalizada' || modoEdicao;
+    const podeEditarEnderecoUnidade = unidade?.status !== 'finalizada' || modoEdicao;
 
     return (
         <div className="min-h-screen bg-gray-100 pb-24">
@@ -592,6 +610,24 @@ export default function VistoriarUnidade() {
                                         onClick={() => {
                                             setNovoCodigoUnidade(unidade?.codigo_unidade || '');
                                             setShowEditarCodigoUnidade(true);
+                                        }}
+                                    >
+                                        <Pencil className="h-3 w-3 mr-1" />
+                                        Editar
+                                    </Button>
+                                )}
+                            </div>
+                            <div className="flex items-center gap-2 text-blue-200 text-xs mt-1">
+                                <span>Endereço:</span>
+                                <span className="text-white truncate">{unidade?.endereco || '-'}</span>
+                                {podeEditarEnderecoUnidade && (
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-6 px-2 text-blue-200 hover:text-white hover:bg-white/10"
+                                        onClick={() => {
+                                            setNovoEnderecoUnidade(unidade?.endereco || '');
+                                            setShowEditarEnderecoUnidade(true);
                                         }}
                                     >
                                         <Pencil className="h-3 w-3 mr-1" />
@@ -924,6 +960,47 @@ export default function VistoriarUnidade() {
                                 disabled={atualizarCodigoUnidadeMutation.isPending}
                             >
                                 {atualizarCodigoUnidadeMutation.isPending ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    'Salvar'
+                                )}
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={showEditarEnderecoUnidade} onOpenChange={setShowEditarEnderecoUnidade}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Editar endereço da unidade</DialogTitle>
+                        <DialogDescription>
+                            Altera apenas o endereço desta unidade.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>Novo endereço</Label>
+                            <Input
+                                value={novoEnderecoUnidade}
+                                onChange={(e) => setNovoEnderecoUnidade(e.target.value)}
+                                placeholder="Rua, número, bairro..."
+                                disabled={atualizarEnderecoUnidadeMutation.isPending}
+                            />
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <Button
+                                variant="outline"
+                                onClick={() => setShowEditarEnderecoUnidade(false)}
+                                disabled={atualizarEnderecoUnidadeMutation.isPending}
+                            >
+                                Cancelar
+                            </Button>
+                            <Button
+                                onClick={() => atualizarEnderecoUnidadeMutation.mutate()}
+                                disabled={atualizarEnderecoUnidadeMutation.isPending}
+                            >
+                                {atualizarEnderecoUnidadeMutation.isPending ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />
                                 ) : (
                                     'Salvar'

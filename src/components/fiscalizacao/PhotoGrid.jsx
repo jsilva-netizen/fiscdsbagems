@@ -30,6 +30,9 @@ export default function PhotoGrid({
     const lastGpsFixRef = useRef(null);
     const MAX_GPS_ACCURACY_M = 50;
     const [signedByKey, setSignedByKey] = useState({});
+    const lastGpsFixAtRef = useRef(0);
+    const GPS_FIX_MAX_AGE_MS = 2 * 60 * 1000;
+    const GPS_FALLBACK_MAX_AGE_MS = 10 * 60 * 1000;
 
     const resolveFotoSrc = (foto) => {
         if (!foto) return '';
@@ -98,7 +101,7 @@ export default function PhotoGrid({
             navigator.geolocation.getCurrentPosition(
                 resolve,
                 reject,
-                { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+                { enableHighAccuracy: true, timeout: 25000, maximumAge: 10000 }
             );
         });
         const coords = position?.coords;
@@ -114,10 +117,45 @@ export default function PhotoGrid({
         return { latitude, longitude, accuracy, takenAt: new Date().toISOString() };
     };
 
-    const openWithGpsGate = async (ref) => {
+    const getCachedGpsFix = () => {
+        const fix = lastGpsFixRef.current;
+        if (!fix) return null;
+        const age = Date.now() - (lastGpsFixAtRef.current || 0);
+        if (age > GPS_FIX_MAX_AGE_MS) return null;
+        if (typeof fix.accuracy === 'number' && Number.isFinite(fix.accuracy) && fix.accuracy > MAX_GPS_ACCURACY_M) return null;
+        if (typeof fix.latitude !== 'number' || !Number.isFinite(fix.latitude)) return null;
+        if (typeof fix.longitude !== 'number' || !Number.isFinite(fix.longitude)) return null;
+        return fix;
+    };
+
+    const getGpsFixWithFallback = async () => {
+        const cached = getCachedGpsFix();
+        if (cached) return cached;
         try {
             const fix = await getValidatedGpsFix();
             lastGpsFixRef.current = fix;
+            lastGpsFixAtRef.current = Date.now();
+            return fix;
+        } catch (err) {
+            const fallback = lastGpsFixRef.current;
+            const fallbackAge = Date.now() - (lastGpsFixAtRef.current || 0);
+            const okFallback =
+                fallback &&
+                typeof fallback.latitude === 'number' &&
+                Number.isFinite(fallback.latitude) &&
+                typeof fallback.longitude === 'number' &&
+                Number.isFinite(fallback.longitude) &&
+                fallbackAge <= GPS_FALLBACK_MAX_AGE_MS;
+            if (okFallback) return fallback;
+            throw err;
+        }
+    };
+
+    const openWithGpsGate = async (ref) => {
+        try {
+            const fix = await getGpsFixWithFallback();
+            lastGpsFixRef.current = fix;
+            lastGpsFixAtRef.current = Date.now();
             ref?.current?.click();
         } catch (err) {
             alert(err?.message || String(err));
@@ -132,8 +170,9 @@ export default function PhotoGrid({
         let gpsFix = lastGpsFixRef.current;
         if (!isGallery) {
             try {
-                gpsFix = gpsFix || await getValidatedGpsFix();
+                gpsFix = gpsFix || await getGpsFixWithFallback();
                 lastGpsFixRef.current = gpsFix;
+                lastGpsFixAtRef.current = Date.now();
             } catch (err) {
                 alert(err?.message || String(err));
                 e.target.value = '';
