@@ -10,14 +10,65 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const checkUserStatus = async (session) => {
-      if (!session?.user) {
-        setUser(null);
-        setSession(null);
-        setIsAuthenticated(false);
-        setIsLoading(false);
-        return;
+    const AUTH_CACHE_KEY = 'agms_auth_cache_v1';
+    const AUTH_CACHE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+
+    const readAuthCache = () => {
+      try {
+        const raw = localStorage.getItem(AUTH_CACHE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        const cachedAt = typeof parsed?.cachedAt === 'number' ? parsed.cachedAt : 0;
+        if (cachedAt && Date.now() - cachedAt > AUTH_CACHE_MAX_AGE_MS) return null;
+        if (!parsed?.user && !parsed?.session?.user) return null;
+        return parsed;
+      } catch {
+        return null;
       }
+    };
+
+    const writeAuthCache = (session, mergedUser) => {
+      try {
+        localStorage.setItem(
+          AUTH_CACHE_KEY,
+          JSON.stringify({
+            cachedAt: Date.now(),
+            session,
+            user: mergedUser
+          })
+        );
+      } catch {
+      }
+    };
+
+    const clearAuthCache = () => {
+      try {
+        localStorage.removeItem(AUTH_CACHE_KEY);
+      } catch {
+      }
+    };
+
+    const tryRestoreSession = async () => {
+      const cache = readAuthCache();
+      if (!cache) return null;
+      const s = cache?.session;
+      const access_token = s?.access_token;
+      const refresh_token = s?.refresh_token;
+      if (access_token && refresh_token) {
+        try {
+          const { data, error } = await supabase.auth.setSession({ access_token, refresh_token });
+          if (!error && data?.session?.user) return data.session;
+        } catch {
+        }
+      }
+      if (cache?.user) {
+        return cache.session || { user: cache.user };
+      }
+      return null;
+    };
+
+    const checkUserStatus = async (session) => {
+      if (!session?.user) return;
 
       try {
         const { data: profileRow, error } = await supabase
@@ -31,36 +82,101 @@ export const AuthProvider = ({ children }) => {
         }
         if (profile && profile.ativo === false) {
           await supabase.auth.signOut();
+          clearAuthCache();
           setUser(null);
           setSession(null);
           setIsAuthenticated(false);
         } else {
+          const mergedUser = { ...session.user, ...(profile || {}) };
           setSession(session);
-          setUser({ ...session.user, ...(profile || {}) });
+          setUser(mergedUser);
           setIsAuthenticated(true);
+          writeAuthCache(session, mergedUser);
         }
       } catch {
         setSession(session);
         setUser(session.user);
         setIsAuthenticated(true);
+        writeAuthCache(session, session.user);
       } finally {
         setIsLoading(false);
       }
     };
 
-    // Check active session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      checkUserStatus(session);
-    });
+    let cancelled = false;
+
+    const bootstrap = async () => {
+      setIsLoading(true);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (cancelled) return;
+        if (session?.user) {
+          await checkUserStatus(session);
+          return;
+        }
+        const restored = await tryRestoreSession();
+        if (cancelled) return;
+        if (restored?.user) {
+          await checkUserStatus(restored);
+          return;
+        }
+        setUser(null);
+        setSession(null);
+        setIsAuthenticated(false);
+        setIsLoading(false);
+      } catch {
+        const cache = readAuthCache();
+        if (cancelled) return;
+        if (cache?.user) {
+          setUser(cache.user);
+          setSession(cache.session || null);
+          setIsAuthenticated(true);
+        } else {
+          setUser(null);
+          setSession(null);
+          setIsAuthenticated(false);
+        }
+        setIsLoading(false);
+      }
+    };
+
+    void bootstrap();
 
     // Listen for changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      checkUserStatus(session);
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (cancelled) return;
+      if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+        clearAuthCache();
+        setUser(null);
+        setSession(null);
+        setIsAuthenticated(false);
+        setIsLoading(false);
+        return;
+      }
+      if (session?.user) {
+        await checkUserStatus(session);
+        return;
+      }
+      const cache = readAuthCache();
+      if (cache?.user) {
+        setUser(cache.user);
+        setSession(cache.session || null);
+        setIsAuthenticated(true);
+        setIsLoading(false);
+        return;
+      }
+      setUser(null);
+      setSession(null);
+      setIsAuthenticated(false);
+      setIsLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (email, password) => {
@@ -105,6 +221,10 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
+    try {
+      localStorage.removeItem('agms_auth_cache_v1');
+    } catch {
+    }
   };
 
   return (

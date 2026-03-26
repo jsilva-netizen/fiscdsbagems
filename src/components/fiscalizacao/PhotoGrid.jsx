@@ -21,6 +21,7 @@ export default function PhotoGrid({
 }) {
     const [selectedFoto, setSelectedFoto] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
+    const [isCapturing, setIsCapturing] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
     const [totalUploads, setTotalUploads] = useState(0);
     const [editingLegenda, setEditingLegenda] = useState({});
@@ -33,6 +34,7 @@ export default function PhotoGrid({
     const lastGpsFixAtRef = useRef(0);
     const GPS_FIX_MAX_AGE_MS = 2 * 60 * 1000;
     const GPS_FALLBACK_MAX_AGE_MS = 10 * 60 * 1000;
+    const captureResetTimerRef = useRef(null);
 
     const resolveFotoSrc = (foto) => {
         if (!foto) return '';
@@ -152,12 +154,17 @@ export default function PhotoGrid({
     };
 
     const openWithGpsGate = async (ref) => {
+        if (isCapturing || isUploading) return;
         try {
+            setIsCapturing(true);
+            if (captureResetTimerRef.current) clearTimeout(captureResetTimerRef.current);
+            captureResetTimerRef.current = setTimeout(() => setIsCapturing(false), 30000);
             const fix = await getGpsFixWithFallback();
             lastGpsFixRef.current = fix;
             lastGpsFixAtRef.current = Date.now();
             ref?.current?.click();
         } catch (err) {
+            setIsCapturing(false);
             alert(err?.message || String(err));
         }
     };
@@ -165,6 +172,11 @@ export default function PhotoGrid({
     const handleFileSelect = async (e) => {
         const files = e.target.files;
         if (!files || files.length === 0) return;
+        setIsCapturing(false);
+        if (captureResetTimerRef.current) {
+            clearTimeout(captureResetTimerRef.current);
+            captureResetTimerRef.current = null;
+        }
 
         const isGallery = e.target === fileInputRef.current;
         let gpsFix = lastGpsFixRef.current;
@@ -254,6 +266,7 @@ export default function PhotoGrid({
             alert('Erro ao processar imagens: ' + err.message);
         } finally {
             setIsUploading(false);
+            setIsCapturing(false);
             setUploadProgress(0);
             setTotalUploads(0);
             e.target.value = '';
@@ -287,7 +300,7 @@ export default function PhotoGrid({
                         onClick={() => fileInputRef.current?.click()} 
                         size="sm"
                         variant="outline"
-                        disabled={isUploading || !isEditable}
+                        disabled={isUploading || isCapturing || !isEditable}
                     >
                         {isUploading ? (
                             <>
@@ -304,12 +317,17 @@ export default function PhotoGrid({
                     <Button 
                         onClick={() => void openWithGpsGate(cameraInputRef)} 
                         size="sm"
-                        disabled={isUploading || !isEditable}
+                        disabled={isUploading || isCapturing || !isEditable}
                     >
                         {isUploading ? (
                             <>
                                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                                 Enviando...
+                            </>
+                        ) : isCapturing ? (
+                            <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Abrindo câmera...
                             </>
                         ) : (
                             <>

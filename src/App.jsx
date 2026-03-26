@@ -11,6 +11,7 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import ExportarImportar from '@/pages/ExportarImportar';
+import { db } from '@/lib/offline/db';
  
 
 const { Pages, Layout, mainPage } = pagesConfig;
@@ -27,6 +28,29 @@ const RoleAwareLayout = ({ children, currentPageName }) => {
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
   const location = useLocation();
+  const [offlineBypass, setOfflineBypass] = useState({ checked: false, allow: false });
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      if (isLoading || isAuthenticated) {
+        setOfflineBypass({ checked: true, allow: false });
+        return;
+      }
+      try {
+        const count = await db.fiscalizacoes.where('status').equals('em_andamento').count();
+        if (cancelled) return;
+        setOfflineBypass({ checked: true, allow: count > 0 });
+      } catch {
+        if (cancelled) return;
+        setOfflineBypass({ checked: true, allow: false });
+      }
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoading, isAuthenticated]);
 
   if (isLoading) {
     return (
@@ -38,6 +62,17 @@ const ProtectedRoute = ({ children }) => {
   }
 
   if (!isAuthenticated) {
+    if (!offlineBypass.checked) {
+      return (
+        <div className="fixed inset-0 flex flex-col items-center justify-center bg-white">
+          <img src="/logo.svg" alt="AGEMS" className="w-24 h-24 mb-4" />
+          <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-800 rounded-full animate-spin"></div>
+        </div>
+      );
+    }
+    if (offlineBypass.allow) {
+      return children;
+    }
     return <Navigate to="/login" replace />;
   }
 
