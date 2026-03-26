@@ -11,12 +11,9 @@ import { useToast } from '@/components/ui/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { 
-    Plus, History, Building2, ClipboardCheck, Users, BarChart3, FileText, AlertTriangle, LogOut, Wifi, WifiOff
+import {
+  Plus, History, Building2, ClipboardCheck, Users, BarChart3, FileText, AlertTriangle, LogOut, Wifi, WifiOff, Image
 } from 'lucide-react';
-
-const __keepImportsHome = (Link && Card && CardContent && Button && Badge && Plus && History && Building2 && ClipboardCheck && Users && BarChart3 && FileText && AlertTriangle && LogOut) ? null : null;
-
 
 export default function Home() {
     const { user, logout } = useAuth();
@@ -288,6 +285,87 @@ export default function Home() {
                                 size="sm"
                                 variant="ghost"
                                 className="text-blue-200 hover:text-white hover:bg-white/10 ml-2"
+                                title="Recuperar fotos órfãs"
+                                onClick={async () => {
+                                    try {
+                                        toast({ title: 'Buscando fotos órfãs...', description: 'Isso pode levar alguns minutos. Aguarde.' });
+                                        const { db } = await import('@/lib/offline/db');
+                                        const { supabase } = await import('@/lib/supabase');
+                                        
+                                        const unidades = await db.unidades.toArray();
+                                        let recuperadas = 0;
+                                        
+                                        for (const u of unidades) {
+                                            const localId = u.id;
+                                            const fiscId = u.fiscalizacao_id;
+                                            
+                                            // Resolve server ID
+                                            const map = await db.id_map.where('local_id').equals(localId).first();
+                                            const serverId = map?.server_id || localId;
+                                            
+                                            // Paths possiveis onde as fotos podem ter sido salvas
+                                            const possiblePaths = [
+                                                `fiscalizacoes/${fiscId}/${localId}`,
+                                                `fiscalizacoes/unknown/${localId}`
+                                            ];
+                                            
+                                            const allPhotos = [];
+                                            for (const folder of possiblePaths) {
+                                                const { data: files } = await supabase.storage.from('fotos_fiscalizacao').list(folder);
+                                                if (files && files.length > 0) {
+                                                    for (const f of files) {
+                                                        if (f.name && f.name !== '.emptyFolderPlaceholder') {
+                                                            allPhotos.push({
+                                                                bucket: 'fotos_fiscalizacao',
+                                                                path: `${folder}/${f.name}`
+                                                            });
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            
+                                            if (allPhotos.length > 0) {
+                                                // Verifica o que já tem na unidade no servidor
+                                                const { data: serverUnit } = await supabase.from('unidades_fiscalizadas').select('fotos_unidade').eq('id', serverId).maybeSingle();
+                                                if (serverUnit) {
+                                                    const existing = Array.isArray(serverUnit.fotos_unidade) ? serverUnit.fotos_unidade : [];
+                                                    const merged = [...existing];
+                                                    
+                                                    // Evita duplicatas
+                                                    for (const p of allPhotos) {
+                                                        if (!merged.find(x => x.path === p.path)) {
+                                                            merged.push(p);
+                                                        }
+                                                    }
+                                                    
+                                                    if (merged.length > existing.length) {
+                                                        await supabase.from('unidades_fiscalizadas').update({
+                                                            fotos_unidade: merged,
+                                                            updated_at: new Date().toISOString()
+                                                        }).eq('id', serverId);
+                                                        recuperadas += (merged.length - existing.length);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        
+                                        if (recuperadas > 0) {
+                                            toast({ title: 'Sucesso!', description: `Recuperadas e vinculadas ${recuperadas} fotos.` });
+                                        } else {
+                                            toast({ title: 'Aviso', description: 'Nenhuma foto órfã encontrada para as unidades locais.' });
+                                        }
+                                    } catch (err) {
+                                        toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+                                    }
+                                }}
+                            >
+                                <Image className="h-4 w-4" />
+                            </Button>
+
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-blue-200 hover:text-white hover:bg-white/10 ml-2"
                                 title="Baixar backup local de emergência"
                                 onClick={async () => {
                                     try {
@@ -351,6 +429,87 @@ export default function Home() {
                                 }}
                             >
                                 <AlertTriangle className="h-4 w-4" />
+                            </Button>
+
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-blue-200 hover:text-white hover:bg-white/10 ml-2"
+                                title="Recuperar Fotos Órfãs"
+                                onClick={async () => {
+                                    try {
+                                        toast({ title: 'Buscando fotos órfãs...', description: 'Isso pode levar alguns minutos. Aguarde.' });
+                                        const { db } = await import('@/lib/offline/db');
+                                        const { supabase } = await import('@/lib/supabase');
+                                        
+                                        const unidades = await db.unidades.toArray();
+                                        let recuperadas = 0;
+                                        
+                                        for (const u of unidades) {
+                                            const localId = u.id;
+                                            const fiscId = u.fiscalizacao_id;
+                                            
+                                            // Resolve server ID
+                                            const map = await db.id_map.where('local_id').equals(localId).first();
+                                            const serverId = map?.server_id || localId;
+                                            
+                                            // Paths possiveis onde as fotos podem ter sido salvas
+                                            const possiblePaths = [
+                                                `fiscalizacoes/${fiscId}/${localId}`,
+                                                `fiscalizacoes/unknown/${localId}`
+                                            ];
+                                            
+                                            const allPhotos = [];
+                                            for (const folder of possiblePaths) {
+                                                const { data: files } = await supabase.storage.from('fotos_fiscalizacao').list(folder);
+                                                if (files && files.length > 0) {
+                                                    for (const f of files) {
+                                                        if (f.name && f.name !== '.emptyFolderPlaceholder') {
+                                                            allPhotos.push({
+                                                                bucket: 'fotos_fiscalizacao',
+                                                                path: `${folder}/${f.name}`
+                                                            });
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            
+                                            if (allPhotos.length > 0) {
+                                                // Verifica o que já tem na unidade no servidor
+                                                const { data: serverUnit } = await supabase.from('unidades_fiscalizadas').select('fotos_unidade').eq('id', serverId).maybeSingle();
+                                                if (serverUnit) {
+                                                    const existing = Array.isArray(serverUnit.fotos_unidade) ? serverUnit.fotos_unidade : [];
+                                                    const merged = [...existing];
+                                                    
+                                                    // Evita duplicatas
+                                                    for (const p of allPhotos) {
+                                                        if (!merged.find(x => x.path === p.path)) {
+                                                            merged.push(p);
+                                                        }
+                                                    }
+                                                    
+                                                    if (merged.length > existing.length) {
+                                                        await supabase.from('unidades_fiscalizadas').update({
+                                                            fotos_unidade: merged,
+                                                            updated_at: new Date().toISOString()
+                                                        }).eq('id', serverId);
+                                                        recuperadas += (merged.length - existing.length);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        
+                                        if (recuperadas > 0) {
+                                            toast({ title: 'Sucesso!', description: `Recuperadas e vinculadas ${recuperadas} fotos.` });
+                                        } else {
+                                            toast({ title: 'Aviso', description: 'Nenhuma foto órfã nova encontrada para as unidades locais.' });
+                                        }
+                                    } catch (err) {
+                                        toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+                                    }
+                                }}
+                            >
+                                <History className="h-4 w-4" />
                             </Button>
                         </div>
                         

@@ -760,6 +760,11 @@ export async function syncDown(onProgress?: (msg: string, isError?: boolean) => 
   const st = await db.estados_sync.get('global' as UUID)
   let since = st?.last_sync_at
   if (since) {
+    // Subtrai 24 horas do last_sync_at para evitar perda de dados por clock skew (diferença de relógio entre dispositivos)
+    const d = new Date(since)
+    d.setHours(d.getHours() - 24)
+    since = d.toISOString()
+
     const [fCount, uCount] = await Promise.all([db.fiscalizacoes.count(), db.unidades.count()])
     if ((fCount || 0) === 0 && (uCount || 0) === 0) since = undefined
   }
@@ -953,10 +958,11 @@ export async function syncFotosWithProgress(onProgress?: (uploaded: number, tota
         const serverId = map?.server_id || unidadeId
         const { data: existingRow, error: existingErr } = await supabase
           .from('unidades_fiscalizadas')
-          .select('fotos_unidade')
+          .select('id, fotos_unidade')
           .eq('id', serverId as any)
           .maybeSingle()
         if (existingErr) throw existingErr
+        if (!existingRow) throw new Error('Unidade não encontrada no servidor ainda')
         const existing = Array.isArray((existingRow as any)?.fotos_unidade) ? ((existingRow as any).fotos_unidade as any[]) : []
         const byKey = new Map<string, any>()
         const keyOf = (x: any): string => {
@@ -983,6 +989,13 @@ export async function syncFotosWithProgress(onProgress?: (uploaded: number, tota
           .update({ fotos_unidade: merged, updated_at: new Date().toISOString() })
           .eq('id', serverId as any)
         if (error) throw error
+
+        // Atualiza a unidade localmente para que as fotos apareçam imediatamente,
+        // sem depender do syncDown (que poderia falhar ou pular)
+        const localUnit = await db.unidades.get(unidadeId as any)
+        if (localUnit) {
+          await db.unidades.update(unidadeId as any, { fotos_unidade: merged })
+        }
       }
       try {
         await withBackoff(() => withTimeout(doUpdate, 15000))
