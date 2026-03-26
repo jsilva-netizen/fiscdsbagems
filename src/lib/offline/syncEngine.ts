@@ -660,6 +660,13 @@ export async function syncUp(onProgress?: (msg: string, isError?: boolean) => vo
     if (items.length > 0) {
       await runBatch(items, entity)
     }
+    if (entity === 'fiscalizacoes') {
+      try {
+        await repairMappedFiscalizacoesOnServer()
+      } catch (err: any) {
+        log(`Falha ao reparar vínculos de unidades: ${errorInfo(err).message}`, true)
+      }
+    }
   }
   log('Sincronizando fotos...')
   await syncFotosWithProgress((uploaded, total) => {
@@ -731,20 +738,29 @@ async function pullEntity(entity: Entity, since?: string) {
   // aplica dedup por id_map
   for (const row of rows) {
     const server_id = row.id as UUID
-    const map = await db.id_map.where('server_id').equals(server_id).first()
+    const map = await db.id_map.where('server_id').equals(server_id).and((m) => m.entity === entity).first()
     const local_id = map?.local_id || server_id
+    const normalized: any = { ...row, id: local_id }
+    if (entity === 'unidades' && normalized?.fiscalizacao_id) {
+      const fkMap = await db.id_map.where('server_id').equals(normalized.fiscalizacao_id as any).and((m) => m.entity === 'fiscalizacoes').first()
+      if (fkMap?.local_id) normalized.fiscalizacao_id = fkMap.local_id
+    }
+    if ((entity === 'respostas' || entity === 'constatacoes_manuais' || entity === 'recomendacoes') && normalized?.unidade_fiscalizada_id) {
+      const fkMap = await db.id_map.where('server_id').equals(normalized.unidade_fiscalizada_id as any).and((m) => m.entity === 'unidades').first()
+      if (fkMap?.local_id) normalized.unidade_fiscalizada_id = fkMap.local_id
+    }
     switch (entity) {
       case 'fiscalizacoes':
-        await db.fiscalizacoes.put({ ...row, id: local_id })
+        await db.fiscalizacoes.put(normalized)
         break
       case 'unidades':
-        await db.unidades.put({ ...row, id: local_id })
+        await db.unidades.put(normalized)
         break
       case 'respostas':
-        await db.respostas.put({ ...row, id: local_id })
+        await db.respostas.put(normalized)
         break
       case 'constatacoes_manuais':
-        await db.constatacoes_manuais.put({ ...row, id: local_id })
+        await db.constatacoes_manuais.put(normalized)
         break
       case 'fotos':
         // servidor não tem tabela fotos; se vier via unidade, já coberto
@@ -752,6 +768,18 @@ async function pullEntity(entity: Entity, since?: string) {
       default:
         break
     }
+  }
+}
+
+async function repairMappedFiscalizacoesOnServer(): Promise<void> {
+  const maps = await db.id_map.where('entity').equals('fiscalizacoes').toArray()
+  const pairs = maps.filter((m) => m?.local_id && m?.server_id && m.local_id !== m.server_id)
+  for (const m of pairs) {
+    const { error } = await supabase
+      .from('unidades_fiscalizadas')
+      .update({ fiscalizacao_id: m.server_id as any, updated_at: now() })
+      .eq('fiscalizacao_id', m.local_id as any)
+    if (error) throw error
   }
 }
 
