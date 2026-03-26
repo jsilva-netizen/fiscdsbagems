@@ -291,22 +291,60 @@ export default function Home() {
                                 title="Baixar backup local de emergência"
                                 onClick={async () => {
                                     try {
+                                        toast({ title: 'Preparando backup', description: 'Coletando dados e fotos, isso pode levar alguns segundos...' });
                                         const { db } = await import('@/lib/offline/db');
-                                        const tabelas = ['fiscalizacoes', 'unidades', 'respostas', 'constatacoes_manuais', 'recomendacoes', 'fila_mutacoes', 'fotos'];
+                                        const JSZip = (await import('jszip')).default;
+                                        const zip = new JSZip();
+
+                                        const tabelas = ['fiscalizacoes', 'unidades', 'respostas', 'constatacoes_manuais', 'recomendacoes', 'fila_mutacoes', 'fotos_local'];
                                         const backup = {};
                                         for (const t of tabelas) {
                                             if (db[t]) {
                                                 backup[t] = await db[t].toArray();
                                             }
                                         }
-                                        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-                                        const url = URL.createObjectURL(blob);
+                                        
+                                        // Salva os dados em JSON
+                                        zip.file('dados.json', JSON.stringify(backup, null, 2));
+
+                                        // Organiza as fotos em pastas por unidade
+                                        const unidadesList = backup.unidades || [];
+                                        const fotosLocal = backup.fotos_local || [];
+                                        const fotosFolder = zip.folder('fotos');
+
+                                        for (const foto of fotosLocal) {
+                                            let folderName = foto.unidadeLocalId || 'desconhecida';
+                                            const unidade = unidadesList.find(u => u.id === foto.unidadeLocalId);
+                                            
+                                            if (unidade && unidade.nome_unidade) {
+                                                // Limpa o nome da unidade para ser um nome de pasta válido
+                                                const nomeLimpo = unidade.nome_unidade.replace(/[^a-zA-Z0-9 -]/g, '_');
+                                                folderName = `${nomeLimpo} - ${foto.unidadeLocalId.substring(0, 4)}`;
+                                            }
+                                            
+                                            const unidadeFolder = fotosFolder.folder(folderName);
+                                            
+                                            let content = foto.blob;
+                                            if (!content && foto.base64) {
+                                                const res = await fetch(foto.base64);
+                                                content = await res.blob();
+                                            }
+                                            
+                                            if (content) {
+                                                const fileName = `${foto.localId}.jpg`;
+                                                unidadeFolder.file(fileName, content);
+                                            }
+                                        }
+
+                                        const zipContent = await zip.generateAsync({ type: 'blob' });
+                                        const url = URL.createObjectURL(zipContent);
                                         const a = document.createElement('a');
                                         a.href = url;
-                                        a.download = `backup_emergencia_android_${new Date().getTime()}.json`;
+                                        a.download = `backup_emergencia_android_${new Date().getTime()}.zip`;
                                         a.click();
                                         URL.revokeObjectURL(url);
-                                        toast({ title: 'Backup concluído', description: 'Arquivo baixado com sucesso.' });
+                                        
+                                        toast({ title: 'Backup concluído', description: 'Arquivo ZIP baixado com sucesso.' });
                                     } catch (err) {
                                         toast({ title: 'Erro no backup', description: err.message, variant: 'destructive' });
                                     }
