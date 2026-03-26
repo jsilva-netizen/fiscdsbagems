@@ -84,6 +84,16 @@ export const AuthProvider = ({ children }) => {
     const checkUserStatus = async (session) => {
       if (!session?.user) return;
 
+      const cache = readAuthCache();
+      const cachedUser = cache?.user;
+      const sameUser = !!(cachedUser?.id && session?.user?.id && cachedUser.id === session.user.id);
+      const cachedMerge = sameUser
+        ? {
+            ...(cachedUser?.role ? { role: cachedUser.role } : {}),
+            ...(cachedUser?.ativo === false ? { ativo: false } : {}),
+          }
+        : {};
+
       try {
         const profileRes = await Promise.race([
           supabase
@@ -105,17 +115,18 @@ export const AuthProvider = ({ children }) => {
           setSession(null);
           setIsAuthenticated(false);
         } else {
-          const mergedUser = { ...session.user, ...(profile || {}) };
+          const mergedUser = { ...session.user, ...(cachedMerge || {}), ...(profile || {}) };
           setSession(session);
           setUser(mergedUser);
           setIsAuthenticated(true);
           writeAuthCache(session, mergedUser);
         }
       } catch {
+        const mergedUser = { ...session.user, ...(cachedMerge || {}) };
         setSession(session);
-        setUser(session.user);
+        setUser(mergedUser);
         setIsAuthenticated(true);
-        writeAuthCache(session, session.user);
+        writeAuthCache(session, mergedUser);
       } finally {
         setIsLoading(false);
       }
