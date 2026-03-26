@@ -629,10 +629,10 @@ export async function syncUp(onProgress?: (msg: string, isError?: boolean) => vo
     arr.push(m)
     groupByEntity[k] = arr
   }
-  const limit = 4
+  const limit = 50
   const runBatch = async (items: typeof sorted, entityName: string) => {
     for (let i = 0; i < items.length; i += limit) {
-      log(`Enviando ${entityName} (${i + 1} de ${items.length})...`)
+      log(`Enviando ${entityName} (${Math.min(i + limit, items.length)} de ${items.length})...`)
       const chunk = items.slice(i, i + limit)
       await Promise.all(
         chunk.map(async (m) => {
