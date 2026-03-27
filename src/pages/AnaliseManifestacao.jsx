@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Repository } from '@/lib/offline/repository';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createPageUrl } from '@/utils';
 import jsPDF from 'jspdf';
 import { supabase } from '@/lib/supabase';
@@ -29,6 +29,9 @@ export default function AnaliseManifestacao() {
     });
     const [termoExcluindo, setTermoExcluindo] = useState(null);
     const [confirmarExclusao, setConfirmarExclusao] = useState(false);
+    const [concluindoAmId, setConcluindoAmId] = useState(null);
+    const [uploadingAmAssinadaId, setUploadingAmAssinadaId] = useState(null);
+    const queryClient = useQueryClient();
 
     const { data: termos = [], refetch: refetchTermos } = useQuery({
         queryKey: ['termos-notificacao'],
@@ -113,6 +116,15 @@ export default function AnaliseManifestacao() {
     const getPrestadorNome = (id) => {
         const p = prestadores.find(pres => pres.id === id);
         return p?.nome || 'N/A';
+    };
+
+    const openArquivo = async (arq) => {
+        try {
+            const signed = await Repository.getSignedUrlFromAny(arq);
+            if (signed) window.open(signed, '_blank', 'noopener,noreferrer');
+        } catch (err) {
+            alert('Erro ao abrir arquivo: ' + (err?.message || String(err)));
+        }
     };
 
     const getMunicipioNome = (id) => {
@@ -209,13 +221,58 @@ export default function AnaliseManifestacao() {
             }
             
             // Remover numero_am para permitir nova geração
-            await supabase.from('termos_notificacao').update({ numero_am: null }).eq('id', termo.id);
+            await supabase.from('termos_notificacao').update({ numero_am: null, am_concluida_em: null, arquivo_am_assinada_url: null }).eq('id', termo.id);
             
             refetchTermos();
             setTermoExcluindo(null);
             setConfirmarExclusao(false);
         } catch (error) {
             console.error('Erro ao excluir análise:', error);
+        }
+    };
+
+    const concluirAm = async (termo) => {
+        if (concluindoAmId) return;
+        setConcluindoAmId(termo.id);
+        try {
+            const dets = getDeterminacoesPorTermo(termo).sort((a, b) => {
+                const numA = parseInt(a.numero_determinacao?.replace(/\D/g, '') || '0', 10);
+                const numB = parseInt(b.numero_determinacao?.replace(/\D/g, '') || '0', 10);
+                return numA - numB;
+            });
+            const naoAtendidas = dets.filter(d => getStatusDeterminacao(d.id) === 'nao_atendida');
+
+            const numeroAm = await Repository.gerarNumeroAmOnline();
+            await supabase.from('termos_notificacao').update({
+                numero_am: numeroAm,
+                am_concluida_em: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            }).eq('id', termo.id);
+
+            for (const det of naoAtendidas) {
+                const jaExiste = (autos || []).some(a => a?.determinacao_id === det.id);
+                if (jaExiste) continue;
+                const numeroAuto = await Repository.gerarNumeroAutoOnline();
+                await Repository.createAutoInfracaoOnline({
+                    determinacao_id: det.id,
+                    unidade_fiscalizada_id: det.unidade_fiscalizada_id,
+                    fiscalizacao_id: termo.fiscalizacao_id,
+                    prestador_servico_id: termo.prestador_servico_id,
+                    numero_auto: numeroAuto,
+                    data_emissao: new Date().toISOString(),
+                    status: 'gerado',
+                    descricao: `Determinação ${det.numero_determinacao} não atendida: ${det.descricao || ''}`.trim()
+                });
+            }
+
+            await queryClient.invalidateQueries({ queryKey: ['termos-notificacao'] });
+            await queryClient.invalidateQueries({ queryKey: ['autos-infracao'] });
+            await queryClient.invalidateQueries({ queryKey: ['autos-todos'] });
+            alert('AM concluída e AIs gerados');
+        } catch (err) {
+            alert('Erro ao concluir AM: ' + (err?.message || String(err)));
+        } finally {
+            setConcluindoAmId(null);
         }
     };
 
@@ -690,6 +747,16 @@ export default function AnaliseManifestacao() {
                                                          </Button>
                                                      </Link>
                                                  )}
+                                                 {stats.total > 0 && todasDeterminacoesAnalisadas(termo) && !termo?.am_concluida_em && (
+                                                      <Button
+                                                          size="sm"
+                                                          className="bg-green-600 hover:bg-green-700"
+                                                          disabled={concluindoAmId === termo.id}
+                                                          onClick={() => concluirAm(termo)}
+                                                      >
+                                                          {concluindoAmId === termo.id ? 'Concluindo...' : 'Concluir AM'}
+                                                      </Button>
+                                                  )}
                                                  {stats.total > 0 && termo.numero_am && todasDeterminacoesAnalisadas(termo) && (
                                                       <Button 
                                                           size="sm" 
@@ -699,6 +766,50 @@ export default function AnaliseManifestacao() {
                                                           <Download className="h-4 w-4 mr-1" />
                                                           Baixar AM PDF
                                                       </Button>
+                                                  )}
+                                                  {stats.total > 0 && termo.numero_am && todasDeterminacoesAnalisadas(termo) && (
+                                                      <Card className="border-yellow-200 w-full">
+                                                          <CardContent className="p-3 space-y-2">
+                                                              <div className="text-xs text-gray-700">AM assinada (PDF)</div>
+                                                              <div className="flex flex-col gap-2">
+                                                                  <Input
+                                                                      type="file"
+                                                                      accept=".pdf,application/pdf"
+                                                                      disabled={uploadingAmAssinadaId === termo.id}
+                                                                      onChange={async (e) => {
+                                                                          const file = e.target.files?.[0];
+                                                                          if (!file) return;
+                                                                          setUploadingAmAssinadaId(termo.id);
+                                                                          try {
+                                                                              const up = await Repository.uploadTermoNotificacaoFile(file, termo.id, 'am_assinada');
+                                                                              const storageRef = `storage://${up.bucket}/${up.path}`;
+                                                                              await supabase.from('termos_notificacao').update({
+                                                                                  arquivo_am_assinada_url: storageRef,
+                                                                                  updated_at: new Date().toISOString()
+                                                                              }).eq('id', termo.id);
+                                                                              await queryClient.invalidateQueries({ queryKey: ['termos-notificacao'] });
+                                                                              alert('AM assinada enviada');
+                                                                          } catch (err) {
+                                                                              alert('Erro ao enviar AM assinada: ' + (err?.message || String(err)));
+                                                                          } finally {
+                                                                              setUploadingAmAssinadaId(null);
+                                                                              e.target.value = '';
+                                                                          }
+                                                                      }}
+                                                                  />
+                                                                  {termo?.arquivo_am_assinada_url ? (
+                                                                      <Button size="sm" variant="outline" onClick={() => void openArquivo(termo.arquivo_am_assinada_url)}>
+                                                                          <Download className="h-4 w-4 mr-1" />
+                                                                          Baixar AM assinada
+                                                                      </Button>
+                                                                  ) : (
+                                                                      <Badge className="bg-yellow-600">
+                                                                          {uploadingAmAssinadaId === termo.id ? 'Enviando...' : 'Aguardando upload'}
+                                                                      </Badge>
+                                                                  )}
+                                                              </div>
+                                                          </CardContent>
+                                                      </Card>
                                                   )}
                                                 </div>
                                         </div>

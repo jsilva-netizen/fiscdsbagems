@@ -521,15 +521,41 @@ export const Repository = {
     if (error) throw error
     return String(data)
   },
+
+  async gerarNumeroAmOnline(): Promise<string> {
+    const { data, error } = await supabase.rpc('gerar_numero_am')
+    if (error) throw error
+    return String(data)
+  },
   
   async createAutoInfracaoOnline(payload: any): Promise<void> {
     const { error } = await supabase.from('autos_infracao').insert(payload)
     if (error) throw error
   },
+
+  async updateAutoInfracaoOnline(id: string, changes: any): Promise<any> {
+    const { data, error } = await supabase.from('autos_infracao').update(changes).eq('id', id).select().single()
+    if (error) throw error
+    return data
+  },
   
   async updateAutoInfracaoOnlineStatus(id: string, status: string): Promise<void> {
     const { error } = await supabase.from('autos_infracao').update({ status }).eq('id', id)
     if (error) throw error
+  },
+
+  async listAutosInfracaoOnlineByFiscalizacao(fiscalizacaoId: string): Promise<any[]> {
+    if (!fiscalizacaoId) return []
+    const { data, error } = await supabase.from('autos_infracao').select('*').eq('fiscalizacao_id', fiscalizacaoId)
+    if (error) throw error
+    return data || []
+  },
+
+  async listAutosInfracaoOnlineByDeterminacoes(determinacaoIds: string[]): Promise<any[]> {
+    if (!Array.isArray(determinacaoIds) || determinacaoIds.length === 0) return []
+    const { data, error } = await supabase.from('autos_infracao').select('*').in('determinacao_id', determinacaoIds)
+    if (error) throw error
+    return data || []
   },
   
   async listPareceresTecnicosOnlineAll(): Promise<any[]> {
@@ -548,6 +574,63 @@ export const Repository = {
     const { data, error } = await supabase.from('pareceres_tecnicos').insert(payload).select().single()
     if (error) throw error
     return data
+  },
+
+  async updateParecerTecnicoOnline(id: string, changes: any): Promise<any> {
+    const { data, error } = await supabase.from('pareceres_tecnicos').update(changes).eq('id', id).select().single()
+    if (error) throw error
+    return data
+  },
+
+  async upsertParecerTecnicoForAuto(autoId: string, payload: any): Promise<any> {
+    if (!autoId) throw new Error('autoId obrigatório')
+    const { data: existing, error: selErr } = await supabase.from('pareceres_tecnicos').select('*').eq('auto_id', autoId).maybeSingle()
+    if (selErr) throw selErr
+    if (existing?.id) {
+      return Repository.updateParecerTecnicoOnline(existing.id, payload)
+    }
+    return Repository.createParecerTecnicoOnline({ ...payload, auto_id: autoId })
+  },
+
+  async listRemessasAIOnlineAll(): Promise<any[]> {
+    const { data, error } = await supabase.from('remessas_ai').select('*').order('criada_em', { ascending: false })
+    if (error) throw error
+    return data || []
+  },
+
+  async listRemessasAIOnlineByPrestador(prestadorId: string): Promise<any[]> {
+    if (!prestadorId) return []
+    const { data, error } = await supabase.from('remessas_ai').select('*').eq('prestador_servico_id', prestadorId).order('criada_em', { ascending: false })
+    if (error) throw error
+    return data || []
+  },
+
+  async createRemessaAIOnline(payload: any): Promise<any> {
+    const { data, error } = await supabase.from('remessas_ai').insert(payload).select().single()
+    if (error) throw error
+    return data
+  },
+
+  async updateRemessaAIOnline(id: string, changes: any): Promise<any> {
+    const { data, error } = await supabase.from('remessas_ai').update({ ...changes, updated_at: new Date().toISOString() }).eq('id', id).select().single()
+    if (error) throw error
+    return data
+  },
+
+  async addRemessaAIItem(remessaId: string, autoId: string): Promise<any> {
+    const { data, error } = await supabase.from('remessas_ai_itens').insert({ remessa_ai_id: remessaId, auto_infracao_id: autoId }).select().single()
+    if (error) throw error
+    return data
+  },
+
+  async listRemessaAIItens(remessaId: string): Promise<any[]> {
+    if (!remessaId) return []
+    const { data, error } = await supabase
+      .from('remessas_ai_itens')
+      .select('*, autos_infracao(*)')
+      .eq('remessa_ai_id', remessaId)
+    if (error) throw error
+    return data || []
   },
   
   async createJulgamentoOnline(payload: any): Promise<any> {
@@ -584,7 +667,7 @@ export const Repository = {
   async uploadTermoNotificacaoFile(
     file: File,
     termoId: string,
-    kind: 'tn_agems' | 'rfp_agems' | 'tn_prestador' | 'termo_envio'
+    kind: 'tn_agems' | 'rfp_agems' | 'tn_prestador' | 'termo_envio' | 'am_assinada'
   ): Promise<{ url: string; nome: string; tipo: string; tamanho: number; data_upload: string; path: string; bucket: string }> {
     const nomeOriginal = file?.name || 'arquivo.pdf'
     const ext = nomeOriginal.includes('.') ? (nomeOriginal.split('.').pop() || '').toLowerCase() : ''
@@ -628,6 +711,17 @@ export const Repository = {
       throw error
     }
     throw lastErr || new Error('Falha ao enviar arquivo do termo')
+  },
+
+  async uploadDocumentoAutos(
+    file: File,
+    path: string
+  ): Promise<{ url: string; nome: string; tipo: string; tamanho: number; data_upload: string; path: string; bucket: string }> {
+    const bucket = 'documentos-autos'
+    const nomeOriginal = file?.name || 'arquivo.pdf'
+    const { error: upErr } = await supabase.storage.from(bucket).upload(path, file, { upsert: false, contentType: file?.type || 'application/pdf' })
+    if (upErr) throw upErr
+    return { url: '', nome: nomeOriginal, tipo: file?.type || 'application/pdf', tamanho: file?.size || 0, data_upload: new Date().toISOString(), path, bucket }
   },
 
   async appendArquivoRespostaTermoOnline(termoId: string, meta: any): Promise<any> {

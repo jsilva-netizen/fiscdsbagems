@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Repository } from '@/lib/offline/repository';
+import jsPDF from 'jspdf';
 import { createPageUrl } from '@/utils';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -9,13 +11,19 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
 import FluxoUploadDocumentos from '@/components/autos/FluxoUploadDocumentos';
-import { ArrowLeft, Loader2, Save } from 'lucide-react';
+import { ArrowLeft, Loader2, Save, Download, Send } from 'lucide-react';
 
 export default function GestaoAutos() {
      const queryClient = useQueryClient();
      const [uploadingFile, setUploadingFile] = useState(false);
      const [penaBase, setPenaBase] = useState({});
+     const [remessaAbertaId, setRemessaAbertaId] = useState(null);
+     const [criandoRemessaKey, setCriandoRemessaKey] = useState(null);
+     const [enviandoParecerRemessaId, setEnviandoParecerRemessaId] = useState(null);
+     const [uploadingParecerAutoId, setUploadingParecerAutoId] = useState(null);
+     const [parecerForms, setParecerForms] = useState({});
 
     const { data: autos = [] } = useQuery({
         queryKey: ['autos-infracao'],
@@ -54,6 +62,14 @@ export default function GestaoAutos() {
        }
     });
 
+    const { data: termos = [] } = useQuery({
+        queryKey: ['termos-notificacao'],
+        queryFn: async () => {
+            const data = await Repository.listTermosNotificacaoOnline();
+            return data;
+        }
+    });
+
     const { data: municipios = [] } = useQuery({
        queryKey: ['municipios'],
        queryFn: async () => {
@@ -61,6 +77,32 @@ export default function GestaoAutos() {
            if (error) throw error;
            return data;
        }
+    });
+
+    const { data: remessas = [] } = useQuery({
+        queryKey: ['remessas-ai'],
+        queryFn: async () => {
+            const data = await Repository.listRemessasAIOnlineAll();
+            return data;
+        }
+    });
+
+    const { data: remessaItens = [] } = useQuery({
+        queryKey: ['remessa-ai-itens', remessaAbertaId],
+        queryFn: async () => {
+            if (!remessaAbertaId) return [];
+            const data = await Repository.listRemessaAIItens(remessaAbertaId);
+            return data;
+        },
+        enabled: !!remessaAbertaId
+    });
+
+    const { data: pareceres = [] } = useQuery({
+        queryKey: ['pareceres-tecnicos'],
+        queryFn: async () => {
+            const data = await Repository.listPareceresTecnicosOnlineAll();
+            return data;
+        }
     });
 
 
@@ -108,9 +150,88 @@ export default function GestaoAutos() {
         }
     };
 
+    const openArquivo = async (arq) => {
+        try {
+            const signed = await Repository.getSignedUrlFromAny(arq);
+            if (signed) window.open(signed, '_blank', 'noopener,noreferrer');
+        } catch (err) {
+            alert('Erro ao abrir arquivo: ' + (err?.message || String(err)));
+        }
+    };
+
     const getPrestadorNome = (id) => {
         const p = prestadores.find(pres => pres.id === id);
         return p?.nome || 'N/A';
+    };
+
+    useEffect(() => {
+        if (!remessaAbertaId) return;
+        const next = {};
+        for (const it of remessaItens || []) {
+            const a = it?.autos_infracao;
+            if (!a?.id) continue;
+            const p = (pareceres || []).find(pp => pp.auto_id === a.id) || null;
+            next[a.id] = {
+                recomendacao: p?.recomendacao || 'aplicar_multa',
+                valor_multa_sugerido: p?.valor_multa_sugerido != null ? String(p.valor_multa_sugerido) : '',
+                analise_tecnica: p?.analise_tecnica || '',
+                arquivo_parecer_assinado_url: p?.arquivo_parecer_assinado_url || ''
+            };
+        }
+        setParecerForms(next);
+    }, [remessaAbertaId, remessaItens, pareceres]);
+
+    const salvarParecerAssinado = async (autoId, file) => {
+        if (!autoId || !file || uploadingParecerAutoId) return;
+        setUploadingParecerAutoId(autoId);
+        try {
+            const ts = Date.now();
+            const rand = Math.random().toString(36).slice(2, 8);
+            const path = `autos_infracao/${autoId}/parecer/${ts}-${rand}.pdf`;
+            const up = await Repository.uploadDocumentoAutos(file, path);
+            const url = `storage://${up.bucket}/${up.path}`;
+            const f = parecerForms[autoId] || {};
+            await Repository.upsertParecerTecnicoForAuto(autoId, {
+                recomendacao: f.recomendacao || 'aplicar_multa',
+                valor_multa_sugerido: f.valor_multa_sugerido ? Number(String(f.valor_multa_sugerido).replace(',', '.')) : null,
+                analise_tecnica: f.analise_tecnica || '',
+                arquivo_parecer_assinado_url: url,
+                status: 'finalizado'
+            });
+            await queryClient.invalidateQueries({ queryKey: ['pareceres-tecnicos'] });
+            setParecerForms(prev => ({
+                ...prev,
+                [autoId]: { ...(prev[autoId] || {}), arquivo_parecer_assinado_url: url }
+            }));
+            alert('Parecer assinado salvo');
+        } catch (err) {
+            alert('Erro ao salvar parecer: ' + (err?.message || String(err)));
+        } finally {
+            setUploadingParecerAutoId(null);
+        }
+    };
+
+    const encaminharParecerRemessa = async (remessa) => {
+        if (!remessa?.id || enviandoParecerRemessaId) return;
+        setEnviandoParecerRemessaId(remessa.id);
+        try {
+            const autoIds = (remessaItens || []).map(it => it?.autos_infracao?.id).filter(Boolean);
+            const ok = autoIds.length > 0 && autoIds.every((id) => {
+                const p = (pareceres || []).find(pp => pp.auto_id === id);
+                return !!p?.arquivo_parecer_assinado_url;
+            });
+            if (!ok) throw new Error('Todos os autos precisam ter parecer assinado antes de encaminhar');
+            await Repository.updateRemessaAIOnline(remessa.id, {
+                parecer_enviado_em: new Date().toISOString(),
+                status: 'parecer_enviado'
+            });
+            await queryClient.invalidateQueries({ queryKey: ['remessas-ai'] });
+            alert('Parecer encaminhado à Câmara');
+        } catch (err) {
+            alert('Erro ao encaminhar: ' + (err?.message || String(err)));
+        } finally {
+            setEnviandoParecerRemessaId(null);
+        }
     };
 
     const getMunicipioNome = (autoId) => {
@@ -131,6 +252,93 @@ export default function GestaoAutos() {
         enviados: autos.filter(a => a.status === 'enviado'),
         em_analise: autos.filter(a => a.status === 'em_analise'),
         finalizados: autos.filter(a => a.status === 'finalizado')
+    };
+
+    const autosProntosParaRemessa = autosPorStatus.gerados.filter(a => !!a.arquivo_url && !!a.prestador_servico_id && !!a.fiscalizacao_id);
+    const gruposProntos = Object.values(
+        autosProntosParaRemessa.reduce((acc, a) => {
+            const key = `${a.prestador_servico_id}|${a.fiscalizacao_id}`;
+            if (!acc[key]) acc[key] = { key, prestadorId: a.prestador_servico_id, fiscalizacaoId: a.fiscalizacao_id, autos: [] };
+            acc[key].autos.push(a);
+            return acc;
+        }, {})
+    );
+
+    const criarEEnviarRemessa = async (grupo) => {
+        const groupKey = grupo?.key;
+        if (!groupKey || criandoRemessaKey) return;
+        setCriandoRemessaKey(groupKey);
+        try {
+            const termo = termos.find(t => t.fiscalizacao_id === grupo.fiscalizacaoId && t.prestador_servico_id === grupo.prestadorId) || null;
+            if (!termo?.id) throw new Error('TN não encontrado para este prestador/fiscalização');
+
+            const jaExiste = remessas.some(r => r?.termo_id === termo.id && ['preparada', 'enviada', 'recebida', 'defesa_enviada', 'parecer_enviado'].includes(String(r?.status || '')));
+            if (jaExiste) throw new Error('Já existe remessa para este TN');
+
+            const remessa = await Repository.createRemessaAIOnline({
+                termo_id: termo.id,
+                fiscalizacao_id: grupo.fiscalizacaoId,
+                prestador_servico_id: grupo.prestadorId,
+                numero_rfp: termo.numero_rfp || null,
+                numero_tn: termo.numero_tn || null,
+                status: 'preparada',
+                criada_em: new Date().toISOString()
+            });
+
+            for (const a of grupo.autos || []) {
+                await Repository.addRemessaAIItem(remessa.id, a.id);
+            }
+
+            const doc = new jsPDF();
+            doc.setFontSize(14);
+            doc.text('Remessa de Autos de Infração', 14, 18);
+            doc.setFontSize(10);
+            doc.text(`RFP: ${termo.numero_rfp || '—'}`, 14, 28);
+            doc.text(`TN: ${termo.numero_tn || '—'}`, 14, 34);
+            doc.text(`Prestador: ${getPrestadorNome(grupo.prestadorId)}`, 14, 40);
+            doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 46);
+
+            doc.setFontSize(11);
+            doc.text('Autos incluídos:', 14, 58);
+            doc.setFontSize(10);
+            let y = 66;
+            const autosOrdenados = [...(grupo.autos || [])].sort((a, b) => String(a.numero_auto || '').localeCompare(String(b.numero_auto || '')));
+            for (const a of autosOrdenados) {
+                if (y > 280) {
+                    doc.addPage();
+                    y = 20;
+                }
+                doc.text(`- ${a.numero_auto || a.id}`, 16, y);
+                y += 6;
+            }
+
+            const blob = doc.output('blob');
+            const file = new File([blob], `remessa_${remessa.id}.pdf`, { type: 'application/pdf' });
+            const ts = Date.now();
+            const rand = Math.random().toString(36).slice(2, 8);
+            const path = `remessas_ai/${remessa.id}/lista/${ts}-${rand}.pdf`;
+            const up = await Repository.uploadDocumentoAutos(file, path);
+            const url = `storage://${up.bucket}/${up.path}`;
+
+            await Repository.updateRemessaAIOnline(remessa.id, {
+                arquivo_lista_pdf_url: url,
+                enviada_em: new Date().toISOString(),
+                status: 'enviada'
+            });
+
+            for (const a of grupo.autos || []) {
+                await Repository.updateAutoInfracaoOnlineStatus(a.id, 'enviado');
+            }
+
+            await queryClient.invalidateQueries({ queryKey: ['remessas-ai'] });
+            await queryClient.invalidateQueries({ queryKey: ['autos-infracao'] });
+            setRemessaAbertaId(remessa.id);
+            alert('Remessa enviada ao prestador');
+        } catch (err) {
+            alert('Erro ao enviar remessa: ' + (err?.message || String(err)));
+        } finally {
+            setCriandoRemessaKey(null);
+        }
     };
 
     return (
@@ -176,11 +384,12 @@ export default function GestaoAutos() {
 
                 {/* Tabs */}
                 <Tabs defaultValue="gerados" className="w-full">
-                    <TabsList className="grid w-full grid-cols-4">
+                    <TabsList className="grid w-full grid-cols-5">
                         <TabsTrigger value="gerados">Gerados ({autosPorStatus.gerados.length})</TabsTrigger>
                         <TabsTrigger value="enviados">Enviados ({autosPorStatus.enviados.length})</TabsTrigger>
                         <TabsTrigger value="analise">Em Análise ({autosPorStatus.em_analise.length})</TabsTrigger>
                         <TabsTrigger value="finalizados">Finalizados ({autosPorStatus.finalizados.length})</TabsTrigger>
+                        <TabsTrigger value="remessas">Remessas ({remessas.length})</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="gerados" className="space-y-4">
@@ -288,6 +497,201 @@ export default function GestaoAutos() {
                                 </CardContent>
                             </Card>
                         ))}
+                    </TabsContent>
+
+                    <TabsContent value="remessas" className="space-y-4">
+                        <Card className="border-green-200">
+                            <CardContent className="p-4 space-y-3">
+                                <div className="font-semibold">Criar e enviar remessas (AIs com PDF)</div>
+                                {gruposProntos.length === 0 ? (
+                                    <div className="text-sm text-gray-600">Nenhum grupo pronto (status gerado + AI assinada).</div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {gruposProntos.map((g) => (
+                                            <div key={g.key} className="flex flex-wrap items-center justify-between gap-2 border rounded p-3 bg-white">
+                                                <div className="text-sm">
+                                                    <div className="font-medium">{getPrestadorNome(g.prestadorId)}</div>
+                                                    <div className="text-xs text-gray-600">{g.autos.length} autos</div>
+                                                </div>
+                                                <Button
+                                                    className="bg-green-600 hover:bg-green-700"
+                                                    disabled={criandoRemessaKey === g.key}
+                                                    onClick={() => void criarEEnviarRemessa(g)}
+                                                >
+                                                    <Send className="h-4 w-4 mr-2" />
+                                                    {criandoRemessaKey === g.key ? 'Enviando...' : 'Enviar remessa'}
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardContent className="p-4 space-y-3">
+                                <div className="font-semibold">Remessas registradas</div>
+                                {remessas.length === 0 ? (
+                                    <div className="text-sm text-gray-600">Nenhuma remessa criada.</div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {remessas.map((r) => (
+                                            <Card key={r.id} className={remessaAbertaId === r.id ? 'border-blue-300' : ''}>
+                                                <CardContent className="p-4 space-y-3">
+                                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                                        <div>
+                                                            <div className="font-medium">{r.numero_rfp || 'RFP'}</div>
+                                                            {r.numero_tn ? <div className="text-xs text-gray-600">TN: {r.numero_tn}</div> : null}
+                                                            <div className="mt-1">
+                                                                <Badge className="bg-gray-700">{r.status || 'preparada'}</Badge>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {r.arquivo_lista_pdf_url ? (
+                                                                <Button variant="outline" size="sm" onClick={() => void openArquivo(r.arquivo_lista_pdf_url)}>
+                                                                    <Download className="h-4 w-4 mr-2" />
+                                                                    Lista
+                                                                </Button>
+                                                            ) : null}
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => setRemessaAbertaId(remessaAbertaId === r.id ? null : r.id)}
+                                                            >
+                                                                {remessaAbertaId === r.id ? 'Fechar' : 'Abrir'}
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+
+                                                    {remessaAbertaId === r.id ? (
+                                                        <div className="space-y-3">
+                                                            {(remessaItens || []).length === 0 ? (
+                                                                <div className="text-sm text-gray-600">Nenhum item.</div>
+                                                            ) : (
+                                                                <>
+                                                                    {r.status === 'defesa_enviada' ? (
+                                                                        <div className="flex justify-end">
+                                                                            <Button
+                                                                                className="bg-purple-600 hover:bg-purple-700"
+                                                                                disabled={enviandoParecerRemessaId === r.id || !((remessaItens || []).length > 0 && (remessaItens || []).every((it) => {
+                                                                                    const a = it?.autos_infracao;
+                                                                                    if (!a?.id) return false;
+                                                                                    const p = (pareceres || []).find(pp => pp.auto_id === a.id);
+                                                                                    return !!(p?.arquivo_parecer_assinado_url);
+                                                                                }))}
+                                                                                onClick={() => void encaminharParecerRemessa(r)}
+                                                                            >
+                                                                                {enviandoParecerRemessaId === r.id ? 'Encaminhando...' : 'Encaminhar parecer à Câmara'}
+                                                                            </Button>
+                                                                        </div>
+                                                                    ) : null}
+
+                                                                    {(remessaItens || []).map((it) => {
+                                                                        const a = it?.autos_infracao;
+                                                                        if (!a?.id) return null;
+                                                                        const form = parecerForms[a.id] || { recomendacao: 'aplicar_multa', valor_multa_sugerido: '', analise_tecnica: '', arquivo_parecer_assinado_url: '' };
+                                                                        const defesaArquivos = Array.isArray(a?.defesa_arquivos) ? a.defesa_arquivos : [];
+                                                                        const parecerExistente = (pareceres || []).find(pp => pp.auto_id === a.id) || null;
+                                                                        const parecerUrl = form.arquivo_parecer_assinado_url || parecerExistente?.arquivo_parecer_assinado_url || '';
+                                                                        return (
+                                                                            <Card key={it.id} className="border-gray-200">
+                                                                                <CardContent className="p-4 space-y-3">
+                                                                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                                                                        <div className="text-sm font-medium">{a.numero_auto || a.id}</div>
+                                                                                        <div className="flex flex-wrap gap-2">
+                                                                                            {a.arquivo_url ? (
+                                                                                                <Button variant="outline" size="sm" onClick={() => void openArquivo(a.arquivo_url)}>
+                                                                                                    <Download className="h-4 w-4 mr-2" />
+                                                                                                    AI
+                                                                                                </Button>
+                                                                                            ) : (
+                                                                                                <Badge className="bg-yellow-600">Sem PDF</Badge>
+                                                                                            )}
+                                                                                            {parecerUrl ? (
+                                                                                                <Button variant="outline" size="sm" onClick={() => void openArquivo(parecerUrl)}>
+                                                                                                    <Download className="h-4 w-4 mr-2" />
+                                                                                                    Parecer
+                                                                                                </Button>
+                                                                                            ) : null}
+                                                                                        </div>
+                                                                                    </div>
+
+                                                                                    {String(a?.defesa_texto || '').trim() ? (
+                                                                                        <div className="text-sm">
+                                                                                            <div className="text-xs text-gray-600 mb-1">Defesa (texto)</div>
+                                                                                            <div className="border rounded p-2 bg-white text-gray-800">{a.defesa_texto}</div>
+                                                                                        </div>
+                                                                                    ) : null}
+
+                                                                                    {defesaArquivos.length > 0 ? (
+                                                                                        <div className="space-y-2">
+                                                                                            <div className="text-xs text-gray-600">Defesa (anexos)</div>
+                                                                                            <div className="flex flex-wrap gap-2">
+                                                                                                {defesaArquivos.map((arq, idx) => (
+                                                                                                    <Button key={idx} size="sm" variant="outline" onClick={() => void openArquivo(arq)}>
+                                                                                                        <Download className="h-4 w-4 mr-2" />
+                                                                                                        {arq?.nome || `Anexo ${idx + 1}`}
+                                                                                                    </Button>
+                                                                                                ))}
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    ) : null}
+
+                                                                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                                                                        <div>
+                                                                                            <Label className="text-xs">Recomendação</Label>
+                                                                                            <Input
+                                                                                                value={form.recomendacao || ''}
+                                                                                                onChange={(e) => setParecerForms(prev => ({ ...prev, [a.id]: { ...(prev[a.id] || {}), recomendacao: e.target.value } }))}
+                                                                                            />
+                                                                                        </div>
+                                                                                        <div>
+                                                                                            <Label className="text-xs">Valor sugerido (R$)</Label>
+                                                                                            <Input
+                                                                                                type="number"
+                                                                                                value={form.valor_multa_sugerido || ''}
+                                                                                                onChange={(e) => setParecerForms(prev => ({ ...prev, [a.id]: { ...(prev[a.id] || {}), valor_multa_sugerido: e.target.value } }))}
+                                                                                            />
+                                                                                        </div>
+                                                                                        <div>
+                                                                                            <Label className="text-xs">Parecer assinado (PDF)</Label>
+                                                                                            <Input
+                                                                                                type="file"
+                                                                                                accept=".pdf,application/pdf"
+                                                                                                disabled={uploadingParecerAutoId === a.id}
+                                                                                                onChange={async (e) => {
+                                                                                                    const file = e.target.files?.[0];
+                                                                                                    if (!file) return;
+                                                                                                    await salvarParecerAssinado(a.id, file);
+                                                                                                    e.target.value = '';
+                                                                                                }}
+                                                                                            />
+                                                                                        </div>
+                                                                                    </div>
+
+                                                                                    <div>
+                                                                                        <Label className="text-xs">Análise técnica</Label>
+                                                                                        <Textarea
+                                                                                            value={form.analise_tecnica || ''}
+                                                                                            onChange={(e) => setParecerForms(prev => ({ ...prev, [a.id]: { ...(prev[a.id] || {}), analise_tecnica: e.target.value } }))}
+                                                                                            className="min-h-20"
+                                                                                        />
+                                                                                    </div>
+                                                                                </CardContent>
+                                                                            </Card>
+                                                                        );
+                                                                    })}
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    ) : null}
+                                                </CardContent>
+                                            </Card>
+                                        ))}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
                     </TabsContent>
                 </Tabs>
             </div>

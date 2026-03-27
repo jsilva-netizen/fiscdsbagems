@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import OptimizedImage from '@/components/fiscalizacao/OptimizedImage.jsx';
-import { ArrowLeft, UploadCloud, CheckCircle, AlertCircle, Lock, Download, Image as ImageIcon, Send } from 'lucide-react';
+import { ArrowLeft, UploadCloud, CheckCircle, AlertCircle, Download, Image as ImageIcon } from 'lucide-react';
 
 export default function ResponderTermo() {
   const [searchParams] = useSearchParams();
@@ -27,7 +27,6 @@ export default function ResponderTermo() {
   const [evidenciasOpen, setEvidenciasOpen] = useState(false);
   const [signedFotosByKey, setSignedFotosByKey] = useState({});
   const [salvandoDetId, setSalvandoDetId] = useState(null);
-  const [enviandoDetId, setEnviandoDetId] = useState(null);
 
   const openArquivo = async (arq) => {
     try {
@@ -216,11 +215,7 @@ export default function ResponderTermo() {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['respostas-determinacao'] });
-      alert('Resposta enviada para análise');
-    },
-    onError: (err) => {
-      alert('Erro ao enviar resposta: ' + (err?.message || String(err)));
-    },
+    }
   });
 
   const enviarTNMutation = useMutation({
@@ -231,9 +226,8 @@ export default function ResponderTermo() {
         const form = forms[det.id] || {};
         const precisaEnviar =
           !resp || resp.status === 'rascunho' || resp.status === '' || resp.status === null;
-        if (precisaEnviar) {
-          await enviarRespostaMutation.mutateAsync({ detId: det.id });
-        }
+        const hasConteudo = !!String(form?.manifestacao_prestador || '').trim() || (Array.isArray(form?.evidencias) && form.evidencias.length > 0);
+        if (precisaEnviar && hasConteudo) await enviarRespostaMutation.mutateAsync({ detId: det.id });
       }
       // Finalizar TN
       await Repository.finalizeTNResponses(termo.id);
@@ -349,14 +343,14 @@ export default function ResponderTermo() {
     return resp?.status || '';
   };
 
-  const podeResponder = (index) => {
-    if (termo?.status === 'respondido') return false;
-    if (!termo?.assinatura_prestador_valida || !termo?.arquivo_tn_prestador_url) return false;
-    if (index === 0) return true;
-    const detAnterior = determinacoes[index - 1];
-    const statusAnterior = getStatusResposta(detAnterior.id);
-    return statusAnterior === 'rascunho' || statusAnterior === 'aguardando_analise';
-  };
+  const allDeterminacoesRespondidas = useMemo(() => {
+    return (determinacoes || []).every((d) => {
+      const f = forms[d.id] || {};
+      const hasTexto = !!String(f?.manifestacao_prestador || '').trim();
+      const hasEv = Array.isArray(f?.evidencias) && f.evidencias.length > 0;
+      return hasTexto || hasEv;
+    });
+  }, [determinacoes, forms]);
 
   const isFormValid = (detId) => {
     const f = forms[detId] || {};
@@ -498,6 +492,7 @@ export default function ResponderTermo() {
                         arquivo_tn_prestador_url: storageRef,
                         assinatura_prestador_valida: true,
                         data_assinatura_prestador: new Date().toISOString(),
+                        data_protocolo: inicio,
                         data_inicio_prazo: inicio,
                         data_maxima_resposta: dataMaxima,
                         status: termo?.status === 'respondido' ? 'respondido' : 'aguardando_resposta',
@@ -527,15 +522,13 @@ export default function ResponderTermo() {
         {assinaturaTnOk ? (
           <>
             <div className="space-y-4">
-              {determinacoes.map((det, index) => {
+              {determinacoes.map((det) => {
                 const status = getStatusResposta(det.id);
                 const evidencias = forms[det.id]?.evidencias || [];
                 const unidade = unidadesFiscalizadas.find((u) => u.id === det.unidade_fiscalizada_id);
                 const nc = ncs.find((n) => n.id === det.nao_conformidade_id);
                 const constatacao = nc?.resposta_checklist_id ? respostasChecklist.find((r) => r.id === nc.resposta_checklist_id) : null;
-                const bloqueadoSequencia = !podeResponder(index);
-                const bloqueadoPorEnvio = status === 'aguardando_analise';
-                const bloqueado = bloqueadoSequencia || bloqueadoPorEnvio;
+                const bloqueado = termo?.status === 'respondido' || status === 'aguardando_analise';
 
                 const lat = unidade?.latitude ?? unidade?.lat;
                 const lon = unidade?.longitude ?? unidade?.lng;
@@ -592,18 +585,6 @@ export default function ResponderTermo() {
                           </div>
                           <div className="flex items-center justify-between gap-2">
                             <p className="text-sm text-gray-600 mb-3">{det.descricao}</p>
-                            {bloqueadoSequencia && (
-                              <Badge variant="outline" className="text-gray-600 border-gray-300 flex items-center gap-1">
-                                <Lock className="h-3 w-3" />
-                                Responda a anterior
-                              </Badge>
-                            )}
-                            {bloqueadoPorEnvio && (
-                              <Badge variant="outline" className="text-yellow-700 border-yellow-200 bg-yellow-50 flex items-center gap-1">
-                                <AlertCircle className="h-3 w-3" />
-                                Enviada
-                              </Badge>
-                            )}
                           </div>
 
                           <div className="grid grid-cols-2 gap-3">
@@ -665,22 +646,6 @@ export default function ResponderTermo() {
                                 <UploadCloud className="h-4 w-4 mr-1" />
                                 {salvandoDetId === det.id ? 'Salvando...' : 'Salvar rascunho'}
                               </Button>
-                              <Button
-                                onClick={async () => {
-                                  if (!isFormValid(det.id) || bloqueado) return;
-                                  setEnviandoDetId(det.id);
-                                  try {
-                                    await enviarRespostaMutation.mutateAsync({ detId: det.id });
-                                  } finally {
-                                    setEnviandoDetId(null);
-                                  }
-                                }}
-                                disabled={!isFormValid(det.id) || bloqueado || enviandoDetId === det.id}
-                                className="bg-blue-600 hover:bg-blue-700"
-                              >
-                                <Send className="h-4 w-4 mr-1" />
-                                {enviandoDetId === det.id ? 'Enviando...' : 'Enviar resposta'}
-                              </Button>
                             </div>
 
                             {evidencias.length > 0 && (
@@ -710,17 +675,22 @@ export default function ResponderTermo() {
                   Baixe o modelo do termo de envio, assine digitalmente e envie o PDF assinado. O envio da resposta só será liberado após o envio deste arquivo.
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <Button variant="outline" onClick={downloadTermoEnvioModelo} type="button">
+                  <Button variant="outline" onClick={downloadTermoEnvioModelo} type="button" disabled={!allDeterminacoesRespondidas}>
                     <Download className="h-4 w-4 mr-2" />
                     Baixar modelo
                   </Button>
                   <Input
                     type="file"
                     accept=".pdf,application/pdf"
-                    disabled={enviandoTermoEnvio}
+                    disabled={enviandoTermoEnvio || !allDeterminacoesRespondidas}
                     onChange={async (e) => {
                       const file = e.target.files?.[0];
                       if (!file) return;
+                      if (!allDeterminacoesRespondidas) {
+                        alert('Preencha todas as determinações (texto e/ou evidência) para liberar o termo de envio.');
+                        e.target.value = '';
+                        return;
+                      }
                       setEnviandoTermoEnvio(true);
                       try {
                         const up = await Repository.uploadTermoNotificacaoFile(file, termo.id, 'termo_envio');
@@ -755,11 +725,12 @@ export default function ResponderTermo() {
                     alert('Envie o termo de envio assinado para liberar o envio da resposta.');
                     return;
                   }
-                  const faltando = determinacoes.filter((d) => !isFormValid(d.id));
-                  if (faltando.length > 0) {
+                  if (!allDeterminacoesRespondidas) {
                     alert('Há determinações sem manifestação ou evidência. Complete antes de enviar.');
                     return;
                   }
+                  if (!window.confirm('Você está prestes a enviar a manifestação completa para análise. Deseja continuar?')) return;
+                  if (!window.confirm('Confirma o envio definitivo? Esta ação não pode ser desfeita.')) return;
                   setEnviandoTN(true);
                   try {
                     await enviarTNMutation.mutateAsync();
@@ -767,7 +738,7 @@ export default function ResponderTermo() {
                     setEnviandoTN(false);
                   }
                 }}
-                disabled={enviandoTN}
+                disabled={enviandoTN || !termoEnvioOk || !allDeterminacoesRespondidas}
                 className="bg-purple-600 hover:bg-purple-700"
               >
                 {enviandoTN ? 'Enviando...' : 'Enviar resposta para análise'}

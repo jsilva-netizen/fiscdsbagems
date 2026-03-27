@@ -1,40 +1,15 @@
 import { useState } from 'react';
 import { Repository } from '@/lib/offline/repository';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { createPageUrl } from '@/utils';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, CheckCircle, XCircle } from 'lucide-react';
+import { ArrowLeft, Download } from 'lucide-react';
 
 export default function CamaraJulgamento() {
-    const queryClient = useQueryClient();
-    const [selectedAuto, setSelectedAuto] = useState(null);
-    const [showParecerModal, setShowParecerModal] = useState(false);
-    const [showJulgamentoModal, setShowJulgamentoModal] = useState(false);
-    
-    // Filtros
-    const [filtroStatus, setFiltroStatus] = useState('pendente'); // pendente, parecer_emitido, julgado
-    const [filtroPrestador, setFiltroPrestador] = useState('todos');
-
-    // Forms
-    const [parecerForm, setParecerForm] = useState({
-        recomendacao: 'aplicar_multa',
-        valor_multa_sugerido: '',
-        analise_tecnica: ''
-    });
-
-    const [julgamentoForm, setJulgamentoForm] = useState({
-        decisao: 'multa_aplicada',
-        valor_multa_final: '',
-        justificativa_decisao: ''
-    });
-
+    const [remessaAbertaId, setRemessaAbertaId] = useState(null);
     // Queries
     const { data: autos = [] } = useQuery({
         queryKey: ['autos-infracao'],
@@ -52,12 +27,22 @@ export default function CamaraJulgamento() {
         }
     });
 
-    const { data: julgamentos = [] } = useQuery({
-        queryKey: ['julgamentos'],
+    const { data: remessas = [] } = useQuery({
+        queryKey: ['remessas-ai'],
         queryFn: async () => {
-            const data = await Repository.listJulgamentosOnlineAll();
+            const data = await Repository.listRemessasAIOnlineAll();
             return data;
         }
+    });
+
+    const { data: remessaItens = [] } = useQuery({
+        queryKey: ['remessa-ai-itens', remessaAbertaId],
+        queryFn: async () => {
+            if (!remessaAbertaId) return [];
+            const data = await Repository.listRemessaAIItens(remessaAbertaId);
+            return data;
+        },
+        enabled: !!remessaAbertaId
     });
 
     const { data: prestadores = [] } = useQuery({
@@ -68,58 +53,24 @@ export default function CamaraJulgamento() {
         }
     });
 
-    // Mutations
-    const salvarParecerMutation = useMutation({
-        mutationFn: async (data) => {
-            const novoParecer = await Repository.createParecerTecnicoOnline({
-                ...data,
-                status: 'finalizado'
-            });
-            return novoParecer;
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['pareceres-tecnicos'] });
-            setShowParecerModal(false);
-            setParecerForm({ recomendacao: 'aplicar_multa', valor_multa_sugerido: '', analise_tecnica: '' });
-        }
-    });
-
-    const salvarJulgamentoMutation = useMutation({
-        mutationFn: async (data) => {
-            const novoJulgamento = await Repository.createJulgamentoOnline({
-                ...data,
-                status: 'julgado'
-            });
-            const statusAuto = data.decisao === 'multa_aplicada' ? 'julgado_procedente' : 'julgado_improcedente';
-            await Repository.updateAutoInfracaoOnlineStatus(data.auto_id, statusAuto);
-            return novoJulgamento;
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['julgamentos'] });
-            queryClient.invalidateQueries({ queryKey: ['autos-infracao'] });
-            setShowJulgamentoModal(false);
-            setJulgamentoForm({ decisao: 'multa_aplicada', valor_multa_final: '', justificativa_decisao: '' });
-        }
-    });
-
-    const parecesParaJulgar = pareceres.filter(p => 
-        p.status === 'finalizado' && 
-        !julgamentos.some(j => j.parecer_tecnico_id === p.id)
-    );
-
     const getPrestadorNome = (id) => {
         const p = prestadores.find(pres => pres.id === id);
         return p?.nome || 'N/A';
     };
 
-    const getRecomendacaoLabel = (rec) => {
-        const labels = {
-            aplicar_multa: 'Aplicar Multa',
-            rejeitar_multa: 'Rejeitar Multa',
-            analise_adicional: 'Análise Adicional'
-        };
-        return labels[rec] || rec;
+    const openArquivo = async (arq) => {
+        try {
+            const signed = await Repository.getSignedUrlFromAny(arq);
+            if (signed) window.open(signed, '_blank', 'noopener,noreferrer');
+        } catch (err) {
+            alert('Erro ao abrir arquivo: ' + (err?.message || String(err)));
+        }
     };
+
+    const pareceresFinalizados = pareceres.filter(p => String(p?.status || '') === 'finalizado');
+    const pareceresAssinados = pareceresFinalizados.filter(p => !!p?.arquivo_parecer_assinado_url);
+    const pareceresSemAssinatura = pareceresFinalizados.filter(p => !p?.arquivo_parecer_assinado_url);
+    const remessasEncaminhadas = (remessas || []).filter(r => String(r?.status || '') === 'parecer_enviado');
 
     return (
         <div className="min-h-screen bg-gray-50 p-6">
@@ -138,167 +89,127 @@ export default function CamaraJulgamento() {
                 <div className="grid grid-cols-3 gap-4 mb-8">
                     <Card>
                         <CardContent className="p-4 text-center">
-                            <p className="text-sm text-gray-600 mb-1">Para Julgar</p>
-                            <p className="text-2xl font-bold text-orange-600">{parecesParaJulgar.length}</p>
+                            <p className="text-sm text-gray-600 mb-1">Remessas Encaminhadas</p>
+                            <p className="text-2xl font-bold text-blue-600">{remessasEncaminhadas.length}</p>
                         </CardContent>
                     </Card>
                     <Card>
                         <CardContent className="p-4 text-center">
-                            <p className="text-sm text-gray-600 mb-1">Multas Aplicadas</p>
-                            <p className="text-2xl font-bold text-red-600">{julgamentos.filter(j => j.decisao === 'multa_aplicada').length}</p>
+                            <p className="text-sm text-gray-600 mb-1">Sem Assinatura</p>
+                            <p className="text-2xl font-bold text-yellow-600">{pareceresSemAssinatura.length}</p>
                         </CardContent>
                     </Card>
                     <Card>
                         <CardContent className="p-4 text-center">
-                            <p className="text-sm text-gray-600 mb-1">Multas Rejeitadas</p>
-                            <p className="text-2xl font-bold text-green-600">{julgamentos.filter(j => j.decisao === 'multa_rejeitada').length}</p>
+                            <p className="text-sm text-gray-600 mb-1">Total Finalizados</p>
+                            <p className="text-2xl font-bold">{pareceresFinalizados.length}</p>
                         </CardContent>
                     </Card>
                 </div>
 
-                {/* Casos para Julgar */}
-                <h2 className="text-2xl font-semibold mb-4">Pareceres Aguardando Julgamento</h2>
+                <h2 className="text-2xl font-semibold mb-4">Remessas Encaminhadas</h2>
                 <div className="space-y-4">
-                    {parecesParaJulgar.length === 0 ? (
+                    {remessasEncaminhadas.length === 0 ? (
                         <Card>
                             <CardContent className="p-8 text-center text-gray-500">
-                                Nenhum parecer aguardando julgamento
+                                Nenhuma remessa encaminhada disponível
                             </CardContent>
                         </Card>
                     ) : (
-                        parecesParaJulgar.map(parecer => {
-                            const auto = autos.find(a => a.id === parecer.auto_id);
-                            return (
-                                <Card key={parecer.id} className="border-orange-300 bg-orange-50">
-                                    <CardContent className="p-4">
-                                        <div className="flex justify-between items-start">
-                                            <div className="flex-1">
-                                                <h3 className="font-semibold mb-2">{auto?.numero_auto}</h3>
-                                                <div className="grid grid-cols-3 gap-4 mb-2">
-                                                    <div>
-                                                        <p className="text-xs text-gray-600">Prestador</p>
-                                                        <p className="text-sm font-medium">{getPrestadorNome(auto?.prestador_servico_id)}</p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-xs text-gray-600">Recomendação do Técnico</p>
-                                                        <Badge className={parecer.recomendacao === 'aplicar_multa' ? 'bg-red-600' : 'bg-green-600'}>
-                                                            {getRecomendacaoLabel(parecer.recomendacao)}
-                                                        </Badge>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-xs text-gray-600">Valor Sugerido</p>
-                                                        <p className="text-sm font-medium">
-                                                            {parecer.valor_multa_sugerido ? `R$ ${parecer.valor_multa_sugerido.toFixed(2)}` : '-'}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <div className="bg-white rounded p-2 mb-3">
-                                                    <p className="text-xs text-gray-600 font-medium mb-1">Análise Técnica:</p>
-                                                    <p className="text-xs text-gray-700 line-clamp-3">{parecer.analise_tecnica}</p>
-                                                </div>
+                        remessasEncaminhadas.map((r) => (
+                            <Card key={r.id} className={remessaAbertaId === r.id ? 'border-blue-300' : ''}>
+                                <CardContent className="p-4 space-y-3">
+                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                        <div>
+                                            <div className="font-medium">{r.numero_rfp || 'RFP'}</div>
+                                            {r.numero_tn ? <div className="text-xs text-gray-600">TN: {r.numero_tn}</div> : null}
+                                            <div className="text-xs text-gray-600">Prestador: {getPrestadorNome(r.prestador_servico_id)}</div>
+                                            <div className="mt-1">
+                                                <Badge className="bg-gray-700">{r.status || 'parecer_enviado'}</Badge>
                                             </div>
-                                            <Dialog>
-                                                <DialogTrigger asChild>
-                                                    <Button className="bg-purple-600 hover:bg-purple-700">
-                                                        Julgar
-                                                    </Button>
-                                                </DialogTrigger>
-                                                <DialogContent>
-                                                    <DialogHeader>
-                                                        <DialogTitle>Julgamento - {auto?.numero_auto}</DialogTitle>
-                                                    </DialogHeader>
-                                                    <div className="space-y-4">
-                                                        <div>
-                                                            <Label>Decisão</Label>
-                                                            <div className="grid grid-cols-2 gap-2 mt-2">
-                                                                <Button
-                                                                    variant={julgamentoForm.decisao === 'multa_aplicada' ? 'default' : 'outline'}
-                                                                    onClick={() => setJulgamentoForm({ ...julgamentoForm, decisao: 'multa_aplicada' })}
-                                                                    className={julgamentoForm.decisao === 'multa_aplicada' ? 'bg-red-600 hover:bg-red-700' : ''}
-                                                                >
-                                                                    <CheckCircle className="h-4 w-4 mr-1" />
-                                                                    Aplicar Multa
-                                                                </Button>
-                                                                <Button
-                                                                    variant={julgamentoForm.decisao === 'multa_rejeitada' ? 'default' : 'outline'}
-                                                                    onClick={() => setJulgamentoForm({ ...julgamentoForm, decisao: 'multa_rejeitada' })}
-                                                                    className={julgamentoForm.decisao === 'multa_rejeitada' ? 'bg-green-600 hover:bg-green-700' : ''}
-                                                                >
-                                                                    <XCircle className="h-4 w-4 mr-1" />
-                                                                    Rejeitar Multa
-                                                                </Button>
-                                                            </div>
-                                                        </div>
-
-                                                        {julgamentoForm.decisao === 'multa_aplicada' && (
-                                                            <div>
-                                                                <Label>Valor da Multa (R$)</Label>
-                                                                <Input
-                                                                    type="number"
-                                                                    placeholder="0,00"
-                                                                    value={julgamentoForm.valor_multa_final}
-                                                                    onChange={(e) => setJulgamentoForm({ ...julgamentoForm, valor_multa_final: e.target.value })}
-                                                                />
-                                                            </div>
-                                                        )}
-
-                                                        <div>
-                                                            <Label>Justificativa</Label>
-                                                            <Textarea
-                                                                placeholder="Justifique a decisão..."
-                                                                value={julgamentoForm.justificativa_decisao}
-                                                                onChange={(e) => setJulgamentoForm({ ...julgamentoForm, justificativa_decisao: e.target.value })}
-                                                                className="min-h-24"
-                                                            />
-                                                        </div>
-
-                                                        <Button
-                                                            onClick={() => salvarJulgamentoMutation.mutate({
-                                                                parecer_tecnico_id: parecer.id,
-                                                                auto_id: auto.id,
-                                                                prestador_servico_id: auto.prestador_servico_id,
-                                                                ...julgamentoForm
-                                                            })}
-                                                            className="w-full bg-purple-600 hover:bg-purple-700"
-                                                        >
-                                                            Registrar Julgamento
-                                                        </Button>
-                                                    </div>
-                                                </DialogContent>
-                                            </Dialog>
                                         </div>
-                                    </CardContent>
-                                </Card>
-                            );
-                        })
+                                        <div className="flex flex-wrap gap-2">
+                                            {r.arquivo_lista_pdf_url ? (
+                                                <Button variant="outline" size="sm" onClick={() => void openArquivo(r.arquivo_lista_pdf_url)}>
+                                                    <Download className="h-4 w-4 mr-2" />
+                                                    Lista
+                                                </Button>
+                                            ) : null}
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setRemessaAbertaId(remessaAbertaId === r.id ? null : r.id)}
+                                            >
+                                                {remessaAbertaId === r.id ? 'Fechar' : 'Abrir'}
+                                            </Button>
+                                        </div>
+                                    </div>
+
+                                    {remessaAbertaId === r.id ? (
+                                        <div className="space-y-2">
+                                            {(remessaItens || []).length === 0 ? (
+                                                <div className="text-sm text-gray-600">Nenhum item.</div>
+                                            ) : (
+                                                (remessaItens || []).map((it) => {
+                                                    const a = it?.autos_infracao;
+                                                    if (!a?.id) return null;
+                                                    const parecer = (pareceresAssinados || []).find(p => p.auto_id === a.id) || null;
+                                                    const defesaArquivos = Array.isArray(a?.defesa_arquivos) ? a.defesa_arquivos : [];
+                                                    return (
+                                                        <Card key={it.id} className="border-gray-200">
+                                                            <CardContent className="p-4 space-y-3">
+                                                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                                                    <div className="font-semibold">{a.numero_auto || a.id}</div>
+                                                                    <div className="flex flex-wrap gap-2">
+                                                                        {a.arquivo_url ? (
+                                                                            <Button variant="outline" size="sm" onClick={() => void openArquivo(a.arquivo_url)}>
+                                                                                <Download className="h-4 w-4 mr-2" />
+                                                                                AI
+                                                                            </Button>
+                                                                        ) : null}
+                                                                        {parecer?.arquivo_parecer_assinado_url ? (
+                                                                            <Button variant="outline" size="sm" onClick={() => void openArquivo(parecer.arquivo_parecer_assinado_url)}>
+                                                                                <Download className="h-4 w-4 mr-2" />
+                                                                                Parecer
+                                                                            </Button>
+                                                                        ) : (
+                                                                            <Badge className="bg-yellow-600">Sem parecer</Badge>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+
+                                                                {String(a?.defesa_texto || '').trim() ? (
+                                                                    <div className="text-sm">
+                                                                        <div className="text-xs text-gray-600 mb-1">Defesa (texto)</div>
+                                                                        <div className="border rounded p-2 bg-white text-gray-800">{a.defesa_texto}</div>
+                                                                    </div>
+                                                                ) : null}
+
+                                                                {defesaArquivos.length > 0 ? (
+                                                                    <div className="space-y-2">
+                                                                        <div className="text-xs text-gray-600">Defesa (anexos)</div>
+                                                                        <div className="flex flex-wrap gap-2">
+                                                                            {defesaArquivos.map((arq, idx) => (
+                                                                                <Button key={idx} size="sm" variant="outline" onClick={() => void openArquivo(arq?.url || arq)}>
+                                                                                    <Download className="h-4 w-4 mr-2" />
+                                                                                    {arq?.nome || `Anexo ${idx + 1}`}
+                                                                                </Button>
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+                                                                ) : null}
+                                                            </CardContent>
+                                                        </Card>
+                                                    );
+                                                })
+                                            )}
+                                        </div>
+                                    ) : null}
+                                </CardContent>
+                            </Card>
+                        ))
                     )}
                 </div>
-
-                {/* Julgamentos Realizados */}
-                {julgamentos.length > 0 && (
-                    <>
-                        <h2 className="text-2xl font-semibold mb-4 mt-8">Julgamentos Realizados</h2>
-                        <div className="space-y-2">
-                            {julgamentos.slice(0, 10).map(julgamento => (
-                                <Card key={julgamento.id}>
-                                    <CardContent className="p-3">
-                                        <div className="flex justify-between items-center">
-                                            <div>
-                                                <p className="font-semibold text-sm">{julgamento.id}</p>
-                                                <p className="text-xs text-gray-500">{new Date(julgamento.data_julgamento).toLocaleDateString('pt-BR')}</p>
-                                            </div>
-                                            <div>
-                                                <Badge className={julgamento.decisao === 'multa_aplicada' ? 'bg-red-600' : 'bg-green-600'}>
-                                                    {julgamento.decisao === 'multa_aplicada' ? 'Multa Aplicada' : 'Multa Rejeitada'}
-                                                </Badge>
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            ))}
-                        </div>
-                    </>
-                )}
             </div>
         </div>
     );

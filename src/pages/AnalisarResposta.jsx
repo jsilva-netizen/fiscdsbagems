@@ -158,29 +158,7 @@ export default function AnalisarResposta() {
         },
         onSuccess: async (data, variables) => {
             await queryClient.invalidateQueries({ queryKey: ['respostas-determinacao'] });
-            
-            // Se não atendida, gerar auto de infração
-             if (variables.status === 'nao_atendida') {
-                 const determinacao = determinacoes.find(d => d.id === variables.determinacaoId);
-                 
-                 const numeroAuto = await Repository.gerarNumeroAutoOnline();
-                
-                await Repository.createAutoInfracaoOnline({
-                    determinacao_id: variables.determinacaoId, // Precisa adicionar essa coluna em autos_infracao
-                    // resposta_determinacao_id: data.id, // Precisa adicionar
-                    fiscalizacao_id: fiscalizacao.id, // Precisa adicionar? fiscalizacao_id não está em autos_infracao no schema original?
-                    // Schema autos_infracao: id, prestador_servico_id, unidade_fiscalizada_id, numero_auto, descricao, valor, status, data_emissao
-                    // Preciso adicionar colunas em autos_infracao também!
-                    prestador_servico_id: fiscalizacao.prestador_servico_id,
-                    numero_auto: numeroAuto,
-                    // data_geracao -> data_emissao
-                    data_emissao: new Date().toISOString(),
-                    status: 'gerado',
-                    // prazo_manifestacao: 15,
-                    descricao: `Determinação ${determinacao.numero_determinacao} não atendida: ${determinacao.descricao}`
-                });
-            }
-            
+
             alert('Análise salva com sucesso!');
             setDetalheDeterminacao(null);
             setAnaliseForm({ status: '', manifestacao_prestador: '', descricao_atendimento: '', dentro_prazo: true });
@@ -480,7 +458,7 @@ export default function AnalisarResposta() {
                                                             <p className="text-sm text-gray-600 mb-2">{det.descricao}</p>
                                                             <div className="flex gap-2">
                                                                 {status === 'atendida' && <Badge className="bg-green-600">Acatada</Badge>}
-                                                                {status === 'nao_atendida' && <Badge className="bg-red-600">Não acatada - AI Gerado</Badge>}
+                                                                {status === 'nao_atendida' && <Badge className="bg-red-600">Não acatada</Badge>}
                                                                 {status === 'aguardando_analise' && <Badge className="bg-yellow-600">Aguardando Análise</Badge>}
                                                                 {status === 'pendente' && <Badge className="bg-gray-500">Pendente</Badge>}
                                                             </div>
@@ -628,7 +606,7 @@ export default function AnalisarResposta() {
                                     {analiseForm.status === 'nao_atendida' && (
                                         <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded">
                                             <p className="text-sm text-yellow-800">
-                                                ⚠️ Ao marcar como "Não Acatada", um Auto de Infração será gerado automaticamente.
+                                                ⚠️ Ao marcar como "Não Acatada", o Auto de Infração será gerado ao concluir a AM.
                                             </p>
                                         </div>
                                     )}
@@ -665,7 +643,7 @@ export default function AnalisarResposta() {
                                 <strong>{analiseForm.status === 'atendida' ? 'Acatada' : 'Não Acatada'}</strong>.
                                 {analiseForm.status === 'nao_atendida' && (
                                     <span className="block mt-2 text-red-600 font-medium">
-                                        Um Auto de Infração será gerado automaticamente.
+                                        O Auto de Infração será gerado ao concluir a AM.
                                     </span>
                                 )}
                                 <span className="block mt-2">Deseja continuar?</span>

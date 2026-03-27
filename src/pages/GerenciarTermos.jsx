@@ -86,7 +86,8 @@ export default function GerenciarTermos() {
         fiscalizacao_id: null,
         camara_tecnica: null,
         prazo_resposta_dias: null,
-        assinatura_prestador_valida: null
+        assinatura_prestador_valida: null,
+        fluxo_manual: null
     });
 
     const [quickProtocolo, setQuickProtocolo] = useState({ open: false, termo: null, data: '', protocoloUrl: '', protocoloNome: '', oficioUrl: '', oficioNome: '' });
@@ -797,7 +798,8 @@ export default function GerenciarTermos() {
                                   fiscalizacao_id: null,
                                   camara_tecnica: null,
                                   prazo_resposta_dias: null,
-                                  assinatura_prestador_valida: null
+                                  assinatura_prestador_valida: null,
+                                  fluxo_manual: null
                               });
                               setProtocoloTemp(null);
                               setOficioProtocoloTemp(null);
@@ -815,6 +817,16 @@ export default function GerenciarTermos() {
                                     <div>
                                         <Label className="text-gray-600">Número do TN</Label>
                                         <p className="font-semibold">{termoDetalhes.numero_termo_notificacao || termoDetalhes.numero_termo}</p>
+                                        <div className="flex items-center gap-2 mt-2">
+                                            <Checkbox
+                                                checked={dadosEditados.fluxo_manual !== null ? !!dadosEditados.fluxo_manual : !!termoDetalhes.fluxo_manual}
+                                                onCheckedChange={(v) => {
+                                                    setDadosEditados(prev => ({ ...prev, fluxo_manual: !!v }));
+                                                    setAlteracoesPendentes(true);
+                                                }}
+                                            />
+                                            <Label className="text-sm">Fluxo Manual (prestador não responde no portal)</Label>
+                                        </div>
                                     </div>
                                     <div>
                                         <Label>Processo *</Label>
@@ -1107,6 +1119,7 @@ export default function GerenciarTermos() {
                                                 if (dadosEditados.data_protocolo !== null) updateData.data_protocolo = dadosEditados.data_protocolo || null;
                                                 if (dadosEditados.data_inicio_prazo !== null) updateData.data_inicio_prazo = dadosEditados.data_inicio_prazo || null;
                                                 if (dadosEditados.assinatura_prestador_valida !== null) updateData.assinatura_prestador_valida = !!dadosEditados.assinatura_prestador_valida;
+                                                if (dadosEditados.fluxo_manual !== null) updateData.fluxo_manual = !!dadosEditados.fluxo_manual;
 
                                                 const afterBase = { ...termoDetalhes, ...updateData };
                                                 const basePrazo = afterBase.data_inicio_prazo || afterBase.data_protocolo || null;
