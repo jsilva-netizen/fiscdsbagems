@@ -229,11 +229,6 @@ export default function Home() {
             {/* Footer + Sync Bar integrada */}
             <div className="mt-auto py-6">
                 <div className="max-w-6xl mx-auto px-4">
-                    <div className="text-center text-blue-300 text-sm">
-                        <p>AGEMS - Agência Estadual de Regulação de Serviços Públicos</p>
-                        <p className="text-xs text-blue-400 mt-1">Mato Grosso do Sul</p>
-                    </div>
-                    
                     {/* Mensagem de Progresso (Movida para cima da barra) */}
                     {syncing && syncProgress && (
                         <div className="mt-4 text-center">
@@ -372,6 +367,11 @@ export default function Home() {
                             </Button>
                         </div>
                         
+                    </div>
+
+                    <div className="mt-6 text-center text-blue-300 text-sm">
+                        <p>AGEMS - Agência Estadual de Regulação de Serviços Públicos</p>
+                        <p className="text-xs text-blue-400 mt-1">Mato Grosso do Sul</p>
                     </div>
                 </div>
             </div>

@@ -674,7 +674,7 @@ export async function syncUp(onProgress?: (msg: string, isError?: boolean) => vo
   }
   log('Sincronizando fotos...')
   await syncFotosWithProgress((uploaded, total) => {
-    log(`Enviando fotos... ${uploaded}/${total}`)
+    log(`Sincronizando Fotos - ${uploaded}/${total}`)
   })
   const pending = await db.fila_mutacoes.where('status').equals('pending').count()
   await db.estados_sync.put({
@@ -922,6 +922,7 @@ export async function syncFotosWithProgress(onProgress?: (uploaded: number, tota
   const unsynced = all.filter((f) => !f.syncedAt)
   const total = unsynced.length
   let uploaded = 0
+  onProgress?.(uploaded, total)
   const cpu = typeof navigator !== 'undefined' && typeof (navigator as any).hardwareConcurrency === 'number' ? Number((navigator as any).hardwareConcurrency) : 4
   const concurrency = Math.max(2, Math.min(6, Math.ceil(cpu / 3)))
   let cursor = 0
@@ -1093,7 +1094,7 @@ export async function runFullSync(onProgress?: (msg: string, isError?: boolean) 
   }
   try {
     log('Atualizando sessão...')
-    await withTimeout(() => authRefresh(), 6000)
+    await withTimeout(() => authRefresh(), 15000)
   } catch (err: any) {
     if (String(err?.message || '').includes('Timeout')) {
       log('Timeout na autenticação.', true)
