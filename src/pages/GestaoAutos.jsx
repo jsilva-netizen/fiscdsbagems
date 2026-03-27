@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Repository } from '@/lib/offline/repository';
 import jsPDF from 'jspdf';
 import { createPageUrl } from '@/utils';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -16,6 +16,10 @@ import FluxoUploadDocumentos from '@/components/autos/FluxoUploadDocumentos';
 import { ArrowLeft, Loader2, Save, Download, Send } from 'lucide-react';
 
 export default function GestaoAutos() {
+     const [searchParams] = useSearchParams();
+     const defaultTabRaw = String(searchParams.get('tab') || '').trim();
+     const defaultTab = ['gerados', 'enviados', 'analise', 'finalizados', 'remessas'].includes(defaultTabRaw) ? defaultTabRaw : 'gerados';
+     const [tab, setTab] = useState(defaultTab);
      const queryClient = useQueryClient();
      const [uploadingFile, setUploadingFile] = useState(false);
      const [penaBase, setPenaBase] = useState({});
@@ -383,7 +387,7 @@ export default function GestaoAutos() {
                 </div>
 
                 {/* Tabs */}
-                <Tabs defaultValue="gerados" className="w-full">
+                <Tabs value={tab} onValueChange={setTab} className="w-full">
                     <TabsList className="grid w-full grid-cols-5">
                         <TabsTrigger value="gerados">Gerados ({autosPorStatus.gerados.length})</TabsTrigger>
                         <TabsTrigger value="enviados">Enviados ({autosPorStatus.enviados.length})</TabsTrigger>
