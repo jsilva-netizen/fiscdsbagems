@@ -187,18 +187,6 @@ export default function Home() {
                     </Link>
 
                     {!isPrestador && (
-                        <Link to={`${createPageUrl('GestaoAutos')}?tab=analise`}>
-                            <Card className="bg-white/10 hover:bg-white/20 transition-all cursor-pointer border-white/20 h-full">
-                                <CardContent className="p-4 text-center">
-                                    <ClipboardCheck className="h-8 w-8 text-blue-300 mx-auto mb-2" />
-                                    <h3 className="text-white font-medium text-sm">Pareceres Técnicos</h3>
-                                    <p className="text-blue-300 text-xs">Analisar defesas</p>
-                                </CardContent>
-                            </Card>
-                        </Link>
-                    )}
-
-                    {!isPrestador && (
                         <Link to={createPageUrl('CamaraJulgamento')}>
                             <Card className="bg-white/10 hover:bg-white/20 transition-all cursor-pointer border-white/20 h-full">
                                 <CardContent className="p-4 text-center">
