@@ -897,9 +897,24 @@ export const Repository = {
     if (!capture || typeof capture.latitude !== 'number' || typeof capture.longitude !== 'number') {
       throw new Error('GPS indisponível. Ative a localização e tente novamente.')
     }
+    const unidade = await db.unidades.get(unidadeId as any)
+    const fiscalizacaoLocalId = unidade?.fiscalizacao_id || 'unknown'
+    let codigoUnidade = String(unidade?.codigo_unidade || '').trim()
+    if (!codigoUnidade) codigoUnidade = String(unidade?.nome_unidade || '').trim()
+    if (!codigoUnidade) codigoUnidade = 'SEM CÓDIGO'
+    let municipioNome = ''
+    if (unidade?.fiscalizacao_id) {
+      const fisc = await db.fiscalizacoes.get(unidade.fiscalizacao_id as any)
+      municipioNome = String(fisc?.municipio_nome || '').trim()
+      if (!municipioNome && fisc?.municipio_id) {
+        const m = await db.municipios.get(fisc.municipio_id as any)
+        municipioNome = String(m?.nome || '').trim()
+      }
+    }
+    if (!municipioNome) municipioNome = 'SEM MUNICÍPIO'
     const takenAt = capture.takenAt ? new Date(capture.takenAt) : file.lastModified ? new Date(file.lastModified) : new Date()
     const coordsText = `${capture.latitude.toFixed(6)}, ${capture.longitude.toFixed(6)}`
-    const watermarkLines = [`${formatDateBR(takenAt)} ${formatTimeBR(takenAt)}`, coordsText]
+    const watermarkLines = [`${codigoUnidade}, ${municipioNome} - MS`, `${formatDateBR(takenAt)} ${formatTimeBR(takenAt)}`, coordsText]
     const processed = await compressFileToBlob(file, MAX_DIMENSION, JPEG_QUALITY, {
       watermarkLines,
       exif: { latitude: capture.latitude, longitude: capture.longitude, takenAt }
@@ -908,8 +923,6 @@ export const Repository = {
       throw new Error(`Foto após compressão excede ${Math.round(MAX_PHOTO_BYTES / 1024 / 1024)}MB`)
     }
     const localId = uid()
-    const unidade = await db.unidades.get(unidadeId as any)
-    const fiscalizacaoLocalId = unidade?.fiscalizacao_id || 'unknown'
     const storagePath = `fiscalizacoes/${fiscalizacaoLocalId}/${unidadeId}/${localId}.jpg`
     const item: OfflineFoto = {
       localId,

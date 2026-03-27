@@ -56,6 +56,19 @@ serve(async (req) => {
 
   if (!isAdmin && fiscRow.created_by !== user.id) return jsonResponse({ error: 'forbidden' }, 403)
 
+  const { data: unidadeProbe, error: unidadeErr } = await adminClient
+    .from('unidades_fiscalizadas')
+    .select('id')
+    .eq('fiscalizacao_id', fiscalizacao_id)
+    .limit(1)
+  if (unidadeErr) return jsonResponse({ error: 'unidades_check_failed', details: unidadeErr.message }, 500)
+  if (!Array.isArray(unidadeProbe) || unidadeProbe.length === 0) {
+    return jsonResponse(
+      { error: 'Nenhuma unidade encontrada para esta fiscalização. Sincronize todas as unidades e tente novamente.', code: 'no_unidades' },
+      409
+    )
+  }
+
   const { data: jobRow, error: jobErr } = await adminClient
     .from('relatorios_jobs')
     .insert({

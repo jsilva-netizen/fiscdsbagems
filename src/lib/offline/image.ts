@@ -486,12 +486,24 @@ function drawWatermark(canvas: HTMLCanvasElement, lines: string[]): void {
   ctx.save()
   ctx.font = `600 ${fontSize}px system-ui, -apple-system, Segoe UI, Roboto, Arial`
   ctx.textBaseline = 'bottom'
+  const maxTextW = Math.max(10, canvas.width - padding * 4)
+  const fitLine = (input: unknown) => {
+    const raw = String(input || '')
+    if (ctx.measureText(raw).width <= maxTextW) return raw
+    const ellipsis = '…'
+    let s = raw
+    while (s.length > 1 && ctx.measureText(`${s}${ellipsis}`).width > maxTextW) {
+      s = s.slice(0, -1)
+    }
+    return `${s}${ellipsis}`
+  }
+  const fitted = lines.map((t) => fitLine(t))
   const lineGap = Math.round(fontSize * 0.25)
-  const heights = lines.length * fontSize + (lines.length - 1) * lineGap
+  const heights = fitted.length * fontSize + (fitted.length - 1) * lineGap
   const boxH = heights + padding * 2
   const yBottom = canvas.height - padding
   const boxY = canvas.height - boxH
-  const maxW = Math.max(...lines.map((t) => ctx.measureText(t).width))
+  const maxW = Math.max(...fitted.map((t) => ctx.measureText(t).width))
   const boxW = Math.min(canvas.width - padding * 2, Math.ceil(maxW) + padding * 2)
   const boxX = padding
   ctx.fillStyle = 'rgba(0, 0, 0, 0.55)'
@@ -506,8 +518,8 @@ function drawWatermark(canvas: HTMLCanvasElement, lines: string[]): void {
   ctx.fill()
   ctx.fillStyle = 'rgba(255, 255, 255, 0.97)'
   let y = yBottom
-  for (let i = lines.length - 1; i >= 0; i--) {
-    ctx.fillText(lines[i], boxX + padding, y)
+  for (let i = fitted.length - 1; i >= 0; i--) {
+    ctx.fillText(fitted[i], boxX + padding, y)
     y -= fontSize + lineGap
   }
   ctx.restore()

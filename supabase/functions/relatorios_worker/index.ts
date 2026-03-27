@@ -156,6 +156,9 @@ async function generatePdfForJob(adminClient: any, job: any) {
     .eq('fiscalizacao_id', job.fiscalizacao_id)
     .order('created_at', { ascending: true })
   if (uErr) throw new Error(uErr.message)
+  if (!Array.isArray(unidades) || unidades.length === 0) {
+    throw new Error('Nenhuma unidade encontrada para esta fiscalização. Sincronize todas as unidades e tente novamente.')
+  }
 
   const unidadeIds = (unidades || []).map((u: any) => u.id)
   const [respsRes, manRes, ncsRes, detRes, recRes] = await Promise.all([

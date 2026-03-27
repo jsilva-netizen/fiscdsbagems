@@ -335,7 +335,7 @@ export async function enqueueMutation(payload: any, type: MutationType, entity: 
     nextRetryAt: undefined,
     created_at: now()
   })
-  const pending = await db.fila_mutacoes.where('status').equals('pending').count()
+  const pending = await getOutboxCount()
   await db.estados_sync.put({
     id: 'global' as UUID,
     entidade: 'global',
@@ -345,7 +345,11 @@ export async function enqueueMutation(payload: any, type: MutationType, entity: 
 }
 
 export async function getOutboxCount(): Promise<number> {
-  return db.fila_mutacoes.where('status').equals('pending').count()
+  const [pendingOrError, unknownStatus] = await Promise.all([
+    db.fila_mutacoes.where('status').anyOf('pending', 'error').count(),
+    db.fila_mutacoes.filter((m: any) => !m?.status).count()
+  ])
+  return (pendingOrError || 0) + (unknownStatus || 0)
 }
 
 export async function getLastSync(): Promise<{ lastSyncAt?: string }> {
@@ -676,7 +680,7 @@ export async function syncUp(onProgress?: (msg: string, isError?: boolean) => vo
   await syncFotosWithProgress((uploaded, total) => {
     log(`Sincronizando Fotos - ${uploaded}/${total}`)
   })
-  const pending = await db.fila_mutacoes.where('status').equals('pending').count()
+  const pending = await getOutboxCount()
   await db.estados_sync.put({
     id: 'global' as UUID,
     entidade: 'global',
