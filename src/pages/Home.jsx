@@ -12,7 +12,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
-  Plus, History, Building2, ClipboardCheck, Users, BarChart3, FileText, AlertTriangle, LogOut, Wifi, WifiOff, Image
+  Plus, History, Building2, ClipboardCheck, Users, BarChart3, FileText, AlertTriangle, LogOut, Wifi, WifiOff
 } from 'lucide-react';
 
 export default function Home() {
@@ -285,159 +285,6 @@ export default function Home() {
                             >
                                 {syncing ? 'Sincronizando...' : 'Sincronizar'}
                             </Button>
-                            
-                            <Button
-                                size="sm"
-                                variant="ghost"
-                                className="text-blue-200 hover:text-white hover:bg-white/10 ml-2"
-                                title="Recuperar fotos órfãs"
-                                onClick={async () => {
-                                    try {
-                                        toast({ title: 'Buscando fotos órfãs...', description: 'Varrendo a nuvem. Isso pode levar alguns minutos...' });
-                                        const { db } = await import('@/lib/offline/db');
-                                        const { supabase } = await import('@/lib/supabase');
-                                        
-                                        let recuperadas = 0;
-                                        
-                                        // Mapa de local_id para server_id para ajudar a cruzar as pastas
-                                        const idMaps = await db.id_map.toArray();
-                                        const localToServer = {};
-                                        idMaps.forEach(m => {
-                                            if (m.local_id && m.server_id) {
-                                                localToServer[m.local_id] = m.server_id;
-                                            }
-                                        });
-
-                                        const bucket = 'fotos_fiscalizacao';
-                                        const isPhoto = (name) => /\.(jpe?g|png|webp)$/i.test(String(name || ''));
-                                        const listPath = async (prefix) => {
-                                            const { data, error } = await supabase.storage.from(bucket).list(prefix, { limit: 1000 });
-                                            if (error) throw error;
-                                            return Array.isArray(data) ? data : [];
-                                        };
-
-                                        const queue = ['fiscalizacoes'];
-                                        const photoPathsByUnitId = new Map();
-
-                                        while (queue.length > 0) {
-                                            const prefix = queue.shift();
-                                            const entries = await listPath(prefix);
-                                            for (const entry of entries) {
-                                                if (!entry?.name || entry.name === '.emptyFolderPlaceholder') continue;
-                                                const fullPath = `${prefix}/${entry.name}`;
-                                                const isFolder = !entry?.id && !isPhoto(entry.name);
-                                                if (isFolder) {
-                                                    queue.push(fullPath);
-                                                    continue;
-                                                }
-                                                if (!isPhoto(entry.name) && !entry?.id) continue;
-
-                                                const parts = fullPath.split('/').filter(Boolean);
-                                                if (parts.length < 3) continue;
-                                                const unitId = parts[parts.length - 2];
-                                                if (!unitId) continue;
-
-                                                const set = photoPathsByUnitId.get(unitId) || new Set();
-                                                set.add(fullPath);
-                                                photoPathsByUnitId.set(unitId, set);
-                                            }
-                                        }
-
-                                        for (const [folderUnitId, pathsSet] of photoPathsByUnitId.entries()) {
-                                            const uniquePaths = Array.from(pathsSet || []);
-                                            if (uniquePaths.length === 0) continue;
-
-                                            const targetServerId = localToServer[folderUnitId] || folderUnitId;
-                                            const { data: serverUnit, error: serverErr } = await supabase
-                                                .from('unidades_fiscalizadas')
-                                                .select('id, fotos_unidade')
-                                                .eq('id', targetServerId)
-                                                .maybeSingle();
-
-                                            if (serverErr) throw serverErr;
-                                            if (!serverUnit) continue;
-
-                                            const existing = Array.isArray(serverUnit.fotos_unidade) ? serverUnit.fotos_unidade : [];
-                                            const byKey = new Set(existing.map(x => `${x?.bucket || ''}:${x?.path || ''}`));
-                                            const merged = [...existing];
-                                            let added = 0;
-
-                                            for (const photoPath of uniquePaths) {
-                                                const key = `${bucket}:${photoPath}`;
-                                                if (byKey.has(key)) continue;
-                                                merged.push({ bucket, path: photoPath });
-                                                byKey.add(key);
-                                                added++;
-                                            }
-
-                                            if (added > 0) {
-                                                const { error: updErr } = await supabase
-                                                    .from('unidades_fiscalizadas')
-                                                    .update({ fotos_unidade: merged, updated_at: new Date().toISOString() })
-                                                    .eq('id', serverUnit.id);
-                                                if (updErr) throw updErr;
-                                                recuperadas += added;
-                                            }
-                                        }
-                                        
-                                        if (recuperadas > 0) {
-                                            toast({ title: 'Sucesso!', description: `Recuperadas e vinculadas ${recuperadas} fotos na nuvem. Sincronize para baixar.` });
-                                        } else {
-                                            toast({ title: 'Aviso', description: 'Nenhuma foto solta encontrada nas pastas do servidor.' });
-                                        }
-                                    } catch (err) {
-                                        toast({ title: 'Erro', description: err.message, variant: 'destructive' });
-                                    }
-                                }}
-                            >
-                                <Image className="h-4 w-4" />
-                            </Button>
-
-                            <Button
-                                size="sm"
-                                variant="ghost"
-                                className="text-blue-200 hover:text-white hover:bg-white/10 ml-2"
-                                title="Recuperar Dados Presos"
-                                onClick={async () => {
-                                    try {
-                                        toast({ title: 'Recuperando dados...', description: 'Enviando itens pendentes que podem estar travados.' });
-                                        const { db } = await import('@/lib/offline/db');
-                                        
-                                        // Marca todos os itens da fila de mutações como 'pending' para forçar reenvio
-                                        const errorItems = await db.fila_mutacoes.where('status').equals('error').toArray();
-                                        if (errorItems.length > 0) {
-                                            for (const item of errorItems) {
-                                                await db.fila_mutacoes.update(item.id, { status: 'pending', nextRetryAt: undefined, attempts: 0 });
-                                            }
-                                        }
-
-                                        // Chama o sync completo
-                                        setSyncing(true);
-                                        setSyncProgress('Iniciando...');
-                                        const res = await runFullSync((msg, isError) => {
-                                            setSyncProgress(msg);
-                                        });
-                                        
-                                        await queryClient.invalidateQueries();
-                                        await queryClient.refetchQueries();
-                                        setSyncProgress('');
-                                        
-                                        toast({
-                                            title: 'Recuperação concluída',
-                                            description: `Dados enviados. Atualizado em ${res.lastSyncAt ? format(new Date(res.lastSyncAt), 'dd/MM HH:mm', { locale: ptBR }) : 'agora'}`
-                                        });
-                                    } catch (err) {
-                                        setSyncProgress('Erro na recuperação');
-                                        toast({ title: 'Erro', description: err.message, variant: 'destructive' });
-                                    } finally {
-                                        setSyncing(false);
-                                        refetchSyncStatus?.();
-                                    }
-                                }}
-                            >
-                                <History className="h-4 w-4" />
-                            </Button>
-
                             <Button
                                 size="sm"
                                 variant="ghost"
@@ -445,62 +292,67 @@ export default function Home() {
                                 title="Baixar backup local de emergência"
                                 onClick={async () => {
                                     try {
-                                        toast({ title: 'Preparando backup', description: 'Coletando dados e fotos, isso pode levar alguns segundos...' });
-                                        const { db } = await import('@/lib/offline/db');
-                                        const JSZip = (await import('jszip')).default;
-                                        const zip = new JSZip();
+                                        toast({ title: 'Preparando backup', description: 'Coletando dados e fotos, isso pode levar alguns segundos...' })
+                                        const { db } = await import('@/lib/offline/db')
+                                        const JSZip = (await import('jszip')).default
+                                        const zip = new JSZip()
 
-                                        const tabelas = ['fiscalizacoes', 'unidades', 'respostas', 'constatacoes_manuais', 'recomendacoes', 'fila_mutacoes', 'fotos_local'];
-                                        const backup = {};
+                                        const tabelas = [
+                                            'fiscalizacoes',
+                                            'unidades',
+                                            'respostas',
+                                            'constatacoes_manuais',
+                                            'recomendacoes',
+                                            'fila_mutacoes',
+                                            'fotos_local'
+                                        ]
+                                        const backup = {}
                                         for (const t of tabelas) {
                                             if (db[t]) {
-                                                backup[t] = await db[t].toArray();
+                                                backup[t] = await db[t].toArray()
                                             }
                                         }
-                                        
-                                        // Salva os dados em JSON
-                                        zip.file('dados.json', JSON.stringify(backup, null, 2));
 
-                                        // Organiza as fotos em pastas por unidade
-                                        const unidadesList = backup.unidades || [];
-                                        const fotosLocal = backup.fotos_local || [];
-                                        const fotosFolder = zip.folder('fotos');
+                                        zip.file('dados.json', JSON.stringify(backup, null, 2))
+
+                                        const unidadesList = backup.unidades || []
+                                        const fotosLocal = backup.fotos_local || []
+                                        const fotosFolder = zip.folder('fotos')
 
                                         for (const foto of fotosLocal) {
-                                            let folderName = foto.unidadeLocalId || 'desconhecida';
-                                            const unidade = unidadesList.find(u => u.id === foto.unidadeLocalId);
-                                            
+                                            let folderName = foto.unidadeLocalId || 'desconhecida'
+                                            const unidade = unidadesList.find((u) => u.id === foto.unidadeLocalId)
+
                                             if (unidade && unidade.nome_unidade) {
-                                                // Limpa o nome da unidade para ser um nome de pasta válido
-                                                const nomeLimpo = unidade.nome_unidade.replace(/[^a-zA-Z0-9 -]/g, '_');
-                                                folderName = `${nomeLimpo} - ${foto.unidadeLocalId.substring(0, 4)}`;
+                                                const nomeLimpo = unidade.nome_unidade.replace(/[^a-zA-Z0-9 -]/g, '_')
+                                                folderName = `${nomeLimpo} - ${foto.unidadeLocalId.substring(0, 4)}`
                                             }
-                                            
-                                            const unidadeFolder = fotosFolder.folder(folderName);
-                                            
-                                            let content = foto.blob;
+
+                                            const unidadeFolder = fotosFolder.folder(folderName)
+
+                                            let content = foto.blob
                                             if (!content && foto.base64) {
-                                                const res = await fetch(foto.base64);
-                                                content = await res.blob();
+                                                const res = await fetch(foto.base64)
+                                                content = await res.blob()
                                             }
-                                            
+
                                             if (content) {
-                                                const fileName = `${foto.localId}.jpg`;
-                                                unidadeFolder.file(fileName, content);
+                                                const fileName = `${foto.localId}.jpg`
+                                                unidadeFolder.file(fileName, content)
                                             }
                                         }
 
-                                        const zipContent = await zip.generateAsync({ type: 'blob' });
-                                        const url = URL.createObjectURL(zipContent);
-                                        const a = document.createElement('a');
-                                        a.href = url;
-                                        a.download = `backup_emergencia_android_${new Date().getTime()}.zip`;
-                                        a.click();
-                                        URL.revokeObjectURL(url);
-                                        
-                                        toast({ title: 'Backup concluído', description: 'Arquivo ZIP baixado com sucesso.' });
+                                        const zipContent = await zip.generateAsync({ type: 'blob' })
+                                        const url = URL.createObjectURL(zipContent)
+                                        const a = document.createElement('a')
+                                        a.href = url
+                                        a.download = `backup_emergencia_android_${new Date().getTime()}.zip`
+                                        a.click()
+                                        URL.revokeObjectURL(url)
+
+                                        toast({ title: 'Backup concluído', description: 'Arquivo ZIP baixado com sucesso.' })
                                     } catch (err) {
-                                        toast({ title: 'Erro no backup', description: err.message, variant: 'destructive' });
+                                        toast({ title: 'Erro no backup', description: err.message, variant: 'destructive' })
                                     }
                                 }}
                             >
