@@ -190,13 +190,83 @@ export const deleteFiscalizacaoComImagens = async (fiscalizacaoId) => {
   const { error: delFiscErr } = await supabase.from('fiscalizacoes').delete().eq('id', serverId)
   if (delFiscErr) throw delFiscErr
   // limpeza local para refletir imediatamente na UI
-  await db.transaction('rw', db.unidades, db.fiscalizacoes, async () => {
-    const unidadesLocal = await db.unidades.where('fiscalizacao_id').equals(localId).toArray()
-    for (const u of unidadesLocal) {
-      await db.unidades.delete(u.id)
+  await db.transaction(
+    'rw',
+    db.unidades,
+    db.fiscalizacoes,
+    db.respostas,
+    db.constatacoes_manuais,
+    db.recomendacoes,
+    db.fotos,
+    db.fotos_local,
+    db.fila_mutacoes,
+    db.id_map,
+    db.pending_entities,
+    async () => {
+      const unidadesLocal = await db.unidades.where('fiscalizacao_id').equals(localId).toArray()
+      const unidadeIds = Array.from(new Set((unidadesLocal || []).map((u) => u?.id).filter(Boolean)))
+
+      if (unidadeIds.length > 0) {
+        const respostas = await db.respostas.where('unidade_fiscalizada_id').anyOf(unidadeIds).toArray()
+        if (respostas.length > 0) await db.respostas.bulkDelete(respostas.map((r) => r.id))
+
+        const constatacoes = await db.constatacoes_manuais.where('unidade_fiscalizada_id').anyOf(unidadeIds).toArray()
+        if (constatacoes.length > 0) await db.constatacoes_manuais.bulkDelete(constatacoes.map((c) => c.id))
+
+        const recomendacoes = await db.recomendacoes.where('unidade_fiscalizada_id').anyOf(unidadeIds).toArray()
+        if (recomendacoes.length > 0) await db.recomendacoes.bulkDelete(recomendacoes.map((r) => r.id))
+
+        const fotos = await db.fotos.where('unidade_fiscalizada_id').anyOf(unidadeIds).toArray()
+        if (fotos.length > 0) await db.fotos.bulkDelete(fotos.map((f) => f.id))
+
+        const fotosLocal = await db.fotos_local.where('unidadeLocalId').anyOf(unidadeIds).toArray()
+        if (fotosLocal.length > 0) await db.fotos_local.bulkDelete(fotosLocal.map((f) => f.localId))
+
+        await db.unidades.bulkDelete(unidadeIds)
+      }
+
+      await db.fiscalizacoes.delete(localId)
+
+      const pending = await db.pending_entities.where('local_id').anyOf([localId, ...unidadeIds]).toArray()
+      if (pending.length > 0) await db.pending_entities.bulkDelete(pending.map((p) => p.id))
+
+      const mapsByLocal = await db.id_map.where('local_id').anyOf([localId, ...unidadeIds]).toArray()
+      const mapsByServerFisc = await db.id_map.where('server_id').equals(serverId).and((m) => m.entity === 'fiscalizacoes').toArray()
+      const mapLocalIds = Array.from(new Set([...mapsByLocal, ...mapsByServerFisc].map((m) => m.local_id).filter(Boolean)))
+      if (mapLocalIds.length > 0) await db.id_map.bulkDelete(mapLocalIds)
+
+      const unidadeSet = new Set(unidadeIds)
+      const candidateEntities = [
+        'fiscalizacoes',
+        'finalizacao_fiscalizacao',
+        'unidades',
+        'finalizacao_unidade',
+        'respostas',
+        'constatacoes_manuais',
+        'recomendacoes',
+        'fotos'
+      ]
+      const muts = await db.fila_mutacoes.where('entity').anyOf(candidateEntities).toArray()
+      const mutIdsToDelete = []
+      for (const m of muts || []) {
+        const p = m?.payload || {}
+        const pid = p?.id || p?.unidade_fiscalizada_id || p?.fiscalizacao_id
+        if (pid === localId) {
+          mutIdsToDelete.push(m.id)
+          continue
+        }
+        if (p?.fiscalizacao_id === localId) {
+          mutIdsToDelete.push(m.id)
+          continue
+        }
+        if (unidadeSet.has(pid) || unidadeSet.has(p?.unidade_fiscalizada_id) || unidadeSet.has(p?.unidadeLocalId)) {
+          mutIdsToDelete.push(m.id)
+          continue
+        }
+      }
+      if (mutIdsToDelete.length > 0) await db.fila_mutacoes.bulkDelete(mutIdsToDelete)
     }
-    await db.fiscalizacoes.delete(localId)
-  })
+  )
 }
 
 export const deleteTermoNotificacaoComDependencias = async (termoId) => {
