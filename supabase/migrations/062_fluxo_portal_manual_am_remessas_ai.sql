@@ -58,36 +58,45 @@ ALTER TABLE IF EXISTS public.autos_infracao
 ALTER TABLE IF EXISTS public.pareceres_tecnicos
   ADD COLUMN IF NOT EXISTS arquivo_parecer_assinado_url text;
 
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('documentos-autos', 'documentos-autos', false)
-ON CONFLICT (id) DO NOTHING;
+DO $$
+BEGIN
+  INSERT INTO storage.buckets (id, name, public)
+  VALUES ('documentos-autos', 'documentos-autos', false)
+  ON CONFLICT (id) DO NOTHING;
 
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Documentos Autos Select" ON storage.objects;
-DROP POLICY IF EXISTS "Documentos Autos Insert" ON storage.objects;
-DROP POLICY IF EXISTS "Documentos Autos Update" ON storage.objects;
-DROP POLICY IF EXISTS "Documentos Autos Delete" ON storage.objects;
+  DROP POLICY IF EXISTS "Documentos Autos Select" ON storage.objects;
+  DROP POLICY IF EXISTS "Documentos Autos Insert" ON storage.objects;
+  DROP POLICY IF EXISTS "Documentos Autos Update" ON storage.objects;
+  DROP POLICY IF EXISTS "Documentos Autos Delete" ON storage.objects;
 
-CREATE POLICY "Documentos Autos Select"
-ON storage.objects FOR SELECT
-TO authenticated
-USING (bucket_id = 'documentos-autos');
+  CREATE POLICY "Documentos Autos Select"
+  ON storage.objects FOR SELECT
+  TO authenticated
+  USING (bucket_id = 'documentos-autos');
 
-CREATE POLICY "Documentos Autos Insert"
-ON storage.objects FOR INSERT
-TO authenticated
-WITH CHECK (bucket_id = 'documentos-autos');
+  CREATE POLICY "Documentos Autos Insert"
+  ON storage.objects FOR INSERT
+  TO authenticated
+  WITH CHECK (bucket_id = 'documentos-autos');
 
-CREATE POLICY "Documentos Autos Update"
-ON storage.objects FOR UPDATE
-TO authenticated
-USING (bucket_id = 'documentos-autos');
+  CREATE POLICY "Documentos Autos Update"
+  ON storage.objects FOR UPDATE
+  TO authenticated
+  USING (bucket_id = 'documentos-autos');
 
-CREATE POLICY "Documentos Autos Delete"
-ON storage.objects FOR DELETE
-TO authenticated
-USING (bucket_id = 'documentos-autos');
+  CREATE POLICY "Documentos Autos Delete"
+  ON storage.objects FOR DELETE
+  TO authenticated
+  USING (bucket_id = 'documentos-autos');
+EXCEPTION
+  WHEN insufficient_privilege THEN
+    NULL;
+  WHEN undefined_table THEN
+    NULL;
+END
+$$;
 
 NOTIFY pgrst, 'reload schema';
 
