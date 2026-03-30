@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Repository } from '@/lib/offline/repository';
@@ -110,6 +110,26 @@ export default function GestaoAutos() {
         }
     });
 
+    const autosColumns = useMemo(() => {
+        const first = autos?.[0] || {};
+        return new Set(Object.keys(first));
+    }, [autos]);
+
+    const penaBaseRsColumn = useMemo(() => {
+        const candidatos = [
+            'pena_base_rs',
+            'pena_base_reais',
+            'pena_base_real',
+            'pena_base_em_reais',
+            'pena_base_valor_rs',
+            'pena_base_valor'
+        ];
+        for (const c of candidatos) {
+            if (autosColumns.has(c)) return c;
+        }
+        return null;
+    }, [autosColumns]);
+
 
     const parseIntSafe = (valor) => {
         const n = parseInt(String(valor ?? '').replace(/[^\d-]/g, ''), 10);
@@ -126,17 +146,17 @@ export default function GestaoAutos() {
     };
 
     const getPenaRsInput = (auto) => {
-        return penaBase[`${auto.id}-rs`] ?? (auto?.pena_base_rs != null ? String(auto.pena_base_rs) : '');
+        if (!penaBaseRsColumn) return penaBase[`${auto.id}-rs`] ?? '';
+        return penaBase[`${auto.id}-rs`] ?? (auto?.[penaBaseRsColumn] != null ? String(auto[penaBaseRsColumn]) : '');
     };
 
      const salvarPenaBaseMutation = useMutation({
          mutationFn: async ({ autoId, penaUferms, penaRs }) => {
              const uferms = parseIntSafe(penaUferms);
              const rs = parseFloatSafe(penaRs);
-             const { error } = await supabase.from('autos_infracao').update({
-                 pena_base_uferms: uferms,
-                 pena_base_rs: rs
-             }).eq('id', autoId);
+             const updateBody = { pena_base_uferms: uferms };
+             if (penaBaseRsColumn) updateBody[penaBaseRsColumn] = rs;
+             const { error } = await supabase.from('autos_infracao').update(updateBody).eq('id', autoId);
              if (error) throw error;
          },
          onMutate: ({ autoId }) => {
@@ -305,9 +325,14 @@ export default function GestaoAutos() {
         finalizados: autos.filter(a => a.status === 'finalizado')
     };
 
+    const getAutoPenaRs = (auto) => {
+        if (!penaBaseRsColumn) return 0;
+        return Number(auto?.[penaBaseRsColumn] || 0);
+    };
+
     const autosProntosParaRemessa = autosPorStatus.gerados.filter(a => {
         const penaUferms = Number(a?.pena_base_uferms || 0);
-        const penaRs = Number(a?.pena_base_rs || 0);
+        const penaRs = getAutoPenaRs(a);
         return !!a?.arquivo_url && !!a?.prestador_servico_id && !!a?.fiscalizacao_id && penaUferms > 0 && penaRs > 0;
     });
     const gruposProntos = Object.values(
@@ -512,11 +537,16 @@ export default function GestaoAutos() {
                         <Button 
                          size="sm" 
                          className="w-full bg-green-600 hover:bg-green-700"
-                         onClick={() => salvarPenaBaseMutation.mutate({
-                             autoId: auto.id,
-                             penaUferms: getPenaUfermsInput(auto),
-                             penaRs: getPenaRsInput(auto)
-                         })}
+                         onClick={() => {
+                             if (!penaBaseRsColumn && parseFloatSafe(getPenaRsInput(auto)) > 0) {
+                                 alert('Configuração do banco: coluna da pena base (R$) não encontrada na tabela autos_infracao. Salvando apenas UFERMS.');
+                             }
+                             salvarPenaBaseMutation.mutate({
+                                 autoId: auto.id,
+                                 penaUferms: getPenaUfermsInput(auto),
+                                 penaRs: getPenaRsInput(auto)
+                             });
+                         }}
                          disabled={salvandoAutoId === auto.id}
                         >
                          {salvandoAutoId === auto.id ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
@@ -534,9 +564,13 @@ export default function GestaoAutos() {
                                     <Button
                                         size="sm"
                                         className="w-full bg-blue-600 hover:bg-blue-700 mt-2"
-                                        disabled={!podeEnviar || criandoRemessaKey === groupKey || salvandoAutoId === auto.id}
+                                        disabled={!podeEnviar || !penaBaseRsColumn || criandoRemessaKey === groupKey || salvandoAutoId === auto.id}
                                         onClick={async () => {
                                             try {
+                                                if (!penaBaseRsColumn) {
+                                                    alert('Configuração do banco: coluna da pena base (R$) não encontrada na tabela autos_infracao.');
+                                                    return;
+                                                }
                                                 await salvarPenaBaseMutation.mutateAsync({
                                                     autoId: auto.id,
                                                     penaUferms: getPenaUfermsInput(auto),
@@ -545,8 +579,13 @@ export default function GestaoAutos() {
 
                                                 const groupAutos = autosPorStatus.gerados
                                                     .filter(a => a?.prestador_servico_id === auto?.prestador_servico_id && a?.fiscalizacao_id === auto?.fiscalizacao_id)
-                                                    .map(a => a.id === auto.id ? ({ ...a, pena_base_uferms: penaUferms, pena_base_rs: penaRs }) : a)
-                                                    .filter(a => !!a?.arquivo_url && Number(a?.pena_base_uferms || 0) > 0 && Number(a?.pena_base_rs || 0) > 0);
+                                                    .map(a => {
+                                                        if (a.id !== auto.id) return a;
+                                                        const next = { ...a, pena_base_uferms: penaUferms };
+                                                        if (penaBaseRsColumn) next[penaBaseRsColumn] = penaRs;
+                                                        return next;
+                                                    })
+                                                    .filter(a => !!a?.arquivo_url && Number(a?.pena_base_uferms || 0) > 0 && Number(a?.[penaBaseRsColumn] || 0) > 0);
 
                                                 if (groupAutos.length === 0) {
                                                     alert('Não há autos prontos para envio (AI assinado e penas base obrigatórios).');
@@ -565,7 +604,11 @@ export default function GestaoAutos() {
                                         <Send className="h-4 w-4 mr-2" />
                                         {criandoRemessaKey === groupKey ? 'Enviando...' : 'Enviar AI ao prestador'}
                                     </Button>
-                                    {!podeEnviar ? (
+                                    {!penaBaseRsColumn ? (
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            Configuração necessária: criar/ajustar a coluna da pena base (R$) na tabela autos_infracao.
+                                        </p>
+                                    ) : !podeEnviar ? (
                                         <p className="text-xs text-gray-500 mt-1">
                                             Para enviar: anexe o AI assinado e informe as penas base.
                                         </p>
