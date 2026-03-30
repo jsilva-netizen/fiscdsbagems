@@ -23,6 +23,7 @@ export default function GestaoAutos() {
      const queryClient = useQueryClient();
      const [uploadingFile, setUploadingFile] = useState(false);
      const [penaBase, setPenaBase] = useState({});
+     const [salvandoAutoId, setSalvandoAutoId] = useState(null);
      const [remessaAbertaId, setRemessaAbertaId] = useState(null);
      const [criandoRemessaKey, setCriandoRemessaKey] = useState(null);
      const [enviandoParecerRemessaId, setEnviandoParecerRemessaId] = useState(null);
@@ -110,18 +111,46 @@ export default function GestaoAutos() {
     });
 
 
+    const parseIntSafe = (valor) => {
+        const n = parseInt(String(valor ?? '').replace(/[^\d-]/g, ''), 10);
+        return Number.isFinite(n) ? n : 0;
+    };
+
+    const parseFloatSafe = (valor) => {
+        const n = parseFloat(String(valor ?? '').replace(/[^\d,.-]/g, '').replace(',', '.'));
+        return Number.isFinite(n) ? n : 0;
+    };
+
+    const getPenaUfermsInput = (auto) => {
+        return penaBase[`${auto.id}-uferms`] ?? (auto?.pena_base_uferms != null ? String(auto.pena_base_uferms) : '');
+    };
+
+    const getPenaRsInput = (auto) => {
+        return penaBase[`${auto.id}-rs`] ?? (auto?.pena_base_rs != null ? String(auto.pena_base_rs) : '');
+    };
+
      const salvarPenaBaseMutation = useMutation({
          mutationFn: async ({ autoId, penaUferms, penaRs }) => {
+             const uferms = parseIntSafe(penaUferms);
+             const rs = parseFloatSafe(penaRs);
              const { error } = await supabase.from('autos_infracao').update({
-                 pena_base_uferms: parseInt(penaUferms) || 0,
-                 pena_base_rs: parseFloat(penaRs.replace('R$', '').replace(',', '.').trim()) || 0
+                 pena_base_uferms: uferms,
+                 pena_base_rs: rs
              }).eq('id', autoId);
              if (error) throw error;
+         },
+         onMutate: ({ autoId }) => {
+             setSalvandoAutoId(autoId);
          },
          onSuccess: () => {
              queryClient.invalidateQueries({ queryKey: ['autos-infracao'] });
              alert('Pena base salva com sucesso!');
-             setPenaBase({});
+         },
+         onError: (err) => {
+             alert('Erro ao salvar pena base: ' + (err?.message || String(err)));
+         },
+         onSettled: () => {
+             setSalvandoAutoId(null);
          }
      });
 
@@ -464,18 +493,19 @@ export default function GestaoAutos() {
                                  type="number" 
                                  placeholder="0" 
                                  className="mt-1"
-                                 defaultValue={auto.pena_base_uferms || ''}
-                                 onChange={(e) => setPenaBase({ ...penaBase, [`${auto.id}-uferms`]: e.target.value })}
+                                 value={getPenaUfermsInput(auto)}
+                                 onChange={(e) => setPenaBase(prev => ({ ...prev, [`${auto.id}-uferms`]: e.target.value }))}
                              />
                          </div>
                          <div>
                              <Label>Pena Base (R$)</Label>
                              <Input 
-                                 type="text" 
-                                 placeholder="R$ 0,00" 
+                                 type="number" 
+                                 placeholder="0" 
+                                 step="0.01"
                                  className="mt-1"
-                                 defaultValue={auto.pena_base_rs ? `R$ ${auto.pena_base_rs.toFixed(2).replace('.', ',')}` : ''}
-                                 onChange={(e) => setPenaBase({ ...penaBase, [`${auto.id}-rs`]: e.target.value })}
+                                 value={getPenaRsInput(auto)}
+                                 onChange={(e) => setPenaBase(prev => ({ ...prev, [`${auto.id}-rs`]: e.target.value }))}
                              />
                          </div>
                         </div>
@@ -484,32 +514,64 @@ export default function GestaoAutos() {
                          className="w-full bg-green-600 hover:bg-green-700"
                          onClick={() => salvarPenaBaseMutation.mutate({
                              autoId: auto.id,
-                             penaUferms: penaBase[`${auto.id}-uferms`] || auto.pena_base_uferms || 0,
-                             penaRs: penaBase[`${auto.id}-rs`] || `R$ ${(auto.pena_base_rs || 0).toFixed(2).replace('.', ',')}`
+                             penaUferms: getPenaUfermsInput(auto),
+                             penaRs: getPenaRsInput(auto)
                          })}
-                         disabled={salvarPenaBaseMutation.isPending}
+                         disabled={salvandoAutoId === auto.id}
                         >
-                         {salvarPenaBaseMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                         Salvar Alterações
+                         {salvandoAutoId === auto.id ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                         {salvandoAutoId === auto.id ? 'Salvando...' : 'Salvar Alterações'}
                         </Button>
                         {(() => {
                             const { fluxoManual } = getIdsRelacionados(auto);
-                            const penaUferms = Number(auto?.pena_base_uferms || 0);
-                            const penaRs = Number(auto?.pena_base_rs || 0);
-                            const podeEnviar = !fluxoManual && !!auto?.arquivo_url && penaUferms > 0 && penaRs > 0 && !!auto?.prestador_servico_id && !!auto?.fiscalizacao_id;
-                            const groupKey = podeEnviar ? `${auto.prestador_servico_id}|${auto.fiscalizacao_id}` : '';
-                            const grupo = podeEnviar ? gruposProntos.find((g) => g.key === groupKey) : null;
-                            return podeEnviar ? (
-                                <Button
-                                    size="sm"
-                                    className="w-full bg-blue-600 hover:bg-blue-700 mt-2"
-                                    disabled={criandoRemessaKey === groupKey || !grupo}
-                                    onClick={() => void criarEEnviarRemessa(grupo)}
-                                >
-                                    <Send className="h-4 w-4 mr-2" />
-                                    {criandoRemessaKey === groupKey ? 'Enviando...' : 'Enviar ao prestador'}
-                                </Button>
-                            ) : null;
+                            if (fluxoManual) return null;
+                            const penaUferms = parseIntSafe(getPenaUfermsInput(auto));
+                            const penaRs = parseFloatSafe(getPenaRsInput(auto));
+                            const podeEnviar = !!auto?.arquivo_url && penaUferms > 0 && penaRs > 0 && !!auto?.prestador_servico_id && !!auto?.fiscalizacao_id;
+                            const groupKey = `${auto.prestador_servico_id}|${auto.fiscalizacao_id}`;
+                            return (
+                                <>
+                                    <Button
+                                        size="sm"
+                                        className="w-full bg-blue-600 hover:bg-blue-700 mt-2"
+                                        disabled={!podeEnviar || criandoRemessaKey === groupKey || salvandoAutoId === auto.id}
+                                        onClick={async () => {
+                                            try {
+                                                await salvarPenaBaseMutation.mutateAsync({
+                                                    autoId: auto.id,
+                                                    penaUferms: getPenaUfermsInput(auto),
+                                                    penaRs: getPenaRsInput(auto)
+                                                });
+
+                                                const groupAutos = autosPorStatus.gerados
+                                                    .filter(a => a?.prestador_servico_id === auto?.prestador_servico_id && a?.fiscalizacao_id === auto?.fiscalizacao_id)
+                                                    .map(a => a.id === auto.id ? ({ ...a, pena_base_uferms: penaUferms, pena_base_rs: penaRs }) : a)
+                                                    .filter(a => !!a?.arquivo_url && Number(a?.pena_base_uferms || 0) > 0 && Number(a?.pena_base_rs || 0) > 0);
+
+                                                if (groupAutos.length === 0) {
+                                                    alert('Não há autos prontos para envio (AI assinado e penas base obrigatórios).');
+                                                    return;
+                                                }
+
+                                                await criarEEnviarRemessa({
+                                                    key: groupKey,
+                                                    prestadorId: auto.prestador_servico_id,
+                                                    fiscalizacaoId: auto.fiscalizacao_id,
+                                                    autos: groupAutos
+                                                });
+                                            } catch (_) {}
+                                        }}
+                                    >
+                                        <Send className="h-4 w-4 mr-2" />
+                                        {criandoRemessaKey === groupKey ? 'Enviando...' : 'Enviar AI ao prestador'}
+                                    </Button>
+                                    {!podeEnviar ? (
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            Para enviar: anexe o AI assinado e informe as penas base.
+                                        </p>
+                                    ) : null}
+                                </>
+                            );
                         })()}
                         </CardContent>
                         </Card>
