@@ -32,4 +32,9 @@ if (import.meta.hot) {
   });
 }
 
-registerSW({ immediate: true })
+const updateSW = registerSW({
+  immediate: true,
+  onNeedRefresh() {
+    updateSW(true)
+  }
+})

@@ -19,7 +19,7 @@ export default function PortalPrestadorHome() {
   const [prestadorId, setPrestadorId] = useState(null);
   const [saindo, setSaindo] = useState(false);
   const navigate = useNavigate();
-  const [remessaSelecionadaId, setRemessaSelecionadaId] = useState(null);
+  const [activeTab, setActiveTab] = useState('tns');
   const [defesaForms, setDefesaForms] = useState({});
   const [uploadingRemessa, setUploadingRemessa] = useState(false);
   const [salvandoDefesaAutoId, setSalvandoDefesaAutoId] = useState(null);
@@ -180,8 +180,8 @@ export default function PortalPrestadorHome() {
     return `RFP/DSB/${camara}/${num}/${ano}`;
   };
 
-  const { data: remessasAI = [] } = useQuery({
-    queryKey: ['remessas-ai-prestador', prestadorId],
+  const { data: lotesAI = [] } = useQuery({
+    queryKey: ['lotes-ai-prestador', prestadorId],
     queryFn: async () => {
       if (!prestadorId) return [];
       return Repository.listRemessasAIOnlineByPrestador(prestadorId);
@@ -189,22 +189,86 @@ export default function PortalPrestadorHome() {
     enabled: !!prestadorId,
   });
 
-  const remessaSelecionada = useMemo(() => remessasAI.find(r => r.id === remessaSelecionadaId) || null, [remessasAI, remessaSelecionadaId]);
-
-  const { data: remessaItens = [] } = useQuery({
-    queryKey: ['remessa-ai-itens', remessaSelecionadaId],
+  const { data: itensAutosAI = [] } = useQuery({
+    queryKey: ['itens-autos-ai-prestador', prestadorId, lotesAI.map((r) => r?.id).join(',')],
     queryFn: async () => {
-      if (!remessaSelecionadaId) return [];
-      return Repository.listRemessaAIItens(remessaSelecionadaId);
+      if (!prestadorId) return [];
+      const ids = (Array.isArray(lotesAI) ? lotesAI : []).map((r) => r?.id).filter(Boolean);
+      if (ids.length === 0) return [];
+      const { data, error } = await supabase
+        .from('remessas_ai_itens')
+        .select('id, remessa_ai_id, autos_infracao(*)')
+        .in('remessa_ai_id', ids);
+      if (error) throw error;
+      return data || [];
     },
-    enabled: !!remessaSelecionadaId,
+    enabled: !!prestadorId && Array.isArray(lotesAI),
   });
 
+  const autosAI = useMemo(() => {
+    const list = Array.isArray(itensAutosAI) ? itensAutosAI : [];
+    const lotes = Array.isArray(lotesAI) ? lotesAI : [];
+    const loteById = lotes.reduce((acc, r) => {
+      if (r?.id) acc[r.id] = r;
+      return acc;
+    }, {});
+    const mapped = list
+      .map((it) => {
+        const a = it?.autos_infracao;
+        if (!a?.id) return null;
+        const remessa = it?.remessa_ai_id ? loteById[it.remessa_ai_id] || null : null;
+        return { ...a, _remessa: remessa, _remessaId: it?.remessa_ai_id || null, _itemId: it?.id || null };
+      })
+      .filter(Boolean);
+    mapped.sort((a, b) => {
+      const ra = a?._remessa?.criada_em || '';
+      const rb = b?._remessa?.criada_em || '';
+      if (ra !== rb) return String(rb).localeCompare(String(ra));
+      return String(a?.numero_auto || '').localeCompare(String(b?.numero_auto || ''));
+    });
+    return mapped;
+  }, [itensAutosAI, lotesAI]);
+
+  const autosByRemessaId = useMemo(() => {
+    const out = {};
+    for (const a of autosAI) {
+      const rid = a?._remessaId;
+      if (!rid) continue;
+      if (!out[rid]) out[rid] = [];
+      out[rid].push(a);
+    }
+    return out;
+  }, [autosAI]);
+
+  const kpisAI = useMemo(() => {
+    const list = Array.isArray(autosAI) ? autosAI : [];
+    const total = list.length;
+    const aguardandoRecebimento = list.filter((a) => (a?._remessa?.status || '') === 'enviada' && !a?._remessa?.arquivo_recebimento_assinado_url).length;
+    const aguardandoDefesa = list.filter((a) => (a?._remessa?.status || '') === 'recebida').length;
+    const defesaEnviada = list.filter((a) => (a?._remessa?.status || '') === 'defesa_enviada').length;
+    return { total, aguardandoRecebimento, aguardandoDefesa, defesaEnviada };
+  }, [autosAI]);
+
+  const cardsKpi = useMemo(() => {
+    if (activeTab === 'ais') {
+      return [
+        { label: 'Total de Autos', value: kpisAI.total, valueClass: 'text-gray-900' },
+        { label: 'Aguardando Recebimento', value: kpisAI.aguardandoRecebimento, valueClass: 'text-orange-600' },
+        { label: 'Aguardando Defesa', value: kpisAI.aguardandoDefesa, valueClass: 'text-yellow-600' },
+        { label: 'Defesa Enviada', value: kpisAI.defesaEnviada, valueClass: 'text-green-600' },
+      ];
+    }
+    return [
+      { label: 'Total de TNs', value: kpis.total, valueClass: 'text-gray-900' },
+      { label: 'Aguardando Assinatura', value: kpis.aguardando_assinatura, valueClass: 'text-orange-600' },
+      { label: 'Aguardando Resposta', value: kpis.aguardando_resposta, valueClass: 'text-yellow-600' },
+      { label: 'Respondidos', value: kpis.respondido, valueClass: 'text-green-600' },
+    ];
+  }, [activeTab, kpis, kpisAI]);
+
   useEffect(() => {
-    if (!remessaSelecionadaId) return;
     const next = {};
-    for (const it of remessaItens || []) {
-      const auto = it?.autos_infracao;
+    for (const auto of autosAI || []) {
       if (!auto?.id) continue;
       next[auto.id] = {
         defesa_texto: auto?.defesa_texto || '',
@@ -212,22 +276,40 @@ export default function PortalPrestadorHome() {
       };
     }
     setDefesaForms(next);
-  }, [remessaSelecionadaId, remessaItens]);
+  }, [autosAI]);
 
-  const remessaPodeEnviarDefesa = useMemo(() => {
-    if (!remessaSelecionada) return false;
-    if ((remessaSelecionada?.status || '') !== 'recebida') return false;
-    if (!remessaSelecionada?.arquivo_recebimento_assinado_url) return false;
-    if (!remessaSelecionada?.arquivo_oficio_defesa_url) return false;
-    const autos = (remessaItens || []).map(i => i?.autos_infracao).filter(Boolean);
-    if (autos.length === 0) return false;
-    return autos.every((a) => {
-      const f = defesaForms[a.id] || {};
-      const hasTexto = !!String(f?.defesa_texto || '').trim();
-      const hasFiles = Array.isArray(f?.defesa_arquivos) && f.defesa_arquivos.length > 0;
-      return hasTexto || hasFiles;
-    });
-  }, [remessaSelecionada, remessaItens, defesaForms]);
+  const podeEnviarDefesaAuto = useMemo(() => {
+    const out = {};
+    for (const a of autosAI || []) {
+      const rid = a?._remessaId;
+      const r = a?._remessa;
+      if (!rid || !r) continue;
+      if ((r?.status || '') !== 'recebida') {
+        out[a.id] = false;
+        continue;
+      }
+      if (!r?.arquivo_recebimento_assinado_url) {
+        out[a.id] = false;
+        continue;
+      }
+      if (!r?.arquivo_oficio_defesa_url) {
+        out[a.id] = false;
+        continue;
+      }
+      const autosMesmoGrupo = autosByRemessaId[rid] || [];
+      if (autosMesmoGrupo.length === 0) {
+        out[a.id] = false;
+        continue;
+      }
+      out[a.id] = autosMesmoGrupo.every((ax) => {
+        const f = defesaForms[ax.id] || {};
+        const hasTexto = !!String(f?.defesa_texto || '').trim();
+        const hasAnexos = Array.isArray(f?.defesa_arquivos) && f.defesa_arquivos.length > 0;
+        return hasTexto || hasAnexos;
+      });
+    }
+    return out;
+  }, [autosAI, autosByRemessaId, defesaForms]);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -261,33 +343,17 @@ export default function PortalPrestadorHome() {
         </div>
 
         <div className="grid grid-cols-4 gap-4 mb-8">
-          <Card>
-            <CardContent className="p-4 text-center">
-              <p className="text-sm text-gray-600 mb-1">Total de TNs</p>
-              <p className="text-2xl font-bold">{kpis.total}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <p className="text-sm text-gray-600 mb-1">Aguardando Assinatura</p>
-              <p className="text-2xl font-bold text-orange-600">{kpis.aguardando_assinatura}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <p className="text-sm text-gray-600 mb-1">Aguardando Resposta</p>
-              <p className="text-2xl font-bold text-yellow-600">{kpis.aguardando_resposta}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <p className="text-sm text-gray-600 mb-1">Respondidos</p>
-              <p className="text-2xl font-bold text-green-600">{kpis.respondido}</p>
-            </CardContent>
-          </Card>
+          {cardsKpi.map((c) => (
+            <Card key={c.label}>
+              <CardContent className="p-4 text-center">
+                <p className="text-sm text-gray-600 mb-1">{c.label}</p>
+                <p className={`text-2xl font-bold ${c.valueClass}`}>{c.value}</p>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
-        <Tabs defaultValue="tns" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="tns">TNs</TabsTrigger>
             <TabsTrigger value="ais">Autos de Infração</TabsTrigger>
@@ -362,266 +428,243 @@ export default function PortalPrestadorHome() {
           </TabsContent>
 
           <TabsContent value="ais" className="space-y-3 mt-4">
-            {remessasAI.length === 0 ? (
+            {autosAI.length === 0 ? (
               <Card>
                 <CardContent className="p-6 text-center text-gray-500">
-                  Nenhuma remessa de Autos de Infração disponível
+                  Nenhum Auto de Infração disponível
                 </CardContent>
               </Card>
             ) : (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {remessasAI.map((r) => (
-                    <Card key={r.id} className={remessaSelecionadaId === r.id ? 'border-blue-300' : ''}>
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1">
-                            <div className="font-semibold">{r.numero_rfp || 'RFP'}</div>
-                            {r.numero_tn ? <div className="text-xs text-gray-600 mt-1">TN: {r.numero_tn}</div> : null}
-                            <div className="mt-2">
-                              <Badge className="bg-gray-700">{r.status || 'preparada'}</Badge>
+                <div className="space-y-3">
+                  {autosAI.map((auto) => {
+                    const r = auto?._remessa || null;
+                    const f = defesaForms[auto.id] || { defesa_texto: '', defesa_arquivos: [] };
+                    const disabledDefesa = !r?.arquivo_recebimento_assinado_url || (r?.status || '') !== 'recebida';
+                    const podeEnviar = !!podeEnviarDefesaAuto?.[auto.id] && (r?.status || '') === 'recebida';
+                    return (
+                      <Card key={auto.id} className="hover:shadow-md transition-shadow">
+                        <CardContent className="p-4 space-y-3">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div className="flex-1">
+                              <div className="font-semibold">{auto.numero_auto || 'Auto de Infração'}</div>
+                              <div className="mt-1 text-xs text-gray-600">
+                                {r?.numero_rfp ? (
+                                  <>
+                                    <span className="font-medium">RFP:</span> {r.numero_rfp}
+                                  </>
+                                ) : null}
+                                {r?.numero_tn ? (
+                                  <>
+                                    {r?.numero_rfp ? <span className="text-gray-400"> • </span> : null}
+                                    <span className="font-medium">TN:</span> {r.numero_tn}
+                                  </>
+                                ) : null}
+                              </div>
+                              <div className="mt-2 flex flex-wrap items-center gap-2">
+                                <Badge className="bg-gray-700">{r?.status || auto?.status || 'enviado'}</Badge>
+                                {r?.arquivo_recebimento_assinado_url ? <Badge className="bg-green-600">Recebido</Badge> : null}
+                                {r?.arquivo_oficio_defesa_url ? <Badge className="bg-blue-600">Ofício anexado</Badge> : null}
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {auto?.arquivo_url ? (
+                                <Button variant="outline" size="sm" onClick={() => void openArquivo(auto.arquivo_url)}>
+                                  <Download className="h-4 w-4 mr-2" />
+                                  Baixar AI
+                                </Button>
+                              ) : null}
+                              {r?.arquivo_oficio_defesa_url ? (
+                                <Button variant="outline" size="sm" onClick={() => void openArquivo(r.arquivo_oficio_defesa_url)}>
+                                  <Download className="h-4 w-4 mr-2" />
+                                  Baixar ofício
+                                </Button>
+                              ) : null}
                             </div>
                           </div>
-                          <Button variant="outline" size="sm" onClick={() => setRemessaSelecionadaId(r.id)}>
-                            Abrir
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
 
-                {remessaSelecionada ? (
-                  <Card className="border-blue-200">
-                    <CardContent className="p-4 space-y-4">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="font-semibold">Remessa: {remessaSelecionada.numero_rfp || remessaSelecionada.id}</div>
-                        <Button variant="outline" size="sm" onClick={() => setRemessaSelecionadaId(null)}>
-                          Fechar
-                        </Button>
-                      </div>
+                          {r?.status === 'enviada' && !r?.arquivo_recebimento_assinado_url ? (
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Label className="text-sm">Assinar e enviar recebimento (PDF)</Label>
+                              <Input
+                                type="file"
+                                accept=".pdf,application/pdf"
+                                disabled={uploadingRemessa}
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) return;
+                                  if (!auto?._remessaId) return;
+                                  setUploadingRemessa(true);
+                                  try {
+                                    const ts = Date.now();
+                                    const rand = Math.random().toString(36).slice(2, 8);
+                                    const path = `remessas_ai/${auto._remessaId}/recebimento/${ts}-${rand}.pdf`;
+                                    const up = await Repository.uploadDocumentoAutos(file, path);
+                                    const url = `storage://${up.bucket}/${up.path}`;
+                                    await Repository.updateRemessaAIOnline(auto._remessaId, {
+                                      arquivo_recebimento_assinado_url: url,
+                                      recebida_em: new Date().toISOString(),
+                                      status: 'recebida'
+                                    });
+                                    alert('Recebimento registrado');
+                                  } catch (err) {
+                                    alert('Erro ao enviar recebimento: ' + (err?.message || String(err)));
+                                  } finally {
+                                    setUploadingRemessa(false);
+                                    e.target.value = '';
+                                  }
+                                }}
+                              />
+                            </div>
+                          ) : null}
 
-                      <div className="flex flex-wrap gap-2 items-center">
-                        {remessaSelecionada?.arquivo_lista_pdf_url ? (
-                          <Button variant="outline" onClick={() => void openArquivo(remessaSelecionada.arquivo_lista_pdf_url)}>
-                            <Download className="h-4 w-4 mr-2" />
-                            Baixar lista de AIs
-                          </Button>
-                        ) : null}
+                          <div>
+                            <Label>Defesa (texto)</Label>
+                            <Textarea
+                              className="mt-1"
+                              value={f.defesa_texto}
+                              onChange={(e) => setDefesaForms((prev) => ({ ...prev, [auto.id]: { ...f, defesa_texto: e.target.value } }))}
+                              disabled={disabledDefesa}
+                            />
+                          </div>
 
-                        {remessaSelecionada?.status === 'enviada' && !remessaSelecionada?.arquivo_recebimento_assinado_url ? (
-                          <Input
-                            type="file"
-                            accept=".pdf,application/pdf"
-                            disabled={uploadingRemessa}
-                            onChange={async (e) => {
-                              const file = e.target.files?.[0];
-                              if (!file) return;
-                              setUploadingRemessa(true);
-                              try {
-                                const ts = Date.now();
-                                const rand = Math.random().toString(36).slice(2, 8);
-                                const path = `remessas_ai/${remessaSelecionada.id}/recebimento/${ts}-${rand}.pdf`;
-                                const up = await Repository.uploadDocumentoAutos(file, path);
-                                const url = `storage://${up.bucket}/${up.path}`;
-                                await Repository.updateRemessaAIOnline(remessaSelecionada.id, {
-                                  arquivo_recebimento_assinado_url: url,
-                                  recebida_em: new Date().toISOString(),
-                                  status: 'recebida'
-                                });
-                                alert('Recebimento registrado');
-                              } catch (err) {
-                                alert('Erro ao enviar recebimento: ' + (err?.message || String(err)));
-                              } finally {
-                                setUploadingRemessa(false);
-                                e.target.value = '';
-                              }
-                            }}
-                          />
-                        ) : null}
-
-                        {remessaSelecionada?.arquivo_recebimento_assinado_url ? (
-                          <Badge className="bg-green-600">Recebido</Badge>
-                        ) : null}
-                      </div>
-
-                      <div className="space-y-3">
-                        {(remessaItens || []).map((it) => {
-                          const auto = it?.autos_infracao;
-                          if (!auto?.id) return null;
-                          const f = defesaForms[auto.id] || { defesa_texto: '', defesa_arquivos: [] };
-                          const disabledDefesa = !remessaSelecionada?.arquivo_recebimento_assinado_url || remessaSelecionada?.status !== 'recebida';
-                          return (
-                            <Card key={auto.id}>
-                              <CardContent className="p-4 space-y-3">
-                                <div className="flex flex-wrap items-center justify-between gap-2">
-                                  <div className="font-semibold">{auto.numero_auto || 'AI'}</div>
-                                  {auto?.arquivo_url ? (
-                                    <Button variant="outline" size="sm" onClick={() => void openArquivo(auto.arquivo_url)}>
-                                      <Download className="h-4 w-4 mr-2" />
-                                      Baixar AI
-                                    </Button>
-                                  ) : null}
-                                </div>
-
-                                <div>
-                                  <Label>Defesa (texto)</Label>
-                                  <Textarea
-                                    className="mt-1"
-                                    value={f.defesa_texto}
-                                    onChange={(e) => setDefesaForms((prev) => ({ ...prev, [auto.id]: { ...f, defesa_texto: e.target.value } }))}
-                                    disabled={disabledDefesa}
-                                  />
-                                </div>
-
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <Input
-                                    type="file"
-                                    accept=".pdf,image/*"
-                                    multiple
-                                    disabled={disabledDefesa}
-                                    onChange={async (e) => {
-                                      const files = Array.from(e.target.files || []);
-                                      if (files.length === 0) return;
-                                      try {
-                                        setUploadingRemessa(true);
-                                        const uploaded = [];
-                                        for (const file of files) {
-                                          const ext = file?.name && file.name.includes('.') ? file.name.split('.').pop() : 'bin';
-                                          const ts = Date.now();
-                                          const rand = Math.random().toString(36).slice(2, 8);
-                                          const path = `autos_infracao/${auto.id}/defesa/${ts}-${rand}.${String(ext || 'bin').toLowerCase()}`;
-                                          const up = await Repository.uploadDocumentoAutos(file, path);
-                                          uploaded.push({ ...up, url: `storage://${up.bucket}/${up.path}` });
-                                        }
-                                        setDefesaForms((prev) => {
-                                          const cur = prev[auto.id] || { defesa_texto: '', defesa_arquivos: [] };
-                                          return { ...prev, [auto.id]: { ...cur, defesa_arquivos: [...(cur.defesa_arquivos || []), ...uploaded] } };
-                                        });
-                                      } catch (err) {
-                                        alert('Erro ao enviar anexo: ' + (err?.message || String(err)));
-                                      } finally {
-                                        setUploadingRemessa(false);
-                                        e.target.value = '';
-                                      }
-                                    }}
-                                  />
-                                  <Button
-                                    variant="outline"
-                                    disabled={disabledDefesa || salvandoDefesaAutoId === auto.id}
-                                    onClick={async () => {
-                                      setSalvandoDefesaAutoId(auto.id);
-                                      try {
-                                        await Repository.updateAutoInfracaoOnline(auto.id, {
-                                          defesa_texto: String((defesaForms[auto.id]?.defesa_texto || '')).trim(),
-                                          defesa_arquivos: defesaForms[auto.id]?.defesa_arquivos || []
-                                        });
-                                        alert('Rascunho da defesa salvo');
-                                      } catch (err) {
-                                        alert('Erro ao salvar defesa: ' + (err?.message || String(err)));
-                                      } finally {
-                                        setSalvandoDefesaAutoId(null);
-                                      }
-                                    }}
-                                  >
-                                    <UploadCloud className="h-4 w-4 mr-2" />
-                                    {salvandoDefesaAutoId === auto.id ? 'Salvando...' : 'Salvar rascunho'}
-                                  </Button>
-                                </div>
-
-                                {Array.isArray(f?.defesa_arquivos) && f.defesa_arquivos.length > 0 ? (
-                                  <div className="flex flex-wrap gap-2">
-                                    {f.defesa_arquivos.map((a, idx) => (
-                                      <Badge key={idx} variant="outline" className="cursor-pointer" onClick={() => void openArquivo(a?.url || a)}>
-                                        {a?.nome || a?.path || `Anexo ${idx + 1}`}
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                ) : null}
-                              </CardContent>
-                            </Card>
-                          );
-                        })}
-                      </div>
-
-                      <Card className="border-yellow-200">
-                        <CardContent className="p-4 space-y-3">
-                          <div className="font-semibold">Ofício de envio da defesa</div>
                           <div className="flex flex-wrap items-center gap-2">
                             <Input
                               type="file"
-                              accept=".pdf,application/pdf"
-                              disabled={uploadingRemessa || !remessaSelecionada?.arquivo_recebimento_assinado_url || remessaSelecionada?.status !== 'recebida'}
+                              accept=".pdf,image/*"
+                              multiple
+                              disabled={disabledDefesa}
                               onChange={async (e) => {
-                                const file = e.target.files?.[0];
-                                if (!file) return;
-                                setUploadingRemessa(true);
+                                const files = Array.from(e.target.files || []);
+                                if (files.length === 0) return;
                                 try {
-                                  const ts = Date.now();
-                                  const rand = Math.random().toString(36).slice(2, 8);
-                                  const path = `remessas_ai/${remessaSelecionada.id}/oficio_defesa/${ts}-${rand}.pdf`;
-                                  const up = await Repository.uploadDocumentoAutos(file, path);
-                                  const url = `storage://${up.bucket}/${up.path}`;
-                                  await Repository.updateRemessaAIOnline(remessaSelecionada.id, {
-                                    arquivo_oficio_defesa_url: url
+                                  setUploadingRemessa(true);
+                                  const uploaded = [];
+                                  for (const file of files) {
+                                    const ext = file?.name && file.name.includes('.') ? file.name.split('.').pop() : 'bin';
+                                    const ts = Date.now();
+                                    const rand = Math.random().toString(36).slice(2, 8);
+                                    const path = `autos_infracao/${auto.id}/defesa/${ts}-${rand}.${String(ext || 'bin').toLowerCase()}`;
+                                    const up = await Repository.uploadDocumentoAutos(file, path);
+                                    uploaded.push({ ...up, url: `storage://${up.bucket}/${up.path}` });
+                                  }
+                                  setDefesaForms((prev) => {
+                                    const cur = prev[auto.id] || { defesa_texto: '', defesa_arquivos: [] };
+                                    return { ...prev, [auto.id]: { ...cur, defesa_arquivos: [...(cur.defesa_arquivos || []), ...uploaded] } };
                                   });
-                                  alert('Ofício anexado');
                                 } catch (err) {
-                                  alert('Erro ao anexar ofício: ' + (err?.message || String(err)));
+                                  alert('Erro ao enviar anexo: ' + (err?.message || String(err)));
                                 } finally {
                                   setUploadingRemessa(false);
                                   e.target.value = '';
                                 }
                               }}
                             />
-                            {remessaSelecionada?.arquivo_oficio_defesa_url ? (
-                              <Button variant="outline" onClick={() => void openArquivo(remessaSelecionada.arquivo_oficio_defesa_url)}>
-                                <Download className="h-4 w-4 mr-2" />
-                                Baixar ofício
-                              </Button>
-                            ) : null}
+                            <Button
+                              variant="outline"
+                              disabled={disabledDefesa || salvandoDefesaAutoId === auto.id}
+                              onClick={async () => {
+                                setSalvandoDefesaAutoId(auto.id);
+                                try {
+                                  await Repository.updateAutoInfracaoOnline(auto.id, {
+                                    defesa_texto: String((defesaForms[auto.id]?.defesa_texto || '')).trim(),
+                                    defesa_arquivos: defesaForms[auto.id]?.defesa_arquivos || []
+                                  });
+                                  alert('Rascunho da defesa salvo');
+                                } catch (err) {
+                                  alert('Erro ao salvar defesa: ' + (err?.message || String(err)));
+                                } finally {
+                                  setSalvandoDefesaAutoId(null);
+                                }
+                              }}
+                            >
+                              <UploadCloud className="h-4 w-4 mr-2" />
+                              {salvandoDefesaAutoId === auto.id ? 'Salvando...' : 'Salvar rascunho'}
+                            </Button>
+                          </div>
+
+                          {Array.isArray(f?.defesa_arquivos) && f.defesa_arquivos.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                              {f.defesa_arquivos.map((a, idx) => (
+                                <Badge key={idx} variant="outline" className="cursor-pointer" onClick={() => void openArquivo(a?.url || a)}>
+                                  {a?.nome || a?.path || `Anexo ${idx + 1}`}
+                                </Badge>
+                              ))}
+                            </div>
+                          ) : null}
+
+                          {(r?.status || '') === 'recebida' ? (
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Label className="text-sm">Ofício de envio da defesa (PDF)</Label>
+                              <Input
+                                type="file"
+                                accept=".pdf,application/pdf"
+                                disabled={uploadingRemessa || !r?.arquivo_recebimento_assinado_url || (r?.status || '') !== 'recebida'}
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) return;
+                                  if (!auto?._remessaId) return;
+                                  setUploadingRemessa(true);
+                                  try {
+                                    const ts = Date.now();
+                                    const rand = Math.random().toString(36).slice(2, 8);
+                                    const path = `remessas_ai/${auto._remessaId}/oficio_defesa/${ts}-${rand}.pdf`;
+                                    const up = await Repository.uploadDocumentoAutos(file, path);
+                                    const url = `storage://${up.bucket}/${up.path}`;
+                                    await Repository.updateRemessaAIOnline(auto._remessaId, {
+                                      arquivo_oficio_defesa_url: url
+                                    });
+                                    alert('Ofício anexado');
+                                  } catch (err) {
+                                    alert('Erro ao anexar ofício: ' + (err?.message || String(err)));
+                                  } finally {
+                                    setUploadingRemessa(false);
+                                    e.target.value = '';
+                                  }
+                                }}
+                              />
+                            </div>
+                          ) : null}
+
+                          <div className="flex justify-end">
+                            <Button
+                              className="bg-purple-600 hover:bg-purple-700"
+                              disabled={enviandoDefesa || !podeEnviar || !auto?._remessaId}
+                              onClick={async () => {
+                                if (!auto?._remessaId) return;
+                                if (!window.confirm('Você está prestes a enviar a defesa para análise. Deseja continuar?')) return;
+                                if (!window.confirm('Confirma o envio definitivo? Esta ação não pode ser desfeita.')) return;
+                                setEnviandoDefesa(true);
+                                try {
+                                  const autosDoGrupo = autosByRemessaId[auto._remessaId] || [];
+                                  for (const ax of autosDoGrupo) {
+                                    const fx = defesaForms[ax.id] || { defesa_texto: '', defesa_arquivos: [] };
+                                    await Repository.updateAutoInfracaoOnline(ax.id, {
+                                      defesa_texto: String(fx.defesa_texto || '').trim(),
+                                      defesa_arquivos: fx.defesa_arquivos || []
+                                    });
+                                  }
+                                  await Repository.updateRemessaAIOnline(auto._remessaId, {
+                                    defesa_enviada_em: new Date().toISOString(),
+                                    status: 'defesa_enviada'
+                                  });
+                                  alert('Defesa enviada para análise');
+                                } catch (err) {
+                                  alert('Erro ao enviar defesa: ' + (err?.message || String(err)));
+                                } finally {
+                                  setEnviandoDefesa(false);
+                                }
+                              }}
+                            >
+                              <Send className="h-4 w-4 mr-2" />
+                              {enviandoDefesa ? 'Enviando...' : 'Enviar defesa'}
+                            </Button>
                           </div>
                         </CardContent>
                       </Card>
-
-                      <div className="flex justify-end">
-                        <Button
-                          className="bg-purple-600 hover:bg-purple-700"
-                          disabled={enviandoDefesa || !remessaPodeEnviarDefesa}
-                          onClick={async () => {
-                            if (!remessaSelecionada) return;
-                            if (!window.confirm('Você está prestes a enviar a defesa para análise. Deseja continuar?')) return;
-                            if (!window.confirm('Confirma o envio definitivo? Esta ação não pode ser desfeita.')) return;
-                            setEnviandoDefesa(true);
-                            try {
-                              for (const it of remessaItens || []) {
-                                const auto = it?.autos_infracao;
-                                if (!auto?.id) continue;
-                                const f = defesaForms[auto.id] || { defesa_texto: '', defesa_arquivos: [] };
-                                await Repository.updateAutoInfracaoOnline(auto.id, {
-                                  defesa_texto: String(f.defesa_texto || '').trim(),
-                                  defesa_arquivos: f.defesa_arquivos || []
-                                });
-                              }
-                              await Repository.updateRemessaAIOnline(remessaSelecionada.id, {
-                                defesa_enviada_em: new Date().toISOString(),
-                                status: 'defesa_enviada'
-                              });
-                              alert('Defesa enviada para análise');
-                            } catch (err) {
-                              alert('Erro ao enviar defesa: ' + (err?.message || String(err)));
-                            } finally {
-                              setEnviandoDefesa(false);
-                            }
-                          }}
-                        >
-                          <Send className="h-4 w-4 mr-2" />
-                          {enviandoDefesa ? 'Enviando...' : 'Enviar defesa'}
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ) : null}
+                    );
+                  })}
+                </div>
               </>
             )}
           </TabsContent>

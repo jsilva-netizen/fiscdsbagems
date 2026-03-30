@@ -119,21 +119,32 @@ export default function ResponderTermo() {
     enabled: unidadeIds.length > 0,
   });
 
-  const respostaChecklistIds = useMemo(() => {
-    const ids = [];
-    for (const nc of ncs || []) {
-      if (nc?.resposta_checklist_id) ids.push(nc.resposta_checklist_id);
-    }
-    return Array.from(new Set(ids));
-  }, [ncs]);
-
   const { data: respostasChecklist = [] } = useQuery({
-    queryKey: ['respostas-checklist', respostaChecklistIds.join(',')],
+    queryKey: ['respostas-checklist-unidades', unidadeIds.join(',')],
     queryFn: async () => {
-      const data = await Repository.listRespostasChecklistOnlineByIds(respostaChecklistIds);
+      if (unidadeIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from('respostas_checklist')
+        .select('id, unidade_fiscalizada_id, resposta, numero_constatacao, created_at, pergunta, observacao')
+        .in('unidade_fiscalizada_id', unidadeIds);
+      if (error) throw error;
       return data || [];
     },
-    enabled: respostaChecklistIds.length > 0,
+    enabled: unidadeIds.length > 0,
+  });
+
+  const { data: constatacoesManuais = [] } = useQuery({
+    queryKey: ['constatacoes-manuais-unidades', unidadeIds.join(',')],
+    queryFn: async () => {
+      if (unidadeIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from('constatacoes_manuais')
+        .select('id, unidade_fiscalizada_id, numero_constatacao, created_at, descricao')
+        .in('unidade_fiscalizada_id', unidadeIds);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: unidadeIds.length > 0,
   });
 
   const determinacaoIds = useMemo(() => determinacoes.map((d) => d.id), [determinacoes]);
@@ -160,7 +171,6 @@ export default function ResponderTermo() {
         const evidencias = [...evidenciasResp, ...fallbackEv].filter(Boolean);
         initial[det.id] = {
           manifestacao_prestador: resp?.manifestacao_prestador || '',
-          descricao_atendimento: resp?.descricao_atendimento || '',
           evidencias,
           status: resp?.status || '',
         };
@@ -179,7 +189,6 @@ export default function ResponderTermo() {
         fiscalizacao_id: termo.fiscalizacao_id,
         prestador_servico_id: termo.prestador_servico_id,
         manifestacao_prestador: forms[detId]?.manifestacao_prestador || '',
-        descricao_atendimento: forms[detId]?.descricao_atendimento || '',
         evidencias: forms[detId]?.evidencias || [],
         status: 'rascunho',
       };
@@ -213,7 +222,6 @@ export default function ResponderTermo() {
         fiscalizacao_id: termo.fiscalizacao_id,
         prestador_servico_id: termo.prestador_servico_id,
         manifestacao_prestador: forms[detId]?.manifestacao_prestador || '',
-        descricao_atendimento: forms[detId]?.descricao_atendimento || '',
         evidencias: forms[detId]?.evidencias || [],
         status: 'aguardando_analise',
         data_resposta: hoje,
@@ -305,6 +313,128 @@ export default function ResponderTermo() {
       };
     });
   }, [unidadesFiscalizadas]);
+
+  const mapeamentoByUnidadeId = useMemo(() => {
+    const unidades = Array.isArray(unidadesFiscalizadas) ? [...unidadesFiscalizadas] : [];
+    unidades.sort((a, b) => {
+      const ca = a?.created_at || '';
+      const cb = b?.created_at || '';
+      if (ca !== cb) return String(ca).localeCompare(String(cb));
+      return String(a?.id || '').localeCompare(String(b?.id || ''));
+    });
+
+    const contadores = { constatacoes: 0, ncs: 0 };
+    const out = {};
+
+    const parseNumeroConstatacao = (valor) => {
+      const n = parseInt(String(valor || '').replace(/[^\d]/g, ''), 10);
+      return Number.isFinite(n) ? n : 9999;
+    };
+
+    for (const u of unidades) {
+      const unidadeId = u?.id;
+      if (!unidadeId) continue;
+
+      const respostasU = (respostasChecklist || []).filter((r) => r?.unidade_fiscalizada_id === unidadeId);
+      const manuaisU = (constatacoesManuais || []).filter((m) => m?.unidade_fiscalizada_id === unidadeId);
+      const ncsU = (ncs || []).filter((n) => n?.unidade_fiscalizada_id === unidadeId);
+      const detsU = (determinacoes || []).filter((d) => d?.unidade_fiscalizada_id === unidadeId);
+
+      const mapeamentoUnidade = { constatacoes: {}, ncs: {}, determinacoes: {} };
+
+      const constItensOrdenados = [
+        ...respostasU
+          .filter((r) => r?.resposta === 'SIM' || r?.resposta === 'NAO')
+          .map((r) => ({ id: r.id, numero_constatacao: r.numero_constatacao, created_at: r.created_at })),
+        ...manuaisU.map((m) => ({ id: m.id, numero_constatacao: m.numero_constatacao, created_at: m.created_at }))
+      ].sort((a, b) => {
+        const numA = parseNumeroConstatacao(a.numero_constatacao);
+        const numB = parseNumeroConstatacao(b.numero_constatacao);
+        if (numA !== numB) return numA - numB;
+        const createdA = a.created_at || '';
+        const createdB = b.created_at || '';
+        if (createdA !== createdB) return String(createdA).localeCompare(String(createdB));
+        return String(a.id).localeCompare(String(b.id));
+      });
+
+      constItensOrdenados.forEach((c) => {
+        contadores.constatacoes++;
+        mapeamentoUnidade.constatacoes[c.id] = contadores.constatacoes;
+      });
+
+      const ncsOrd = [...ncsU].sort((a, b) => {
+        const respA = respostasU.find((r) => r.id === a.resposta_checklist_id);
+        const respB = respostasU.find((r) => r.id === b.resposta_checklist_id);
+        const manualA = manuaisU.find(
+          (cm) => !a.resposta_checklist_id && a.descricao && cm?.numero_constatacao && a.descricao.includes(cm.numero_constatacao)
+        );
+        const manualB = manuaisU.find(
+          (cm) => !b.resposta_checklist_id && b.descricao && cm?.numero_constatacao && b.descricao.includes(cm.numero_constatacao)
+        );
+        const ordConstA = respA
+          ? mapeamentoUnidade.constatacoes[respA.id]
+          : manualA
+            ? mapeamentoUnidade.constatacoes[manualA.id]
+            : 9999;
+        const ordConstB = respB
+          ? mapeamentoUnidade.constatacoes[respB.id]
+          : manualB
+            ? mapeamentoUnidade.constatacoes[manualB.id]
+            : 9999;
+        return (ordConstA ?? 9999) - (ordConstB ?? 9999);
+      });
+
+      ncsOrd.forEach((nc) => {
+        contadores.ncs++;
+        mapeamentoUnidade.ncs[nc.id] = contadores.ncs;
+      });
+
+      const detsOrd = [...detsU].sort((a, b) => {
+        const ordNcA = mapeamentoUnidade.ncs[a.nao_conformidade_id] ?? 9999;
+        const ordNcB = mapeamentoUnidade.ncs[b.nao_conformidade_id] ?? 9999;
+        if (ordNcA !== ordNcB) return ordNcA - ordNcB;
+        const numA = parseInt(String(a.numero_determinacao || '').replace(/[^\d]/g, '') || '999', 10);
+        const numB = parseInt(String(b.numero_determinacao || '').replace(/[^\d]/g, '') || '999', 10);
+        return numA - numB;
+      });
+
+      detsOrd.forEach((det) => {
+        const numNcRelacionado = mapeamentoUnidade.ncs[det.nao_conformidade_id];
+        const fallback = parseInt(String(det.numero_determinacao || '').replace(/[^\d]/g, '') || '999', 10);
+        mapeamentoUnidade.determinacoes[det.id] = numNcRelacionado ?? fallback;
+      });
+
+      out[unidadeId] = mapeamentoUnidade;
+    }
+
+    return out;
+  }, [unidadesFiscalizadas, respostasChecklist, constatacoesManuais, ncs, determinacoes]);
+
+  const determinacoesSorted = useMemo(() => {
+    const unidades = Array.isArray(unidadesFiscalizadas) ? unidadesFiscalizadas : [];
+    const unidadeIndex = unidades.reduce((acc, u, idx) => {
+      if (u?.id) acc[u.id] = idx;
+      return acc;
+    }, {});
+
+    const list = Array.isArray(determinacoes) ? [...determinacoes] : [];
+    list.sort((a, b) => {
+      const idxA = unidadeIndex[a?.unidade_fiscalizada_id] ?? 9999;
+      const idxB = unidadeIndex[b?.unidade_fiscalizada_id] ?? 9999;
+      if (idxA !== idxB) return idxA - idxB;
+
+      const mapA = mapeamentoByUnidadeId[a?.unidade_fiscalizada_id];
+      const mapB = mapeamentoByUnidadeId[b?.unidade_fiscalizada_id];
+      const ordA = mapA?.determinacoes?.[a?.id] ?? 9999;
+      const ordB = mapB?.determinacoes?.[b?.id] ?? 9999;
+      if (ordA !== ordB) return ordA - ordB;
+
+      const numA = parseInt(String(a?.numero_determinacao || '').replace(/[^\d]/g, '') || '999', 10);
+      const numB = parseInt(String(b?.numero_determinacao || '').replace(/[^\d]/g, '') || '999', 10);
+      return numA - numB;
+    });
+    return list;
+  }, [determinacoes, unidadesFiscalizadas, mapeamentoByUnidadeId]);
 
   const temEvidencias = useMemo(() => {
     for (const item of fotosPorUnidade) {
@@ -550,13 +680,51 @@ export default function ResponderTermo() {
         {assinaturaTnOk ? (
           <>
             <div className="space-y-4">
-              {determinacoes.map((det) => {
+              {determinacoesSorted.map((det) => {
                 const status = getStatusResposta(det.id);
                 const evidencias = forms[det.id]?.evidencias || [];
                 const unidade = unidadesFiscalizadas.find((u) => u.id === det.unidade_fiscalizada_id);
                 const nc = ncs.find((n) => n.id === det.nao_conformidade_id);
-                const constatacao = nc?.resposta_checklist_id ? respostasChecklist.find((r) => r.id === nc.resposta_checklist_id) : null;
                 const bloqueado = termo?.status === 'respondido' || status === 'aguardando_analise';
+
+                const mapeamento = mapeamentoByUnidadeId[det.unidade_fiscalizada_id] || null;
+                const novoNumDetVal = mapeamento?.determinacoes?.[det.id];
+                const novoNumDet = novoNumDetVal ? `D${novoNumDetVal}` : det.numero_determinacao || 'D';
+
+                const novoNumNcVal = nc?.id ? mapeamento?.ncs?.[nc.id] : null;
+                const novoNumNC = novoNumNcVal ? `NC${novoNumNcVal}` : nc?.numero_nc || '';
+
+                let constNumero = '';
+                let constTexto = '';
+                if (nc?.resposta_checklist_id) {
+                  const resp = respostasChecklist.find((r) => r.id === nc.resposta_checklist_id);
+                  const n = resp?.id ? mapeamento?.constatacoes?.[resp.id] : null;
+                  if (n) constNumero = `C${n}`;
+                  constTexto = resp?.pergunta
+                    ? `${resp.pergunta}${resp.observacao ? ` Observação: ${resp.observacao}` : ''}`
+                    : '';
+                } else if (nc?.descricao) {
+                  const manual = constatacoesManuais.find(
+                    (cm) => cm?.numero_constatacao && String(nc.descricao).includes(cm.numero_constatacao)
+                  );
+                  const n = manual?.id ? mapeamento?.constatacoes?.[manual.id] : null;
+                  if (n) constNumero = `C${n}`;
+                  constTexto = manual?.descricao || '';
+                }
+
+                const descricaoNC =
+                  nc && constNumero
+                    ? `A Constatação ${constNumero} não cumpre o disposto no ${nc.artigo_portaria || 'artigo'};`
+                    : nc?.descricao || '';
+
+                let textoDet = String(det?.descricao || '').trim();
+                if (textoDet && novoNumNC) {
+                  textoDet = textoDet.replace(/NC\d+/g, novoNumNC);
+                }
+                if (textoDet && !textoDet.endsWith('.')) textoDet = `${textoDet}.`;
+                if (textoDet && !textoDet.includes('Prazo:') && det?.prazo_dias) {
+                  textoDet = `${textoDet} Prazo: ${det.prazo_dias} dias.`;
+                }
 
                 const lat = unidade?.latitude ?? unidade?.lat;
                 const lon = unidade?.longitude ?? unidade?.lng;
@@ -579,7 +747,10 @@ export default function ResponderTermo() {
                             ) : (
                               <AlertCircle className="h-5 w-5 text-gray-400" />
                             )}
-                            <h3 className="font-semibold text-lg">{det.numero_determinacao}</h3>
+                            <h3 className="text-lg">
+                              <span className="font-semibold">{novoNumDet}</span>
+                              {textoDet ? <span className="font-bold">{` - ${textoDet}`}</span> : null}
+                            </h3>
                           </div>
                           <div className="text-xs text-gray-600 space-y-1 mb-3">
                             {unidade && (
@@ -601,21 +772,17 @@ export default function ResponderTermo() {
                             )}
                             {nc && (
                               <div>
-                                <span className="font-medium">NC:</span> {nc.numero_nc || 'N/A'} {nc.descricao ? `- ${nc.descricao}` : ''}
+                                <span className="font-medium">NC:</span> {novoNumNC || 'N/A'} {descricaoNC ? `- ${descricaoNC}` : ''}
                               </div>
                             )}
-                            {constatacao && (
+                            {constNumero && (
                               <div>
                                 <span className="font-medium">Constatação:</span>{' '}
-                                {constatacao.numero_constatacao || 'N/A'} {constatacao.pergunta ? `- ${constatacao.pergunta}` : ''}
+                                {constNumero} {constTexto ? `- ${constTexto}` : ''}
                               </div>
                             )}
                           </div>
-                          <div className="flex items-center justify-between gap-2">
-                            <p className="text-sm text-gray-600 mb-3">{det.descricao}</p>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-3">
+                          <div className="grid grid-cols-1 gap-3">
                             <div>
                               <Label>Manifestação do Prestador</Label>
                               <Textarea
@@ -625,21 +792,6 @@ export default function ResponderTermo() {
                                   setForms((prev) => ({
                                     ...prev,
                                     [det.id]: { ...(prev[det.id] || {}), manifestacao_prestador: e.target.value },
-                                  }))
-                                }
-                                className="min-h-24"
-                                disabled={bloqueado}
-                              />
-                            </div>
-                            <div>
-                              <Label>Descrição do Atendimento (opcional)</Label>
-                              <Textarea
-                                placeholder="Descrição adicional..."
-                                value={forms[det.id]?.descricao_atendimento || ''}
-                                onChange={(e) =>
-                                  setForms((prev) => ({
-                                    ...prev,
-                                    [det.id]: { ...(prev[det.id] || {}), descricao_atendimento: e.target.value },
                                   }))
                                 }
                                 className="min-h-24"

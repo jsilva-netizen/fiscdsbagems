@@ -430,6 +430,7 @@ export const Repository = {
       .from('unidades_fiscalizadas')
       .select('*')
       .eq('fiscalizacao_id', fiscalizacaoId)
+      .order('created_at')
     if (error) throw error
     return data || []
   },
