@@ -132,6 +132,19 @@ export default function AnaliseManifestacao() {
         return m?.nome || 'N/A';
     };
 
+    const formatRfp = (termo) => {
+        const raw = termo?.numero_rfp;
+        if (!raw) return 'N/A';
+        const str = String(raw).trim();
+        if (/^RFP\//i.test(str) && str.includes('/')) return str;
+        const camara = termo?.camara_tecnica ? String(termo.camara_tecnica).trim() : '';
+        const anoBase = termo?.data_geracao || termo?.created_at || termo?.updated_at || Date.now();
+        const ano = new Date(anoBase).getFullYear();
+        const num = String(parseInt(str.replace(/\D/g, '') || '0', 10)).padStart(3, '0');
+        if (!camara) return str;
+        return `RFP/DSB/${camara}/${num}/${ano}`;
+    };
+
     const getDeterminacoesPorTermo = (termo) => {
         if (!termo.fiscalizacao_id) return [];
         // Buscar unidades desta fiscalização
@@ -717,6 +730,9 @@ export default function AnaliseManifestacao() {
                                                     </div>
                                                     <div>
                                                         <span className="font-medium">Câmara:</span> {termo.camara_tecnica}
+                                                    </div>
+                                                    <div>
+                                                       <span className="font-medium">RFP:</span> {formatRfp(termo)}
                                                     </div>
                                                     <div>
                                                        <span className="font-medium">Processo:</span> {termo.numero_processo || 'N/A'}
