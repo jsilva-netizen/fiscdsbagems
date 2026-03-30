@@ -247,9 +247,27 @@ export default function GestaoAutos() {
 
      const getNumeroProcesso = (autoId) => {
          const auto = autos.find(a => a.id === autoId);
+         const termo = termos.find(t => t.fiscalizacao_id === auto?.fiscalizacao_id && t.prestador_servico_id === auto?.prestador_servico_id) || null;
          const fisc = fiscalizacoes.find(f => f.id === auto?.fiscalizacao_id);
-         return fisc?.numero_processo || 'N/A';
+         return termo?.numero_processo || fisc?.numero_processo || 'N/A';
      };
+
+    const formatRfp = (termo) => {
+        if (!termo?.numero_rfp) return 'N/A';
+        const camara = termo?.camara_tecnica || 'CT';
+        const numero = String(termo.numero_rfp).padStart(3, '0');
+        const year = termo?.data_geracao ? new Date(termo.data_geracao).getFullYear() : new Date().getFullYear();
+        return `RFP/DSB/${camara}/${numero}/${year}`;
+    };
+
+    const getIdsRelacionados = (auto) => {
+        const termo = termos.find(t => t.fiscalizacao_id === auto?.fiscalizacao_id && t.prestador_servico_id === auto?.prestador_servico_id) || null;
+        const numeroTN = termo?.numero_termo_notificacao || termo?.numero_tn || termo?.numero_termo || 'N/A';
+        const numeroRfp = formatRfp(termo);
+        const numeroAm = termo?.numero_am || 'N/A';
+        const fluxoManual = !!termo?.fluxo_manual;
+        return { termo, numeroTN, numeroRfp, numeroAm, fluxoManual };
+    };
 
     const autosPorStatus = {
         gerados: autos.filter(a => a.status === 'gerado'),
@@ -258,7 +276,11 @@ export default function GestaoAutos() {
         finalizados: autos.filter(a => a.status === 'finalizado')
     };
 
-    const autosProntosParaRemessa = autosPorStatus.gerados.filter(a => !!a.arquivo_url && !!a.prestador_servico_id && !!a.fiscalizacao_id);
+    const autosProntosParaRemessa = autosPorStatus.gerados.filter(a => {
+        const penaUferms = Number(a?.pena_base_uferms || 0);
+        const penaRs = Number(a?.pena_base_rs || 0);
+        return !!a?.arquivo_url && !!a?.prestador_servico_id && !!a?.fiscalizacao_id && penaUferms > 0 && penaRs > 0;
+    });
     const gruposProntos = Object.values(
         autosProntosParaRemessa.reduce((acc, a) => {
             const key = `${a.prestador_servico_id}|${a.fiscalizacao_id}`;
@@ -402,14 +424,37 @@ export default function GestaoAutos() {
                         <CardContent className="p-4">
                         <div className="flex justify-between items-start mb-4">
                          <div className="flex-1">
+                             {(() => {
+                                 const ids = getIdsRelacionados(auto);
+                                 const infos = [];
+                                 if (ids.numeroTN !== 'N/A') infos.push(`TN: ${ids.numeroTN}`);
+                                 if (ids.numeroRfp !== 'N/A') infos.push(`RFP: ${ids.numeroRfp}`);
+                                 if (ids.numeroAm !== 'N/A') infos.push(`AM: ${ids.numeroAm}`);
+                                 return (
+                                     <>
                              <h3 className="font-semibold">{auto.numero_auto}</h3>
+                             {infos.length > 0 ? (
+                                 <p className="text-xs text-gray-500 mt-1">{infos.join(' | ')}</p>
+                             ) : null}
                              <p className="text-xs text-gray-500 mt-1">Prestador: {getPrestadorNome(auto.prestador_servico_id)}</p>
                              <p className="text-xs text-gray-500">Município: {getMunicipioNome(auto.id)}</p>
                              <p className="text-xs text-gray-500">Processo: {getNumeroProcesso(auto.id)}</p>
                              <p className="text-xs text-gray-500 mt-2">{auto.motivo_infracao}</p>
+                                     </>
+                                 );
+                             })()}
                          </div>
                          <div className="flex gap-2">
-                             <FluxoUploadDocumentos auto={auto} onUpdate={() => queryClient.invalidateQueries({ queryKey: ['autos-infracao'] })} />
+                             {(() => {
+                                 const { fluxoManual } = getIdsRelacionados(auto);
+                                 return (
+                                     <FluxoUploadDocumentos
+                                         auto={auto}
+                                         fluxoManual={fluxoManual}
+                                         onUpdate={() => queryClient.invalidateQueries({ queryKey: ['autos-infracao'] })}
+                                     />
+                                 );
+                             })()}
                          </div>
                         </div>
                         <div className="border-t pt-4 grid grid-cols-2 gap-4 mb-4">
@@ -447,6 +492,25 @@ export default function GestaoAutos() {
                          {salvarPenaBaseMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
                          Salvar Alterações
                         </Button>
+                        {(() => {
+                            const { fluxoManual } = getIdsRelacionados(auto);
+                            const penaUferms = Number(auto?.pena_base_uferms || 0);
+                            const penaRs = Number(auto?.pena_base_rs || 0);
+                            const podeEnviar = !fluxoManual && !!auto?.arquivo_url && penaUferms > 0 && penaRs > 0 && !!auto?.prestador_servico_id && !!auto?.fiscalizacao_id;
+                            const groupKey = podeEnviar ? `${auto.prestador_servico_id}|${auto.fiscalizacao_id}` : '';
+                            const grupo = podeEnviar ? gruposProntos.find((g) => g.key === groupKey) : null;
+                            return podeEnviar ? (
+                                <Button
+                                    size="sm"
+                                    className="w-full bg-blue-600 hover:bg-blue-700 mt-2"
+                                    disabled={criandoRemessaKey === groupKey || !grupo}
+                                    onClick={() => void criarEEnviarRemessa(grupo)}
+                                >
+                                    <Send className="h-4 w-4 mr-2" />
+                                    {criandoRemessaKey === groupKey ? 'Enviando...' : 'Enviar ao prestador'}
+                                </Button>
+                            ) : null;
+                        })()}
                         </CardContent>
                         </Card>
                         ))}

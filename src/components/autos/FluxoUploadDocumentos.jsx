@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Upload, FileText, CheckCircle } from 'lucide-react';
 
-export default function FluxoUploadDocumentos({ auto, onUpdate }) {
+export default function FluxoUploadDocumentos({ auto, onUpdate, fluxoManual = true }) {
     const [uploading, setUploading] = useState(false);
     const [etapa, setEtapa] = useState('ai_assinado'); // ai_assinado, protocolo, defesa
 
@@ -119,117 +119,119 @@ export default function FluxoUploadDocumentos({ auto, onUpdate }) {
                         </CardContent>
                     </Card>
 
-                    {/* Etapa 2: Protocolo */}
-                    <Card className={hasProtocolo ? 'border-green-300' : hasAIAssinado ? '' : 'opacity-50'}>
-                        <CardHeader className="pb-3">
-                            <div className="flex items-center justify-between">
-                                <CardTitle className="text-sm flex items-center gap-2">
-                                    {hasProtocolo && <CheckCircle className="h-4 w-4 text-green-600" />}
-                                    2. Protocolo
-                                </CardTitle>
-                                {hasProtocolo && <Badge variant="outline" className="bg-green-50">Concluído</Badge>}
-                            </div>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                            <p className="text-xs text-gray-600">Upload dos documentos de protocolo (Ofício e AI Recebido)</p>
-                            
-                            <div>
-                                <Label className="text-xs">Ofício de Protocolo</Label>
-                                <input
-                                    type="file"
-                                    id="upload-protocolo-oficio"
-                                    className="hidden"
-                                    onChange={(e) => handleUpload('protocolo_oficio', e)}
-                                    disabled={uploading || !hasAIAssinado}
-                                    accept=".pdf"
-                                />
-                                <label htmlFor="upload-protocolo-oficio">
-                                    <Button variant="outline" asChild disabled={uploading || !hasAIAssinado} className="mt-1 w-full text-xs">
-                                        <span>
-                                            <FileText className="h-3 w-3 mr-1" />
-                                            {auto.arquivo_protocolo_oficio ? 'Alterar' : 'Enviar'}
-                                        </span>
-                                    </Button>
-                                </label>
-                            </div>
+                    {fluxoManual ? (
+                        <>
+                            <Card className={hasProtocolo ? 'border-green-300' : hasAIAssinado ? '' : 'opacity-50'}>
+                                <CardHeader className="pb-3">
+                                    <div className="flex items-center justify-between">
+                                        <CardTitle className="text-sm flex items-center gap-2">
+                                            {hasProtocolo && <CheckCircle className="h-4 w-4 text-green-600" />}
+                                            2. Protocolo
+                                        </CardTitle>
+                                        {hasProtocolo && <Badge variant="outline" className="bg-green-50">Concluído</Badge>}
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                    <p className="text-xs text-gray-600">Upload dos documentos de protocolo (Ofício e AI Recebido)</p>
 
-                            <div>
-                                <Label className="text-xs">AI Recebido</Label>
-                                <input
-                                    type="file"
-                                    id="upload-protocolo-ai"
-                                    className="hidden"
-                                    onChange={(e) => handleUpload('protocolo_ai_recebido', e)}
-                                    disabled={uploading || !hasAIAssinado}
-                                    accept=".pdf"
-                                />
-                                <label htmlFor="upload-protocolo-ai">
-                                    <Button variant="outline" asChild disabled={uploading || !hasAIAssinado} className="mt-1 w-full text-xs">
-                                        <span>
-                                            <FileText className="h-3 w-3 mr-1" />
-                                            {auto.arquivo_protocolo_ai_recebido ? 'Alterar' : 'Enviar'}
-                                        </span>
-                                    </Button>
-                                </label>
-                            </div>
-                        </CardContent>
-                    </Card>
+                                    <div>
+                                        <Label className="text-xs">Ofício de Protocolo</Label>
+                                        <input
+                                            type="file"
+                                            id="upload-protocolo-oficio"
+                                            className="hidden"
+                                            onChange={(e) => handleUpload('protocolo_oficio', e)}
+                                            disabled={uploading || !hasAIAssinado}
+                                            accept=".pdf"
+                                        />
+                                        <label htmlFor="upload-protocolo-oficio">
+                                            <Button variant="outline" asChild disabled={uploading || !hasAIAssinado} className="mt-1 w-full text-xs">
+                                                <span>
+                                                    <FileText className="h-3 w-3 mr-1" />
+                                                    {auto.arquivo_protocolo_oficio ? 'Alterar' : 'Enviar'}
+                                                </span>
+                                            </Button>
+                                        </label>
+                                    </div>
 
-                    {/* Etapa 3: Defesa */}
-                    <Card className={hasDefesa ? 'border-green-300' : hasProtocolo ? '' : 'opacity-50'}>
-                        <CardHeader className="pb-3">
-                            <div className="flex items-center justify-between">
-                                <CardTitle className="text-sm flex items-center gap-2">
-                                    {hasDefesa && <CheckCircle className="h-4 w-4 text-green-600" />}
-                                    3. Defesa contra AIs
-                                </CardTitle>
-                                {hasDefesa && <Badge variant="outline" className="bg-green-50">Concluído</Badge>}
-                            </div>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                            <p className="text-xs text-gray-600">Upload dos documentos de defesa (Ofício e arquivo de defesa)</p>
-                            
-                            <div>
-                                <Label className="text-xs">Ofício de Defesa</Label>
-                                <input
-                                    type="file"
-                                    id="upload-defesa-oficio"
-                                    className="hidden"
-                                    onChange={(e) => handleUpload('defesa_oficio', e)}
-                                    disabled={uploading || !hasProtocolo}
-                                    accept=".pdf"
-                                />
-                                <label htmlFor="upload-defesa-oficio">
-                                    <Button variant="outline" asChild disabled={uploading || !hasProtocolo} className="mt-1 w-full text-xs">
-                                        <span>
-                                            <FileText className="h-3 w-3 mr-1" />
-                                            {auto.arquivo_defesa_oficio ? 'Alterar' : 'Enviar'}
-                                        </span>
-                                    </Button>
-                                </label>
-                            </div>
+                                    <div>
+                                        <Label className="text-xs">AI Recebido</Label>
+                                        <input
+                                            type="file"
+                                            id="upload-protocolo-ai"
+                                            className="hidden"
+                                            onChange={(e) => handleUpload('protocolo_ai_recebido', e)}
+                                            disabled={uploading || !hasAIAssinado}
+                                            accept=".pdf"
+                                        />
+                                        <label htmlFor="upload-protocolo-ai">
+                                            <Button variant="outline" asChild disabled={uploading || !hasAIAssinado} className="mt-1 w-full text-xs">
+                                                <span>
+                                                    <FileText className="h-3 w-3 mr-1" />
+                                                    {auto.arquivo_protocolo_ai_recebido ? 'Alterar' : 'Enviar'}
+                                                </span>
+                                            </Button>
+                                        </label>
+                                    </div>
+                                </CardContent>
+                            </Card>
 
-                            <div>
-                                <Label className="text-xs">Arquivo de Defesa</Label>
-                                <input
-                                    type="file"
-                                    id="upload-defesa-arquivo"
-                                    className="hidden"
-                                    onChange={(e) => handleUpload('defesa_arquivo', e)}
-                                    disabled={uploading || !hasProtocolo}
-                                    accept=".pdf"
-                                />
-                                <label htmlFor="upload-defesa-arquivo">
-                                    <Button variant="outline" asChild disabled={uploading || !hasProtocolo} className="mt-1 w-full text-xs">
-                                        <span>
-                                            <FileText className="h-3 w-3 mr-1" />
-                                            {auto.arquivo_defesa ? 'Alterar' : 'Enviar'}
-                                        </span>
-                                    </Button>
-                                </label>
-                            </div>
-                        </CardContent>
-                    </Card>
+                            <Card className={hasDefesa ? 'border-green-300' : hasProtocolo ? '' : 'opacity-50'}>
+                                <CardHeader className="pb-3">
+                                    <div className="flex items-center justify-between">
+                                        <CardTitle className="text-sm flex items-center gap-2">
+                                            {hasDefesa && <CheckCircle className="h-4 w-4 text-green-600" />}
+                                            3. Defesa contra AIs
+                                        </CardTitle>
+                                        {hasDefesa && <Badge variant="outline" className="bg-green-50">Concluído</Badge>}
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                    <p className="text-xs text-gray-600">Upload dos documentos de defesa (Ofício e arquivo de defesa)</p>
+
+                                    <div>
+                                        <Label className="text-xs">Ofício de Defesa</Label>
+                                        <input
+                                            type="file"
+                                            id="upload-defesa-oficio"
+                                            className="hidden"
+                                            onChange={(e) => handleUpload('defesa_oficio', e)}
+                                            disabled={uploading || !hasProtocolo}
+                                            accept=".pdf"
+                                        />
+                                        <label htmlFor="upload-defesa-oficio">
+                                            <Button variant="outline" asChild disabled={uploading || !hasProtocolo} className="mt-1 w-full text-xs">
+                                                <span>
+                                                    <FileText className="h-3 w-3 mr-1" />
+                                                    {auto.arquivo_defesa_oficio ? 'Alterar' : 'Enviar'}
+                                                </span>
+                                            </Button>
+                                        </label>
+                                    </div>
+
+                                    <div>
+                                        <Label className="text-xs">Arquivo de Defesa</Label>
+                                        <input
+                                            type="file"
+                                            id="upload-defesa-arquivo"
+                                            className="hidden"
+                                            onChange={(e) => handleUpload('defesa_arquivo', e)}
+                                            disabled={uploading || !hasProtocolo}
+                                            accept=".pdf"
+                                        />
+                                        <label htmlFor="upload-defesa-arquivo">
+                                            <Button variant="outline" asChild disabled={uploading || !hasProtocolo} className="mt-1 w-full text-xs">
+                                                <span>
+                                                    <FileText className="h-3 w-3 mr-1" />
+                                                    {auto.arquivo_defesa ? 'Alterar' : 'Enviar'}
+                                                </span>
+                                            </Button>
+                                        </label>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </>
+                    ) : null}
                 </div>
             </DialogContent>
         </Dialog>
