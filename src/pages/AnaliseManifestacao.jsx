@@ -712,6 +712,7 @@ export default function AnaliseManifestacao() {
                             const fisc = fiscalizacoes.find(f => f.id === termo.fiscalizacao_id);
                             const stats = contarStatusDeterminacoes(termo);
                             const statusInfo = getStatusBadge(termo);
+                            const numeroTN = termo.numero_termo_notificacao || termo.numero_termo || 'N/A';
 
                             return (
                                 <Card key={termo.id} className="hover:shadow-lg transition-shadow">
@@ -722,6 +723,11 @@ export default function AnaliseManifestacao() {
                                                     {termo.numero_am || termo.numero_termo_notificacao}
                                                 </h3>
                                                 <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 mb-3">
+                                                    {termo.numero_am ? (
+                                                        <div>
+                                                            <span className="font-medium">TN:</span> {numeroTN}
+                                                        </div>
+                                                    ) : null}
                                                     <div>
                                                         <span className="font-medium">Município:</span> {getMunicipioNome(termo.municipio_id)}
                                                     </div>
@@ -747,10 +753,10 @@ export default function AnaliseManifestacao() {
                                                         <Badge className="bg-yellow-600">{stats.aguardandoAnalise} aguardando análise</Badge>
                                                     )}
                                                     {stats.atendidas > 0 && (
-                                                        <Badge className="bg-green-600">{stats.atendidas} atendidas</Badge>
+                                                        <Badge className="bg-green-600">{stats.atendidas} acatadas</Badge>
                                                     )}
                                                     {stats.naoAtendidas > 0 && (
-                                                        <Badge className="bg-red-600">{stats.naoAtendidas} não atendidas</Badge>
+                                                        <Badge className="bg-red-600">{stats.naoAtendidas} não acatadas</Badge>
                                                     )}
                                                 </div>
                                             </div>

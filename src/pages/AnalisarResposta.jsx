@@ -306,6 +306,15 @@ export default function AnalisarResposta() {
         return out;
     }, [unidadesOrdenadas, numeracaoByUnidadeId, ncs, determinacoes]);
 
+    const getNumeroDeterminacaoExibicao = (det) => {
+        if (!det) return 'N/A';
+        const unidadeId = det?.unidade_fiscalizada_id;
+        const mapeamento = unidadeId ? numeracaoByUnidadeId[unidadeId] : null;
+        const mapped = det?.id ? mapeamento?.determinacoes?.[det.id] : null;
+        if (mapped) return `D${mapped}`;
+        return det?.numero_determinacao || 'N/A';
+    };
+
     const detIndexById = useMemo(() => {
         const m = new Map();
         determinacoesOrdenadas.forEach((d, idx) => m.set(d.id, idx));
@@ -431,8 +440,13 @@ export default function AnalisarResposta() {
     };
 
     const confirmarAnalise = () => {
+        const det = confirmDialog.determinacao || detalheDeterminacao;
+        if (!det?.id) {
+            setConfirmDialog({ open: false, determinacao: null });
+            return;
+        }
         salvarAnaliseMutation.mutate({
-            determinacaoId: detalheDeterminacao.id,
+            determinacaoId: det.id,
             status: analiseForm.status,
             manifestacao: analiseForm.manifestacao_prestador,
             descricao: analiseForm.descricao_atendimento
@@ -496,46 +510,6 @@ export default function AnalisarResposta() {
                                 <span className="font-medium">Serviços:</span> {fiscalizacao?.servicos?.join(', ') || 'N/A'}
                             </div>
                         </div>
-                        {(() => {
-                            const arquivos = Array.isArray(termo.arquivos_resposta) ? termo.arquivos_resposta : [];
-                            const assinatura = arquivos.find((a) => a?.categoria === 'assinatura');
-                            const anexos = arquivos.filter((a) => a?.categoria !== 'assinatura' && a?.categoria !== 'evidencia_determinacao');
-                            if (!assinatura && anexos.length === 0) return null;
-                            return (
-                            <div className="mt-4 pt-4 border-t">
-                                {assinatura && (
-                                    <div className="mb-3">
-                                        <p className="font-medium mb-2">Assinatura do prestador:</p>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => void openArquivo(assinatura)}
-                                        >
-                                            <Download className="h-4 w-4 mr-2" />
-                                            Visualizar assinatura
-                                        </Button>
-                                    </div>
-                                )}
-                                {anexos.length > 0 && (
-                                    <div>
-                                        <p className="font-medium mb-2">Arquivos da resposta ao TN:</p>
-                                        {anexos.map((arquivo, idx) => (
-                                            <Button
-                                                key={idx}
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => void openArquivo(arquivo)}
-                                                className="mr-2"
-                                            >
-                                                <Download className="h-4 w-4 mr-2" />
-                                                Visualizar PDF
-                                            </Button>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                            );
-                        })()}
                     </CardContent>
                 </Card>
 
@@ -599,7 +573,10 @@ export default function AnalisarResposta() {
                                                         <div className="flex-1">
                                                             <div className="flex items-center gap-2 mb-2">
                                                                 {statusIcon}
-                                                                <h3 className="font-semibold text-lg">{novoNumDet}</h3>
+                                                                <h3 className="font-semibold text-lg">
+                                                                    {novoNumDet}
+                                                                    {textoDet ? ` - ${textoDet}` : ''}
+                                                                </h3>
                                                                 {bloqueado && <Lock className="h-4 w-4 text-gray-400" />}
                                                             </div>
                                                             <div className="text-xs text-gray-600 space-y-1 mb-2">
@@ -615,7 +592,6 @@ export default function AnalisarResposta() {
                                                                     </div>
                                                                 )}
                                                             </div>
-                                                            <p className="text-sm text-gray-600 mb-2">{textoDet}</p>
                                                             <div className="flex gap-2">
                                                                 {status === 'atendida' && <Badge className="bg-green-600">Acatada</Badge>}
                                                                 {status === 'nao_atendida' && <Badge className="bg-red-600">Não acatada</Badge>}
@@ -669,6 +645,47 @@ export default function AnalisarResposta() {
                         </DialogHeader>
                         {detalheDeterminacao && (
                             <div className="space-y-4">
+                                {(() => {
+                                    const det = detalheDeterminacao;
+                                    const unidade = unidadesFiscalizadas.find((u) => u.id === det?.unidade_fiscalizada_id);
+                                    const mapeamento = det?.unidade_fiscalizada_id ? numeracaoByUnidadeId[det.unidade_fiscalizada_id] : null;
+                                    const nc = ncs.find((n) => n.id === det?.nao_conformidade_id);
+                                    const respostaRelacionada = nc?.resposta_checklist_id ? respostasChecklist.find((r) => r.id === nc.resposta_checklist_id) : null;
+                                    const manualRelacionada = !nc?.resposta_checklist_id
+                                        ? (constatacoesManuais || []).find((cm) => cm?.numero_constatacao && nc?.descricao && String(nc.descricao).includes(cm.numero_constatacao))
+                                        : null;
+                                    const novoNumNC = nc?.id && mapeamento?.ncs?.[nc.id] ? `NC${mapeamento.ncs[nc.id]}` : (nc?.numero_nc || 'N/A');
+
+                                    let numConstatacaoNovo = '';
+                                    if (respostaRelacionada?.id && mapeamento?.constatacoes?.[respostaRelacionada.id]) {
+                                        numConstatacaoNovo = `C${mapeamento.constatacoes[respostaRelacionada.id]}`;
+                                    } else if (manualRelacionada?.id && mapeamento?.constatacoes?.[manualRelacionada.id]) {
+                                        numConstatacaoNovo = `C${mapeamento.constatacoes[manualRelacionada.id]}`;
+                                    } else if (respostaRelacionada?.numero_constatacao) {
+                                        numConstatacaoNovo = String(respostaRelacionada.numero_constatacao);
+                                    } else if (manualRelacionada?.numero_constatacao) {
+                                        numConstatacaoNovo = String(manualRelacionada.numero_constatacao);
+                                    }
+
+                                    const descricaoNC = numConstatacaoNovo
+                                        ? `A Constatação ${numConstatacaoNovo} não cumpre o disposto no ${nc?.artigo_portaria || 'artigo'};`
+                                        : (nc?.descricao || '');
+
+                                    return (
+                                        <div className="text-xs text-gray-600 space-y-1">
+                                            <div>
+                                                <span className="font-medium">Unidade:</span> {unidade?.codigo_unidade || unidade?.codigo || unidade?.id || 'N/A'}
+                                            </div>
+                                            <div>
+                                                <span className="font-medium">NC:</span> {novoNumNC} {descricaoNC ? `- ${descricaoNC}` : ''}
+                                            </div>
+                                            <div>
+                                                <span className="font-medium">Constatação:</span>{' '}
+                                                {numConstatacaoNovo || 'N/A'} {(respostaRelacionada?.pergunta || manualRelacionada?.descricao) ? `- ${respostaRelacionada?.pergunta || manualRelacionada?.descricao}` : ''}
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
                                 <div>
                                     <p className="font-medium mb-2">Texto Completo da Determinação:</p>
                                     {(() => {
@@ -816,7 +833,7 @@ export default function AnalisarResposta() {
                         <AlertDialogHeader>
                             <AlertDialogTitle>Confirmar Análise</AlertDialogTitle>
                             <AlertDialogDescription>
-                                Você está prestes a marcar a determinação <strong>{confirmDialog.determinacao?.numero_determinacao}</strong> como{' '}
+                                Você está prestes a marcar a determinação <strong>{getNumeroDeterminacaoExibicao(confirmDialog.determinacao)}</strong> como{' '}
                                 <strong>{analiseForm.status === 'atendida' ? 'Acatada' : 'Não Acatada'}</strong>.
                                 {analiseForm.status === 'nao_atendida' && (
                                     <span className="block mt-2 text-red-600 font-medium">
