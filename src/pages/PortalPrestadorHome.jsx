@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Repository } from '@/lib/offline/repository';
 import { useAuth } from '@/lib/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -19,6 +19,7 @@ export default function PortalPrestadorHome() {
   const [prestadorId, setPrestadorId] = useState(null);
   const [saindo, setSaindo] = useState(false);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('tns');
   const [defesaForms, setDefesaForms] = useState({});
   const [uploadingRemessa, setUploadingRemessa] = useState(false);
@@ -240,14 +241,37 @@ export default function PortalPrestadorHome() {
     return out;
   }, [autosAI]);
 
+  const autosAiColumns = useMemo(() => {
+    const first = (autosAI || [])[0] || {};
+    return new Set(Object.keys(first));
+  }, [autosAI]);
+
+  const aiAssinadoPrestadorColumn = useMemo(() => {
+    const candidatos = [
+      'arquivo_ai_assinado_prestador_url',
+      'arquivo_ai_assinado_url',
+      'arquivo_ai_assinado_prestador',
+      'arquivo_ai_assinado'
+    ];
+    for (const c of candidatos) {
+      if (autosAiColumns.has(c)) return c;
+    }
+    return null;
+  }, [autosAiColumns]);
+
+  const getAiAssinadoPrestadorUrl = (auto) => {
+    if (!aiAssinadoPrestadorColumn) return null;
+    return auto?.[aiAssinadoPrestadorColumn] || null;
+  };
+
   const kpisAI = useMemo(() => {
     const list = Array.isArray(autosAI) ? autosAI : [];
     const total = list.length;
-    const aguardandoRecebimento = list.filter((a) => (a?._remessa?.status || '') === 'enviada' && !a?._remessa?.arquivo_recebimento_assinado_url).length;
+    const aguardandoRecebimento = list.filter((a) => (a?._remessa?.status || '') === 'enviada' && !getAiAssinadoPrestadorUrl(a)).length;
     const aguardandoDefesa = list.filter((a) => (a?._remessa?.status || '') === 'recebida').length;
     const defesaEnviada = list.filter((a) => (a?._remessa?.status || '') === 'defesa_enviada').length;
     return { total, aguardandoRecebimento, aguardandoDefesa, defesaEnviada };
-  }, [autosAI]);
+  }, [autosAI, aiAssinadoPrestadorColumn]);
 
   const cardsKpi = useMemo(() => {
     if (activeTab === 'ais') {
@@ -285,10 +309,6 @@ export default function PortalPrestadorHome() {
       const r = a?._remessa;
       if (!rid || !r) continue;
       if ((r?.status || '') !== 'recebida') {
-        out[a.id] = false;
-        continue;
-      }
-      if (!r?.arquivo_recebimento_assinado_url) {
         out[a.id] = false;
         continue;
       }
@@ -440,8 +460,9 @@ export default function PortalPrestadorHome() {
                   {autosAI.map((auto) => {
                     const r = auto?._remessa || null;
                     const f = defesaForms[auto.id] || { defesa_texto: '', defesa_arquivos: [] };
-                    const disabledDefesa = !r?.arquivo_recebimento_assinado_url || (r?.status || '') !== 'recebida';
+                    const disabledDefesa = (r?.status || '') !== 'recebida';
                     const podeEnviar = !!podeEnviarDefesaAuto?.[auto.id] && (r?.status || '') === 'recebida';
+                    const hasAiAssinado = !!getAiAssinadoPrestadorUrl(auto);
                     return (
                       <Card key={auto.id} className="hover:shadow-md transition-shadow">
                         <CardContent className="p-4 space-y-3">
@@ -463,7 +484,7 @@ export default function PortalPrestadorHome() {
                               </div>
                               <div className="mt-2 flex flex-wrap items-center gap-2">
                                 <Badge className="bg-gray-700">{r?.status || auto?.status || 'enviado'}</Badge>
-                                {r?.arquivo_recebimento_assinado_url ? <Badge className="bg-green-600">Recebido</Badge> : null}
+                                {hasAiAssinado ? <Badge className="bg-green-600">AI assinado enviado</Badge> : null}
                                 {r?.arquivo_oficio_defesa_url ? <Badge className="bg-blue-600">Ofício anexado</Badge> : null}
                               </div>
                             </div>
@@ -483,9 +504,9 @@ export default function PortalPrestadorHome() {
                             </div>
                           </div>
 
-                          {r?.status === 'enviada' && !r?.arquivo_recebimento_assinado_url ? (
+                          {r?.status === 'enviada' && !hasAiAssinado ? (
                             <div className="flex flex-wrap items-center gap-2">
-                              <Label className="text-sm">Assinar e enviar recebimento (PDF)</Label>
+                              <Label className="text-sm">Enviar AI assinado (PDF)</Label>
                               <Input
                                 type="file"
                                 accept=".pdf,application/pdf"
@@ -494,21 +515,40 @@ export default function PortalPrestadorHome() {
                                   const file = e.target.files?.[0];
                                   if (!file) return;
                                   if (!auto?._remessaId) return;
+                                  if (!aiAssinadoPrestadorColumn) {
+                                    alert('Configuração do sistema: falta a coluna de arquivo do AI assinado do prestador na tabela autos_infracao.');
+                                    e.target.value = '';
+                                    return;
+                                  }
                                   setUploadingRemessa(true);
                                   try {
                                     const ts = Date.now();
                                     const rand = Math.random().toString(36).slice(2, 8);
-                                    const path = `remessas_ai/${auto._remessaId}/recebimento/${ts}-${rand}.pdf`;
+                                    const path = `autos_infracao/${auto.id}/ai_assinado_prestador/${ts}-${rand}.pdf`;
                                     const up = await Repository.uploadDocumentoAutos(file, path);
                                     const url = `storage://${up.bucket}/${up.path}`;
-                                    await Repository.updateRemessaAIOnline(auto._remessaId, {
-                                      arquivo_recebimento_assinado_url: url,
-                                      recebida_em: new Date().toISOString(),
-                                      status: 'recebida'
+                                    await Repository.updateAutoInfracaoOnline(auto.id, {
+                                      [aiAssinadoPrestadorColumn]: url
                                     });
-                                    alert('Recebimento registrado');
+
+                                    const autosDoGrupo = autosByRemessaId[auto._remessaId] || [];
+                                    const allAssinados = autosDoGrupo.every((ax) => {
+                                      if (!ax?.id) return false;
+                                      if (ax.id === auto.id) return true;
+                                      return !!getAiAssinadoPrestadorUrl(ax);
+                                    });
+                                    if (allAssinados) {
+                                      await Repository.updateRemessaAIOnline(auto._remessaId, {
+                                        recebida_em: new Date().toISOString(),
+                                        status: 'recebida'
+                                      });
+                                    }
+
+                                    await queryClient.invalidateQueries({ queryKey: ['lotes-ai-prestador', prestadorId] });
+                                    await queryClient.invalidateQueries({ queryKey: ['itens-autos-ai-prestador', prestadorId] });
+                                    alert('AI assinado enviado');
                                   } catch (err) {
-                                    alert('Erro ao enviar recebimento: ' + (err?.message || String(err)));
+                                    alert('Erro ao enviar AI assinado: ' + (err?.message || String(err)));
                                   } finally {
                                     setUploadingRemessa(false);
                                     e.target.value = '';
@@ -599,7 +639,7 @@ export default function PortalPrestadorHome() {
                               <Input
                                 type="file"
                                 accept=".pdf,application/pdf"
-                                disabled={uploadingRemessa || !r?.arquivo_recebimento_assinado_url || (r?.status || '') !== 'recebida'}
+                                disabled={uploadingRemessa || (r?.status || '') !== 'recebida'}
                                 onChange={async (e) => {
                                   const file = e.target.files?.[0];
                                   if (!file) return;
