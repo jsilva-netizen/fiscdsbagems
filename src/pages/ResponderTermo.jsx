@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Repository } from '@/lib/offline/repository';
@@ -27,6 +27,7 @@ export default function ResponderTermo() {
   const [evidenciasOpen, setEvidenciasOpen] = useState(false);
   const [signedFotosByKey, setSignedFotosByKey] = useState({});
   const [salvandoDetId, setSalvandoDetId] = useState(null);
+  const tnPrestadorFileInputRef = useRef(null);
 
   const openArquivo = async (arq) => {
     try {
@@ -44,6 +45,19 @@ export default function ResponderTermo() {
     const d = new Date(dateStr + 'T00:00:00');
     d.setDate(d.getDate() + (parseInt(days || 0, 10) || 0));
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  const formatRfp = (t) => {
+    const raw = t?.numero_rfp || t?.numero_rfp_agems;
+    if (!raw) return 'N/A';
+    const str = String(raw).trim();
+    if (/^RFP\//i.test(str) && str.includes('/')) return str;
+    const camara = t?.camara_tecnica ? String(t.camara_tecnica).trim() : '';
+    const anoBase = t?.data_geracao || t?.created_at || t?.updated_at || Date.now();
+    const ano = new Date(anoBase).getFullYear();
+    const num = String(parseInt(str.replace(/\D/g, '') || '0', 10)).padStart(3, '0');
+    if (!camara) return str;
+    return `RFP/DSB/${camara}/${num}/${ano}`;
   };
 
   const { data: termo } = useQuery({
@@ -326,6 +340,15 @@ export default function ResponderTermo() {
     };
   }, [evidenciasOpen, fotosPorUnidade]);
 
+  const allDeterminacoesRespondidas = useMemo(() => {
+    return (determinacoes || []).every((d) => {
+      const f = forms[d.id] || {};
+      const hasTexto = !!String(f?.manifestacao_prestador || '').trim();
+      const hasEv = Array.isArray(f?.evidencias) && f.evidencias.length > 0;
+      return hasTexto || hasEv;
+    });
+  }, [determinacoes, forms]);
+
   if (!termoId || !termo) {
     return (
       <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
@@ -343,15 +366,6 @@ export default function ResponderTermo() {
     return resp?.status || '';
   };
 
-  const allDeterminacoesRespondidas = useMemo(() => {
-    return (determinacoes || []).every((d) => {
-      const f = forms[d.id] || {};
-      const hasTexto = !!String(f?.manifestacao_prestador || '').trim();
-      const hasEv = Array.isArray(f?.evidencias) && f.evidencias.length > 0;
-      return hasTexto || hasEv;
-    });
-  }, [determinacoes, forms]);
-
   const isFormValid = (detId) => {
     const f = forms[detId] || {};
     return !!(f.manifestacao_prestador || (Array.isArray(f.evidencias) && f.evidencias.length > 0));
@@ -360,7 +374,12 @@ export default function ResponderTermo() {
   const assinaturaTnOk = !!termo?.arquivo_tn_prestador_url && !!termo?.assinatura_prestador_valida;
 
   const municipioNome = municipio?.nome || termo?.municipio_nome || termo?.municipio || 'N/A';
-  const numeroRfp = termo?.numero_rfp || termo?.numero_rfp_agems || 'N/A';
+  const numeroRfp = formatRfp(termo);
+  const prazoMaxText = termo?.data_maxima_resposta
+    ? termo.data_maxima_resposta
+    : termo?.prazo_resposta_dias
+      ? `${termo.prazo_resposta_dias} dias (após assinatura)`
+      : 'N/A';
 
   const termoEnvioExistente = Array.isArray(termo?.arquivos_resposta)
     ? termo.arquivos_resposta.slice().reverse().find((a) => a?.categoria === 'termo_envio')
@@ -420,7 +439,7 @@ export default function ResponderTermo() {
               </div>
               <div>
                 <span className="font-medium">Prazo máximo:</span>{' '}
-                {termo.data_maxima_resposta || 'N/A'}
+                {prazoMaxText}
               </div>
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
@@ -474,9 +493,11 @@ export default function ResponderTermo() {
                 Baixe o TN assinado pela AGEMS, assine digitalmente e envie o PDF assinado. O prazo começa a contar após o envio.
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <Input
+                <input
+                  ref={tnPrestadorFileInputRef}
                   type="file"
                   accept=".pdf,application/pdf"
+                  className="hidden"
                   disabled={uploadingTnPrestador || !termo?.arquivo_url}
                   onChange={async (e) => {
                     const file = e.target.files?.[0];
@@ -509,6 +530,13 @@ export default function ResponderTermo() {
                     }
                   }}
                 />
+                <Button
+                  disabled={uploadingTnPrestador || !termo?.arquivo_url}
+                  onClick={() => tnPrestadorFileInputRef.current?.click()}
+                >
+                  <UploadCloud className="h-4 w-4 mr-2" />
+                  Enviar TN assinado (PDF)
+                </Button>
                 {uploadingTnPrestador ? (
                   <Badge variant="outline" className="text-gray-600 border-gray-300">
                     Enviando...
