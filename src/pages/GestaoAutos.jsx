@@ -318,12 +318,76 @@ export default function GestaoAutos() {
         return { termo, numeroTN, numeroRfp, numeroAm, fluxoManual };
     };
 
+    const formatDateBR = (valor) => {
+        if (!valor) return '—';
+        const d = new Date(valor);
+        if (Number.isNaN(d.getTime())) return '—';
+        return d.toLocaleDateString('pt-BR');
+    };
+
     const autosPorStatus = {
         gerados: autos.filter(a => a.status === 'gerado'),
         enviados: autos.filter(a => a.status === 'enviado'),
         em_analise: autos.filter(a => a.status === 'em_analise'),
         finalizados: autos.filter(a => a.status === 'finalizado')
     };
+
+    const gruposGerados = useMemo(() => {
+        const acc = {};
+        for (const a of autosPorStatus.gerados || []) {
+            const key = `${a.prestador_servico_id}|${a.fiscalizacao_id}`;
+            if (!acc[key]) {
+                const ids = getIdsRelacionados(a);
+                acc[key] = {
+                    key,
+                    prestadorId: a.prestador_servico_id,
+                    fiscalizacaoId: a.fiscalizacao_id,
+                    numeroTN: ids.numeroTN,
+                    numeroRfp: ids.numeroRfp,
+                    numeroAm: ids.numeroAm,
+                    fluxoManual: ids.fluxoManual,
+                    autos: []
+                };
+            }
+            acc[key].autos.push(a);
+        }
+        return Object.values(acc).sort((a, b) => {
+            const tnA = String(a.numeroTN || '');
+            const tnB = String(b.numeroTN || '');
+            if (tnA !== tnB) return tnA.localeCompare(tnB);
+            return String(a.key).localeCompare(String(b.key));
+        });
+    }, [autosPorStatus.gerados, termos]);
+
+    const gruposEnviados = useMemo(() => {
+        const acc = {};
+        for (const a of autosPorStatus.enviados || []) {
+            const key = `${a.prestador_servico_id}|${a.fiscalizacao_id}`;
+            if (!acc[key]) {
+                const ids = getIdsRelacionados(a);
+                const remessa = [...(remessas || [])]
+                    .filter(r => r?.prestador_servico_id === a.prestador_servico_id && r?.fiscalizacao_id === a.fiscalizacao_id && String(r?.status || '') === 'enviada')
+                    .sort((r1, r2) => String(r2?.enviada_em || '').localeCompare(String(r1?.enviada_em || '')))[0] || null;
+                acc[key] = {
+                    key,
+                    prestadorId: a.prestador_servico_id,
+                    fiscalizacaoId: a.fiscalizacao_id,
+                    numeroTN: ids.numeroTN,
+                    numeroRfp: ids.numeroRfp,
+                    numeroAm: ids.numeroAm,
+                    enviadoEm: remessa?.enviada_em || a?.data_envio || null,
+                    autos: []
+                };
+            }
+            acc[key].autos.push(a);
+        }
+        return Object.values(acc).sort((a, b) => {
+            const tnA = String(a.numeroTN || '');
+            const tnB = String(b.numeroTN || '');
+            if (tnA !== tnB) return tnA.localeCompare(tnB);
+            return String(a.key).localeCompare(String(b.key));
+        });
+    }, [autosPorStatus.enviados, termos, remessas]);
 
     const getAutoPenaRs = (auto) => {
         if (!penaBaseRsColumn) return 0;
@@ -406,8 +470,17 @@ export default function GestaoAutos() {
                 status: 'enviada'
             });
 
+            const enviadaEm = new Date().toISOString();
+            const prazoDias = 30;
+            const dataLimite = new Date(Date.now() + prazoDias * 24 * 60 * 60 * 1000).toISOString();
             for (const a of grupo.autos || []) {
-                await Repository.updateAutoInfracaoOnlineStatus(a.id, 'enviado');
+                const { error: updErr } = await supabase
+                    .from('autos_infracao')
+                    .update({ status: 'enviado', data_envio: enviadaEm, data_limite_manifestacao: dataLimite })
+                    .eq('id', a.id);
+                if (updErr) {
+                    await Repository.updateAutoInfracaoOnlineStatus(a.id, 'enviado');
+                }
             }
 
             await queryClient.invalidateQueries({ queryKey: ['remessas-ai'] });
@@ -473,169 +546,190 @@ export default function GestaoAutos() {
                     </TabsList>
 
                     <TabsContent value="gerados" className="space-y-4">
-                        {autosPorStatus.gerados.map(auto => (
-                        <Card key={auto.id}>
-                        <CardContent className="p-4">
-                        <div className="flex justify-between items-start mb-4">
-                         <div className="flex-1">
-                             {(() => {
-                                 const ids = getIdsRelacionados(auto);
-                                 const infos = [];
-                                 if (ids.numeroTN !== 'N/A') infos.push(`TN: ${ids.numeroTN}`);
-                                 if (ids.numeroRfp !== 'N/A') infos.push(`RFP: ${ids.numeroRfp}`);
-                                 if (ids.numeroAm !== 'N/A') infos.push(`AM: ${ids.numeroAm}`);
-                                 return (
-                                     <>
-                             <h3 className="font-semibold">{auto.numero_auto}</h3>
-                             {infos.length > 0 ? (
-                                 <p className="text-xs text-gray-500 mt-1">{infos.join(' | ')}</p>
-                             ) : null}
-                             <p className="text-xs text-gray-500 mt-1">Prestador: {getPrestadorNome(auto.prestador_servico_id)}</p>
-                             <p className="text-xs text-gray-500">Município: {getMunicipioNome(auto.id)}</p>
-                             <p className="text-xs text-gray-500">Processo: {getNumeroProcesso(auto.id)}</p>
-                             <p className="text-xs text-gray-500 mt-2">{auto.motivo_infracao}</p>
-                                     </>
-                                 );
-                             })()}
-                         </div>
-                         <div className="flex gap-2">
-                             {(() => {
-                                 const { fluxoManual } = getIdsRelacionados(auto);
-                                 return (
-                                     <FluxoUploadDocumentos
-                                         auto={auto}
-                                         fluxoManual={fluxoManual}
-                                         onUpdate={() => queryClient.invalidateQueries({ queryKey: ['autos-infracao'] })}
-                                     />
-                                 );
-                             })()}
-                         </div>
-                        </div>
-                        <div className="border-t pt-4 grid grid-cols-2 gap-4 mb-4">
-                         <div>
-                             <Label>Pena Base (UFERMS)</Label>
-                             <Input 
-                                 type="number" 
-                                 placeholder="0" 
-                                 className="mt-1"
-                                 value={getPenaUfermsInput(auto)}
-                                 onChange={(e) => setPenaBase(prev => ({ ...prev, [`${auto.id}-uferms`]: e.target.value }))}
-                             />
-                         </div>
-                         <div>
-                             <Label>Pena Base (R$)</Label>
-                             <Input 
-                                 type="number" 
-                                 placeholder="0" 
-                                 step="0.01"
-                                 className="mt-1"
-                                 value={getPenaRsInput(auto)}
-                                 onChange={(e) => setPenaBase(prev => ({ ...prev, [`${auto.id}-rs`]: e.target.value }))}
-                             />
-                         </div>
-                        </div>
-                        <Button 
-                         size="sm" 
-                         className="w-full bg-green-600 hover:bg-green-700"
-                         onClick={() => {
-                             if (!penaBaseRsColumn && parseFloatSafe(getPenaRsInput(auto)) > 0) {
-                                 alert('Configuração do banco: coluna da pena base (R$) não encontrada na tabela autos_infracao. Salvando apenas UFERMS.');
-                             }
-                             salvarPenaBaseMutation.mutate({
-                                 autoId: auto.id,
-                                 penaUferms: getPenaUfermsInput(auto),
-                                 penaRs: getPenaRsInput(auto)
-                             });
-                         }}
-                         disabled={salvandoAutoId === auto.id}
-                        >
-                         {salvandoAutoId === auto.id ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                         {salvandoAutoId === auto.id ? 'Salvando...' : 'Salvar Alterações'}
-                        </Button>
-                        {(() => {
-                            const { fluxoManual } = getIdsRelacionados(auto);
-                            if (fluxoManual) return null;
-                            const penaUferms = parseIntSafe(getPenaUfermsInput(auto));
-                            const penaRs = parseFloatSafe(getPenaRsInput(auto));
-                            const podeEnviar = !!auto?.arquivo_url && penaUferms > 0 && penaRs > 0 && !!auto?.prestador_servico_id && !!auto?.fiscalizacao_id;
-                            const groupKey = `${auto.prestador_servico_id}|${auto.fiscalizacao_id}`;
+                        {gruposGerados.map((grupo) => {
+                            const first = (grupo.autos || [])[0] || null;
+                            const infos = [];
+                            if (grupo.numeroTN !== 'N/A') infos.push(`TN: ${grupo.numeroTN}`);
+                            if (grupo.numeroRfp !== 'N/A') infos.push(`RFP: ${grupo.numeroRfp}`);
+                            if (grupo.numeroAm !== 'N/A') infos.push(`AM: ${grupo.numeroAm}`);
+
+                            const allReady = (grupo.autos || []).every((a) => {
+                                const penaUferms = parseIntSafe(getPenaUfermsInput(a));
+                                const penaRs = parseFloatSafe(getPenaRsInput(a));
+                                return !!a?.arquivo_url && penaUferms > 0 && penaRs > 0;
+                            });
+                            const readyCount = (grupo.autos || []).filter((a) => {
+                                const penaUferms = parseIntSafe(getPenaUfermsInput(a));
+                                const penaRs = parseFloatSafe(getPenaRsInput(a));
+                                return !!a?.arquivo_url && penaUferms > 0 && penaRs > 0;
+                            }).length;
+
                             return (
-                                <>
-                                    <Button
-                                        size="sm"
-                                        className="w-full bg-blue-600 hover:bg-blue-700 mt-2"
-                                        disabled={!podeEnviar || !penaBaseRsColumn || criandoRemessaKey === groupKey || salvandoAutoId === auto.id}
-                                        onClick={async () => {
-                                            try {
-                                                if (!penaBaseRsColumn) {
-                                                    alert('Configuração do banco: coluna da pena base (R$) não encontrada na tabela autos_infracao.');
-                                                    return;
-                                                }
-                                                await salvarPenaBaseMutation.mutateAsync({
-                                                    autoId: auto.id,
-                                                    penaUferms: getPenaUfermsInput(auto),
-                                                    penaRs: getPenaRsInput(auto)
-                                                });
+                                <Card key={grupo.key}>
+                                    <CardContent className="p-4 space-y-4">
+                                        <div className="flex items-start justify-between gap-4">
+                                            <div className="flex-1">
+                                                <h3 className="font-semibold">
+                                                    {infos.length > 0 ? infos.join(' | ') : 'Grupo de AIs'}
+                                                </h3>
+                                                {first ? (
+                                                    <>
+                                                        <p className="text-xs text-gray-500 mt-1">Prestador: {getPrestadorNome(first.prestador_servico_id)}</p>
+                                                        <p className="text-xs text-gray-500">Município: {getMunicipioNome(first.id)}</p>
+                                                        <p className="text-xs text-gray-500">Processo: {getNumeroProcesso(first.id)}</p>
+                                                    </>
+                                                ) : null}
+                                            </div>
+                                            {!grupo.fluxoManual ? (
+                                                <div className="text-xs text-gray-600">
+                                                    Prontos: {readyCount}/{(grupo.autos || []).length}
+                                                </div>
+                                            ) : null}
+                                        </div>
 
-                                                const groupAutos = autosPorStatus.gerados
-                                                    .filter(a => a?.prestador_servico_id === auto?.prestador_servico_id && a?.fiscalizacao_id === auto?.fiscalizacao_id)
-                                                    .map(a => {
-                                                        if (a.id !== auto.id) return a;
-                                                        const next = { ...a, pena_base_uferms: penaUferms };
-                                                        if (penaBaseRsColumn) next[penaBaseRsColumn] = penaRs;
-                                                        return next;
-                                                    })
-                                                    .filter(a => !!a?.arquivo_url && Number(a?.pena_base_uferms || 0) > 0 && Number(a?.[penaBaseRsColumn] || 0) > 0);
+                                        <div className="space-y-3">
+                                            {(grupo.autos || [])
+                                                .slice()
+                                                .sort((a, b) => String(a.numero_auto || '').localeCompare(String(b.numero_auto || '')))
+                                                .map((auto) => (
+                                                    <div key={auto.id} className="border rounded p-3 bg-white">
+                                                        <div className="flex items-start justify-between gap-3">
+                                                            <div className="flex-1">
+                                                                <div className="font-medium">{auto.numero_auto}</div>
+                                                                <div className="text-xs text-gray-500 mt-1">{auto.motivo_infracao}</div>
+                                                            </div>
+                                                            <FluxoUploadDocumentos
+                                                                auto={auto}
+                                                                fluxoManual={grupo.fluxoManual}
+                                                                onUpdate={() => queryClient.invalidateQueries({ queryKey: ['autos-infracao'] })}
+                                                            />
+                                                        </div>
 
-                                                if (groupAutos.length === 0) {
-                                                    alert('Não há autos prontos para envio (AI assinado e penas base obrigatórios).');
-                                                    return;
-                                                }
+                                                        <div className="grid grid-cols-2 gap-4 mt-3">
+                                                            <div>
+                                                                <Label>Pena Base (UFERMS)</Label>
+                                                                <Input
+                                                                    type="number"
+                                                                    placeholder="0"
+                                                                    className="mt-1"
+                                                                    value={getPenaUfermsInput(auto)}
+                                                                    onChange={(e) => setPenaBase(prev => ({ ...prev, [`${auto.id}-uferms`]: e.target.value }))}
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <Label>Pena Base (R$)</Label>
+                                                                <Input
+                                                                    type="number"
+                                                                    placeholder="0"
+                                                                    step="0.01"
+                                                                    className="mt-1"
+                                                                    value={getPenaRsInput(auto)}
+                                                                    onChange={(e) => setPenaBase(prev => ({ ...prev, [`${auto.id}-rs`]: e.target.value }))}
+                                                                />
+                                                            </div>
+                                                        </div>
 
-                                                await criarEEnviarRemessa({
-                                                    key: groupKey,
-                                                    prestadorId: auto.prestador_servico_id,
-                                                    fiscalizacaoId: auto.fiscalizacao_id,
-                                                    autos: groupAutos
-                                                });
-                                            } catch (_) {}
-                                        }}
-                                    >
-                                        <Send className="h-4 w-4 mr-2" />
-                                        {criandoRemessaKey === groupKey ? 'Enviando...' : 'Enviar AI ao prestador'}
-                                    </Button>
-                                    {!penaBaseRsColumn ? (
-                                        <p className="text-xs text-gray-500 mt-1">
-                                            Configuração necessária: criar/ajustar a coluna da pena base (R$) na tabela autos_infracao.
-                                        </p>
-                                    ) : !podeEnviar ? (
-                                        <p className="text-xs text-gray-500 mt-1">
-                                            Para enviar: anexe o AI assinado e informe as penas base.
-                                        </p>
-                                    ) : null}
-                                </>
+                                                        <Button
+                                                            size="sm"
+                                                            className="w-full bg-green-600 hover:bg-green-700 mt-3"
+                                                            onClick={() => {
+                                                                if (!penaBaseRsColumn && parseFloatSafe(getPenaRsInput(auto)) > 0) {
+                                                                    alert('Configuração do banco: coluna da pena base (R$) não encontrada na tabela autos_infracao. Salvando apenas UFERMS.');
+                                                                }
+                                                                salvarPenaBaseMutation.mutate({
+                                                                    autoId: auto.id,
+                                                                    penaUferms: getPenaUfermsInput(auto),
+                                                                    penaRs: getPenaRsInput(auto)
+                                                                });
+                                                            }}
+                                                            disabled={salvandoAutoId === auto.id}
+                                                        >
+                                                            {salvandoAutoId === auto.id ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                                                            {salvandoAutoId === auto.id ? 'Salvando...' : 'Salvar Alterações'}
+                                                        </Button>
+                                                    </div>
+                                                ))}
+                                        </div>
+
+                                        {!grupo.fluxoManual ? (
+                                            <>
+                                                <Button
+                                                    size="sm"
+                                                    className="w-full bg-blue-600 hover:bg-blue-700"
+                                                    disabled={!penaBaseRsColumn || !allReady || criandoRemessaKey === grupo.key || salvandoAutoId != null}
+                                                    onClick={async () => {
+                                                        try {
+                                                            if (!penaBaseRsColumn) {
+                                                                alert('Configuração do banco: coluna da pena base (R$) não encontrada na tabela autos_infracao.');
+                                                                return;
+                                                            }
+                                                            for (const a of grupo.autos || []) {
+                                                                await salvarPenaBaseMutation.mutateAsync({
+                                                                    autoId: a.id,
+                                                                    penaUferms: getPenaUfermsInput(a),
+                                                                    penaRs: getPenaRsInput(a)
+                                                                });
+                                                            }
+                                                            await criarEEnviarRemessa({
+                                                                key: grupo.key,
+                                                                prestadorId: grupo.prestadorId,
+                                                                fiscalizacaoId: grupo.fiscalizacaoId,
+                                                                autos: grupo.autos
+                                                            });
+                                                        } catch (_) {}
+                                                    }}
+                                                >
+                                                    <Send className="h-4 w-4 mr-2" />
+                                                    {criandoRemessaKey === grupo.key ? 'Enviando...' : 'Enviar ao prestador'}
+                                                </Button>
+                                                {!penaBaseRsColumn ? (
+                                                    <p className="text-xs text-gray-500">
+                                                        Configuração necessária: criar/ajustar a coluna da pena base (R$) na tabela autos_infracao.
+                                                    </p>
+                                                ) : !allReady ? (
+                                                    <p className="text-xs text-gray-500">
+                                                        Para enviar: todos os AIs do grupo precisam ter AI assinado e penas base preenchidas.
+                                                    </p>
+                                                ) : null}
+                                            </>
+                                        ) : null}
+                                    </CardContent>
+                                </Card>
                             );
-                        })()}
-                        </CardContent>
-                        </Card>
-                        ))}
+                        })}
                     </TabsContent>
 
                     <TabsContent value="enviados" className="space-y-4">
-                        {autosPorStatus.enviados.map(auto => (
-                            <Card key={auto.id} className="border-blue-300">
-                                <CardContent className="p-4">
-                                    <div className="flex justify-between items-start">
-                                        <div className="flex-1">
-                                            <h3 className="font-semibold">{auto.numero_auto}</h3>
-                                            <p className="text-xs text-gray-500">Enviado: {new Date(auto.data_envio).toLocaleDateString('pt-BR')}</p>
-                                            <p className="text-xs text-gray-500">Prazo até: {new Date(auto.data_limite_manifestacao).toLocaleDateString('pt-BR')}</p>
+                        {gruposEnviados.map((grupo) => {
+                            const infos = [];
+                            if (grupo.numeroTN !== 'N/A') infos.push(`TN: ${grupo.numeroTN}`);
+                            if (grupo.numeroRfp !== 'N/A') infos.push(`RFP: ${grupo.numeroRfp}`);
+                            if (grupo.numeroAm !== 'N/A') infos.push(`AM: ${grupo.numeroAm}`);
+                            const enviadosOrdenados = [...(grupo.autos || [])].sort((a, b) => String(a.numero_auto || '').localeCompare(String(b.numero_auto || '')));
+                            const prazoAny = enviadosOrdenados.map(a => a?.data_limite_manifestacao).find(Boolean) || null;
+                            return (
+                                <Card key={grupo.key} className="border-blue-300">
+                                    <CardContent className="p-4 space-y-3">
+                                        <div className="flex items-start justify-between gap-4">
+                                            <div className="flex-1">
+                                                <div className="font-semibold">{infos.length > 0 ? infos.join(' | ') : 'Grupo de AIs'}</div>
+                                                <p className="text-xs text-gray-500 mt-1">Enviado: {formatDateBR(grupo.enviadoEm)}</p>
+                                                <p className="text-xs text-gray-500">Prazo até: {formatDateBR(prazoAny)}</p>
+                                            </div>
+                                            <Badge className="bg-blue-600">Enviado</Badge>
                                         </div>
-                                        <Badge className="bg-blue-600">Enviado</Badge>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
+                                        <div className="space-y-2">
+                                            {enviadosOrdenados.map((auto) => (
+                                                <div key={auto.id} className="flex items-center justify-between gap-3 border rounded p-3 bg-white">
+                                                    <div className="text-sm font-medium">{auto.numero_auto}</div>
+                                                    <div className="text-xs text-gray-600">{auto.motivo_infracao}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            );
+                        })}
                     </TabsContent>
 
                     <TabsContent value="analise" className="space-y-4">
