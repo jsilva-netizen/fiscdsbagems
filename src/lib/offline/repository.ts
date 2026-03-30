@@ -535,8 +535,20 @@ export const Repository = {
   },
 
   async updateAutoInfracaoOnline(id: string, changes: any): Promise<any> {
-    const { data, error } = await supabase.from('autos_infracao').update(changes).eq('id', id).select().single()
-    if (error) throw error
+    const { data, error } = await supabase.from('autos_infracao').update(changes).eq('id', id).select().maybeSingle()
+    if (error) {
+      const msg = String((error as any)?.message || '').toLowerCase()
+      const mentionsSingleCoercion =
+        msg.includes('cannot coerce') ||
+        msg.includes('json object requested') ||
+        msg.includes('multiple (or no) rows returned')
+      if (mentionsSingleCoercion) {
+        const retry = await supabase.from('autos_infracao').update(changes).eq('id', id)
+        if (retry.error) throw retry.error
+        return null
+      }
+      throw error
+    }
     return data
   },
   
