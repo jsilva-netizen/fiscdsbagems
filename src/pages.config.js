@@ -62,6 +62,7 @@ import GestaoAutos from './pages/GestaoAutos';
 import Home from './pages/Home';
 import Municipios from './pages/Municipios';
 import NovaFiscalizacao from './pages/NovaFiscalizacao';
+import PareceresTecnicos from './pages/PareceresTecnicos';
 import PrestadoresServico from './pages/PrestadoresServico';
 import Relatorios from './pages/Relatorios';
 import TiposUnidade from './pages/TiposUnidade';
@@ -87,6 +88,7 @@ export const PAGES = {
     "Home": Home,
     "Municipios": Municipios,
     "NovaFiscalizacao": NovaFiscalizacao,
+    "PareceresTecnicos": PareceresTecnicos,
     "PrestadoresServico": PrestadoresServico,
     "Relatorios": Relatorios,
     "TiposUnidade": TiposUnidade,

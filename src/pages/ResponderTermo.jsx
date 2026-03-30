@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Repository } from '@/lib/offline/repository';
 import { supabase } from '@/lib/supabase';
 import { jsPDF } from 'jspdf';
 import { createPageUrl } from '@/utils';
-import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -19,6 +18,7 @@ import { ArrowLeft, UploadCloud, CheckCircle, AlertCircle, Download, Image as Im
 export default function ResponderTermo() {
   const [searchParams] = useSearchParams();
   const termoId = searchParams.get('termo');
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [forms, setForms] = useState({});
   const [enviandoTN, setEnviandoTN] = useState(false);
@@ -36,6 +36,35 @@ export default function ResponderTermo() {
     } catch (err) {
       alert('Erro ao abrir arquivo: ' + (err?.message || String(err)));
     }
+  };
+
+  const evidenciaKey = (ev) => {
+    if (!ev) return '';
+    if (typeof ev === 'string') {
+      const parsed = Repository.parseStorageUrl(ev);
+      if (parsed?.bucket && parsed?.path) return `${parsed.bucket}:${parsed.path}`;
+      return ev;
+    }
+    if (ev?.bucket && ev?.path) return `${ev.bucket}:${ev.path}`;
+    if (typeof ev?.url === 'string' && ev.url) {
+      const parsed = Repository.parseStorageUrl(ev.url);
+      if (parsed?.bucket && parsed?.path) return `${parsed.bucket}:${parsed.path}`;
+      return ev.url;
+    }
+    return JSON.stringify(ev);
+  };
+
+  const dedupeEvidencias = (list) => {
+    const arr = Array.isArray(list) ? list : [];
+    const seen = new Set();
+    const out = [];
+    for (const ev of arr) {
+      const k = evidenciaKey(ev);
+      if (!k || seen.has(k)) continue;
+      seen.add(k);
+      out.push(ev);
+    }
+    return out;
   };
 
   const isoToday = () => new Date().toISOString().slice(0, 10);
@@ -161,21 +190,31 @@ export default function ResponderTermo() {
   useEffect(() => {
     if (determinacoes.length > 0) {
       const arquivosResposta = Array.isArray(termo?.arquivos_resposta) ? termo.arquivos_resposta : []
-      const initial = {};
-      for (const det of determinacoes) {
-        const resp = respostas.find((r) => r.determinacao_id === det.id);
-        const fallbackEv = arquivosResposta.filter(
-          (a) => a?.categoria === 'evidencia_determinacao' && a?.determinacao_id === det.id
-        );
-        const evidenciasResp = Array.isArray(resp?.evidencias) ? resp.evidencias : [];
-        const evidencias = [...evidenciasResp, ...fallbackEv].filter(Boolean);
-        initial[det.id] = {
-          manifestacao_prestador: resp?.manifestacao_prestador || '',
-          evidencias,
-          status: resp?.status || '',
-        };
-      }
-      setForms(initial);
+      setForms((prev) => {
+        const next = { ...(prev || {}) };
+        for (const det of determinacoes) {
+          const resp = respostas.find((r) => r.determinacao_id === det.id);
+          const fallbackEv = arquivosResposta.filter(
+            (a) => a?.categoria === 'evidencia_determinacao' && a?.determinacao_id === det.id
+          );
+          const evidenciasResp = Array.isArray(resp?.evidencias) ? resp.evidencias : [];
+          const cur = next[det.id] || {};
+
+          const textoCur = String(cur?.manifestacao_prestador || '');
+          const textoResp = String(resp?.manifestacao_prestador || '');
+          const manifestacao_prestador = textoCur.trim() ? textoCur : (textoResp || '');
+
+          const evidencias = dedupeEvidencias([...(cur?.evidencias || []), ...evidenciasResp, ...fallbackEv].filter(Boolean));
+
+          next[det.id] = {
+            ...cur,
+            manifestacao_prestador,
+            evidencias,
+            status: resp?.status || cur?.status || '',
+          };
+        }
+        return next;
+      });
     }
   }, [determinacoes, respostas, termo]);
 
@@ -183,13 +222,14 @@ export default function ResponderTermo() {
     mutationFn: async ({ detId }) => {
       const det = determinacoes.find((d) => d.id === detId);
       const resp = respostas.find((r) => r.determinacao_id === detId);
+      const evidenciasDedup = dedupeEvidencias(forms[detId]?.evidencias || []);
       const payload = {
         determinacao_id: detId,
         unidade_fiscalizada_id: det?.unidade_fiscalizada_id,
         fiscalizacao_id: termo.fiscalizacao_id,
         prestador_servico_id: termo.prestador_servico_id,
         manifestacao_prestador: forms[detId]?.manifestacao_prestador || '',
-        evidencias: forms[detId]?.evidencias || [],
+        evidencias: evidenciasDedup,
         status: 'rascunho',
       };
       if (resp) {
@@ -216,13 +256,14 @@ export default function ResponderTermo() {
       const hoje = new Date().toISOString();
       const dentroPrazo =
         termo?.data_maxima_resposta ? new Date(hoje) <= new Date(termo.data_maxima_resposta) : true;
+      const evidenciasDedup = dedupeEvidencias(forms[detId]?.evidencias || []);
       const payload = {
         determinacao_id: detId,
         unidade_fiscalizada_id: det?.unidade_fiscalizada_id,
         fiscalizacao_id: termo.fiscalizacao_id,
         prestador_servico_id: termo.prestador_servico_id,
         manifestacao_prestador: forms[detId]?.manifestacao_prestador || '',
-        evidencias: forms[detId]?.evidencias || [],
+        evidencias: evidenciasDedup,
         status: 'aguardando_analise',
         data_resposta: hoje,
         dentro_prazo: dentroPrazo,
@@ -256,7 +297,9 @@ export default function ResponderTermo() {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['termo', termoId] });
+      await queryClient.invalidateQueries({ queryKey: ['termos-prestador'] });
       alert('Resposta ao TN enviada para análise');
+      navigate(createPageUrl('PortalPrestadorHome'));
     },
     onError: (err) => {
       alert('Erro ao enviar resposta ao TN: ' + (err?.message || String(err)));
@@ -284,7 +327,7 @@ export default function ResponderTermo() {
         ...prev,
         [detId]: {
           ...cur,
-          evidencias: [...(cur.evidencias || []), ...metas],
+          evidencias: dedupeEvidencias([...(cur.evidencias || []), ...metas]),
         },
       };
     });

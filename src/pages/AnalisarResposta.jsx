@@ -4,6 +4,7 @@ import { Repository } from '@/lib/offline/repository';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createPageUrl } from '@/utils';
 import { Link } from 'react-router-dom';
+import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -29,6 +30,14 @@ export default function AnalisarResposta() {
     });
     const [confirmDialog, setConfirmDialog] = useState({ open: false, determinacao: null });
     const [signedEvidencias, setSignedEvidencias] = useState({});
+
+    const formatDateBr = (input) => {
+        if (!input) return 'N/A';
+        const raw = String(input);
+        const d = new Date(raw.includes('T') ? raw : `${raw}T00:00:00`);
+        if (Number.isNaN(d.getTime())) return raw;
+        return d.toLocaleDateString('pt-BR');
+    };
 
     const openArquivo = async (arq) => {
         try {
@@ -92,21 +101,32 @@ export default function AnalisarResposta() {
         enabled: unidadeIds.length > 0
     });
 
-    const respostaChecklistIds = useMemo(() => {
-        const ids = [];
-        for (const nc of ncs || []) {
-            if (nc?.resposta_checklist_id) ids.push(nc.resposta_checklist_id);
-        }
-        return Array.from(new Set(ids));
-    }, [ncs]);
-
     const { data: respostasChecklist = [] } = useQuery({
-        queryKey: ['respostas-checklist', respostaChecklistIds.join(',')],
+        queryKey: ['respostas-checklist-unidades', unidadeIds.join(',')],
         queryFn: async () => {
-            const data = await Repository.listRespostasChecklistOnlineByIds(respostaChecklistIds);
+            if (unidadeIds.length === 0) return [];
+            const { data, error } = await supabase
+                .from('respostas_checklist')
+                .select('id, unidade_fiscalizada_id, resposta, numero_constatacao, created_at, pergunta, observacao')
+                .in('unidade_fiscalizada_id', unidadeIds);
+            if (error) throw error;
             return data || [];
         },
-        enabled: respostaChecklistIds.length > 0
+        enabled: unidadeIds.length > 0
+    });
+
+    const { data: constatacoesManuais = [] } = useQuery({
+        queryKey: ['constatacoes-manuais-unidades', unidadeIds.join(',')],
+        queryFn: async () => {
+            if (unidadeIds.length === 0) return [];
+            const { data, error } = await supabase
+                .from('constatacoes_manuais')
+                .select('id, unidade_fiscalizada_id, numero_constatacao, created_at, descricao')
+                .in('unidade_fiscalizada_id', unidadeIds);
+            if (error) throw error;
+            return data || [];
+        },
+        enabled: unidadeIds.length > 0
     });
 
     const { data: respostas = [] } = useQuery({
@@ -173,41 +193,136 @@ export default function AnalisarResposta() {
         return resp?.status || 'pendente';
     };
 
-    const extractConstatacaoNumeroFromNc = (nc) => {
-        const text = String(nc?.descricao || '');
-        if (!text) return '';
-        const m = text.match(/constataç[aã]o\s*(?:n[ºo]\s*)?(C\d+)/i);
-        return m?.[1] ? String(m[1]).toUpperCase() : '';
-    };
+    const unidadesOrdenadas = useMemo(() => {
+        const arr = unidadesFiscalizadas.slice();
+        arr.sort((a, b) => {
+            const ca = a?.created_at || '';
+            const cb = b?.created_at || '';
+            if (ca !== cb) return String(ca).localeCompare(String(cb));
+            return String(a?.id || '').localeCompare(String(b?.id || ''));
+        });
+        return arr;
+    }, [unidadesFiscalizadas]);
+
+    const numeracaoByUnidadeId = useMemo(() => {
+        let contadores = { constatacoes: 0, ncs: 0 };
+
+        const parseNumeroConstatacao = (valor) => {
+            const n = parseInt(String(valor || '').replace(/[^\d]/g, ''), 10);
+            return Number.isFinite(n) ? n : 9999;
+        };
+
+        const out = {};
+
+        for (const u of unidadesOrdenadas) {
+            const respostasU = (respostasChecklist || []).filter(r => r?.unidade_fiscalizada_id === u.id);
+            const manuaisU = (constatacoesManuais || []).filter(m => m?.unidade_fiscalizada_id === u.id);
+            const ncsU = (ncs || []).filter(n => n?.unidade_fiscalizada_id === u.id);
+            const detsU = (determinacoes || []).filter(d => d?.unidade_fiscalizada_id === u.id);
+
+            const mapeamento = { constatacoes: {}, ncs: {}, determinacoes: {} };
+
+            const constItensOrdenados = [
+                ...respostasU
+                    .filter(r => r?.resposta === 'SIM' || r?.resposta === 'NAO')
+                    .map(r => ({ id: r.id, numero_constatacao: r.numero_constatacao, created_at: r.created_at })),
+                ...manuaisU.map(m => ({ id: m.id, numero_constatacao: m.numero_constatacao, created_at: m.created_at }))
+            ].sort((a, b) => {
+                const numA = parseNumeroConstatacao(a.numero_constatacao);
+                const numB = parseNumeroConstatacao(b.numero_constatacao);
+                if (numA !== numB) return numA - numB;
+                const createdA = a.created_at || '';
+                const createdB = b.created_at || '';
+                if (createdA !== createdB) return String(createdA).localeCompare(String(createdB));
+                return String(a.id).localeCompare(String(b.id));
+            });
+
+            constItensOrdenados.forEach((c) => {
+                contadores.constatacoes++;
+                mapeamento.constatacoes[c.id] = contadores.constatacoes;
+            });
+
+            const ncsOrd = [...ncsU].sort((a, b) => {
+                const respA = respostasU.find(r => r.id === a.resposta_checklist_id);
+                const respB = respostasU.find(r => r.id === b.resposta_checklist_id);
+                const manualA = manuaisU.find(cm => !a.resposta_checklist_id && a.descricao && cm.numero_constatacao && a.descricao.includes(cm.numero_constatacao));
+                const manualB = manuaisU.find(cm => !b.resposta_checklist_id && b.descricao && cm.numero_constatacao && b.descricao.includes(cm.numero_constatacao));
+
+                const ordConstA = respA
+                    ? mapeamento.constatacoes[respA.id]
+                    : (manualA ? mapeamento.constatacoes[manualA.id] : 9999);
+                const ordConstB = respB
+                    ? mapeamento.constatacoes[respB.id]
+                    : (manualB ? mapeamento.constatacoes[manualB.id] : 9999);
+                return (ordConstA ?? 9999) - (ordConstB ?? 9999);
+            });
+
+            ncsOrd.forEach((nc) => {
+                contadores.ncs++;
+                mapeamento.ncs[nc.id] = contadores.ncs;
+            });
+
+            const detsOrd = [...detsU].sort((a, b) => {
+                const ordNcA = mapeamento.ncs[a.nao_conformidade_id] ?? 9999;
+                const ordNcB = mapeamento.ncs[b.nao_conformidade_id] ?? 9999;
+                if (ordNcA !== ordNcB) return ordNcA - ordNcB;
+                const numA = parseInt(String(a.numero_determinacao || '').replace(/[^\d]/g, '') || '999', 10);
+                const numB = parseInt(String(b.numero_determinacao || '').replace(/[^\d]/g, '') || '999', 10);
+                return numA - numB;
+            });
+
+            detsOrd.forEach((det) => {
+                const numNcRelacionado = mapeamento.ncs[det.nao_conformidade_id];
+                const fallbackDet = parseInt(String(det.numero_determinacao || '').replace(/[^\d]/g, '') || '999', 10);
+                mapeamento.determinacoes[det.id] = numNcRelacionado ?? fallbackDet;
+            });
+
+            out[u.id] = mapeamento;
+        }
+
+        return out;
+    }, [unidadesOrdenadas, respostasChecklist, constatacoesManuais, ncs, determinacoes]);
+
+    const determinacoesOrdenadas = useMemo(() => {
+        const out = [];
+        for (const u of unidadesOrdenadas) {
+            const mapeamento = numeracaoByUnidadeId[u.id] || null;
+            const ncsU = (ncs || []).filter(n => n?.unidade_fiscalizada_id === u.id);
+            const ncsSorted = [...ncsU].sort((a, b) => (mapeamento?.ncs?.[a.id] ?? 9999) - (mapeamento?.ncs?.[b.id] ?? 9999));
+            const posPorNc = {};
+            ncsSorted.forEach((nc, idx) => { posPorNc[nc.id] = idx; });
+
+            const detsU = (determinacoes || []).filter(d => d?.unidade_fiscalizada_id === u.id);
+            const detsSorted = [...detsU].sort((a, b) => {
+                const posA = posPorNc[a.nao_conformidade_id] ?? 9999;
+                const posB = posPorNc[b.nao_conformidade_id] ?? 9999;
+                if (posA !== posB) return posA - posB;
+                const numA = parseInt(String(a.numero_determinacao || '').replace(/[^\d]/g, '') || '999', 10);
+                const numB = parseInt(String(b.numero_determinacao || '').replace(/[^\d]/g, '') || '999', 10);
+                return numA - numB;
+            });
+            out.push(...detsSorted);
+        }
+        return out;
+    }, [unidadesOrdenadas, numeracaoByUnidadeId, ncs, determinacoes]);
 
     const detIndexById = useMemo(() => {
         const m = new Map();
-        determinacoes.forEach((d, idx) => m.set(d.id, idx));
+        determinacoesOrdenadas.forEach((d, idx) => m.set(d.id, idx));
         return m;
-    }, [determinacoes]);
-
-    const unidadesOrdenadas = useMemo(() => {
-        return unidadesFiscalizadas.slice().sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
-    }, [unidadesFiscalizadas]);
+    }, [determinacoesOrdenadas]);
 
     const determinacoesPorUnidade = useMemo(() => {
         const by = new Map();
-        for (const det of determinacoes) {
+        for (const u of unidadesOrdenadas) by.set(u.id, []);
+        for (const det of determinacoesOrdenadas) {
             const uid = det?.unidade_fiscalizada_id;
             if (!uid) continue;
             if (!by.has(uid)) by.set(uid, []);
             by.get(uid).push(det);
         }
-        for (const [uid, dets] of by.entries()) {
-            dets.sort((a, b) => {
-                const numA = parseInt(String(a?.numero_determinacao || '').replace(/\D/g, '') || '0', 10);
-                const numB = parseInt(String(b?.numero_determinacao || '').replace(/\D/g, '') || '0', 10);
-                if (Number.isFinite(numA) && Number.isFinite(numB) && numA !== numB) return numA - numB;
-                return String(a?.numero_determinacao || '').localeCompare(String(b?.numero_determinacao || ''), 'pt-BR');
-            });
-        }
         return by;
-    }, [determinacoes]);
+    }, [unidadesOrdenadas, determinacoesOrdenadas]);
 
     const evidenciaKey = (ev, idx) => {
         if (!ev) return `idx:${idx}`;
@@ -230,10 +345,24 @@ export default function AnalisarResposta() {
         const respDet = respostas.find(r => r.determinacao_id === detalheDeterminacao.id);
         const evidenciasResp = Array.isArray(respDet?.evidencias) ? respDet.evidencias : [];
         const arquivosResposta = Array.isArray(termo?.arquivos_resposta) ? termo.arquivos_resposta : [];
-        const evidenciasFallback = arquivosResposta.filter(
-            (a) => a?.categoria === 'evidencia_determinacao' && a?.determinacao_id === detalheDeterminacao.id
-        );
-        return [...evidenciasResp, ...evidenciasFallback].filter(Boolean);
+        const detId = detalheDeterminacao.id;
+        const evidenciasFallback = arquivosResposta.filter((a) => {
+            if (a?.categoria !== 'evidencia_determinacao') return false;
+            if (a?.determinacao_id === detId) return true;
+            const p = typeof a?.path === 'string' ? String(a.path) : '';
+            return !!p && p.startsWith(`${detId}/`);
+        });
+        const merged = [...evidenciasResp, ...evidenciasFallback].filter(Boolean);
+        const seen = new Set();
+        const out = [];
+        for (let i = 0; i < merged.length; i++) {
+            const ev = merged[i];
+            const k = evidenciaKey(ev, i);
+            if (seen.has(k)) continue;
+            seen.add(k);
+            out.push(ev);
+        }
+        return out;
     }, [detalheDeterminacao, respostas, termo]);
 
     useEffect(() => {
@@ -263,7 +392,7 @@ export default function AnalisarResposta() {
 
     const podeAnalisar = (index) => {
         if (index === 0) return true;
-        const determinacaoAnterior = determinacoes[index - 1];
+        const determinacaoAnterior = determinacoesOrdenadas[index - 1];
         const statusAnterior = getStatusResposta(determinacaoAnterior.id);
         return statusAnterior === 'atendida' || statusAnterior === 'nao_atendida';
     };
@@ -355,6 +484,9 @@ export default function AnalisarResposta() {
                                 <span className="font-medium">Prestador:</span> {getPrestadorNome(termo.prestador_servico_id)}
                             </div>
                             <div>
+                                <span className="font-medium">Data de resposta:</span> {formatDateBr(termo.data_recebimento_resposta)}
+                            </div>
+                            <div>
                                 <span className="font-medium">Processo:</span> {termo.numero_processo || 'N/A'}
                             </div>
                             <div>
@@ -367,7 +499,7 @@ export default function AnalisarResposta() {
                         {(() => {
                             const arquivos = Array.isArray(termo.arquivos_resposta) ? termo.arquivos_resposta : [];
                             const assinatura = arquivos.find((a) => a?.categoria === 'assinatura');
-                            const anexos = arquivos.filter((a) => a?.categoria !== 'assinatura');
+                            const anexos = arquivos.filter((a) => a?.categoria !== 'assinatura' && a?.categoria !== 'evidencia_determinacao');
                             if (!assinatura && anexos.length === 0) return null;
                             return (
                             <div className="mt-4 pt-4 border-t">
@@ -424,9 +556,37 @@ export default function AnalisarResposta() {
                                         const index = detIndexById.get(det.id) ?? 0;
                                         const status = getStatusResposta(det.id);
                                         const bloqueado = !podeAnalisar(index);
+                                        const mapeamento = numeracaoByUnidadeId[det.unidade_fiscalizada_id] || null;
                                         const nc = ncs.find((n) => n.id === det.nao_conformidade_id);
-                                        const constatacao = nc?.resposta_checklist_id ? respostasChecklist.find((r) => r.id === nc.resposta_checklist_id) : null;
-                                        const numeroConstatacaoRef = extractConstatacaoNumeroFromNc(nc) || (constatacao?.numero_constatacao ? String(constatacao.numero_constatacao) : '');
+                                        const respostaRelacionada = nc?.resposta_checklist_id ? respostasChecklist.find((r) => r.id === nc.resposta_checklist_id) : null;
+                                        const manualRelacionada = !nc?.resposta_checklist_id
+                                            ? (constatacoesManuais || []).find((cm) => cm?.numero_constatacao && nc?.descricao && String(nc.descricao).includes(cm.numero_constatacao))
+                                            : null;
+                                        const novoNumNC = nc?.id && mapeamento?.ncs?.[nc.id] ? `NC${mapeamento.ncs[nc.id]}` : (nc?.numero_nc || 'N/A');
+                                        const novoNumDet = det?.id && mapeamento?.determinacoes?.[det.id] ? `D${mapeamento.determinacoes[det.id]}` : (det.numero_determinacao || 'N/A');
+
+                                        let numConstatacaoNovo = '';
+                                        if (respostaRelacionada?.id && mapeamento?.constatacoes?.[respostaRelacionada.id]) {
+                                            numConstatacaoNovo = `C${mapeamento.constatacoes[respostaRelacionada.id]}`;
+                                        } else if (manualRelacionada?.id && mapeamento?.constatacoes?.[manualRelacionada.id]) {
+                                            numConstatacaoNovo = `C${mapeamento.constatacoes[manualRelacionada.id]}`;
+                                        } else if (respostaRelacionada?.numero_constatacao) {
+                                            numConstatacaoNovo = String(respostaRelacionada.numero_constatacao);
+                                        } else if (manualRelacionada?.numero_constatacao) {
+                                            numConstatacaoNovo = String(manualRelacionada.numero_constatacao);
+                                        }
+
+                                        const descricaoNC = numConstatacaoNovo
+                                            ? `A Constatação ${numConstatacaoNovo} não cumpre o disposto no ${nc?.artigo_portaria || 'artigo'};`
+                                            : (nc?.descricao || '');
+
+                                        let textoDet = det?.descricao || '';
+                                        if (novoNumNC && typeof textoDet === 'string') {
+                                            textoDet = textoDet.replace(/NC\d+/g, novoNumNC);
+                                        }
+                                        if (textoDet && !textoDet.trim().endsWith('.')) textoDet = `${textoDet.trim()}.`;
+                                        if (textoDet && !textoDet.includes('Prazo:') && det?.prazo_dias) textoDet = `${textoDet} Prazo: ${det.prazo_dias} dias.`;
+
                                         const statusIcon = status === 'atendida' ? <CheckCircle className="h-5 w-5 text-green-600" /> :
                                                         status === 'nao_atendida' ? <XCircle className="h-5 w-5 text-red-600" /> :
                                                         status === 'aguardando_analise' ? <AlertCircle className="h-5 w-5 text-yellow-600" /> :
@@ -439,23 +599,23 @@ export default function AnalisarResposta() {
                                                         <div className="flex-1">
                                                             <div className="flex items-center gap-2 mb-2">
                                                                 {statusIcon}
-                                                                <h3 className="font-semibold text-lg">{det.numero_determinacao}</h3>
+                                                                <h3 className="font-semibold text-lg">{novoNumDet}</h3>
                                                                 {bloqueado && <Lock className="h-4 w-4 text-gray-400" />}
                                                             </div>
                                                             <div className="text-xs text-gray-600 space-y-1 mb-2">
                                                                 {nc && (
                                                                     <div>
-                                                                        <span className="font-medium">NC:</span> {nc.numero_nc || 'N/A'} {nc.descricao ? `- ${nc.descricao}` : ''}
+                                                                        <span className="font-medium">NC:</span> {novoNumNC} {descricaoNC ? `- ${descricaoNC}` : ''}
                                                                     </div>
                                                                 )}
-                                                                {constatacao && (
+                                                                {(respostaRelacionada || manualRelacionada) && (
                                                                     <div>
                                                                         <span className="font-medium">Constatação:</span>{' '}
-                                                                        {numeroConstatacaoRef || 'N/A'} {constatacao.pergunta ? `- ${constatacao.pergunta}` : ''}
+                                                                        {numConstatacaoNovo || 'N/A'} {(respostaRelacionada?.pergunta || manualRelacionada?.descricao) ? `- ${respostaRelacionada?.pergunta || manualRelacionada?.descricao}` : ''}
                                                                     </div>
                                                                 )}
                                                             </div>
-                                                            <p className="text-sm text-gray-600 mb-2">{det.descricao}</p>
+                                                            <p className="text-sm text-gray-600 mb-2">{textoDet}</p>
                                                             <div className="flex gap-2">
                                                                 {status === 'atendida' && <Badge className="bg-green-600">Acatada</Badge>}
                                                                 {status === 'nao_atendida' && <Badge className="bg-red-600">Não acatada</Badge>}
@@ -500,13 +660,30 @@ export default function AnalisarResposta() {
                 <Dialog open={detalheDeterminacao !== null} onOpenChange={(open) => !open && setDetalheDeterminacao(null)}>
                     <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                         <DialogHeader>
-                            <DialogTitle>Análise da Determinação {detalheDeterminacao?.numero_determinacao}</DialogTitle>
+                            {(() => {
+                                const det = detalheDeterminacao;
+                                const mapeamento = det?.unidade_fiscalizada_id ? numeracaoByUnidadeId[det.unidade_fiscalizada_id] : null;
+                                const novoNumDet = det?.id && mapeamento?.determinacoes?.[det.id] ? `D${mapeamento.determinacoes[det.id]}` : det?.numero_determinacao;
+                                return <DialogTitle>Análise da Determinação {novoNumDet}</DialogTitle>;
+                            })()}
                         </DialogHeader>
                         {detalheDeterminacao && (
                             <div className="space-y-4">
                                 <div>
                                     <p className="font-medium mb-2">Texto Completo da Determinação:</p>
-                                    <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded border">{detalheDeterminacao.descricao}</p>
+                                    {(() => {
+                                        const det = detalheDeterminacao;
+                                        const mapeamento = det?.unidade_fiscalizada_id ? numeracaoByUnidadeId[det.unidade_fiscalizada_id] : null;
+                                        const nc = ncs.find((n) => n.id === det?.nao_conformidade_id);
+                                        const novoNumNC = nc?.id && mapeamento?.ncs?.[nc.id] ? `NC${mapeamento.ncs[nc.id]}` : (nc?.numero_nc || '');
+                                        let textoDet = det?.descricao || '';
+                                        if (novoNumNC && typeof textoDet === 'string') {
+                                            textoDet = textoDet.replace(/NC\d+/g, novoNumNC);
+                                        }
+                                        if (textoDet && !textoDet.trim().endsWith('.')) textoDet = `${textoDet.trim()}.`;
+                                        if (textoDet && !textoDet.includes('Prazo:') && det?.prazo_dias) textoDet = `${textoDet} Prazo: ${det.prazo_dias} dias.`;
+                                        return <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded border">{textoDet}</p>;
+                                    })()}
                                 </div>
 
                                 <div className="border-t pt-4">
