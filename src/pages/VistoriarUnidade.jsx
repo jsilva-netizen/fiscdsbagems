@@ -64,14 +64,6 @@ export default function VistoriarUnidade() {
         gcTime: 300000
     });
 
-    const { data: itensChecklist = [] } = useQuery({
-        queryKey: ['itensChecklist', unidade?.tipo_unidade_id],
-        queryFn: async () => unidade?.tipo_unidade_id ? Repository.getItensChecklist(unidade.tipo_unidade_id) : [],
-        enabled: !!unidade?.tipo_unidade_id,
-        staleTime: 60000,
-        gcTime: 300000
-    });
-
     const { data: respostasExistentes = [] } = useQuery({
         queryKey: ['respostas', unidadeId],
         queryFn: async () => Repository.listRespostasByUnidade(unidadeId),
@@ -81,6 +73,14 @@ export default function VistoriarUnidade() {
         refetchOnWindowFocus: false,
         refetchOnMount: false,
         refetchOnReconnect: false
+    });
+
+    const { data: itensChecklist = [] } = useQuery({
+        queryKey: ['itensChecklist', unidade?.tipo_unidade_id, unidade?.created_at, respostasExistentes.length],
+        queryFn: async () => unidade?.tipo_unidade_id ? Repository.getItensChecklistForUnidade(unidade.tipo_unidade_id, unidade?.created_at, respostasExistentes.map((r) => r.item_checklist_id)) : [],
+        enabled: !!unidade?.tipo_unidade_id,
+        staleTime: 60000,
+        gcTime: 300000
     });
 
 

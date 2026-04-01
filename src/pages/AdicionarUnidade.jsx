@@ -117,6 +117,7 @@ export default function AdicionarUnidade() {
             ? fiscalizacao.servico.split(',').map(s => s.trim()).filter(Boolean)
             : [];
     const tiposFiltrados = tipos.filter(t => 
+        t.ativo !== false &&
         Array.isArray(t.servicos_aplicaveis) && servicosSelecionados.length > 0 && 
         t.servicos_aplicaveis.some(s => servicosSelecionados.includes(s))
     );

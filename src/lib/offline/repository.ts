@@ -321,7 +321,71 @@ export const Repository = {
 
   async getItensChecklist(tipo_unidade_id: string): Promise<ItemChecklist[]> {
     const items = await db.itens_checklist.where('tipo_unidade_id').equals(tipo_unidade_id).toArray()
-    return items.sort((a, b) => (a.ordem || 0) - (b.ordem || 0))
+    const norm = (s: any) => String(s || '').trim().toLowerCase()
+    const keyOf = (it: any) => {
+      const ord = Number(it?.ordem) || 0
+      if (ord > 0) return `o:${ord}`
+      const p = norm(it?.pergunta)
+      return p ? `p:${p}` : `id:${String(it?.id || '')}`
+    }
+    const pickTime = (it: any) => String(it?.created_at || it?.updated_at || '')
+    const byKey = new Map<string, any>()
+    for (const it of items || []) {
+      const k = keyOf(it)
+      const prev = byKey.get(k)
+      if (!prev) {
+        byKey.set(k, it)
+        continue
+      }
+      if (pickTime(it) >= pickTime(prev)) byKey.set(k, it)
+    }
+    const list = Array.from(byKey.values()).filter((it: any) => it?.ativo !== false)
+    return list.sort((a: any, b: any) => {
+      const ao = Number(a?.ordem) || 0
+      const bo = Number(b?.ordem) || 0
+      if (ao !== bo) return ao - bo
+      return pickTime(a).localeCompare(pickTime(b))
+    })
+  },
+
+  async getItensChecklistForUnidade(tipo_unidade_id: string, asOfIso?: string, preferItemIds?: string[]): Promise<ItemChecklist[]> {
+    const items = await db.itens_checklist.where('tipo_unidade_id').equals(tipo_unidade_id).toArray()
+    const cutoff = asOfIso ? String(asOfIso) : ''
+    const prefer = new Set<string>(Array.isArray(preferItemIds) ? preferItemIds.filter(Boolean).map((x) => String(x)) : [])
+    const norm = (s: any) => String(s || '').trim().toLowerCase()
+    const keyOf = (it: any) => {
+      const ord = Number(it?.ordem) || 0
+      if (ord > 0) return `o:${ord}`
+      const p = norm(it?.pergunta)
+      return p ? `p:${p}` : `id:${String(it?.id || '')}`
+    }
+    const pickTime = (it: any) => String(it?.created_at || it?.updated_at || '')
+    const byKey = new Map<string, any>()
+    for (const it of items || []) {
+      const t = pickTime(it)
+      if (cutoff && t && t > cutoff) continue
+      const k = keyOf(it)
+      const prev = byKey.get(k)
+      if (!prev) {
+        byKey.set(k, it)
+        continue
+      }
+      const prevPref = prefer.has(String(prev?.id || ''))
+      const itPref = prefer.has(String(it?.id || ''))
+      if (itPref && !prevPref) {
+        byKey.set(k, it)
+        continue
+      }
+      if (prevPref && !itPref) continue
+      if (pickTime(it) >= pickTime(prev)) byKey.set(k, it)
+    }
+    const list = Array.from(byKey.values()).filter((it: any) => it?.ativo !== false)
+    return list.sort((a: any, b: any) => {
+      const ao = Number(a?.ordem) || 0
+      const bo = Number(b?.ordem) || 0
+      if (ao !== bo) return ao - bo
+      return pickTime(a).localeCompare(pickTime(b))
+    })
   },
   
   async listItensChecklistAll(): Promise<ItemChecklist[]> {

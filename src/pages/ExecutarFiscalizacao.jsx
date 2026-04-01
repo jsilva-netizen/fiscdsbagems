@@ -125,7 +125,7 @@ export default function ExecutarFiscalizacao() {
     }
 
     const tiposFiltrados = tipos.filter(t => 
-        t.servicos_aplicaveis?.includes(fiscalizacao.servico)
+        t.ativo !== false && t.servicos_aplicaveis?.includes(fiscalizacao.servico)
     );
 
     return (

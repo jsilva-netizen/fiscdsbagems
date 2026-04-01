@@ -57,7 +57,27 @@ export default function Checklists() {
                 .order('ordem', { ascending: true })
                 .order('created_at', { ascending: true });
             if (error) throw error;
-            return data || [];
+            const norm = (s) => String(s || '').trim().toLowerCase();
+            const keyOf = (it) => {
+                const ord = Number(it?.ordem) || 0;
+                if (ord > 0) return `o:${ord}`;
+                const p = norm(it?.pergunta);
+                return p ? `p:${p}` : `id:${String(it?.id || '')}`;
+            };
+            const list = Array.isArray(data) ? data : [];
+            const byKey = new Map();
+            for (const it of list) {
+                const k = keyOf(it);
+                const prev = byKey.get(k);
+                if (!prev) {
+                    byKey.set(k, it);
+                    continue;
+                }
+                if (String(it?.created_at || '') >= String(prev?.created_at || '')) byKey.set(k, it);
+            }
+            return Array.from(byKey.values())
+                .filter((it) => it?.ativo !== false)
+                .sort((a, b) => (Number(a?.ordem) || 0) - (Number(b?.ordem) || 0));
         },
         enabled: !!selectedTipo
     });
@@ -65,7 +85,7 @@ export default function Checklists() {
     const createMutation = useMutation({
         mutationFn: async (data) => {
             const id = crypto?.randomUUID?.() || Math.random().toString(36).slice(2);
-            const payload = { ...data, id };
+            const payload = { ...data, id, ativo: true };
             const { error } = await supabase.from('itens_checklist').insert(payload);
             if (error) throw error;
         },
@@ -77,8 +97,42 @@ export default function Checklists() {
     });
 
     const updateMutation = useMutation({
-        mutationFn: async ({ id, data }) => {
-            const { error } = await supabase.from('itens_checklist').update({ ...data }).eq('id', id);
+        mutationFn: async ({ prevItem, data }) => {
+            const norm = (s) => String(s || '').trim().toLowerCase();
+            const keyOf = (it) => {
+                const ord = Number(it?.ordem) || 0;
+                if (ord > 0) return `o:${ord}`;
+                const p = norm(it?.pergunta);
+                return p ? `p:${p}` : `id:${String(it?.id || '')}`;
+            };
+
+            const id = crypto?.randomUUID?.() || Math.random().toString(36).slice(2);
+            const payload = { ...data, id, ativo: true };
+            const rows = [payload];
+            if (prevItem) {
+                const prevKey = keyOf(prevItem);
+                const nextKey = keyOf(data);
+                if (prevKey !== nextKey) {
+                    const tombstoneId = crypto?.randomUUID?.() || Math.random().toString(36).slice(2);
+                    rows.push({
+                        id: tombstoneId,
+                        tipo_unidade_id: prevItem?.tipo_unidade_id,
+                        ordem: prevItem?.ordem,
+                        pergunta: prevItem?.pergunta,
+                        texto_constatacao_sim: prevItem?.texto_constatacao_sim,
+                        texto_constatacao_nao: prevItem?.texto_constatacao_nao,
+                        gera_nc: prevItem?.gera_nc,
+                        artigo_portaria: prevItem?.artigo_portaria,
+                        texto_determinacao: prevItem?.texto_determinacao,
+                        texto_recomendacao: prevItem?.texto_recomendacao,
+                        texto_nc: prevItem?.texto_nc,
+                        prazo_dias: prevItem?.prazo_dias,
+                        ativo: false
+                    });
+                }
+            }
+
+            const { error } = await supabase.from('itens_checklist').insert(rows);
             if (error) throw error;
         },
         onSuccess: () => {
@@ -89,8 +143,24 @@ export default function Checklists() {
     });
 
     const deleteMutation = useMutation({
-        mutationFn: async (id) => {
-            const { error } = await supabase.from('itens_checklist').delete().eq('id', id);
+        mutationFn: async (item) => {
+            const id = crypto?.randomUUID?.() || Math.random().toString(36).slice(2);
+            const payload = {
+                id,
+                tipo_unidade_id: item?.tipo_unidade_id,
+                ordem: item?.ordem,
+                pergunta: item?.pergunta,
+                texto_constatacao_sim: item?.texto_constatacao_sim,
+                texto_constatacao_nao: item?.texto_constatacao_nao,
+                gera_nc: item?.gera_nc,
+                artigo_portaria: item?.artigo_portaria,
+                texto_determinacao: item?.texto_determinacao,
+                texto_recomendacao: item?.texto_recomendacao,
+                texto_nc: item?.texto_nc,
+                prazo_dias: item?.prazo_dias,
+                ativo: false
+            };
+            const { error } = await supabase.from('itens_checklist').insert(payload);
             if (error) throw error;
         },
         onSuccess: () => {
@@ -102,10 +172,10 @@ export default function Checklists() {
     const handleSave = (data) => {
         const payload = { ...data, tipo_unidade_id: selectedTipo };
         // Remove id from payload if creating
-        const { id, ...rest } = payload;
+        const { id, created_at, ...rest } = payload;
         
         if (editing?.id) {
-            updateMutation.mutate({ id: editing.id, data: rest });
+            updateMutation.mutate({ prevItem: editing, data: rest });
         } else {
             createMutation.mutate(rest);
         }
@@ -267,18 +337,81 @@ export default function Checklists() {
                 });
             }
 
+            const norm = (s) => String(s || '').trim().toLowerCase();
+            const keyOf = (it) => {
+                const ord = Number(it?.ordem) || 0;
+                if (ord > 0) return `o:${ord}`;
+                const p = norm(it?.pergunta);
+                return p ? `p:${p}` : `id:${String(it?.id || '')}`;
+            };
             const tipoIdsImportados = Array.from(new Set(itensRows.map((x) => x.tipo_unidade_id).filter(Boolean)));
-            for (let offset = 0; offset < tipoIdsImportados.length; offset += 50) {
-                const chunk = tipoIdsImportados.slice(offset, offset + 50);
-                const { error } = await supabase.from('itens_checklist').delete().in('tipo_unidade_id', chunk);
-                if (error) throw error;
-            }
 
-            for (let offset = 0; offset < itensRows.length; offset += 200) {
-                const chunk = itensRows.slice(offset, offset + 200);
-                const { error } = await supabase.from('itens_checklist').insert(chunk);
-                if (error) throw error;
-                itensImportados += chunk.length;
+            for (const tipoId of tipoIdsImportados) {
+                const incoming = itensRows.filter((x) => x.tipo_unidade_id === tipoId);
+                const incomingByKey = new Map();
+                for (const it of incoming) {
+                    const k = keyOf(it);
+                    if (!incomingByKey.has(k)) incomingByKey.set(k, it);
+                }
+
+                const { data: existingAll, error: exErr } = await supabase
+                    .from('itens_checklist')
+                    .select('tipo_unidade_id, ordem, pergunta, texto_constatacao_sim, texto_constatacao_nao, gera_nc, artigo_portaria, texto_determinacao, texto_recomendacao, texto_nc, prazo_dias, ativo, created_at')
+                    .eq('tipo_unidade_id', tipoId)
+                    .order('created_at', { ascending: true });
+                if (exErr) throw exErr;
+                const existingList = Array.isArray(existingAll) ? existingAll : [];
+                const latestByKey = new Map();
+                for (const it of existingList) {
+                    const k = keyOf(it);
+                    latestByKey.set(k, it);
+                }
+
+                const inserts = [];
+                for (const it of incomingByKey.values()) {
+                    inserts.push({
+                        id: crypto?.randomUUID?.() || Math.random().toString(36).slice(2),
+                        tipo_unidade_id: tipoId,
+                        ordem: it.ordem,
+                        pergunta: it.pergunta,
+                        texto_constatacao_sim: it.texto_constatacao_sim,
+                        texto_constatacao_nao: it.texto_constatacao_nao,
+                        gera_nc: it.gera_nc,
+                        artigo_portaria: it.artigo_portaria,
+                        texto_determinacao: it.texto_determinacao,
+                        texto_recomendacao: it.texto_recomendacao,
+                        texto_nc: it.texto_nc,
+                        prazo_dias: it.prazo_dias,
+                        ativo: true
+                    });
+                }
+
+                for (const [k, it] of latestByKey.entries()) {
+                    if (incomingByKey.has(k)) continue;
+                    if (it?.ativo === false) continue;
+                    inserts.push({
+                        id: crypto?.randomUUID?.() || Math.random().toString(36).slice(2),
+                        tipo_unidade_id: tipoId,
+                        ordem: it.ordem,
+                        pergunta: it.pergunta,
+                        texto_constatacao_sim: it.texto_constatacao_sim,
+                        texto_constatacao_nao: it.texto_constatacao_nao,
+                        gera_nc: it.gera_nc,
+                        artigo_portaria: it.artigo_portaria,
+                        texto_determinacao: it.texto_determinacao,
+                        texto_recomendacao: it.texto_recomendacao,
+                        texto_nc: it.texto_nc,
+                        prazo_dias: it.prazo_dias,
+                        ativo: false
+                    });
+                }
+
+                for (let offset = 0; offset < inserts.length; offset += 200) {
+                    const chunk = inserts.slice(offset, offset + 200);
+                    const { error } = await supabase.from('itens_checklist').insert(chunk);
+                    if (error) throw error;
+                    itensImportados += chunk.filter((x) => x.ativo !== false).length;
+                }
             }
             
             alert(`✅ Importação concluída!\n${itensImportados} itens importados`);
@@ -493,7 +626,7 @@ export default function Checklists() {
                                                                     <Button
                                                                         variant="destructive"
                                                                         disabled={deleteConfirmation.inputValue !== 'EXCLUIR' || deleteMutation.isPending}
-                                                                        onClick={() => deleteMutation.mutate(item.id)}
+                                                                        onClick={() => deleteMutation.mutate(item)}
                                                                     >
                                                                         {deleteMutation.isPending ? 'Excluindo...' : 'Excluir Permanentemente'}
                                                                     </Button>
