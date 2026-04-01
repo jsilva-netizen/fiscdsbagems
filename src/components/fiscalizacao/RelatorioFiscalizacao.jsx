@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/lib/supabase';
 import { useSyncStatus } from '@/lib/SyncStatusContext.jsx';
+import { getSyncPendingForFiscalizacao } from '@/lib/offline/syncEngine';
 import { Button } from '@/components/ui/button';
 import { Loader2, FileText } from 'lucide-react';
 import { db } from '@/lib/offline/db';
@@ -14,6 +15,7 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
     const [jobId, setJobId] = React.useState(null);
     const [job, setJob] = React.useState(null);
     const [error, setError] = React.useState(null);
+    const [pendingLocal, setPendingLocal] = React.useState({ outboxCount: 0, fotosCount: 0 });
     const syncStatus = useSyncStatus?.() || { online: true, sessionValid: true, outboxCount: 0, lastSyncAt: undefined };
     const __keepImports = Button && Loader2 && FileText ? null : null;
 
@@ -918,28 +920,29 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
         };
     }, [jobId]);
 
-    const isOnlineAndReady = syncStatus.online && syncStatus.sessionValid && (syncStatus.outboxCount || 0) === 0;
+    const isOnlineAndReady = syncStatus.online && syncStatus.sessionValid;
     React.useEffect(() => {
         if (!isOnlineAndReady) return;
         carregarUltimoJob();
     }, [isOnlineAndReady, fiscalizacao?.id]);
 
-    const canGenerate = isOnlineAndReady && fiscalizacao?.status === 'finalizada';
-    if (!canGenerate) {
-        const outbox = syncStatus.outboxCount || 0;
-        const msg = !syncStatus.online || !syncStatus.sessionValid || outbox > 0
-            ? 'Sincronize antes para gerar relatório no servidor.'
-            : fiscalizacao?.status !== 'finalizada'
-            ? 'Finalize a fiscalização para gerar relatório no servidor.'
-            : 'Sincronize antes para gerar relatório no servidor.';
-        return (
-            <div className="space-y-2">
-                <div className="text-sm text-yellow-700 bg-yellow-100 border border-yellow-200 rounded px-3 py-2">
-                    {msg}
-                </div>
-            </div>
-        );
-    }
+    React.useEffect(() => {
+        let stopped = false;
+        const refresh = async () => {
+            try {
+                if (!fiscalizacao?.id) return;
+                const data = await getSyncPendingForFiscalizacao(String(fiscalizacao.id));
+                if (stopped) return;
+                setPendingLocal(data);
+            } catch {}
+        };
+        refresh();
+        const t = window.setInterval(refresh, 4000);
+        return () => {
+            stopped = true;
+            clearInterval(t);
+        };
+    }, [fiscalizacao?.id]);
 
     const baixarJob = async (selectedJobId) => {
         try {
@@ -957,12 +960,30 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
 
     const isRunning = job?.status && job.status !== 'done' && job.status !== 'error';
     const isDone = job?.status === 'done' && !!job?.signed_url;
+    const localOutbox = pendingLocal?.outboxCount || 0;
+    const localFotos = pendingLocal?.fotosCount || 0;
+    const canRequest = isOnlineAndReady && fiscalizacao?.status === 'finalizada' && localOutbox === 0 && localFotos === 0;
+    const msg = !syncStatus.online || !syncStatus.sessionValid
+        ? 'Conecte-se ao servidor para gerar/baixar relatório.'
+        : fiscalizacao?.status !== 'finalizada'
+        ? 'Finalize a fiscalização para gerar relatório no servidor.'
+        : (localOutbox > 0 || localFotos > 0)
+        ? 'Sincronize esta fiscalização antes para gerar um novo relatório no servidor.'
+        : null;
 
     return (
         <div className="space-y-2">
             {error ? (
                 <div className="text-sm text-red-700 bg-red-100 border border-red-200 rounded px-3 py-2">
                     {error}
+                </div>
+            ) : null}
+            {msg ? (
+                <div className="text-sm text-yellow-700 bg-yellow-100 border border-yellow-200 rounded px-3 py-2">
+                    {msg}
+                    {syncStatus.online && syncStatus.sessionValid && fiscalizacao?.status === 'finalizada' && (localOutbox > 0 || localFotos > 0)
+                        ? ` (${localOutbox} itens, ${localFotos} fotos)`
+                        : ''}
                 </div>
             ) : null}
             {job?.status ? (
@@ -982,7 +1003,7 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
                     }
                     solicitarGeracao();
                 }}
-                disabled={isRequesting || isRunning}
+                disabled={!isOnlineAndReady || isRequesting || isRunning || (!isDone && !canRequest)}
                 className="w-full bg-blue-600 hover:bg-blue-700"
                 size="sm"
             >

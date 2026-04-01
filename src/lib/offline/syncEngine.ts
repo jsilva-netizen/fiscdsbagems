@@ -352,9 +352,84 @@ export async function getOutboxCount(): Promise<number> {
   return (pendingOrError || 0) + (unknownStatus || 0)
 }
 
+export async function getSyncPendingForFiscalizacao(fiscalizacaoId: UUID): Promise<{ outboxCount: number; fotosCount: number }> {
+  if (!fiscalizacaoId) return { outboxCount: 0, fotosCount: 0 }
+  const unidades = await db.unidades.where('fiscalizacao_id').equals(fiscalizacaoId as any).toArray()
+  const unidadeIds = new Set<string>(unidades.map((u: any) => String(u?.id || '')).filter(Boolean))
+
+  const [pendingOrError, unknownStatus] = await Promise.all([
+    db.fila_mutacoes.where('status').anyOf('pending', 'error').toArray(),
+    db.fila_mutacoes.filter((m: any) => !m?.status).toArray()
+  ])
+  const all = [...(pendingOrError || []), ...(unknownStatus || [])]
+
+  const matchesFiscalizacao = (m: any): boolean => {
+    const entity = String(m?.entity || '')
+    const p = m?.payload || {}
+    const pid = p?.id
+    const pfisc = p?.fiscalizacao_id
+    if (entity === 'fiscalizacoes' || entity === 'finalizacao_fiscalizacao') {
+      return String(pid || '') === String(fiscalizacaoId) || String(pfisc || '') === String(fiscalizacaoId)
+    }
+    if (entity === 'unidades' || entity === 'finalizacao_unidade') {
+      if (String(pfisc || '') === String(fiscalizacaoId)) return true
+      const uid = String(pid || p?.unidade_fiscalizada_id || '')
+      return uid ? unidadeIds.has(uid) : false
+    }
+    if (entity === 'respostas' || entity === 'constatacoes_manuais' || entity === 'recomendacoes' || entity === 'fotos') {
+      const uid = String(p?.unidade_fiscalizada_id || '')
+      return uid ? unidadeIds.has(uid) : false
+    }
+    return false
+  }
+
+  const outboxCount = all.reduce((acc, m) => acc + (matchesFiscalizacao(m) ? 1 : 0), 0)
+
+  const fotosCount = await db.fotos_local
+    .filter((f: any) => !f?.syncedAt && unidadeIds.has(String(f?.unidadeLocalId || '')))
+    .count()
+
+  return { outboxCount, fotosCount }
+}
+
 export async function getLastSync(): Promise<{ lastSyncAt?: string }> {
   const st = await db.estados_sync.get('global' as UUID)
   return { lastSyncAt: st?.last_sync_at }
+}
+
+async function compactOutbox(): Promise<number> {
+  const pending = await db.fila_mutacoes.where('status').equals('pending').toArray()
+  if (!Array.isArray(pending) || pending.length < 2) return 0
+  const keepByKey = new Map<string, { id: UUID; ts: number }>()
+  const deletables: UUID[] = []
+  for (const m of pending) {
+    const entity = String((m as any)?.entity || '')
+    const pid = (m as any)?.payload?.id
+    if (!entity || typeof pid !== 'string' || !pid) continue
+    const key = `${entity}:${pid}`
+    const ts = Number.isFinite(Date.parse((m as any)?.created_at || '')) ? Date.parse((m as any).created_at) : 0
+    const prev = keepByKey.get(key)
+    if (!prev) {
+      keepByKey.set(key, { id: (m as any).id as UUID, ts })
+      continue
+    }
+    if (ts >= prev.ts) {
+      deletables.push(prev.id)
+      keepByKey.set(key, { id: (m as any).id as UUID, ts })
+    } else {
+      deletables.push((m as any).id as UUID)
+    }
+  }
+  if (deletables.length === 0) return 0
+  await db.fila_mutacoes.bulkDelete(deletables as any)
+  const pendingCount = await getOutboxCount()
+  await db.estados_sync.put({
+    id: 'global' as UUID,
+    entidade: 'global',
+    updated_at: now(),
+    pending_count: pendingCount
+  })
+  return deletables.length
 }
 
 async function retryOutboxErrors(): Promise<void> {
@@ -1131,6 +1206,11 @@ export async function runFullSync(onProgress?: (msg: string, isError?: boolean) 
   
   log('Enfileirando dados pendentes...')
   await ensureBaseEntitiesEnqueued()
+
+  try {
+    log('Otimizando fila de sincronização...')
+    await compactOutbox()
+  } catch {}
   
   log('Enviando dados (Sync Up)...')
   await syncUp(onProgress)
