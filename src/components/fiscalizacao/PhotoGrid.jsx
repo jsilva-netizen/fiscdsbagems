@@ -226,20 +226,19 @@ export default function PhotoGrid({
                             let capture = null;
                             if (isGallery) {
                                 capture = await extractCaptureFromImageFile(file);
-                                if (!capture) {
-                                    throw new Error('A foto selecionada não contém GPS/timestamp nos metadados (EXIF).');
-                                }
-                                if (typeof capture.accuracyM === 'number' && Number.isFinite(capture.accuracyM) && capture.accuracyM > MAX_GPS_ACCURACY_M) {
+                                if (capture && typeof capture.accuracyM === 'number' && Number.isFinite(capture.accuracyM) && capture.accuracyM > MAX_GPS_ACCURACY_M) {
                                     throw new Error(`Precisão do GPS da foto insuficiente (${Math.round(capture.accuracyM)}m).`);
                                 }
                             } else {
                                 capture = { latitude: gpsFix.latitude, longitude: gpsFix.longitude, takenAt: new Date().toISOString() };
                             }
-                            const saved = await Repository.addLocalFotoFromFile(unidadeId, file, {
-                                latitude: capture.latitude,
-                                longitude: capture.longitude,
-                                takenAt: capture.takenAt
-                            });
+                            const saved = await Repository.addLocalFotoFromFile(
+                                unidadeId,
+                                file,
+                                capture
+                                    ? { latitude: capture.latitude, longitude: capture.longitude, takenAt: capture.takenAt }
+                                    : undefined
+                            );
                             const novaFoto = {
                                 localId: saved.localId,
                                 url: saved.previewUrl || saved.url || '',
