@@ -772,9 +772,9 @@ function selectColsForPull(entity: Entity): string {
     case 'unidades':
       return 'id,fiscalizacao_id,tipo_unidade_id,tipo_unidade_nome,nome_unidade,codigo_unidade,endereco,latitude,longitude,status,total_constatacoes,total_ncs,fotos_unidade,data_hora_vistoria,created_at,updated_at'
     case 'respostas':
-      return 'id,unidade_fiscalizada_id,item_checklist_id,resposta,observacao,pergunta,numero_constatacao,gera_nc,created_at,updated_at'
+      return '*'
     case 'constatacoes_manuais':
-      return 'id,unidade_fiscalizada_id,numero_constatacao,descricao,gera_nc,artigo_portaria,texto_determinacao,texto_recomendacao,ordem,created_at,updated_at'
+      return '*'
     default:
       return '*'
   }
@@ -890,7 +890,7 @@ export async function syncDown(onProgress?: (msg: string, isError?: boolean) => 
   // itens_checklist e recomendacoes: tabelas adicionais
   log('Baixando municípios...')
   await withBackoff(() => withTimeout(async () => {
-    const data = await safeSelectSince('municipios', 'id, nome, updated_at', since)
+    const data = await safeSelectSince('municipios', 'id, nome', since)
     if (Array.isArray(data)) {
       for (const row of data) {
         await db.municipios.put(row as any)
@@ -917,7 +917,7 @@ export async function syncDown(onProgress?: (msg: string, isError?: boolean) => 
   }, 15000))
   log('Baixando prestadores...')
   await withBackoff(() => withTimeout(async () => {
-    const data = await safeSelectSince('prestadores_servico', 'id, nome, created_at, updated_at', since)
+    const data = await safeSelectSince('prestadores_servico', 'id, nome', since)
     if (Array.isArray(data)) {
       for (const row of data) {
         await db.prestadores.put(row as any)
@@ -928,7 +928,7 @@ export async function syncDown(onProgress?: (msg: string, isError?: boolean) => 
   await withBackoff(() => withTimeout(async () => {
     const data = await safeSelectSince(
       'itens_checklist',
-      'id, tipo_unidade_id, ordem, pergunta, texto_constatacao_sim, texto_constatacao_nao, gera_nc, artigo_portaria, texto_determinacao, texto_recomendacao, texto_nc, prazo_dias, ativo, created_at, created_date, updated_date',
+      '*',
       undefined,
       'or'
     )
@@ -943,7 +943,7 @@ export async function syncDown(onProgress?: (msg: string, isError?: boolean) => 
     try {
       const data = await safeSelectSince(
         'recomendacoes',
-        'id, unidade_fiscalizada_id, numero_recomendacao, descricao, origem, created_at, updated_at',
+        '*',
         since
       )
       if (Array.isArray(data)) {
