@@ -20,18 +20,15 @@ function genId() {
 
 const toastTimeouts = new Map();
 
-const addToRemoveQueue = (toastId) => {
-  if (toastTimeouts.has(toastId)) {
-    return;
-  }
-
+const addToRemoveQueue = (toastId, delay = TOAST_REMOVE_DELAY) => {
+  _clearFromRemoveQueue(toastId);
   const timeout = setTimeout(() => {
     toastTimeouts.delete(toastId);
     dispatch({
       type: actionTypes.REMOVE_TOAST,
       toastId,
     });
-  }, TOAST_REMOVE_DELAY);
+  }, delay);
 
   toastTimeouts.set(toastId, timeout);
 };
@@ -66,10 +63,10 @@ export const reducer = (state, action) => {
       // ! Side effects ! - This could be extracted into a dismissToast() action,
       // but I'll keep it here for simplicity
       if (toastId) {
-        addToRemoveQueue(toastId);
+        addToRemoveQueue(toastId, 250);
       } else {
         state.toasts.forEach((toast) => {
-          addToRemoveQueue(toast.id);
+          addToRemoveQueue(toast.id, 250);
         });
       }
 
@@ -153,7 +150,7 @@ function useToast() {
         listeners.splice(index, 1);
       }
     };
-  }, [state]);
+  }, []);
 
   return {
     ...state,

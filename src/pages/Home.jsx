@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPageUrl } from '@/utils';
 import { useAuth } from '@/lib/AuthContext';
 import { Link } from 'react-router-dom';
@@ -23,6 +23,8 @@ export default function Home() {
     const [syncProgress, setSyncProgress] = useState('');
     const { toast } = useToast();
     const queryClient = useQueryClient();
+    const syncInFlightRef = useRef(false);
+    const lastSyncToastDismissRef = useRef(null);
     
     // O role vem do profile (tabela public.profiles), que é mergeado no user pelo AuthContext
     const isAdmin = user?.role === 'admin';
@@ -266,6 +268,8 @@ export default function Home() {
                                 disabled={syncing || !online}
                                 className="border-white text-white bg-white/10 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
                                 onClick={async () => {
+                                    if (syncInFlightRef.current) return
+                                    syncInFlightRef.current = true
                                     setSyncing(true)
                                     setSyncProgress('Iniciando...')
                                     try {
@@ -285,19 +289,24 @@ export default function Home() {
                                         await queryClient.invalidateQueries()
                                         await queryClient.refetchQueries()
                                         setSyncProgress('')
-                                        toast({
+                                        if (typeof lastSyncToastDismissRef.current === 'function') lastSyncToastDismissRef.current()
+                                        const t = toast({
                                             title: 'Sincronização concluída',
                                             description: res.lastSyncAt ? `Atualizado em ${format(new Date(res.lastSyncAt), 'dd/MM HH:mm', { locale: ptBR })}` : 'Dados atualizados'
                                         })
+                                        lastSyncToastDismissRef.current = t?.dismiss
                                     } catch (err) {
                                         setSyncProgress('Erro na sincronização')
-                                        toast({
+                                        if (typeof lastSyncToastDismissRef.current === 'function') lastSyncToastDismissRef.current()
+                                        const t = toast({
                                             title: 'Falha na sincronização',
                                             description: err?.message || 'Verifique sua conexão e tente novamente',
                                             variant: 'destructive'
                                         })
+                                        lastSyncToastDismissRef.current = t?.dismiss
                                     } finally {
                                         setSyncing(false)
+                                        syncInFlightRef.current = false
                                         refetchSyncStatus?.()
                                     }
                                 }}
