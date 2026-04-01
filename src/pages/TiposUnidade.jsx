@@ -71,13 +71,37 @@ export default function TiposUnidade() {
     const deleteMutation = useMutation({
         mutationFn: async (id) => {
             if (!online) throw new Error('Operação disponível somente online.');
+            const { data: unidadeVinculada, error: unidadeErr } = await supabase
+                .from('unidades_fiscalizadas')
+                .select('id')
+                .eq('tipo_unidade_id', id)
+                .limit(1)
+                .maybeSingle();
+            if (unidadeErr) throw unidadeErr;
+            if (unidadeVinculada?.id) {
+                throw new Error('Não é possível excluir: existem unidades vinculadas a este tipo. Exclua as unidades primeiro.');
+            }
+
+            const { error: delItensErr } = await supabase.from('itens_checklist').delete().eq('tipo_unidade_id', id);
+            if (delItensErr) throw delItensErr;
+
             const { error } = await supabase.from('tipos_unidade').delete().eq('id', id);
-            if (error) throw error;
+            if (error) {
+                const msg = String(error?.message || '');
+                const isConflict = (error?.status === 409) || msg.toLowerCase().includes('conflict');
+                if (isConflict) {
+                    throw new Error('Não foi possível excluir este tipo porque ainda existem registros vinculados (ex.: checklists ou unidades).');
+                }
+                throw error;
+            }
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['tipos-unidade'] });
             setDeleteConfirmation({ open: false, tipoId: null, step: 1, inputValue: '' });
-        }
+        },
+        onError: (err) => {
+            alert(err?.message || 'Erro ao excluir tipo de unidade.');
+        },
     });
 
     const resetForm = () => {

@@ -267,6 +267,13 @@ export default function Checklists() {
                 });
             }
 
+            const tipoIdsImportados = Array.from(new Set(itensRows.map((x) => x.tipo_unidade_id).filter(Boolean)));
+            for (let offset = 0; offset < tipoIdsImportados.length; offset += 50) {
+                const chunk = tipoIdsImportados.slice(offset, offset + 50);
+                const { error } = await supabase.from('itens_checklist').delete().in('tipo_unidade_id', chunk);
+                if (error) throw error;
+            }
+
             for (let offset = 0; offset < itensRows.length; offset += 200) {
                 const chunk = itensRows.slice(offset, offset + 200);
                 const { error } = await supabase.from('itens_checklist').insert(chunk);

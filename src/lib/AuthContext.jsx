@@ -14,6 +14,7 @@ export const AuthProvider = ({ children }) => {
     const LOGOUT_INTENT_KEY = 'agms_logout_intent_v1';
     const AUTH_CACHE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
     const LOGOUT_INTENT_MAX_AGE_MS = 10 * 1000;
+    const PROFILE_FETCH_TIMEOUT_MS = 900;
 
     const readAuthCache = () => {
       try {
@@ -101,7 +102,7 @@ export const AuthProvider = ({ children }) => {
             .select('ativo, role')
             .eq('id', session.user.id)
             .maybeSingle(),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 4000)),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), PROFILE_FETCH_TIMEOUT_MS)),
         ]);
         const { data: profileRow, error } = profileRes || {};
         let profile = profileRow;
@@ -133,9 +134,16 @@ export const AuthProvider = ({ children }) => {
     };
 
     let cancelled = false;
+    const bootstrapCache = readAuthCache();
+    if (bootstrapCache?.user) {
+      setUser(bootstrapCache.user);
+      setSession(bootstrapCache.session || null);
+      setIsAuthenticated(true);
+      setIsLoading(false);
+    }
 
     const bootstrap = async () => {
-      setIsLoading(true);
+      if (!bootstrapCache?.user) setIsLoading(true);
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (cancelled) return;
