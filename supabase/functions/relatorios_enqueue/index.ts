@@ -45,16 +45,22 @@ serve(async (req) => {
   if (!user) return jsonResponse({ error: 'unauthorized' }, 401)
 
   const { data: profile } = await adminClient.from('profiles').select('role, ativo').eq('id', user.id).maybeSingle()
-  const isAdmin = profile?.ativo === true && profile?.role === 'admin'
+  const isActive = profile?.ativo === true
+  const isAdmin = isActive && profile?.role === 'admin'
+  if (!isActive) return jsonResponse({ error: 'forbidden' }, 403)
 
   const { data: fiscRow } = await adminClient
     .from('fiscalizacoes')
-    .select('id, created_by')
+    .select('id, created_by, fiscal_email')
     .eq('id', fiscalizacao_id)
     .maybeSingle()
   if (!fiscRow) return jsonResponse({ error: 'fiscalizacao_not_found' }, 404)
 
-  if (!isAdmin && fiscRow.created_by !== user.id) return jsonResponse({ error: 'forbidden' }, 403)
+  const userEmail = String(user.email || '').trim().toLowerCase()
+  const fiscalEmail = String(fiscRow.fiscal_email || '').trim().toLowerCase()
+  const isOwnerById = fiscRow.created_by === user.id
+  const isOwnerByEmail = !!userEmail && !!fiscalEmail && userEmail === fiscalEmail
+  if (!isAdmin && !isOwnerById && !isOwnerByEmail) return jsonResponse({ error: 'forbidden' }, 403)
 
   const { data: unidadeProbe, error: unidadeErr } = await adminClient
     .from('unidades_fiscalizadas')
