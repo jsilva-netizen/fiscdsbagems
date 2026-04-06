@@ -45,7 +45,6 @@ serve(async (req) => {
   if (!user) return jsonResponse({ error: 'unauthorized' }, 401)
 
   const { data: profile } = await adminClient.from('profiles').select('role, ativo').eq('id', user.id).maybeSingle()
-  const isAdmin = profile?.ativo === true && profile?.role === 'admin'
 
   const { data: job, error: jobErr } = await adminClient
     .from('relatorios_jobs')
@@ -55,7 +54,7 @@ serve(async (req) => {
   if (jobErr) return jsonResponse({ error: 'job_fetch_failed', details: jobErr.message }, 500)
   if (!job) return jsonResponse({ error: 'job_not_found' }, 404)
 
-  if (!isAdmin && job.requested_by !== user.id) return jsonResponse({ error: 'forbidden' }, 403)
+  if (profile?.ativo !== true) return jsonResponse({ error: 'forbidden' }, 403)
 
   let signed_url: string | undefined
   if (job.status === 'done' && job.storage_path) {
