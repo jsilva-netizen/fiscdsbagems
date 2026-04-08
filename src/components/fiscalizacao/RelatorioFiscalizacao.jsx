@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { useSyncStatus } from '@/lib/SyncStatusContext.jsx';
 import { getSyncPendingForFiscalizacao } from '@/lib/offline/syncEngine';
 import { Button } from '@/components/ui/button';
-import { Loader2, FileText } from 'lucide-react';
+import { Loader2, FileText, RefreshCcw } from 'lucide-react';
 import { db } from '@/lib/offline/db';
 
 export default function RelatorioFiscalizacao({ fiscalizacao }) {
@@ -818,14 +818,6 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
         try {
             await ensureAuth();
             
-            // Se a fiscalização não está finalizada, nem tentamos carregar o job.
-            // Isso garante que ao reabrir (em_andamento), o estado do job seja limpo.
-            if (fiscalizacao?.status !== 'finalizada') {
-                setJob(null);
-                setJobId(null);
-                return;
-            }
-
             const fiscalizacao_id = await resolveServerFiscalizacaoId();
             const { data, error: qErr } = await supabase
                 .from('relatorios_jobs')
@@ -968,7 +960,7 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
     };
 
     const isRunning = job?.status && job.status !== 'done' && job.status !== 'error';
-    const isDone = job?.status === 'done' && !!job?.signed_url && fiscalizacao?.status === 'finalizada';
+    const isDone = job?.status === 'done' && !!job?.signed_url;
     const localOutbox = pendingLocal?.outboxCount || 0;
     const localFotos = pendingLocal?.fotosCount || 0;
     const canRequest = isOnlineAndReady && fiscalizacao?.status === 'finalizada' && localOutbox === 0 && localFotos === 0;
@@ -1002,32 +994,51 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
                     {typeof job.progress_fotos === 'number' ? ` | Fotos: ${job.progress_fotos}` : ''}
                 </div>
             ) : null}
-            <Button
-                onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (isDone) {
-                        baixarJob(job.id);
-                        return;
-                    }
-                    solicitarGeracao();
-                }}
-                disabled={!isOnlineAndReady || isRequesting || isRunning || (!isDone && !canRequest)}
-                className="w-full bg-blue-600 hover:bg-blue-700"
-                size="sm"
-            >
-                {isRequesting || isRunning ? (
-                    <>
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        Gerando relatório...
-                    </>
-                ) : (
-                    <>
-                        <FileText className="h-4 w-4 mr-2" />
-                        {isDone ? 'Baixar Relatório' : 'Gerar Relatório'}
-                    </>
+            <div className="flex gap-2">
+                <Button
+                    onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (isDone) {
+                            baixarJob(job.id);
+                            return;
+                        }
+                        solicitarGeracao();
+                    }}
+                    disabled={!isOnlineAndReady || isRequesting || isRunning || (!isDone && !canRequest)}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                    size="sm"
+                >
+                    {isRequesting || isRunning ? (
+                        <>
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            Gerando...
+                        </>
+                    ) : (
+                        <>
+                            <FileText className="h-4 w-4 mr-2" />
+                            {isDone ? 'Baixar' : 'Gerar Relatório'}
+                        </>
+                    )}
+                </Button>
+
+                {isDone && (
+                    <Button
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            solicitarGeracao();
+                        }}
+                        disabled={!isOnlineAndReady || isRequesting || isRunning || !canRequest}
+                        variant="outline"
+                        className="text-orange-600 border-orange-200 hover:bg-orange-50"
+                        size="sm"
+                        title="Gerar novo relatório com dados atuais"
+                    >
+                        <RefreshCcw className={`h-4 w-4 ${isRequesting || isRunning ? 'animate-spin' : ''}`} />
+                    </Button>
                 )}
-            </Button>
+            </div>
         </div>
     );
 }
