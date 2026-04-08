@@ -1,19 +1,3 @@
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Authenticated Select relatorios_fiscalizacao" ON storage.objects;
-DROP POLICY IF EXISTS "Authenticated Insert relatorios_fiscalizacao" ON storage.objects;
-DROP POLICY IF EXISTS "Authenticated Update relatorios_fiscalizacao" ON storage.objects;
-DROP POLICY IF EXISTS "Authenticated Delete relatorios_fiscalizacao" ON storage.objects;
-
-DROP POLICY IF EXISTS "Service role full relatorios_fiscalizacao" ON storage.objects;
-
-CREATE POLICY "Service role full relatorios_fiscalizacao"
-ON storage.objects
-FOR ALL
-TO service_role
-USING (bucket_id = 'relatorios_fiscalizacao')
-WITH CHECK (bucket_id = 'relatorios_fiscalizacao');
-
 ALTER TABLE public.relatorios_jobs ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Select own relatorios_jobs" ON public.relatorios_jobs;
