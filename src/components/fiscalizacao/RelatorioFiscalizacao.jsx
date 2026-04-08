@@ -59,15 +59,12 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
             const { data, error: qErr } = await supabase
                 .from('relatorios_jobs')
                 .select('id, status, progress_unidades, progress_fotos, error_message, storage_path, created_at, updated_at')
-                .eq('fiscal_id' as any, fiscalizacao_id) // Fallback common column name check
+                .eq('fiscalizacao_id', fiscalizacao_id)
                 .order('created_at', { ascending: false })
                 .limit(1);
-            
-            // Try actual column name from schema if 'fiscal_id' fails, usually 'fiscalizacao_id'
-            const actualQuery = qErr ? supabase.from('relatorios_jobs').select('*').eq('fiscalizacao_id', fiscalizacao_id) : null;
-            const finalData = qErr ? (await actualQuery).data : data;
+            if (qErr) throw qErr;
 
-            const row = Array.isArray(finalData) ? finalData[0] : null;
+            const row = Array.isArray(data) ? data[0] : null;
             if (!row) {
                 setJob(null);
                 setJobId(null);
