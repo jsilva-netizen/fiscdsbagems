@@ -5,11 +5,13 @@ import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/lib/supabase';
 import { useSyncStatus } from '@/lib/SyncStatusContext.jsx';
 import { getSyncPendingForFiscalizacao } from '@/lib/offline/syncEngine';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Loader2, FileText, RefreshCcw } from 'lucide-react';
 import { db } from '@/lib/offline/db';
 
 export default function RelatorioFiscalizacao({ fiscalizacao }) {
+    const queryClient = useQueryClient();
     const [isGenerating, setIsGenerating] = React.useState(false);
     const [isRequesting, setIsRequesting] = React.useState(false);
     const [jobId, setJobId] = React.useState(null);
@@ -870,6 +872,10 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
             const fiscalizacao_id = await resolveServerFiscalizacaoId();
             const data = await invokeEdgeFunction('relatorios_enqueue', { fiscalizacao_id });
             if (!data?.job_id) throw new Error('Falha ao criar job');
+            
+            // Invalida cache local para refletir que o status agora é 'finalizada' no servidor
+            queryClient.invalidateQueries({ queryKey: ['fiscalizacoes'] });
+
             setJobId(data.job_id);
             setJob({ status: 'queued', progress_unidades: 0, progress_fotos: 0 });
         } catch (err) {
@@ -963,11 +969,9 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
     const isDone = job?.status === 'done' && !!job?.signed_url;
     const localOutbox = pendingLocal?.outboxCount || 0;
     const localFotos = pendingLocal?.fotosCount || 0;
-    const canRequest = isOnlineAndReady && fiscalizacao?.status === 'finalizada' && localOutbox === 0 && localFotos === 0;
+    const canRequest = isOnlineAndReady && localOutbox === 0 && localFotos === 0;
     const msg = !syncStatus.online || !syncStatus.sessionValid
         ? 'Conecte-se ao servidor para gerar/baixar relatório.'
-        : fiscalizacao?.status !== 'finalizada'
-        ? 'Finalize a fiscalização para gerar relatório no servidor.'
         : (localOutbox > 0 || localFotos > 0)
         ? 'Sincronize esta fiscalização antes para gerar um novo relatório no servidor.'
         : null;
@@ -982,7 +986,7 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
             {msg ? (
                 <div className="text-sm text-yellow-700 bg-yellow-100 border border-yellow-200 rounded px-3 py-2">
                     {msg}
-                    {syncStatus.online && syncStatus.sessionValid && fiscalizacao?.status === 'finalizada' && (localOutbox > 0 || localFotos > 0)
+                    {syncStatus.online && syncStatus.sessionValid && (localOutbox > 0 || localFotos > 0)
                         ? ` (${localOutbox} itens, ${localFotos} fotos)`
                         : ''}
                 </div>

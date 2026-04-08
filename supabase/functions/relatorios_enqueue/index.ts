@@ -62,6 +62,15 @@ serve(async (req) => {
   const isOwnerByEmail = !!userEmail && !!fiscalEmail && userEmail === fiscalEmail
   if (!isAdmin && !isOwnerById && !isOwnerByEmail) return jsonResponse({ error: 'forbidden' }, 403)
 
+  // Garante que todas as NCs, Determinações e totais estejam atualizados antes de gerar o relatório.
+  // Isso é essencial se o usuário editou a fiscalização após reabri-la.
+  try {
+    const { error: finErr } = await adminClient.rpc('finalizar_fiscalizacao', { p_fiscalizacao_id: fiscalizacao_id })
+    if (finErr) console.error('Erro ao garantir finalização/NCs:', finErr)
+  } catch (err) {
+    console.error('Falha ao chamar finalizar_fiscalizacao:', err)
+  }
+
   const { data: unidadeProbe, error: unidadeErr } = await adminClient
     .from('unidades_fiscalizadas')
     .select('id')

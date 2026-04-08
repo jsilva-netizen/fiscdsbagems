@@ -564,8 +564,6 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
       const local = await db.fiscalizacoes.get(localId as UUID)
       if (local) {
         await db.fiscalizacoes.update(localId as UUID, { ...local, status: 'em_andamento', updated_at: now() })
-        // Reabrir unidades locais
-        await db.unidades.where('fiscalizacao_id').equals(localId as any).modify({ status: 'em_andamento', updated_at: now() })
       }
       return []
     }

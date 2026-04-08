@@ -9,13 +9,7 @@ BEGIN
       updated_at = now()
   WHERE id = p_fiscalizacao_id;
 
-  -- 2. Reabrir todas as unidades vinculadas
-  UPDATE public.unidades_fiscalizadas
-  SET status = 'em_andamento',
-      updated_at = now()
-  WHERE fiscalizacao_id = p_fiscalizacao_id;
-
-  -- 3. Remover jobs de relatório anteriores para forçar nova geração
+  -- 2. Remover jobs de relatório anteriores para forçar nova geração
   DELETE FROM public.relatorios_jobs
   WHERE fiscalizacao_id = p_fiscalizacao_id;
 END;
