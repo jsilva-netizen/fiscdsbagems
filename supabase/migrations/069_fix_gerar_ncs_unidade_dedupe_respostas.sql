@@ -72,7 +72,7 @@ BEGIN
         ic.texto_recomendacao,
         row_number() OVER (
           PARTITION BY coalesce(rc.item_checklist_id::text, rc.pergunta, rc.numero_constatacao)
-          ORDER BY coalesce(rc.updated_at, rc.created_at) DESC, rc.created_at DESC, rc.id DESC
+          ORDER BY coalesce(((to_jsonb(rc)->>'updated_at'))::timestamptz, rc.created_at) DESC, rc.created_at DESC, rc.id DESC
         ) AS rn
       FROM public.respostas_checklist rc
       LEFT JOIN public.itens_checklist ic ON ic.id = rc.item_checklist_id
@@ -177,7 +177,7 @@ BEGIN
         rc.*,
         row_number() OVER (
           PARTITION BY coalesce(rc.item_checklist_id::text, rc.pergunta, rc.numero_constatacao)
-          ORDER BY coalesce(rc.updated_at, rc.created_at) DESC, rc.created_at DESC, rc.id DESC
+          ORDER BY coalesce(((to_jsonb(rc)->>'updated_at'))::timestamptz, rc.created_at) DESC, rc.created_at DESC, rc.id DESC
         ) AS rn
       FROM public.respostas_checklist rc
       WHERE rc.unidade_fiscalizada_id = p_unidade_id

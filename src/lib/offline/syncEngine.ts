@@ -282,7 +282,11 @@ async function safeSelectSince(table: string, cols: string, since?: string, pref
 function errorInfo(err: any): { status?: number; code?: string; message: string } {
   const status = typeof err?.status === 'number' ? err.status : typeof err?.code === 'number' ? err.code : undefined
   const code = typeof err?.code === 'string' ? err.code : undefined
-  const message = String(err?.message || err || '')
+  const baseMsg = String(err?.message || err || '')
+  const details = typeof err?.details === 'string' ? err.details : ''
+  const hint = typeof err?.hint === 'string' ? err.hint : ''
+  const extra = [details, hint].map((s) => String(s || '').trim()).filter(Boolean).join(' | ')
+  const message = extra ? `${baseMsg} | ${extra}` : baseMsg
   return { status, code, message }
 }
 
@@ -598,6 +602,9 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
       const fiscalizacaoId = await resolveId('fiscalizacoes', fiscalizacaoLocalId)
       const { data: result, error } = await supabase.rpc('finalizar_fiscalizacao', { p_fiscalizacao_id: fiscalizacaoId })
       if (error) throw error
+      if (result && typeof result === 'object' && (result as any).success === false) {
+        throw new Error(String((result as any).error || 'Falha ao finalizar fiscalização'))
+      }
       // Atualiza localmente status para finalizada; numero_termo virá pelo syncDown
       const map = await db.id_map.where('server_id').equals(fiscalizacaoId as UUID).and((m) => m.entity === 'fiscalizacoes').first()
       const localId = map?.local_id || fiscalizacaoLocalId
@@ -610,8 +617,11 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
     if (entity === 'reabrir_fiscalizacao' || type === 'reopen') {
       const fiscalizacaoLocalId = payload?.id || payload?.fiscalizacao_id
       const fiscalizacaoId = await resolveId('fiscalizacoes', fiscalizacaoLocalId)
-      const { error } = await supabase.rpc('reabrir_fiscalizacao', { p_fiscalizacao_id: fiscalizacaoId })
+      const { data: result, error } = await supabase.rpc('reabrir_fiscalizacao', { p_fiscalizacao_id: fiscalizacaoId })
       if (error) throw error
+      if (result && typeof result === 'object' && (result as any).success === false) {
+        throw new Error(String((result as any).error || 'Falha ao reabrir fiscalização'))
+      }
       // Atualiza localmente status para em_andamento
       const map = await db.id_map.where('server_id').equals(fiscalizacaoId as UUID).and((m) => m.entity === 'fiscalizacoes').first()
       const localId = map?.local_id || fiscalizacaoLocalId
