@@ -1144,6 +1144,6 @@ export const Repository = {
       // Reabrir unidades vinculadas localmente
       await db.unidades.where('fiscalizacao_id').equals(fiscalizacaoId).modify({ status: 'em_andamento', updated_at: now() })
     }
-    await enqueueMutation({ id: fiscalizacaoId }, 'reopen' as any, 'reabrir_fiscalizacao' as any)
+    await enqueueMutation({ id: fiscalizacaoId, status: 'em_andamento', data_fim: null }, 'reopen' as any, 'reabrir_fiscalizacao' as any)
   }
 }

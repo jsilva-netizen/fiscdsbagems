@@ -14,5 +14,9 @@ BEGIN
   SET status = 'em_andamento',
       updated_at = now()
   WHERE fiscalizacao_id = p_fiscalizacao_id;
+
+  -- 3. Remover jobs de relatório anteriores para forçar nova geração
+  DELETE FROM public.relatorios_jobs
+  WHERE fiscalizacao_id = p_fiscalizacao_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

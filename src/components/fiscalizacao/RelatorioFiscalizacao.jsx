@@ -959,7 +959,7 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
     };
 
     const isRunning = job?.status && job.status !== 'done' && job.status !== 'error';
-    const isDone = job?.status === 'done' && !!job?.signed_url;
+    const isDone = job?.status === 'done' && !!job?.signed_url && fiscalizacao?.status === 'finalizada';
     const localOutbox = pendingLocal?.outboxCount || 0;
     const localFotos = pendingLocal?.fotosCount || 0;
     const canRequest = isOnlineAndReady && fiscalizacao?.status === 'finalizada' && localOutbox === 0 && localFotos === 0;
