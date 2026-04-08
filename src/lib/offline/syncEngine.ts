@@ -1117,6 +1117,19 @@ export async function syncFotosWithProgress(onProgress?: (uploaded: number, tota
           const prev = byKey.get(k)
           byKey.set(k, prev ? { ...prev, ...x } : x)
         }
+        // Limpeza importante: remove do servidor fotos que não estão mais no IDB local
+        // Se a unidade existe localmente, ela é a fonte da verdade para quais fotos devem existir
+        const localUnitCurrent = await db.unidades.get(unidadeId as any)
+        if (localUnitCurrent && Array.isArray(localUnitCurrent.fotos_unidade)) {
+          const localKeys = new Set(localUnitCurrent.fotos_unidade.map(keyOf).filter(Boolean))
+          // Mantém apenas as fotos que estão na lista local ou que acabaram de ser sincronizadas
+          for (const k of byKey.keys()) {
+            if (!localKeys.has(k) && !(fotos_unidade as any[]).some((fx: any) => keyOf(fx) === k)) {
+               byKey.delete(k)
+            }
+          }
+        }
+
         const merged = Array.from(byKey.values())
         const { error } = await supabase
           .from('unidades_fiscalizadas')

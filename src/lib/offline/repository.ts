@@ -957,9 +957,9 @@ export const Repository = {
         created_at: now()
       } as any)
     }
-    if (!hasLocal) {
-      await enqueueMutation({ unidade_fiscalizada_id: unidadeId, fotos_unidade: normalized }, 'update', 'fotos')
-    }
+    // Sempre enfileira a mutação de atualização da lista de fotos (fotos remotas que sobraram)
+    // Se houver fotos locais novas, elas serão adicionadas à lista pelo syncFotos do motor de sincronia
+    await enqueueMutation({ unidade_fiscalizada_id: unidadeId, fotos_unidade: normalized }, 'update', 'fotos')
   },
 
   async addLocalFotoFromFile(

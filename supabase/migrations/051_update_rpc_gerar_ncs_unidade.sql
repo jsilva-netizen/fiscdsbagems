@@ -83,7 +83,7 @@ begin
   -- Limpeza de registros da unidade
   delete from public.determinacoes d where d.unidade_fiscalizada_id = p_unidade_id;
   delete from public.nao_conformidades nc where nc.unidade_fiscalizada_id = p_unidade_id;
-  delete from public.recomendacoes r where r.unidade_fiscalizada_id = p_unidade_id and r.origem = 'checklist';
+  delete from public.recomendacoes r where r.unidade_fiscalizada_id = p_unidade_id; -- Limpa todas para garantir renumeração correta
 
   -- Respostas do checklist → gerar NC/D/R
   for r_resp in

@@ -866,6 +866,18 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
 
     const solicitarGeracao = async () => {
         if (isRequesting) return;
+        
+        // Antes de solicitar, garantimos que tudo foi sincronizado
+        try {
+            const pending = await getSyncPendingForFiscalizacao(String(fiscalizacao.id));
+            if (pending.outboxCount > 0 || pending.fotosCount > 0) {
+                setError(`Existem ${pending.outboxCount + pending.fotosCount} itens pendentes de sincronização. Aguarde a finalização da sincronia antes de gerar o relatório.`);
+                return;
+            }
+        } catch (e) {
+            console.error('Erro ao verificar sincronia:', e);
+        }
+
         setError(null);
         setIsRequesting(true);
         try {
