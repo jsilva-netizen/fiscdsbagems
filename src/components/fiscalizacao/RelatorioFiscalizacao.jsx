@@ -817,6 +817,15 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
     const carregarUltimoJob = async () => {
         try {
             await ensureAuth();
+            
+            // Se a fiscalização não está finalizada, nem tentamos carregar o job.
+            // Isso garante que ao reabrir (em_andamento), o estado do job seja limpo.
+            if (fiscalizacao?.status !== 'finalizada') {
+                setJob(null);
+                setJobId(null);
+                return;
+            }
+
             const fiscalizacao_id = await resolveServerFiscalizacaoId();
             const { data, error: qErr } = await supabase
                 .from('relatorios_jobs')
@@ -924,7 +933,7 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
     React.useEffect(() => {
         if (!isOnlineAndReady) return;
         carregarUltimoJob();
-    }, [isOnlineAndReady, fiscalizacao?.id]);
+    }, [isOnlineAndReady, fiscalizacao?.id, fiscalizacao?.status]);
 
     React.useEffect(() => {
         let stopped = false;
