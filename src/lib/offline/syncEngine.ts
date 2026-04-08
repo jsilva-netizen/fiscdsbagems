@@ -633,6 +633,11 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
     }
     mapped.id = await resolveId(entity, payload?.id)
     const safe = serializePayload(entity, type, mapped)
+    if (entity === 'constatacoes_manuais') {
+      const { data, error } = await supabase.from(table).upsert(safe, { onConflict: 'id' }).select()
+      if (error) throw error
+      return data || []
+    }
     const onConflictMap: Record<Entity, string | undefined> = {
       respostas: undefined,
       constatacoes_manuais: 'id',

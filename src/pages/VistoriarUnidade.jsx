@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Repository } from '@/lib/offline/repository';
@@ -30,6 +30,7 @@ export default function VistoriarUnidade() {
     const [activeTab, setActiveTab] = useState('checklist');
     const [respostas, setRespostas] = useState({});
     const [fotos, setFotos] = useState([]);
+    const fotosCarregadasRef = useRef(null); // Armazena o ID da unidade carregada
     const [showAddRecomendacao, setShowAddRecomendacao] = useState(false);
     const [novaRecomendacao, setNovaRecomendacao] = useState('');
     const [showConfirmaSemFotos, setShowConfirmaSemFotos] = useState(false);
@@ -121,17 +122,38 @@ export default function VistoriarUnidade() {
     });
 
     useEffect(() => {
+        if (!unidadeId) return;
+        
+        // Se já carregamos as fotos para este unidadeId, não carregamos de novo.
+        // Isso evita que mudanças locais (como remover uma foto) sejam sobrescritas pelo query refetch.
+        if (fotosCarregadasRef.current === unidadeId) return;
+
         const carregar = async () => {
-            const remotas = (unidade?.fotos_unidade || []).map(foto => 
-                typeof foto === 'string' ? { url: foto } : foto
-            );
-            const locais = await Repository.listLocalFotos(unidadeId).then(list => 
-                list.map(f => ({ localId: f.localId, url: f.url || '', legenda: f.legenda || '', mimeType: f.mimeType, width: f.width, height: f.height }))
-            );
-            setFotos([...(locais || []), ...remotas]);
+            try {
+                const remotas = (unidade?.fotos_unidade || []).map(foto => 
+                    typeof foto === 'string' ? { url: foto } : foto
+                );
+                const locais = await Repository.listLocalFotos(unidadeId).then(list => 
+                    list.map(f => ({ 
+                        localId: f.localId, 
+                        url: f.url || '', 
+                        legenda: f.legenda || '', 
+                        mimeType: f.mimeType, 
+                        width: f.width, 
+                        height: f.height 
+                    }))
+                );
+                setFotos([...(locais || []), ...remotas]);
+                fotosCarregadasRef.current = unidadeId;
+            } catch (err) {
+                console.error('Erro ao carregar fotos:', err);
+            }
         };
-        carregar();
-    }, [unidade?.fotos_unidade]);
+        
+        if (unidade?.fotos_unidade) {
+            carregar();
+        }
+    }, [unidadeId, unidade?.fotos_unidade]);
 
     // Marcador para evitar recalcular numeração após finalização
     useEffect(() => {
@@ -376,25 +398,40 @@ export default function VistoriarUnidade() {
         onSuccess: async ({ constatacao }) => {
             queryClient.invalidateQueries({ queryKey: ['constatacoes-manuais', unidadeId] });
             setShowAddConstatacao(false);
-            setConstatacaoParaEditar(null);
-
-            // Se gera NC e é nova constatação, abrir modal para definir NC/D/R
-            if (constatacao.gera_nc && !constatacaoParaEditar) {
+            
+            // Se gera NC, abrir modal para definir NC/D/R
+            if (constatacao.gera_nc) {
                 const totalDets = await Repository.countDeterminacoesByUnidade(unidadeId);
                 const totalRecs = await Repository.countRecomendacoesByUnidade(unidadeId);
-                const totalNCs = (await Repository.countConstatacoesManuais(unidadeId) || 0); // aproximação local
-                const numeroNC = `NC${(totalNCs || 0) + 1}`;
-                const numeroDeterminacao = `D${(totalDets || 0) + 1}`;
-                const numeroRecomendacao = `R${(totalRecs || 0) + 1}`;
+                
+                // Se for edição, carregar dados existentes
+                const ncExistente = constatacaoParaEditar ? {
+                    artigo_portaria: constatacaoParaEditar.artigo_portaria,
+                    descricao: constatacaoParaEditar.descricao_nc || `A Constatação ${constatacao.numero_constatacao} não cumpre o disposto no ${constatacao.artigo_portaria || 'artigo aplicável'};`
+                } : null;
+
+                const detExistente = constatacaoParaEditar && constatacaoParaEditar.texto_determinacao ? {
+                    descricao: constatacaoParaEditar.texto_determinacao
+                } : null;
+
+                const recExistente = constatacaoParaEditar && constatacaoParaEditar.texto_recomendacao ? {
+                    descricao: constatacaoParaEditar.texto_recomendacao
+                } : null;
+
                 setConstatacaoParaNC(constatacao);
                 setNumerosParaNC({
-                    numeroNC,
-                    numeroDeterminacao,
-                    numeroRecomendacao,
-                    numeroConstatacao: constatacao.numero_constatacao
+                    numeroNC: `NC?`,
+                    numeroDeterminacao: `D${(totalDets || 0) + 1}`,
+                    numeroRecomendacao: `R${(totalRecs || 0) + 1}`,
+                    numeroConstatacao: constatacao.numero_constatacao,
+                    ncExistente: ncExistente,
+                    determinacaoExistente: detExistente,
+                    recomendacaoExistente: recExistente
                 });
                 setShowEditarNC(true);
             }
+            
+            setConstatacaoParaEditar(null);
         },
         onError: (err) => {
             alert(err.message);
@@ -426,6 +463,9 @@ export default function VistoriarUnidade() {
 
     const salvarNCMutation = useMutation({
         mutationFn: async (data) => {
+            if (fiscalizacao?.status === 'finalizada' && !modoEdicao) {
+                throw new Error('Não é possível modificar uma fiscalização finalizada');
+            }
             if (!constatacaoParaNC || !numerosParaNC) return;
             let textoConstatacaoFinal = data.texto_constatacao;
             if (textoConstatacaoFinal && !textoConstatacaoFinal.trim().endsWith(';')) {
@@ -516,6 +556,9 @@ export default function VistoriarUnidade() {
                 return { url: f.url, legenda: f.legenda || '', mimeType: f.mimeType, width: f.width, height: f.height };
             });
             await Repository.updateUnidadeFotos(unidadeId, fotosCompletas);
+            
+            // Força a re-finalização no servidor para regenerar NC/D/R se houver mudanças
+            await Repository.updateUnidadeStatus(unidadeId, 'finalizada');
 
             console.log('🟢 Salvamento concluído com sucesso');
         },
@@ -550,22 +593,26 @@ export default function VistoriarUnidade() {
     };
 
     const handleRemoveFoto = (index) => {
-        const alvo = fotos[index];
-        if (alvo?.localId) {
-            Repository.deleteLocalFoto(alvo.localId).catch(() => {});
-        }
-        const novasFotos = fotos.filter((_, i) => i !== index);
-        setFotos(novasFotos);
+        setFotos(prev => {
+            const alvo = prev[index];
+            if (alvo?.localId) {
+                Repository.deleteLocalFoto(alvo.localId).catch(() => {});
+            }
+            return prev.filter((_, i) => i !== index);
+        });
     };
 
     const handleUpdateLegenda = (index, legenda) => {
-        const novasFotos = [...fotos];
-        const alvo = novasFotos[index];
-        novasFotos[index] = { ...alvo, legenda };
-        if (alvo?.localId) {
-            Repository.updateLocalFotoLegenda(alvo.localId, legenda).catch(() => {});
-        }
-        setFotos(novasFotos);
+        setFotos(prev => {
+            const novasFotos = [...prev];
+            const alvo = novasFotos[index];
+            if (!alvo) return prev;
+            novasFotos[index] = { ...alvo, legenda };
+            if (alvo?.localId) {
+                Repository.updateLocalFotoLegenda(alvo.localId, legenda).catch(() => {});
+            }
+            return novasFotos;
+        });
     };
 
     if (loadingUnidade) {
@@ -715,20 +762,30 @@ export default function VistoriarUnidade() {
                                                         setConstatacaoParaEditar(constatacao);
                                                         
                                                         // Se gera NC, buscar dados relacionados para permitir edição completa
-            if (constatacao.gera_nc) {
-                const totalDets = await Repository.countDeterminacoesByUnidade(unidadeId);
-                const totalRecs = await Repository.countRecomendacoesByUnidade(unidadeId);
-                setConstatacaoParaNC(constatacao);
-                setNumerosParaNC({
-                    numeroNC: `NC?`,
-                    numeroDeterminacao: `D${(totalDets || 0) + 1}`,
-                    numeroRecomendacao: `R${(totalRecs || 0) + 1}`,
-                    numeroConstatacao: constatacao.numero_constatacao
-                });
-                setShowEditarNC(true);
-            } else {
-                setShowAddConstatacao(true);
-            }
+                                                        if (constatacao.gera_nc) {
+                                                            const totalDets = await Repository.countDeterminacoesByUnidade(unidadeId);
+                                                            const totalRecs = await Repository.countRecomendacoesByUnidade(unidadeId);
+                                                            setConstatacaoParaNC(constatacao);
+                                                            setNumerosParaNC({
+                                                                numeroNC: `NC?`,
+                                                                numeroDeterminacao: `D${(totalDets || 0) + 1}`,
+                                                                numeroRecomendacao: `R${(totalRecs || 0) + 1}`,
+                                                                numeroConstatacao: constatacao.numero_constatacao,
+                                                                ncExistente: {
+                                                                    artigo_portaria: constatacao.artigo_portaria,
+                                                                    descricao: constatacao.descricao_nc || `A Constatação ${constatacao.numero_constatacao} não cumpre o disposto no ${constatacao.artigo_portaria || 'artigo aplicável'};`
+                                                                },
+                                                                determinacaoExistente: constatacao.texto_determinacao ? {
+                                                                    descricao: constatacao.texto_determinacao
+                                                                } : null,
+                                                                recomendacaoExistente: constatacao.texto_recomendacao ? {
+                                                                    descricao: constatacao.texto_recomendacao
+                                                                } : null
+                                                            });
+                                                            setShowEditarNC(true);
+                                                        } else {
+                                                            setShowAddConstatacao(true);
+                                                        }
                                                     }}
                                                 >
                                                     <Pencil className="h-4 w-4" />
