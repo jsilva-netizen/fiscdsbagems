@@ -693,7 +693,7 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
       return data || []
     }
     const onConflictMap: Record<Entity, string | undefined> = {
-      respostas: undefined,
+      respostas: 'unidade_fiscalizada_id,item_checklist_id',
       constatacoes_manuais: 'id',
       recomendacoes: undefined,
       fiscalizacoes: 'id',

@@ -186,12 +186,65 @@ async function generatePdfForJob(adminClient: any, job: any) {
     return Number.isFinite(n) ? n : 9999
   }
 
+  const normalizeResposta = (v: unknown) => {
+    const s = String(v ?? '')
+      .trim()
+      .toUpperCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+    return s
+  }
+
+  const isRespostaConstatacao = (r: any) => {
+    const n = normalizeResposta(r?.resposta)
+    return n === 'SIM' || n === 'NAO' || r?.gera_nc === true
+  }
+
+  const dedupeRespostasChecklist = (rows: any[]) => {
+    const byKey = new Map<string, any>()
+    for (const r of rows || []) {
+      const key =
+        r?.item_checklist_id
+          ? `item:${String(r.item_checklist_id)}`
+          : r?.numero_constatacao
+            ? `num:${String(r.numero_constatacao)}`
+            : r?.pergunta
+              ? `pergunta:${String(r.pergunta)}`
+              : `id:${String(r?.id || '')}`
+
+      const prev = byKey.get(key)
+      if (!prev) {
+        byKey.set(key, r)
+        continue
+      }
+
+      const prevTime = Date.parse(String(prev?.updated_at || prev?.created_at || 0)) || 0
+      const nextTime = Date.parse(String(r?.updated_at || r?.created_at || 0)) || 0
+      if (nextTime > prevTime) {
+        byKey.set(key, r)
+        continue
+      }
+      if (nextTime === prevTime) {
+        const prevNc = prev?.gera_nc === true
+        const nextNc = r?.gera_nc === true
+        if (nextNc && !prevNc) byKey.set(key, r)
+      }
+    }
+    return Array.from(byKey.values())
+  }
+
+  const respostasByUnidade = new Map<string, any[]>()
+  for (const u of unidades || []) {
+    const raw = todasRespostas.filter((r) => r.unidade_fiscalizada_id === u.id)
+    respostasByUnidade.set(String(u.id), dedupeRespostasChecklist(raw))
+  }
+
   const mapeamentosNumeracao: any[] = []
   const contadores = { constatacoes: 0, ncs: 0, determinacoes: 0, recomendacoes: 0 }
 
   for (let idx = 0; idx < (unidades || []).length; idx++) {
     const u = unidades[idx]
-    const respostas = todasRespostas.filter((r) => r.unidade_fiscalizada_id === u.id)
+    const respostas = respostasByUnidade.get(String(u.id)) || []
     const ncs = todasNcs.filter((n) => n.unidade_fiscalizada_id === u.id)
     const determinacoes = todasDeterminacoes.filter((d) => d.unidade_fiscalizada_id === u.id)
     const recomendacoes = todasRecomendacoes.filter((r) => r.unidade_fiscalizada_id === u.id)
@@ -201,7 +254,7 @@ async function generatePdfForJob(adminClient: any, job: any) {
 
     const constItensOrdenados = [
       ...respostas
-        .filter((r) => r.resposta === 'SIM' || r.resposta === 'NAO')
+        .filter((r) => isRespostaConstatacao(r))
         .map((r) => ({ id: r.id, numero_constatacao: r.numero_constatacao, created_at: r.created_at })),
       ...manuais.map((m) => ({ id: m.id, numero_constatacao: m.numero_constatacao, created_at: m.created_at }))
     ].sort((a, b) => {
@@ -391,7 +444,12 @@ async function generatePdfForJob(adminClient: any, job: any) {
   drawTextAt('RESUMO EXECUTIVO', margin + mm2pt(2), yPos + mm2pt(5.5), 12, { bold: true, color: rgb255(255, 255, 255) })
   yPos += mm2pt(14)
 
-  const totalConstatacoes = todasRespostas.filter((r) => r.resposta === 'SIM' || r.resposta === 'NAO').length + todasConstatacoesManuais.length
+  let totalConstatacoesChecklist = 0
+  for (const u of unidades || []) {
+    const rs = respostasByUnidade.get(String(u.id)) || []
+    totalConstatacoesChecklist += rs.filter((r) => isRespostaConstatacao(r)).length
+  }
+  const totalConstatacoes = totalConstatacoesChecklist + todasConstatacoesManuais.length
   drawTextAt(`• Unidades Vistoriadas: ${(unidades || []).length}`, margin + mm2pt(2), yPos, 10)
   yPos += mm2pt(6)
   drawTextAt(`• Total de Constatações: ${totalConstatacoes}`, margin + mm2pt(2), yPos, 10)
@@ -516,7 +574,7 @@ async function generatePdfForJob(adminClient: any, job: any) {
 
   for (let idx = 0; idx < (unidades || []).length; idx++) {
     const unidade = unidades[idx]
-    const respostas = todasRespostas.filter((r) => r.unidade_fiscalizada_id === unidade.id)
+    const respostas = respostasByUnidade.get(String(unidade.id)) || []
     const ncs = todasNcs.filter((n) => n.unidade_fiscalizada_id === unidade.id)
     const determinacoes = todasDeterminacoes.filter((d) => d.unidade_fiscalizada_id === unidade.id)
     const recomendacoes = todasRecomendacoes.filter((r) => r.unidade_fiscalizada_id === unidade.id)
@@ -570,32 +628,38 @@ async function generatePdfForJob(adminClient: any, job: any) {
 
     const itensConstatacoes = [
       ...respostas
-        .filter((r) => r.resposta === 'SIM' || r.resposta === 'NAO')
+        .filter((r) => isRespostaConstatacao(r))
         .map((r) => ({ kind: 'checklist', id: r.id, resp: r })),
       ...constatacoesManuais.map((m) => ({ kind: 'manual', id: m.id, manual: m }))
     ].sort((a, b) => (mapeamento.constatacoes[a.id] ?? 9999) - (mapeamento.constatacoes[b.id] ?? 9999))
 
-    for (const item of itensConstatacoes) {
-      const novoNum = mapeamento.constatacoes[item.id]
-      if (!novoNum) continue
-      const numConst = `C${novoNum}.`
-      const texto =
-        item.kind === 'manual'
-          ? String(item.manual?.descricao || '')
-          : `${String(item.resp?.pergunta || '')}${item.resp?.observacao ? ` Observação: ${item.resp.observacao}` : ''}`
-      const lines = wrapText(texto, mm2pt(210 - 2 * 10 - 15), font, 9)
-      const cellHeight = Math.max(rowHeight, lines.length * mm2pt(5) + mm2pt(4))
+    if (itensConstatacoes.length > 0) {
+      for (const item of itensConstatacoes) {
+        const novoNum = mapeamento.constatacoes[item.id]
+        if (!novoNum) continue
+        const numConst = `C${novoNum}.`
+        const texto =
+          item.kind === 'manual'
+            ? String(item.manual?.descricao || '')
+            : `${String(item.resp?.pergunta || '')}${item.resp?.observacao ? ` Observação: ${item.resp.observacao}` : ''}`
+        const lines = wrapText(texto, mm2pt(210 - 2 * 10 - 15), font, 9)
+        const cellHeight = Math.max(rowHeight, lines.length * mm2pt(5) + mm2pt(4))
 
-      if (yPos + cellHeight > pageHeight - bottomMargin) addPage()
+        if (yPos + cellHeight > pageHeight - bottomMargin) addPage()
 
-      drawRectTop(margin, yPos, tableWidth, cellHeight, undefined, true)
-      drawTextAt(numConst, margin + mm2pt(2), yPos + mm2pt(5), 9, { bold: true })
-      let yLine = yPos + mm2pt(5)
-      for (const ln of lines) {
-        drawTextAt(ln, margin + mm2pt(12), yLine, 9)
-        yLine += mm2pt(5)
+        drawRectTop(margin, yPos, tableWidth, cellHeight, undefined, true)
+        drawTextAt(numConst, margin + mm2pt(2), yPos + mm2pt(5), 9, { bold: true })
+        let yLine = yPos + mm2pt(5)
+        for (const ln of lines) {
+          drawTextAt(ln, margin + mm2pt(12), yLine, 9)
+          yLine += mm2pt(5)
+        }
+        yPos += cellHeight
       }
-      yPos += cellHeight
+    } else {
+      drawRectTop(margin, yPos, tableWidth, rowHeight, undefined, true)
+      drawTextAt('Não se aplica.', margin + mm2pt(12), yPos + mm2pt(4.5), 9)
+      yPos += rowHeight
     }
 
     if (yPos + rowHeight > pageHeight - bottomMargin) addPage()
