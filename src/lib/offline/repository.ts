@@ -1130,5 +1130,20 @@ export const Repository = {
       })
     }
     await enqueueMutation({ id: fiscalizacaoId }, 'finalize', 'finalizacao_fiscalizacao')
+  },
+
+  async reabrirFiscalizacao(fiscalizacaoId: string): Promise<void> {
+    const local = await db.fiscalizacoes.get(fiscalizacaoId as any)
+    if (local) {
+      await db.fiscalizacoes.update(fiscalizacaoId as any, { 
+        ...local, 
+        status: 'em_andamento', 
+        data_fim: null, 
+        updated_at: now() 
+      })
+      // Reabrir unidades vinculadas localmente
+      await db.unidades.where('fiscalizacao_id').equals(fiscalizacaoId).modify({ status: 'em_andamento', updated_at: now() })
+    }
+    await enqueueMutation({ id: fiscalizacaoId }, 'reopen' as any, 'reabrir_fiscalizacao' as any)
   }
 }

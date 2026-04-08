@@ -13,9 +13,10 @@ type Entity =
   | 'itens_checklist'
   | 'recomendacoes'
   | 'finalizacao_fiscalizacao'
+  | 'reabrir_fiscalizacao'
   | 'prestadores'
 
-type MutationType = 'insert' | 'update' | 'delete' | 'finalize'
+type MutationType = 'insert' | 'update' | 'delete' | 'finalize' | 'reopen'
 
 const entityTableMap: Record<Entity, string> = {
   fiscalizacoes: 'fiscalizacoes',
@@ -27,7 +28,8 @@ const entityTableMap: Record<Entity, string> = {
   tipos_unidade: 'tipos_unidade',
   itens_checklist: 'itens_checklist',
   recomendacoes: 'recomendacoes',
-  finalizacao_fiscalizacao: 'fiscalizacoes'
+  finalizacao_fiscalizacao: 'fiscalizacoes',
+  reabrir_fiscalizacao: 'fiscalizacoes'
   ,
   prestadores: 'prestadores_servico'
 }
@@ -551,6 +553,22 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
       }
       return []
     }
+    if (entity === 'reabrir_fiscalizacao' || type === 'reopen') {
+      const fiscalizacaoLocalId = payload?.id || payload?.fiscalizacao_id
+      const fiscalizacaoId = await resolveId('fiscalizacoes', fiscalizacaoLocalId)
+      const { error } = await supabase.rpc('reabrir_fiscalizacao', { p_fiscalizacao_id: fiscalizacaoId })
+      if (error) throw error
+      // Atualiza localmente status para em_andamento
+      const map = await db.id_map.where('server_id').equals(fiscalizacaoId as UUID).and((m) => m.entity === 'fiscalizacoes').first()
+      const localId = map?.local_id || fiscalizacaoLocalId
+      const local = await db.fiscalizacoes.get(localId as UUID)
+      if (local) {
+        await db.fiscalizacoes.update(localId as UUID, { ...local, status: 'em_andamento', updated_at: now() })
+        // Reabrir unidades locais
+        await db.unidades.where('fiscalizacao_id').equals(localId as any).modify({ status: 'em_andamento', updated_at: now() })
+      }
+      return []
+    }
     if (entity === 'finalizacao_unidade' || type === 'finalize') {
       const unidadeLocalId = payload?.id || payload?.unidade_fiscalizada_id
       const unidadeId = await resolveId('unidades', unidadeLocalId)
@@ -628,6 +646,7 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
       fotos: undefined,
       finalizacao_unidade: undefined,
       finalizacao_fiscalizacao: undefined,
+      reabrir_fiscalizacao: undefined,
       prestadores: 'id'
     }
     const upsertOptions: any = {}

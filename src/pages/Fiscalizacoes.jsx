@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from '@/components/ui/alert-dialog';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, Filter, Trash2, AlertTriangle, MapPin, ChevronRight, Calendar, CheckCircle2, Clock, Plus } from 'lucide-react';
+import { ArrowLeft, Search, Filter, Trash2, AlertTriangle, MapPin, ChevronRight, Calendar, CheckCircle2, Clock, Plus, RotateCcw } from 'lucide-react';
 import ExportarPDFConsolidado from '@/components/fiscalizacao/ExportarPDFConsolidado';
 import RelatorioFiscalizacao from '@/components/fiscalizacao/RelatorioFiscalizacao';
 import { useSyncStatus } from '@/lib/SyncStatusContext.jsx';
@@ -64,6 +64,18 @@ export default function Fiscalizacoes() {
         },
         onError: (error) => {
             alert('Erro ao finalizar fiscalização: ' + error.message);
+        }
+    });
+
+    const reabrirFiscalizacaoMutation = useMutation({
+        mutationFn: async (fiscalizacaoId) => {
+            await Repository.reabrirFiscalizacao(fiscalizacaoId);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['fiscalizacoes'] });
+        },
+        onError: (error) => {
+            alert('Erro ao reabrir fiscalização: ' + error.message);
         }
     });
 
@@ -293,8 +305,24 @@ export default function Fiscalizacoes() {
 
                                          <div className="mt-3 pt-3 border-t flex gap-2">
                                               {fisc.status === 'finalizada' && (
-                                                  <div className="flex-1">
+                                                  <div className="flex-1 flex gap-2">
                                                       <RelatorioFiscalizacao fiscalizacao={fisc} />
+                                                      {podeDeleter && (
+                                                          <Button
+                                                              variant="outline"
+                                                              size="sm"
+                                                              className="text-orange-600 border-orange-200 hover:bg-orange-50"
+                                                              disabled={reabrirFiscalizacaoMutation.isPending}
+                                                              onClick={() => {
+                                                                  if (window.confirm("Deseja reabrir esta fiscalização para edição? O relatório anterior será mantido até que você finalize novamente.")) {
+                                                                      reabrirFiscalizacaoMutation.mutate(fisc.id);
+                                                                  }
+                                                              }}
+                                                          >
+                                                              <RotateCcw className={`h-4 w-4 mr-2 ${reabrirFiscalizacaoMutation.isPending ? 'animate-spin' : ''}`} />
+                                                              {reabrirFiscalizacaoMutation.isPending ? 'Reabrindo...' : 'Reabrir Edição'}
+                                                          </Button>
+                                                      )}
                                                   </div>
                                               )}
                                               {fisc.status === 'em_andamento' && (
