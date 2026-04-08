@@ -201,36 +201,51 @@ async function generatePdfForJob(adminClient: any, job: any) {
   }
 
   const dedupeRespostasChecklist = (rows: any[]) => {
-    const byKey = new Map<string, any>()
-    for (const r of rows || []) {
-      const key =
-        r?.item_checklist_id
-          ? `item:${String(r.item_checklist_id)}`
-          : r?.numero_constatacao
-            ? `num:${String(r.numero_constatacao)}`
-            : r?.pergunta
-              ? `pergunta:${String(r.pergunta)}`
-              : `id:${String(r?.id || '')}`
+    const primary = new Map<string, any>()
+    const alias = new Map<string, string>()
 
-      const prev = byKey.get(key)
-      if (!prev) {
-        byKey.set(key, r)
-        continue
-      }
+    const timeOf = (x: any) => Date.parse(String(x?.updated_at || x?.created_at || 0)) || 0
+    const isNc = (x: any) => x?.gera_nc === true
 
-      const prevTime = Date.parse(String(prev?.updated_at || prev?.created_at || 0)) || 0
-      const nextTime = Date.parse(String(r?.updated_at || r?.created_at || 0)) || 0
-      if (nextTime > prevTime) {
-        byKey.set(key, r)
-        continue
-      }
-      if (nextTime === prevTime) {
-        const prevNc = prev?.gera_nc === true
-        const nextNc = r?.gera_nc === true
-        if (nextNc && !prevNc) byKey.set(key, r)
-      }
+    const keysOf = (r: any) => {
+      const out: string[] = []
+      if (r?.item_checklist_id) out.push(`item:${String(r.item_checklist_id)}`)
+      if (r?.pergunta) out.push(`pergunta:${String(r.pergunta)}`)
+      if (r?.numero_constatacao) out.push(`num:${String(r.numero_constatacao)}`)
+      if (r?.id) out.push(`id:${String(r.id)}`)
+      return out
     }
-    return Array.from(byKey.values())
+
+    const resolvePrimaryKey = (k: string) => alias.get(k) || (primary.has(k) ? k : undefined)
+
+    for (const r of rows || []) {
+      const keys = keysOf(r)
+      let pk: string | undefined
+      for (const k of keys) {
+        const found = resolvePrimaryKey(k)
+        if (found) {
+          pk = found
+          break
+        }
+      }
+      if (!pk) pk = keys[0]
+      if (!pk) continue
+
+      const prev = primary.get(pk)
+      if (!prev) {
+        primary.set(pk, r)
+      } else {
+        const prevTime = timeOf(prev)
+        const nextTime = timeOf(r)
+        if (nextTime > prevTime || (nextTime === prevTime && isNc(r) && !isNc(prev))) {
+          primary.set(pk, r)
+        }
+      }
+
+      for (const k of keys) alias.set(k, pk)
+    }
+
+    return Array.from(primary.values())
   }
 
   const respostasByUnidade = new Map<string, any[]>()
