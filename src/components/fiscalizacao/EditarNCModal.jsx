@@ -22,7 +22,6 @@ export default function EditarNCModal({
     recomendacaoExistente
 }) {
     const [artigoPortaria, setArtigoPortaria] = useState('');
-    const [textoNC, setTextoNC] = useState('');
     const [geraDeterminacao, setGeraDeterminacao] = useState(true);
     const [geraRecomendacao, setGeraRecomendacao] = useState(false);
     const [textoDeterminacao, setTextoDeterminacao] = useState('');
@@ -35,15 +34,11 @@ export default function EditarNCModal({
             // Inicializar texto da constatação
             setTextoConstatacao(constatacaoTexto || '');
 
-            // Se tem NC existente, usar seus dados
+            // Se tem NC existente, usar seu artigo
             if (ncExistente) {
                 setArtigoPortaria(ncExistente.artigo_portaria || '');
-                setTextoNC(ncExistente.descricao || '');
             } else {
-                const artigoPadrao = 'Art. XX, inciso XX da Portaria AGEMS nº XX/xx';
-                const ncPadrao = `A Constatação ${numeroConstatacao} não cumpre o disposto no ${artigoPadrao};`;
-                setArtigoPortaria(artigoPadrao);
-                setTextoNC(ncPadrao);
+                setArtigoPortaria('Art. XX, inciso XX da Portaria AGEMS nº XX/xx');
             }
 
             // Se tem Determinação existente, usar seus dados
@@ -78,7 +73,7 @@ export default function EditarNCModal({
 
     const handleSave = () => {
         if (!textoConstatacao.trim()) return;
-        if (!textoNC.trim()) return;
+        if (!artigoPortaria.trim()) return;
         if (geraDeterminacao && !textoDeterminacao.trim()) return;
         if (geraRecomendacao && !textoRecomendacao.trim()) return;
         if (!geraDeterminacao && !geraRecomendacao) return;
@@ -86,7 +81,8 @@ export default function EditarNCModal({
         onSave({
             texto_constatacao: textoConstatacao.trim(),
             artigo_portaria: artigoPortaria.trim(),
-            texto_nc: textoNC.trim(),
+            // A descrição da NC será gerada automaticamente no Repository/RPC
+            texto_nc: `A Constatação ${numeroConstatacao} não cumpre o disposto no ${artigoPortaria.trim()};`,
             gera_determinacao: geraDeterminacao,
             gera_recomendacao: geraRecomendacao,
             texto_determinacao: geraDeterminacao ? textoDeterminacao.trim() : null,
@@ -140,22 +136,9 @@ export default function EditarNCModal({
                             onChange={(e) => setArtigoPortaria(e.target.value)}
                             className="mt-1"
                         />
-                    </div>
-
-                    <div>
-                        <Label htmlFor="texto_nc">
-                            Descrição da Não Conformidade ({numeroNC}) *
-                        </Label>
-                        <Textarea
-                            id="texto_nc"
-                            placeholder="Descreva a não conformidade..."
-                            value={textoNC}
-                            onChange={(e) => setTextoNC(e.target.value)}
-                            rows={4}
-                            className="mt-1"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">
-                            Edite o texto acima para incluir o artigo correto e detalhes da NC
+                        <p className="text-xs text-gray-500 mt-2 italic bg-gray-50 p-2 rounded border">
+                            A Não Conformidade será gerada como: <br/>
+                            <strong>A Constatação {numeroConstatacao} não cumpre o disposto no {artigoPortaria || '...'};</strong>
                         </p>
                     </div>
 
@@ -218,7 +201,7 @@ export default function EditarNCModal({
                         <Button 
                             className="flex-1 bg-red-600 hover:bg-red-700"
                             onClick={handleSave}
-                            disabled={!textoNC.trim() || (!geraDeterminacao && !geraRecomendacao) || isSaving}
+                            disabled={!artigoPortaria.trim() || (!geraDeterminacao && !geraRecomendacao) || isSaving}
                         >
                             {isSaving ? (
                                 <>

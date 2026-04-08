@@ -91,6 +91,7 @@ function serializePayload(entity: Entity, type: MutationType, payload: any): any
         'unidade_fiscalizada_id',
         'numero_constatacao',
         'descricao',
+        'descricao_nc',
         'gera_nc',
         'ordem',
         'artigo_portaria',
@@ -534,8 +535,61 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
     if (entity === 'fotos') {
       const unidadeLocalId = payload?.unidade_fiscalizada_id
       const unidadeId = await resolveId('unidades', unidadeLocalId)
-      const fotos_unidade = payload?.fotos_unidade || []
-      const { error } = await supabase.from(table).update({ fotos_unidade, updated_at: now() }).eq('id', unidadeId)
+      const fotosRemotas = Array.isArray(payload?.fotos_unidade) ? payload.fotos_unidade : []
+      
+      const { data: existingRow } = await supabase
+        .from('unidades_fiscalizadas')
+        .select('fotos_unidade')
+        .eq('id', unidadeId as any)
+        .maybeSingle()
+      
+      const existing = Array.isArray((existingRow as any)?.fotos_unidade) ? ((existingRow as any).fotos_unidade as any[]) : []
+      
+      const keyOf = (x: any): string => {
+        const b = typeof x?.bucket === 'string' ? x.bucket : ''
+        const p = typeof x?.path === 'string' ? x.path : ''
+        if (b && p) return `${b}:${p}`
+        return typeof x?.url === 'string' ? x.url : ''
+      }
+
+      const byKey = new Map<string, any>()
+      // 1. Adicionar o que está no servidor atualmente
+      for (const x of existing) {
+        const k = keyOf(x)
+        if (k) byKey.set(k, x)
+      }
+      
+      // 2. Mesclar com o que veio da UI (fotos remotas mantidas/editadas)
+      for (const x of fotosRemotas) {
+        const k = keyOf(x)
+        if (!k) continue
+        const prev = byKey.get(k)
+        byKey.set(k, prev ? { ...prev, ...x } : x)
+      }
+
+      // 3. Limpeza: Remover o que não existe mais no IDB local
+      const localUnit = await db.unidades.get(unidadeLocalId as any)
+      if (localUnit && Array.isArray(localUnit.fotos_unidade)) {
+        const localKeys = new Set(localUnit.fotos_unidade.map(keyOf).filter(Boolean))
+        // Também devemos manter fotos que estão no db.fotos_local (sincronizando agora)
+        const localPendentes = await db.fotos_local.where('unidadeLocalId').equals(unidadeLocalId as any).toArray()
+        for (const f of localPendentes) {
+          if (f.storagePath) localKeys.add(`fotos_fiscalizacao:${f.storagePath}`)
+        }
+
+        for (const k of byKey.keys()) {
+          if (!localKeys.has(k)) {
+            byKey.delete(k)
+          }
+        }
+      }
+
+      const merged = Array.from(byKey.values())
+      const { error } = await supabase
+        .from('unidades_fiscalizadas')
+        .update({ fotos_unidade: merged, updated_at: now() })
+        .eq('id', unidadeId as any)
+      
       if (error) throw error
       return []
     }

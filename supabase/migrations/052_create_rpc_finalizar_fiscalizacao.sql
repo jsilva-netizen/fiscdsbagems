@@ -130,11 +130,15 @@ begin
     v_numero_termo := lpad(v_next_num::text, 3, '0') || '/' || v_ano::text;
   end if;
 
-  -- Finalizar fiscalização
+  -- Finalizar fiscalização e consolidar totais
   update public.fiscalizacoes f
   set status = 'finalizada',
       data_fim = case when f.data_fim is null then v_data_fim else f.data_fim end,
       numero_termo = v_numero_termo,
+      total_constatacoes = v_total_const,
+      total_ncs = v_total_nc,
+      total_determinacoes = v_total_dets,
+      total_recomendacoes = v_total_recs,
       updated_at = now()
   where f.id = v_fisc_id;
 

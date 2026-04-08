@@ -368,11 +368,13 @@ export default function VistoriarUnidade() {
                     descricaoFinal = descricaoFinal.trim() + ';';
                 }
 
-                await Repository.updateConstatacaoManual(constatacaoParaEditar.id, {
-                    descricao: descricaoFinal,
-                    gera_nc: data.gera_nc
-                });
-                return { constatacao: { ...constatacaoParaEditar, descricao: descricaoFinal, gera_nc: data.gera_nc } };
+                const updated = { 
+                    ...constatacaoParaEditar, 
+                    descricao: descricaoFinal, 
+                    gera_nc: data.gera_nc 
+                };
+                await Repository.updateConstatacaoManual(constatacaoParaEditar.id, updated);
+                return { constatacao: updated, foiEdicao: true };
             }
 
             // Se for nova constatação, criar (NC/D geradas apenas ao finalizar)
@@ -393,9 +395,9 @@ export default function VistoriarUnidade() {
                 gera_nc: data.gera_nc,
                 ordem: Date.now()
             });
-            return { constatacao };
+            return { constatacao, foiEdicao: false };
         },
-        onSuccess: async ({ constatacao }) => {
+        onSuccess: async ({ constatacao, foiEdicao }) => {
             queryClient.invalidateQueries({ queryKey: ['constatacoes-manuais', unidadeId] });
             setShowAddConstatacao(false);
             
@@ -404,18 +406,18 @@ export default function VistoriarUnidade() {
                 const totalDets = await Repository.countDeterminacoesByUnidade(unidadeId);
                 const totalRecs = await Repository.countRecomendacoesByUnidade(unidadeId);
                 
-                // Se for edição, carregar dados existentes
-                const ncExistente = constatacaoParaEditar ? {
-                    artigo_portaria: constatacaoParaEditar.artigo_portaria,
-                    descricao: constatacaoParaEditar.descricao_nc || `A Constatação ${constatacao.numero_constatacao} não cumpre o disposto no ${constatacao.artigo_portaria || 'artigo aplicável'};`
+                // Se for edição E já era uma NC antes, carregar dados existentes
+                const ncExistente = (foiEdicao && constatacao.artigo_portaria) ? {
+                    artigo_portaria: constatacao.artigo_portaria,
+                    descricao: constatacao.descricao_nc || `A Constatação ${constatacao.numero_constatacao} não cumpre o disposto no ${constatacao.artigo_portaria || 'artigo aplicável'};`
                 } : null;
 
-                const detExistente = constatacaoParaEditar && constatacaoParaEditar.texto_determinacao ? {
-                    descricao: constatacaoParaEditar.texto_determinacao
+                const detExistente = (foiEdicao && constatacao.texto_determinacao) ? {
+                    descricao: constatacao.texto_determinacao
                 } : null;
 
-                const recExistente = constatacaoParaEditar && constatacaoParaEditar.texto_recomendacao ? {
-                    descricao: constatacaoParaEditar.texto_recomendacao
+                const recExistente = (foiEdicao && constatacao.texto_recomendacao) ? {
+                    descricao: constatacao.texto_recomendacao
                 } : null;
 
                 setConstatacaoParaNC(constatacao);
@@ -424,9 +426,9 @@ export default function VistoriarUnidade() {
                     numeroDeterminacao: `D${(totalDets || 0) + 1}`,
                     numeroRecomendacao: `R${(totalRecs || 0) + 1}`,
                     numeroConstatacao: constatacao.numero_constatacao,
-                    ncExistente: ncExistente,
-                    determinacaoExistente: detExistente,
-                    recomendacaoExistente: recExistente
+                    ncExistente,
+                    determinacaoExistente,
+                    recomendacaoExistente
                 });
                 setShowEditarNC(true);
             }
@@ -473,6 +475,7 @@ export default function VistoriarUnidade() {
             }
             await Repository.updateConstatacaoManual(constatacaoParaNC.id, {
                 descricao: textoConstatacaoFinal,
+                descricao_nc: data.texto_nc, // SALVAR DESCRIÇÃO DA NC
                 artigo_portaria: data.artigo_portaria,
                 texto_determinacao: data.gera_determinacao ? data.texto_determinacao : null,
                 texto_recomendacao: data.gera_recomendacao ? data.texto_recomendacao : null
