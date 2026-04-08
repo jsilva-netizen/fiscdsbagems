@@ -1,7 +1,7 @@
 import React from 'react';
 import { supabase } from '@/lib/supabase';
 import { useSyncStatus } from '@/lib/SyncStatusContext.jsx';
-import { getSyncPendingForFiscalizacao } from '@/lib/offline/syncEngine';
+import { getSyncPendingForFiscalizacao, runFullSync } from '@/lib/offline/syncEngine';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Loader2, FileText, RefreshCcw } from 'lucide-react';
@@ -10,6 +10,7 @@ import { db } from '@/lib/offline/db';
 export default function RelatorioFiscalizacao({ fiscalizacao }) {
     const queryClient = useQueryClient();
     const [isRequesting, setIsRequesting] = React.useState(false);
+    const [isSyncingBeforeReport, setIsSyncingBeforeReport] = React.useState(false);
     const [jobId, setJobId] = React.useState(null);
     const [job, setJob] = React.useState(null);
     const [error, setError] = React.useState(null);
@@ -106,8 +107,48 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
         try {
             const pending = await getSyncPendingForFiscalizacao(String(fiscalizacao.id));
             if (pending.outboxCount > 0 || pending.fotosCount > 0) {
-                setError(`Existem ${pending.outboxCount + pending.fotosCount} itens pendentes de sincronização. Aguarde a finalização da sincronia.`);
-                return;
+                setIsSyncingBeforeReport(true);
+                try {
+                    await runFullSync();
+                } catch (syncErr) {
+                    console.error('Falha ao sincronizar antes do relatório:', syncErr);
+                } finally {
+                    setIsSyncingBeforeReport(false);
+                }
+
+                const pending2 = await getSyncPendingForFiscalizacao(String(fiscalizacao.id));
+                if (pending2.outboxCount > 0 || pending2.fotosCount > 0) {
+                    let extra = '';
+                    try {
+                        const unidades = await db.unidades.where('fiscalizacao_id').equals(String(fiscalizacao.id)).toArray();
+                        const unidadeIds = new Set((unidades || []).map(u => String(u?.id || '')).filter(Boolean));
+                        const muts = await db.fila_mutacoes.where('status').anyOf('pending', 'error').toArray();
+                        const related = (muts || []).filter(m => {
+                            const entity = String(m?.entity || '');
+                            const p = m?.payload || {};
+                            const uid = String(p?.unidade_fiscalizada_id || p?.id || '');
+                            if (entity === 'fiscalizacoes' || entity === 'finalizacao_fiscalizacao') {
+                                return String(p?.id || p?.fiscalizacao_id || '') === String(fiscalizacao.id);
+                            }
+                            if (entity === 'unidades' || entity === 'finalizacao_unidade') {
+                                const pfisc = String(p?.fiscalizacao_id || '');
+                                if (pfisc && pfisc === String(fiscalizacao.id)) return true;
+                                return uid ? unidadeIds.has(uid) : false;
+                            }
+                            if (entity === 'respostas' || entity === 'constatacoes_manuais' || entity === 'recomendacoes' || entity === 'fotos') {
+                                return uid ? unidadeIds.has(uid) : false;
+                            }
+                            return false;
+                        }).slice(0, 3);
+
+                        if (related.length > 0) {
+                            extra = ` Pendência: ${related.map(r => `${r.entity}:${r.tipo}:${r.status}${r.lastError ? `(${String(r.lastError).slice(0, 80)})` : ''}`).join(' | ')}`;
+                        }
+                    } catch {}
+
+                    setError(`Ainda existem ${pending2.outboxCount + pending2.fotosCount} itens pendentes de sincronização. Finalize a sincronia antes de gerar o relatório.${extra}`);
+                    return;
+                }
             }
         } catch (e) {
             console.error('Erro ao verificar sincronia:', e);
@@ -255,14 +296,14 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
                         }
                         solicitarGeracao();
                     }}
-                    disabled={!isOnlineAndReady || isRequesting || isRunning || (!isDone && !canRequest)}
+                    disabled={!isOnlineAndReady || isRequesting || isSyncingBeforeReport || isRunning || (!isDone && !canRequest)}
                     className="flex-1 bg-blue-600 hover:bg-blue-700"
                     size="sm"
                 >
-                    {isRequesting || isRunning ? (
+                    {isRequesting || isSyncingBeforeReport || isRunning ? (
                         <>
                             <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            Gerando...
+                            {isSyncingBeforeReport ? 'Sincronizando...' : 'Gerando...'}
                         </>
                     ) : (
                         <>
@@ -279,7 +320,7 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
                             e.stopPropagation();
                             solicitarGeracao();
                         }}
-                        disabled={!isOnlineAndReady || isRequesting || isRunning || !canRequest}
+                        disabled={!isOnlineAndReady || isRequesting || isSyncingBeforeReport || isRunning || !canRequest}
                         variant="outline"
                         className="text-orange-600 border-orange-200 hover:bg-orange-50"
                         size="sm"
