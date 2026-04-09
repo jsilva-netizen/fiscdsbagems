@@ -110,12 +110,14 @@ export type ConstatacaoManual = {
   unidade_fiscalizada_id: UUID
   numero_constatacao: string
   descricao: string
+  descricao_nc?: string | null
   gera_nc?: boolean
   ordem?: number
   artigo_portaria?: string | null
   texto_determinacao?: string | null
   texto_recomendacao?: string | null
   created_at?: string
+  updated_at?: string
 }
 
 export type Recomendacao = {

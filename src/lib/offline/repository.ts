@@ -896,6 +896,7 @@ export const Repository = {
       id: uid(),
       unidade_fiscalizada_id: unidadeId,
       created_at: now(),
+      updated_at: now(),
       ...payload
     }
     await db.constatacoes_manuais.add(item)
@@ -1076,8 +1077,19 @@ export const Repository = {
   },
 
   async updateConstatacaoManual(id: string, changes: Partial<ConstatacaoManual>): Promise<void> {
-    await db.constatacoes_manuais.update(id, changes)
-    await enqueueMutation({ id, ...changes }, 'update', 'constatacoes_manuais')
+    const cur = await db.constatacoes_manuais.get(id as any)
+    const next = { ...(cur as any), ...changes, updated_at: now() }
+    await db.constatacoes_manuais.update(id, next)
+    await enqueueMutation(
+      {
+        id,
+        unidade_fiscalizada_id: (cur as any)?.unidade_fiscalizada_id,
+        ...changes,
+        updated_at: now()
+      },
+      'update',
+      'constatacoes_manuais'
+    )
   },
 
   async updateUnidadeStatus(unidadeId: string, status: string): Promise<void> {
