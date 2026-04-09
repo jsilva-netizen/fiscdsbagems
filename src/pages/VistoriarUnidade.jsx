@@ -30,6 +30,7 @@ export default function VistoriarUnidade() {
     const [activeTab, setActiveTab] = useState('checklist');
     const [respostas, setRespostas] = useState({});
     const [fotos, setFotos] = useState([]);
+    const [fotosDirty, setFotosDirty] = useState(false);
     const fotosCarregadasRef = useRef(null); // Armazena o ID da unidade carregada
     const [showAddRecomendacao, setShowAddRecomendacao] = useState(false);
     const [novaRecomendacao, setNovaRecomendacao] = useState('');
@@ -123,37 +124,42 @@ export default function VistoriarUnidade() {
 
     useEffect(() => {
         if (!unidadeId) return;
-        
-        // Se já carregamos as fotos para este unidadeId, não carregamos de novo.
-        // Isso evita que mudanças locais (como remover uma foto) sejam sobrescritas pelo query refetch.
-        if (fotosCarregadasRef.current === unidadeId) return;
+
+        const unidadeMudou = fotosCarregadasRef.current !== unidadeId;
+        if (unidadeMudou) {
+            setFotosDirty(false);
+        }
+
+        // Sempre carrega na primeira vez que entra na unidade.
+        // Após o usuário mexer nas fotos (dirty=true), não sobrescrevemos o estado local
+        // com possíveis refetches de unidade.fotos_unidade.
+        if (!unidadeMudou && fotosDirty) return;
 
         const carregar = async () => {
             try {
-                const remotas = (unidade?.fotos_unidade || []).map(foto => 
+                const remotas = (unidade?.fotos_unidade || []).map(foto =>
                     typeof foto === 'string' ? { url: foto } : foto
                 );
-                const locais = await Repository.listLocalFotos(unidadeId).then(list => 
-                    list.map(f => ({ 
-                        localId: f.localId, 
-                        url: f.url || '', 
-                        legenda: f.legenda || '', 
-                        mimeType: f.mimeType, 
-                        width: f.width, 
-                        height: f.height 
+                const locais = await Repository.listLocalFotos(unidadeId).then(list =>
+                    list.map(f => ({
+                        localId: f.localId,
+                        url: f.url || '',
+                        legenda: f.legenda || '',
+                        mimeType: f.mimeType,
+                        width: f.width,
+                        height: f.height
                     }))
                 );
                 setFotos([...(locais || []), ...remotas]);
                 fotosCarregadasRef.current = unidadeId;
+                setFotosDirty(false);
             } catch (err) {
                 console.error('Erro ao carregar fotos:', err);
             }
         };
-        
-        if (unidade?.fotos_unidade) {
-            carregar();
-        }
-    }, [unidadeId, unidade?.fotos_unidade]);
+
+        carregar();
+    }, [unidadeId, unidade?.fotos_unidade, fotosDirty]);
 
     // Marcador para evitar recalcular numeração após finalização
     useEffect(() => {
@@ -427,8 +433,8 @@ export default function VistoriarUnidade() {
                     numeroRecomendacao: `R${(totalRecs || 0) + 1}`,
                     numeroConstatacao: constatacao.numero_constatacao,
                     ncExistente,
-                    determinacaoExistente,
-                    recomendacaoExistente
+                    determinacaoExistente: detExistente,
+                    recomendacaoExistente: recExistente
                 });
                 setShowEditarNC(true);
             }
@@ -506,6 +512,7 @@ export default function VistoriarUnidade() {
             console.log('🟢 Finalização concluída com sucesso');
         },
         onSuccess: () => {
+            setFotosDirty(false);
             queryClient.invalidateQueries({ queryKey: ['unidades-fiscalizacao'] });
             queryClient.invalidateQueries({ queryKey: ['ncs', unidadeId] });
             queryClient.invalidateQueries({ queryKey: ['determinacoes', unidadeId] });
@@ -566,6 +573,7 @@ export default function VistoriarUnidade() {
             console.log('🟢 Salvamento concluído com sucesso');
         },
         onSuccess: () => {
+            setFotosDirty(false);
             queryClient.invalidateQueries({ queryKey: ['unidades-fiscalizacao'] });
             queryClient.invalidateQueries({ queryKey: ['unidade', unidadeId] });
             queryClient.invalidateQueries({ queryKey: ['ncs', unidadeId] });
@@ -593,6 +601,7 @@ export default function VistoriarUnidade() {
 
     const handleAddFoto = async (fotoData) => {
         setFotos(prev => [...prev, fotoData]);
+        setFotosDirty(true);
     };
 
     const handleRemoveFoto = (index) => {
@@ -603,6 +612,7 @@ export default function VistoriarUnidade() {
             }
             return prev.filter((_, i) => i !== index);
         });
+        setFotosDirty(true);
     };
 
     const handleUpdateLegenda = (index, legenda) => {
@@ -616,6 +626,7 @@ export default function VistoriarUnidade() {
             }
             return novasFotos;
         });
+        setFotosDirty(true);
     };
 
     if (loadingUnidade) {

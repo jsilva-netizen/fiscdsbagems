@@ -699,9 +699,22 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
     mapped.id = await resolveId(entity, payload?.id)
     const safe = serializePayload(entity, type, mapped)
     if (entity === 'constatacoes_manuais') {
-      const { data, error } = await supabase.from(table).upsert(safe, { onConflict: 'id' }).select()
-      if (error) throw error
-      return data || []
+      try {
+        const { data, error } = await supabase.from(table).upsert(safe, { onConflict: 'id' }).select()
+        if (error) throw error
+        return data || []
+      } catch (err: any) {
+        const msg = String(err?.message || '').toLowerCase()
+        const missingCol =
+          msg.includes('column') && (msg.includes('descricao_nc') || msg.includes('updated_at')) && msg.includes('does not exist')
+        if (!missingCol) throw err
+        const retry: any = { ...(safe as any) }
+        delete retry.descricao_nc
+        delete retry.updated_at
+        const { data, error } = await supabase.from(table).upsert(retry, { onConflict: 'id' }).select()
+        if (error) throw error
+        return data || []
+      }
     }
     const onConflictMap: Record<Entity, string | undefined> = {
       respostas: 'unidade_fiscalizada_id,item_checklist_id',
@@ -759,13 +772,35 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
       return data || []
     } else {
       if (entity === 'respostas') {
+        const stripUpdatedAt = (o: any) => {
+          const r: any = { ...(o || {}) }
+          delete r.updated_at
+          return r
+        }
         try {
           const { data, error } = await supabase.from(table).upsert(safe, { onConflict: 'unidade_fiscalizada_id,item_checklist_id' }).select()
           if (error) throw error
           return data || []
         } catch (err: any) {
           const msg = String(err?.message || '').toLowerCase()
+          const missingUpdatedAt = msg.includes('column') && msg.includes('updated_at') && msg.includes('does not exist')
           const noConstraint = msg.includes('no unique') || msg.includes('there is no unique') || msg.includes('on conflict') || (err?.status === 400)
+          if (missingUpdatedAt) {
+            const safe2 = stripUpdatedAt(safe)
+            try {
+              const { data, error } = await supabase.from(table).upsert(safe2, { onConflict: 'unidade_fiscalizada_id,item_checklist_id' }).select()
+              if (error) throw error
+              return data || []
+            } catch (err2: any) {
+              const msg2 = String(err2?.message || '').toLowerCase()
+              const noConstraint2 =
+                msg2.includes('no unique') || msg2.includes('there is no unique') || msg2.includes('on conflict') || (err2?.status === 400)
+              if (!noConstraint2) throw err2
+              const { data, error } = await supabase.from(table).upsert(safe2).select()
+              if (error) throw error
+              return data || []
+            }
+          }
           if (noConstraint) {
             const { data, error } = await supabase.from(table).upsert(safe).select()
             if (error) throw error
