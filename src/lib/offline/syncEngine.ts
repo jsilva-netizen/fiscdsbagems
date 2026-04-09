@@ -699,22 +699,34 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
     mapped.id = await resolveId(entity, payload?.id)
     const safe = serializePayload(entity, type, mapped)
     if (entity === 'constatacoes_manuais') {
-      try {
-        const { data, error } = await supabase.from(table).upsert(safe, { onConflict: 'id' }).select()
-        if (error) throw error
-        return data || []
-      } catch (err: any) {
-        const msg = String(err?.message || '').toLowerCase()
-        const missingCol =
-          msg.includes('column') && (msg.includes('descricao_nc') || msg.includes('updated_at')) && msg.includes('does not exist')
-        if (!missingCol) throw err
-        const retry: any = { ...(safe as any) }
-        delete retry.descricao_nc
-        delete retry.updated_at
-        const { data, error } = await supabase.from(table).upsert(retry, { onConflict: 'id' }).select()
+      const parseMissingColumn = (err: any): string | null => {
+        const m = String(err?.message || '')
+        const m1 = m.match(/column\s+"([^"]+)"\s+of\s+relation\s+"[^"]+"\s+does\s+not\s+exist/i)
+        if (m1?.[1]) return m1[1]
+        const m2 = m.match(/column\s+"([^"]+)"\s+does\s+not\s+exist/i)
+        if (m2?.[1]) return m2[1]
+        return null
+      }
+
+      const tryUpsertWithStripping = async () => {
+        let attemptPayload: any = { ...(safe as any) }
+        for (let i = 0; i < 6; i++) {
+          try {
+            const { data, error } = await supabase.from(table).upsert(attemptPayload, { onConflict: 'id' }).select()
+            if (error) throw error
+            return data || []
+          } catch (err: any) {
+            const col = parseMissingColumn(err)
+            if (!col) throw err
+            delete attemptPayload[col]
+          }
+        }
+        const { data, error } = await supabase.from(table).upsert(attemptPayload, { onConflict: 'id' }).select()
         if (error) throw error
         return data || []
       }
+
+      return await tryUpsertWithStripping()
     }
     const onConflictMap: Record<Entity, string | undefined> = {
       respostas: 'unidade_fiscalizada_id,item_checklist_id',
@@ -772,42 +784,61 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
       return data || []
     } else {
       if (entity === 'respostas') {
-        const stripUpdatedAt = (o: any) => {
-          const r: any = { ...(o || {}) }
-          delete r.updated_at
-          return r
+        const parseMissingColumn = (err: any): string | null => {
+          const m = String(err?.message || '')
+          const m1 = m.match(/column\s+"([^"]+)"\s+of\s+relation\s+"[^"]+"\s+does\s+not\s+exist/i)
+          if (m1?.[1]) return m1[1]
+          const m2 = m.match(/column\s+"([^"]+)"\s+does\s+not\s+exist/i)
+          if (m2?.[1]) return m2[1]
+          return null
         }
-        try {
-          const { data, error } = await supabase.from(table).upsert(safe, { onConflict: 'unidade_fiscalizada_id,item_checklist_id' }).select()
-          if (error) throw error
-          return data || []
-        } catch (err: any) {
-          const msg = String(err?.message || '').toLowerCase()
-          const missingUpdatedAt = msg.includes('column') && msg.includes('updated_at') && msg.includes('does not exist')
-          const noConstraint = msg.includes('no unique') || msg.includes('there is no unique') || msg.includes('on conflict') || (err?.status === 400)
-          if (missingUpdatedAt) {
-            const safe2 = stripUpdatedAt(safe)
+
+        const tryUpsert = async (o: any, withConflict: boolean) => {
+          if (withConflict) {
+            return await supabase.from(table).upsert(o, { onConflict: 'unidade_fiscalizada_id,item_checklist_id' }).select()
+          }
+          return await supabase.from(table).upsert(o).select()
+        }
+
+        const tryUpsertWithStripping = async () => {
+          let attemptPayload: any = { ...(safe as any) }
+          for (let i = 0; i < 6; i++) {
             try {
-              const { data, error } = await supabase.from(table).upsert(safe2, { onConflict: 'unidade_fiscalizada_id,item_checklist_id' }).select()
+              const { data, error } = await tryUpsert(attemptPayload, true)
               if (error) throw error
               return data || []
-            } catch (err2: any) {
-              const msg2 = String(err2?.message || '').toLowerCase()
-              const noConstraint2 =
-                msg2.includes('no unique') || msg2.includes('there is no unique') || msg2.includes('on conflict') || (err2?.status === 400)
-              if (!noConstraint2) throw err2
-              const { data, error } = await supabase.from(table).upsert(safe2).select()
-              if (error) throw error
-              return data || []
+            } catch (err: any) {
+              const msg = String(err?.message || '').toLowerCase()
+              const noConstraint =
+                msg.includes('no unique') || msg.includes('there is no unique') || msg.includes('on conflict') || err?.status === 400
+              const col = parseMissingColumn(err)
+              if (col) {
+                delete attemptPayload[col]
+                continue
+              }
+              if (noConstraint) break
+              throw err
             }
           }
-          if (noConstraint) {
-            const { data, error } = await supabase.from(table).upsert(safe).select()
-            if (error) throw error
-            return data || []
+
+          // fallback sem onConflict (ou sem constraint)
+          for (let i = 0; i < 6; i++) {
+            try {
+              const { data, error } = await tryUpsert(attemptPayload, false)
+              if (error) throw error
+              return data || []
+            } catch (err: any) {
+              const col = parseMissingColumn(err)
+              if (!col) throw err
+              delete attemptPayload[col]
+            }
           }
-          throw err
+
+          const { data, error } = await tryUpsert(attemptPayload, false)
+          if (error) throw error
+          return data || []
         }
+        return await tryUpsertWithStripping()
       } else {
         const { data, error } = await supabase.from(table).upsert(safe, upsertOptions).select()
         if (error) throw error

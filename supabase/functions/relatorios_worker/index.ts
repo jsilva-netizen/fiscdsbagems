@@ -160,6 +160,26 @@ async function generatePdfForJob(adminClient: any, job: any) {
     throw new Error('Nenhuma unidade encontrada para esta fiscalização. Sincronize todas as unidades e tente novamente.')
   }
 
+  // Garantia de consistência: recalcula NC/D/R e totais por unidade antes de gerar o PDF.
+  // Isso evita relatório "antigo" quando houve edição/reabertura e apenas os dados base (respostas/constatações manuais)
+  // foram sincronizados.
+  for (let i = 0; i < unidades.length; i++) {
+    const u: any = unidades[i]
+    try {
+      await adminClient.rpc('gerar_ncs_unidade', {
+        unidade_fiscalizada_id: u.id,
+        p_fotos: (u as any).fotos_unidade ?? null,
+        p_finalizar: false
+      })
+    } catch {}
+    try {
+      await adminClient
+        .from('relatorios_jobs')
+        .update({ progress_unidades: i + 1 })
+        .eq('id', job.id)
+    } catch {}
+  }
+
   const unidadeIds = (unidades || []).map((u: any) => u.id)
   const [respsRes, manRes, ncsRes, detRes, recRes] = await Promise.all([
     unidadeIds.length
