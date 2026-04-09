@@ -407,7 +407,17 @@ export async function getLastSync(): Promise<{ lastSyncAt?: string }> {
 async function compactOutbox(): Promise<number> {
   const pending = await db.fila_mutacoes.where('status').equals('pending').toArray()
   if (!Array.isArray(pending) || pending.length < 2) return 0
-  const keepByKey = new Map<string, { id: UUID; ts: number }>()
+  const mergeable = new Set<string>([
+    'respostas',
+    'constatacoes_manuais',
+    'recomendacoes',
+    'unidades',
+    'fiscalizacoes',
+    'prestadores',
+    'tipos_unidade',
+    'itens_checklist'
+  ])
+  const keepByKey = new Map<string, { id: UUID; ts: number; payload: any; entity: string; tipo: string }>()
   const deletables: UUID[] = []
   for (const m of pending) {
     const entity = String((m as any)?.entity || '')
@@ -417,17 +427,35 @@ async function compactOutbox(): Promise<number> {
     const ts = Number.isFinite(Date.parse((m as any)?.created_at || '')) ? Date.parse((m as any).created_at) : 0
     const prev = keepByKey.get(key)
     if (!prev) {
-      keepByKey.set(key, { id: (m as any).id as UUID, ts })
+      keepByKey.set(key, { id: (m as any).id as UUID, ts, payload: (m as any).payload, entity, tipo: String((m as any)?.tipo || '') })
       continue
     }
     if (ts >= prev.ts) {
       deletables.push(prev.id)
-      keepByKey.set(key, { id: (m as any).id as UUID, ts })
+      const nextPayload =
+        mergeable.has(entity) && prev?.payload && (m as any)?.payload
+          ? { ...prev.payload, ...(m as any).payload }
+          : (m as any).payload
+      keepByKey.set(key, { id: (m as any).id as UUID, ts, payload: nextPayload, entity, tipo: String((m as any)?.tipo || '') })
     } else {
       deletables.push((m as any).id as UUID)
     }
   }
   if (deletables.length === 0) return 0
+  // Garante que, quando substituímos insert por update (ou várias updates),
+  // o payload final mantenha campos obrigatórios (ex.: unidade_fiscalizada_id).
+  for (const [, k] of keepByKey) {
+    try {
+      const row = pending.find((p: any) => p.id === k.id)
+      if (row && mergeable.has(k.entity)) {
+        const currentPayload = (row as any).payload
+        const desiredPayload = k.payload
+        if (desiredPayload && currentPayload && JSON.stringify(desiredPayload) !== JSON.stringify(currentPayload)) {
+          await db.fila_mutacoes.update(k.id as any, { payload: desiredPayload })
+        }
+      }
+    } catch {}
+  }
   await db.fila_mutacoes.bulkDelete(deletables as any)
   const pendingCount = await getOutboxCount()
   await db.estados_sync.put({

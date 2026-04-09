@@ -505,7 +505,7 @@ export default function VistoriarUnidade() {
                 if (typeof f === 'string') {
                     return { url: f, legenda: '', mimeType: undefined, width: undefined, height: undefined };
                 }
-                return { url: f.url, legenda: f.legenda || '', mimeType: f.mimeType, width: f.width, height: f.height };
+                return { url: f.url, bucket: f.bucket, path: f.path, legenda: f.legenda || '', mimeType: f.mimeType, width: f.width, height: f.height };
             });
             await Repository.updateUnidadeFotos(unidadeId, fotosCompletas);
             await Repository.updateUnidadeStatus(unidadeId, 'finalizada');
@@ -563,7 +563,7 @@ export default function VistoriarUnidade() {
                 if (typeof f === 'string') {
                     return { url: f, legenda: '', mimeType: undefined, width: undefined, height: undefined };
                 }
-                return { url: f.url, legenda: f.legenda || '', mimeType: f.mimeType, width: f.width, height: f.height };
+                return { url: f.url, bucket: f.bucket, path: f.path, legenda: f.legenda || '', mimeType: f.mimeType, width: f.width, height: f.height };
             });
             await Repository.updateUnidadeFotos(unidadeId, fotosCompletas);
             
