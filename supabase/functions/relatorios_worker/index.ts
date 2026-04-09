@@ -638,7 +638,9 @@ async function generatePdfForJob(adminClient: any, job: any) {
     return dt
   }
 
-  const extractCaptureFromJpegBytes = (jpeg: Uint8Array): { latitude: number; longitude: number; takenAt?: string } | null => {
+  const extractCaptureFromJpegBytes = (
+    jpeg: Uint8Array
+  ): { latitude: number; longitude: number; takenAt?: string; latitudeRef?: 'N' | 'S'; longitudeRef?: 'E' | 'W' } | null => {
     if (!(jpeg instanceof Uint8Array) || jpeg.length < 4) return null
     if (jpeg[0] !== 0xff || jpeg[1] !== 0xd8) return null
 
@@ -801,6 +803,8 @@ async function generatePdfForJob(adminClient: any, job: any) {
 
       let lat: number | undefined
       let lon: number | undefined
+      let latRefNorm: 'N' | 'S' | undefined
+      let lonRefNorm: 'E' | 'W' | undefined
       let gpsDate: string | undefined
       let gpsTime: { num: number; den: number }[] | undefined
       if (typeof gpsPtr === 'number') {
@@ -812,6 +816,19 @@ async function generatePdfForJob(adminClient: any, job: any) {
           const lonVals = readRationals(gpsAbs, GPS_TAG_LON)
           gpsDate = readAsciiTag(gpsAbs, GPS_TAG_DATE_STAMP)
           gpsTime = readRationals(gpsAbs, GPS_TAG_TIME_STAMP)
+
+          const normalizeLatRef = (v: unknown): 'N' | 'S' | undefined => {
+            const s = String(v || '').trim().toUpperCase()
+            if (s === 'N' || s === 'S') return s
+            return undefined
+          }
+          const normalizeLonRef = (v: unknown): 'E' | 'W' | undefined => {
+            const s = String(v || '').trim().toUpperCase()
+            if (s === 'E' || s === 'W') return s
+            return undefined
+          }
+          latRefNorm = normalizeLatRef(latRef)
+          lonRefNorm = normalizeLonRef(lonRef)
 
           const toDeg = (ref: string | undefined, vals: { num: number; den: number }[] | undefined): number | undefined => {
             if (!ref || !vals || vals.length < 3) return undefined
@@ -843,7 +860,13 @@ async function generatePdfForJob(adminClient: any, job: any) {
       }
 
       if (typeof lat === 'number' && typeof lon === 'number' && Number.isFinite(lat) && Number.isFinite(lon)) {
-        return { latitude: lat, longitude: lon, takenAt: takenAt ? takenAt.toISOString() : undefined }
+        return {
+          latitude: lat,
+          longitude: lon,
+          takenAt: takenAt ? takenAt.toISOString() : undefined,
+          latitudeRef: latRefNorm,
+          longitudeRef: lonRefNorm
+        }
       }
 
       offset = segEnd
@@ -901,8 +924,9 @@ async function generatePdfForJob(adminClient: any, job: any) {
     const coordsDms = (() => {
       const latBase = firstCapture?.latitude
       const lonBase = firstCapture?.longitude
-      const latNum = Number.isFinite(Number(latBase)) ? Number(latBase) : Number(unidade.latitude)
-      const lonNum = Number.isFinite(Number(lonBase)) ? Number(lonBase) : Number(unidade.longitude)
+      const usingPhoto = Number.isFinite(Number(latBase)) && Number.isFinite(Number(lonBase))
+      const latNum = usingPhoto ? Number(latBase) : Number(unidade.latitude)
+      const lonNum = usingPhoto ? Number(lonBase) : Number(unidade.longitude)
       if (!isFinite(latNum) || !isFinite(lonNum)) return '-'
       const latAbs = Math.abs(latNum)
       const lonAbs = Math.abs(lonNum)
@@ -914,8 +938,8 @@ async function generatePdfForJob(adminClient: any, job: any) {
       const lonMin = Math.floor(lonMinFloat)
       const latSec = (latMinFloat - latMin) * 60
       const lonSec = (lonMinFloat - lonMin) * 60
-      const latHem = latNum >= 0 ? 'N' : 'S'
-      const lonHem = lonNum >= 0 ? 'E' : 'W'
+      const latHem = usingPhoto ? 'S' : latNum >= 0 ? 'N' : 'S'
+      const lonHem = usingPhoto ? 'W' : lonNum >= 0 ? 'E' : 'W'
       return `${latDeg}° ${latMin}' ${latSec.toFixed(2)}" ${latHem}, ${lonDeg}° ${lonMin}' ${lonSec.toFixed(2)}" ${lonHem}`
     })()
     drawCell(`Coordenadas: ${coordsDms}`, margin, yPos, tableWidth, rowHeight, true)
