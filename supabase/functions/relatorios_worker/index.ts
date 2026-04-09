@@ -44,6 +44,26 @@ async function fetchArrayBuffer(url: string, ms: number): Promise<ArrayBuffer> {
   }
 }
 
+async function fetchArrayBufferRange(url: string, ms: number, maxBytes: number): Promise<ArrayBuffer> {
+  const ctrl = new AbortController()
+  const t = setTimeout(() => ctrl.abort(), ms)
+  try {
+    const end = Math.max(0, Math.floor(maxBytes) - 1)
+    const resp = await fetch(url, {
+      signal: ctrl.signal,
+      headers: {
+        Range: `bytes=0-${end}`
+      }
+    })
+    if (!resp.ok) throw new Error(`Falha ao baixar imagem: ${resp.status}`)
+    return await resp.arrayBuffer()
+  } catch {
+    return await fetchArrayBuffer(url, ms)
+  } finally {
+    clearTimeout(t)
+  }
+}
+
 function wrapText(text: string, maxWidth: number, font: any, size: number): string[] {
   const raw = String(text || '').replace(/\r/g, '').trim()
   if (!raw) return ['-']
@@ -599,6 +619,249 @@ async function generatePdfForJob(adminClient: any, job: any) {
     }
   }
 
+  const preparePhotoHeadBytes = async (fotoInput: unknown) => {
+    const fotoUrl = await resolveToSignedUrl(fotoInput)
+    if (!fotoUrl) return null
+    try {
+      const buf = await fetchArrayBufferRange(fotoUrl, 25000, 256 * 1024)
+      return new Uint8Array(buf)
+    } catch {
+      return null
+    }
+  }
+
+  const parseExifDateTimeString = (s: string): Date | undefined => {
+    const m = /^\s*(\d{4}):(\d{2}):(\d{2})\s+(\d{2}):(\d{2}):(\d{2})\s*$/.exec(String(s || ''))
+    if (!m) return undefined
+    const dt = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6]))
+    if (Number.isNaN(dt.getTime())) return undefined
+    return dt
+  }
+
+  const extractCaptureFromJpegBytes = (jpeg: Uint8Array): { latitude: number; longitude: number; takenAt?: string } | null => {
+    if (!(jpeg instanceof Uint8Array) || jpeg.length < 4) return null
+    if (jpeg[0] !== 0xff || jpeg[1] !== 0xd8) return null
+
+    let offset = 2
+    while (offset + 4 <= jpeg.length) {
+      if (jpeg[offset] !== 0xff) {
+        offset++
+        continue
+      }
+      while (offset < jpeg.length && jpeg[offset] === 0xff) offset++
+      if (offset >= jpeg.length) break
+      const marker = jpeg[offset++]
+      if (marker === 0xd9 || marker === 0xda) break
+      if (offset + 2 > jpeg.length) break
+      const segLen = (jpeg[offset] << 8) | jpeg[offset + 1]
+      offset += 2
+      const segStart = offset
+      const segEnd = segStart + segLen - 2
+      if (segEnd > jpeg.length) break
+
+      if (marker !== 0xe1 || segLen < 10) {
+        offset = segEnd
+        continue
+      }
+
+      const isExif =
+        jpeg[segStart] === 0x45 &&
+        jpeg[segStart + 1] === 0x78 &&
+        jpeg[segStart + 2] === 0x69 &&
+        jpeg[segStart + 3] === 0x66 &&
+        jpeg[segStart + 4] === 0x00 &&
+        jpeg[segStart + 5] === 0x00
+      if (!isExif) {
+        offset = segEnd
+        continue
+      }
+
+      const tiffStart = segStart + 6
+      if (tiffStart + 8 > segEnd) {
+        offset = segEnd
+        continue
+      }
+
+      const isLE = jpeg[tiffStart] === 0x49 && jpeg[tiffStart + 1] === 0x49
+      const isBE = jpeg[tiffStart] === 0x4d && jpeg[tiffStart + 1] === 0x4d
+      if (!isLE && !isBE) {
+        offset = segEnd
+        continue
+      }
+
+      const u16 = (p: number) => (isLE ? jpeg[p] | (jpeg[p + 1] << 8) : (jpeg[p] << 8) | jpeg[p + 1])
+      const u32 = (p: number) => {
+        if (isLE) return (jpeg[p] | (jpeg[p + 1] << 8) | (jpeg[p + 2] << 16) | (jpeg[p + 3] << 24)) >>> 0
+        return ((jpeg[p] << 24) | (jpeg[p + 1] << 16) | (jpeg[p + 2] << 8) | jpeg[p + 3]) >>> 0
+      }
+
+      const magic = u16(tiffStart + 2)
+      if (magic !== 42) {
+        offset = segEnd
+        continue
+      }
+
+      const ifd0Ptr = u32(tiffStart + 4)
+      const ifd0Abs = tiffStart + ifd0Ptr
+      if (ifd0Abs + 2 > segEnd) {
+        offset = segEnd
+        continue
+      }
+
+      const readAsciiTag = (ifdAbs: number, tag: number): string | undefined => {
+        const countEntries = u16(ifdAbs)
+        const base = ifdAbs + 2
+        for (let i = 0; i < countEntries; i++) {
+          const e = base + i * 12
+          if (e + 12 > segEnd) break
+          const t = u16(e)
+          if (t !== tag) continue
+          const type = u16(e + 2)
+          const count = u32(e + 4)
+          const valOrOff = u32(e + 8)
+          if (type !== 2 || count < 1) return undefined
+          const bytes = count
+          const dataAbs = bytes <= 4 ? e + 8 : tiffStart + valOrOff
+          if (dataAbs + bytes > segEnd) return undefined
+          let out = ''
+          for (let k = 0; k < bytes; k++) {
+            const ch = jpeg[dataAbs + k]
+            if (ch === 0) break
+            out += String.fromCharCode(ch)
+          }
+          return out
+        }
+        return undefined
+      }
+
+      const readLongTag = (ifdAbs: number, tag: number): number | undefined => {
+        const countEntries = u16(ifdAbs)
+        const base = ifdAbs + 2
+        for (let i = 0; i < countEntries; i++) {
+          const e = base + i * 12
+          if (e + 12 > segEnd) break
+          const t = u16(e)
+          if (t !== tag) continue
+          const type = u16(e + 2)
+          const count = u32(e + 4)
+          const valOrOff = u32(e + 8)
+          if (count < 1) return undefined
+          if (type === 4) return valOrOff
+          if (type === 3) return isLE ? (valOrOff & 0xffff) : (valOrOff >>> 16)
+          return undefined
+        }
+        return undefined
+      }
+
+      const readRationals = (ifdAbs: number, tag: number): { num: number; den: number }[] | undefined => {
+        const countEntries = u16(ifdAbs)
+        const base = ifdAbs + 2
+        for (let i = 0; i < countEntries; i++) {
+          const e = base + i * 12
+          if (e + 12 > segEnd) break
+          const t = u16(e)
+          if (t !== tag) continue
+          const type = u16(e + 2)
+          const count = u32(e + 4)
+          const valOrOff = u32(e + 8)
+          if (type !== 5 || count < 1) return undefined
+          const dataAbs = tiffStart + valOrOff
+          const bytes = count * 8
+          if (dataAbs + bytes > segEnd) return undefined
+          const out: { num: number; den: number }[] = []
+          for (let k = 0; k < count; k++) {
+            const p = dataAbs + k * 8
+            out.push({ num: u32(p), den: u32(p + 4) })
+          }
+          return out
+        }
+        return undefined
+      }
+
+      const IFD0_TAG_EXIF_PTR = 0x8769
+      const IFD0_TAG_GPS_PTR = 0x8825
+      const IFD0_TAG_DATETIME = 0x0132
+      const EXIF_TAG_DATETIME_ORIGINAL = 0x9003
+      const GPS_TAG_LAT_REF = 0x0001
+      const GPS_TAG_LAT = 0x0002
+      const GPS_TAG_LON_REF = 0x0003
+      const GPS_TAG_LON = 0x0004
+      const GPS_TAG_TIME_STAMP = 0x0007
+      const GPS_TAG_DATE_STAMP = 0x001d
+
+      const exifPtr = readLongTag(ifd0Abs, IFD0_TAG_EXIF_PTR)
+      const gpsPtr = readLongTag(ifd0Abs, IFD0_TAG_GPS_PTR)
+      const dt0 = readAsciiTag(ifd0Abs, IFD0_TAG_DATETIME)
+
+      let dtOriginal: string | undefined
+      if (typeof exifPtr === 'number') {
+        const exifAbs = tiffStart + exifPtr
+        if (exifAbs + 2 <= segEnd) dtOriginal = readAsciiTag(exifAbs, EXIF_TAG_DATETIME_ORIGINAL)
+      }
+
+      let lat: number | undefined
+      let lon: number | undefined
+      let gpsDate: string | undefined
+      let gpsTime: { num: number; den: number }[] | undefined
+      if (typeof gpsPtr === 'number') {
+        const gpsAbs = tiffStart + gpsPtr
+        if (gpsAbs + 2 <= segEnd) {
+          const latRef = readAsciiTag(gpsAbs, GPS_TAG_LAT_REF)
+          const lonRef = readAsciiTag(gpsAbs, GPS_TAG_LON_REF)
+          const latVals = readRationals(gpsAbs, GPS_TAG_LAT)
+          const lonVals = readRationals(gpsAbs, GPS_TAG_LON)
+          gpsDate = readAsciiTag(gpsAbs, GPS_TAG_DATE_STAMP)
+          gpsTime = readRationals(gpsAbs, GPS_TAG_TIME_STAMP)
+
+          const toDeg = (ref: string | undefined, vals: { num: number; den: number }[] | undefined): number | undefined => {
+            if (!ref || !vals || vals.length < 3) return undefined
+            const d = vals[0].den ? vals[0].num / vals[0].den : NaN
+            const m = vals[1].den ? vals[1].num / vals[1].den : NaN
+            const s = vals[2].den ? vals[2].num / vals[2].den : NaN
+            if (![d, m, s].every((x) => Number.isFinite(x))) return undefined
+            let dec = d + m / 60 + s / 3600
+            const r = ref.trim().toUpperCase()
+            if (r === 'S' || r === 'W') dec = -dec
+            return dec
+          }
+          lat = toDeg(latRef, latVals)
+          lon = toDeg(lonRef, lonVals)
+        }
+      }
+
+      let takenAt: Date | undefined = dtOriginal ? parseExifDateTimeString(dtOriginal) : undefined
+      if (!takenAt && dt0) takenAt = parseExifDateTimeString(dt0)
+      if (!takenAt && gpsDate && gpsTime && gpsTime.length >= 3) {
+        const dm = /^(\d{4}):(\d{2}):(\d{2})$/.exec(String(gpsDate || '').trim())
+        const hh = gpsTime[0].den ? gpsTime[0].num / gpsTime[0].den : NaN
+        const mm = gpsTime[1].den ? gpsTime[1].num / gpsTime[1].den : NaN
+        const ss = gpsTime[2].den ? gpsTime[2].num / gpsTime[2].den : NaN
+        if (dm && [hh, mm, ss].every((x) => Number.isFinite(x))) {
+          const dt = new Date(Number(dm[1]), Number(dm[2]) - 1, Number(dm[3]), Math.floor(hh), Math.floor(mm), Math.floor(ss))
+          if (!Number.isNaN(dt.getTime())) takenAt = dt
+        }
+      }
+
+      if (typeof lat === 'number' && typeof lon === 'number' && Number.isFinite(lat) && Number.isFinite(lon)) {
+        return { latitude: lat, longitude: lon, takenAt: takenAt ? takenAt.toISOString() : undefined }
+      }
+
+      offset = segEnd
+    }
+
+    return null
+  }
+
+  const findFirstCaptureFromFotos = async (fotos: any[]) => {
+    for (const foto of fotos || []) {
+      const head = await preparePhotoHeadBytes(foto)
+      if (!head) continue
+      const cap = extractCaptureFromJpegBytes(head)
+      if (cap) return cap
+    }
+    return null
+  }
+
   const formatLegendaFigura = (numFigura: number, legendaPrincipal: string) => {
     const base = String(legendaPrincipal || '').trim()
     const terminaComExclamOuInterrog = /[!?]$/.test(base)
@@ -633,9 +896,13 @@ async function generatePdfForJob(adminClient: any, job: any) {
     drawCell(`Endereço: ${unidade.endereco || '-'}`, margin, yPos, tableWidth, rowHeight, true)
     yPos += rowHeight
 
+    const firstCapture = await findFirstCaptureFromFotos(fotosRaw)
+
     const coordsDms = (() => {
-      const latNum = Number(unidade.latitude)
-      const lonNum = Number(unidade.longitude)
+      const latBase = firstCapture?.latitude
+      const lonBase = firstCapture?.longitude
+      const latNum = Number.isFinite(Number(latBase)) ? Number(latBase) : Number(unidade.latitude)
+      const lonNum = Number.isFinite(Number(lonBase)) ? Number(lonBase) : Number(unidade.longitude)
       if (!isFinite(latNum) || !isFinite(lonNum)) return '-'
       const latAbs = Math.abs(latNum)
       const lonAbs = Math.abs(lonNum)
@@ -654,7 +921,11 @@ async function generatePdfForJob(adminClient: any, job: any) {
     drawCell(`Coordenadas: ${coordsDms}`, margin, yPos, tableWidth, rowHeight, true)
     yPos += rowHeight
 
-    const vistoriaAt = unidade.data_hora_vistoria ? formatDateTimeBR(unidade.data_hora_vistoria) : '-'
+    const vistoriaAt = firstCapture?.takenAt
+      ? formatDateTimeBR(firstCapture.takenAt)
+      : unidade.data_hora_vistoria
+        ? formatDateTimeBR(unidade.data_hora_vistoria)
+        : '-'
     drawCell(`Data/Hora da Vistoria: ${vistoriaAt}`, margin, yPos, tableWidth, rowHeight, true)
     yPos += rowHeight
 
