@@ -911,14 +911,7 @@ export const Repository = {
   async updateUnidadeFotos(unidadeId: string, fotos: Partial<Foto>[]): Promise<void> {
     const unidade = await db.unidades.get(unidadeId)
     const input = Array.isArray(fotos) ? fotos : []
-    const hasLocal = input.some((f) => isLocalUrl(String((f as any)?.url || '')))
-    const remoteOnly = input
-      .filter((f) => {
-        const url = String((f as any)?.url || '')
-        if (!url) return false
-        if (isLocalUrl(url)) return false
-        return true
-      })
+    const normalized = input
       .map((f) => {
         const anyF: any = f as any
         const bucket = typeof anyF.bucket === 'string' ? String(anyF.bucket) : ''
@@ -927,13 +920,15 @@ export const Repository = {
           return normalizeFoto({ ...f, url: toStorageUrl(bucket, path), bucket, path })
         }
         const url = String(anyF.url || '')
+        if (!url) return null
+        if (isLocalUrl(url)) return null
         const parsed = Repository.parseStorageUrl(url)
         if (parsed) {
           return normalizeFoto({ ...f, url: toStorageUrl(parsed.bucket, parsed.path), bucket: parsed.bucket, path: parsed.path })
         }
         return normalizeFoto(f)
       })
-    const normalized = remoteOnly
+      .filter(Boolean) as any
     if (unidade) {
       await db.unidades.update(unidadeId, {
         ...unidade,

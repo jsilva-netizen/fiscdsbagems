@@ -536,9 +536,25 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
     return map?.server_id || localId
   }
   const doRequest = async () => {
+    const ensureUnidadeServerId = async (unidadeLocalId?: UUID): Promise<UUID | undefined> => {
+      if (!unidadeLocalId) return unidadeLocalId
+      const candidate = await resolveId('unidades', unidadeLocalId)
+      if (!candidate) return candidate
+      if (candidate !== unidadeLocalId) return candidate
+      try {
+        const { data: exists } = await supabase.from('unidades_fiscalizadas').select('id').eq('id', candidate as any).maybeSingle()
+        if (exists?.id) return candidate
+      } catch {}
+      const unidadeLocal = await db.unidades.get(unidadeLocalId as any)
+      if (!unidadeLocal) return candidate
+      await pushOne('unidades', 'insert', { ...unidadeLocal })
+      const map = await db.id_map.where('local_id').equals(unidadeLocalId).and((m) => m.entity === 'unidades').first()
+      return (map?.server_id as any) || candidate
+    }
+
     if (entity === 'fotos') {
       const unidadeLocalId = payload?.unidade_fiscalizada_id
-      const unidadeId = await resolveId('unidades', unidadeLocalId)
+      const unidadeId = await ensureUnidadeServerId(unidadeLocalId)
       const fotosRemotas = Array.isArray(payload?.fotos_unidade) ? payload.fotos_unidade : []
       
       const { data: existingRow } = await supabase
@@ -652,7 +668,7 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
       mapped.tipo_unidade_id = await resolveId('tipos_unidade', payload?.tipo_unidade_id)
     }
     if (entity === 'respostas' || entity === 'constatacoes_manuais' || entity === 'recomendacoes') {
-      mapped.unidade_fiscalizada_id = await resolveId('unidades', payload?.unidade_fiscalizada_id)
+      mapped.unidade_fiscalizada_id = await ensureUnidadeServerId(payload?.unidade_fiscalizada_id)
     }
     if (entity === 'recomendacoes') {
       const raw = mapped?.numero_recomendacao
@@ -660,23 +676,6 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
         mapped.numero_recomendacao = null
       } else {
         mapped.numero_recomendacao = typeof raw === 'string' ? raw : String(raw)
-      }
-      // garantir FK da unidade: se não existir no servidor, empurra a unidade primeiro
-      const unidadeLocalId = payload?.unidade_fiscalizada_id as UUID
-      const unidadeServerId = mapped.unidade_fiscalizada_id as UUID
-      if (unidadeLocalId && unidadeServerId === unidadeLocalId) {
-        const { data: exists } = await supabase.from('unidades_fiscalizadas').select('id').eq('id', unidadeServerId).maybeSingle()
-        if (!exists) {
-          const unidadeLocal = await db.unidades.get(unidadeLocalId)
-          if (unidadeLocal) {
-            const ensure = { ...unidadeLocal }
-            await pushOne('unidades', 'insert', ensure)
-            const map = await db.id_map.where('local_id').equals(unidadeLocalId).and((m) => m.entity === 'unidades').first()
-            if (map?.server_id) {
-              mapped.unidade_fiscalizada_id = map.server_id
-            }
-          }
-        }
       }
     }
     if (entity === 'respostas') {
