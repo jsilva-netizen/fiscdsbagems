@@ -681,6 +681,7 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
     }
     if (entity === 'respostas') {
       mapped.item_checklist_id = await resolveId('itens_checklist', payload?.item_checklist_id)
+      if (!mapped.updated_at) mapped.updated_at = now()
     }
     if (entity === 'itens_checklist') {
       mapped.tipo_unidade_id = await resolveId('tipos_unidade', payload?.tipo_unidade_id)
@@ -757,9 +758,26 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
       if (error) throw error
       return data || []
     } else {
-      const { data, error } = await supabase.from(table).upsert(safe, upsertOptions).select()
-      if (error) throw error
-      return data || []
+      if (entity === 'respostas') {
+        try {
+          const { data, error } = await supabase.from(table).upsert(safe, { onConflict: 'unidade_fiscalizada_id,item_checklist_id' }).select()
+          if (error) throw error
+          return data || []
+        } catch (err: any) {
+          const msg = String(err?.message || '').toLowerCase()
+          const noConstraint = msg.includes('no unique') || msg.includes('there is no unique') || msg.includes('on conflict') || (err?.status === 400)
+          if (noConstraint) {
+            const { data, error } = await supabase.from(table).upsert(safe).select()
+            if (error) throw error
+            return data || []
+          }
+          throw err
+        }
+      } else {
+        const { data, error } = await supabase.from(table).upsert(safe, upsertOptions).select()
+        if (error) throw error
+        return data || []
+      }
     }
   }
   const timeoutMs = entity === 'finalizacao_fiscalizacao' ? 60000 : 15000
