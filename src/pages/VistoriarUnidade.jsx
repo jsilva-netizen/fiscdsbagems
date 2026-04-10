@@ -347,7 +347,7 @@ export default function VistoriarUnidade() {
 
     const adicionarRecomendacaoMutation = useMutation({
         mutationFn: async (texto) => {
-            if (fiscalizacao?.status === 'finalizada' && !modoEdicao) {
+            if (unidade?.status === 'finalizada' && !modoEdicao) {
                 throw new Error('Não é possível modificar uma fiscalização finalizada');
             }
             const recCount = await Repository.countRecomendacoesByUnidade(unidadeId);
@@ -363,8 +363,8 @@ export default function VistoriarUnidade() {
 
     const adicionarConstatacaoManualMutation = useMutation({
         mutationFn: async (data) => {
-            if (fiscalizacao?.status === 'finalizada' && !modoEdicao) {
-                throw new Error('Não é possível modificar uma fiscalização finalizada');
+            if (unidade?.status === 'finalizada' && !modoEdicao) {
+                throw new Error('Não é possível modificar uma unidade finalizada');
             }
 
             // Se for edição, atualizar
@@ -449,8 +449,8 @@ export default function VistoriarUnidade() {
 
     const excluirConstatacaoManualMutation = useMutation({
         mutationFn: async (constatacaoId) => {
-            if (fiscalizacao?.status === 'finalizada' && !modoEdicao) {
-                throw new Error('Não é possível modificar uma fiscalização finalizada');
+            if (unidade?.status === 'finalizada' && !modoEdicao) {
+                throw new Error('Não é possível modificar uma unidade finalizada');
             }
 
             // Nota: O banco de dados já deve ter ON DELETE CASCADE configurado
@@ -472,8 +472,8 @@ export default function VistoriarUnidade() {
 
     const salvarNCMutation = useMutation({
         mutationFn: async (data) => {
-            if (fiscalizacao?.status === 'finalizada' && !modoEdicao) {
-                throw new Error('Não é possível modificar uma fiscalização finalizada');
+            if (unidade?.status === 'finalizada' && !modoEdicao) {
+                throw new Error('Não é possível modificar uma unidade finalizada');
             }
             if (!constatacaoParaNC || !numerosParaNC) return;
             let textoConstatacaoFinal = data.texto_constatacao;
@@ -741,7 +741,7 @@ export default function VistoriarUnidade() {
 
                     {/* Constatações Tab */}
                     <TabsContent value="constatacoes" className="mt-4 space-y-4">
-                        {(fiscalizacao?.status !== 'finalizada' || modoEdicao) && (
+                        {(unidade?.status !== 'finalizada' || modoEdicao) && (
                             <Button 
                                 onClick={() => {
                                     setConstatacaoParaEditar(null);
@@ -768,7 +768,7 @@ export default function VistoriarUnidade() {
                                                 </Badge>
                                             )}
                                         </div>
-                                        {(fiscalizacao?.status !== 'finalizada' || modoEdicao) && (
+                                        {(unidade?.status !== 'finalizada' || modoEdicao) && (
                                             <div className="flex gap-2">
                                                 <Button
                                                     size="sm"
@@ -902,7 +902,7 @@ export default function VistoriarUnidade() {
 
                     {/* Recomendações Tab */}
                     <TabsContent value="recomendacoes" className="mt-4 space-y-4">
-                        {(fiscalizacao?.status !== 'finalizada' || modoEdicao) && (
+                        {(unidade?.status !== 'finalizada' || modoEdicao) && (
                             <Button onClick={() => setShowAddRecomendacao(true)} className="w-full">
                                 <Plus className="h-4 w-4 mr-2" />
                                 Adicionar Recomendação
