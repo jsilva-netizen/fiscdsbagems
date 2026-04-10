@@ -853,7 +853,9 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
 
         const tryUpsert = async (o: any, withConflict: boolean) => {
           if (withConflict) {
-            return await supabase.from(table).upsert(o, { onConflict: 'unidade_fiscalizada_id,item_checklist_id' }).select()
+            const hasItem = o?.item_checklist_id !== undefined && o?.item_checklist_id !== null && String(o.item_checklist_id).trim() !== ''
+            const onConflict = hasItem ? 'unidade_fiscalizada_id,item_checklist_id' : 'id'
+            return await supabase.from(table).upsert(o, { onConflict }).select()
           }
           return await supabase.from(table).upsert(o).select()
         }
