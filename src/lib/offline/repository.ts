@@ -906,7 +906,45 @@ export const Repository = {
 
   async listConstatacoesManuais(unidadeId: string): Promise<ConstatacaoManual[]> {
     const list = await db.constatacoes_manuais.where('unidade_fiscalizada_id').equals(unidadeId).toArray()
-    return list.sort((a, b) => (a.ordem || 0) - (b.ordem || 0))
+    const sorted = list.sort((a, b) => (a.ordem || 0) - (b.ordem || 0))
+
+    const parseC = (v: unknown) => {
+      const n = parseInt(String(v || '').replace(/[^\d]/g, ''), 10)
+      return Number.isFinite(n) ? n : null
+    }
+
+    const respostas = await db.respostas.where('unidade_fiscalizada_id').equals(unidadeId).toArray()
+    const used = new Set<number>()
+    for (const r of respostas || []) {
+      const n = parseC((r as any).numero_constatacao)
+      if (typeof n === 'number') used.add(n)
+    }
+    for (const m of sorted || []) {
+      const n = parseC((m as any).numero_constatacao)
+      if (typeof n === 'number') used.add(n)
+    }
+    let next = used.size > 0 ? Math.max(...Array.from(used.values())) + 1 : 1
+
+    const missing = sorted.filter((m) => !String((m as any).numero_constatacao || '').trim())
+    if (missing.length > 0) {
+      for (const m of missing) {
+        while (used.has(next)) next++
+        const numero = `C${next}`
+        used.add(next)
+        next++
+        try {
+          await db.constatacoes_manuais.update((m as any).id as any, { numero_constatacao: numero, updated_at: now() } as any)
+          await enqueueMutation(
+            { id: (m as any).id, unidade_fiscalizada_id: unidadeId, numero_constatacao: numero, updated_at: now() },
+            'update',
+            'constatacoes_manuais'
+          )
+          ;(m as any).numero_constatacao = numero
+        } catch {}
+      }
+    }
+
+    return sorted
   },
 
   async updateUnidadeFotos(unidadeId: string, fotos: Partial<Foto>[]): Promise<void> {
@@ -1078,13 +1116,17 @@ export const Repository = {
 
   async updateConstatacaoManual(id: string, changes: Partial<ConstatacaoManual>): Promise<void> {
     const cur = await db.constatacoes_manuais.get(id as any)
-    const next = { ...(cur as any), ...changes, updated_at: now() }
+    const cleaned: any = {}
+    for (const [k, v] of Object.entries(changes || {})) {
+      if (v !== undefined) cleaned[k] = v
+    }
+    const next = { ...(cur as any), ...cleaned, updated_at: now() }
     await db.constatacoes_manuais.update(id, next)
     await enqueueMutation(
       {
         id,
         unidade_fiscalizada_id: (cur as any)?.unidade_fiscalizada_id,
-        ...changes,
+        ...cleaned,
         updated_at: now()
       },
       'update',

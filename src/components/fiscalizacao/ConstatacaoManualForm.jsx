@@ -30,10 +30,6 @@ export default function ConstatacaoManualForm({ open, onOpenChange, onSave, isSa
             descricao: descricao.trim(),
             gera_nc: geraNc
         });
-        
-        // Limpar formulário
-        setDescricao('');
-        setGeraNc(false);
     };
 
     return (

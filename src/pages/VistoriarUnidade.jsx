@@ -436,7 +436,8 @@ export default function VistoriarUnidade() {
                     determinacaoExistente: detExistente,
                     recomendacaoExistente: recExistente
                 });
-                setShowEditarNC(true);
+                // Evita instabilidade de portais/dialogs (Radix) ao fechar um modal e abrir outro no mesmo tick
+                window.setTimeout(() => setShowEditarNC(true), 0);
             }
             
             setConstatacaoParaEditar(null);
@@ -1083,32 +1084,36 @@ export default function VistoriarUnidade() {
             </Dialog>
 
             {/* Dialog Constatação Manual */}
-            <ConstatacaoManualForm
-                open={showAddConstatacao}
-                onOpenChange={(open) => {
-                    setShowAddConstatacao(open);
-                    if (!open) setConstatacaoParaEditar(null);
-                }}
-                onSave={(data) => adicionarConstatacaoManualMutation.mutate(data)}
-                isSaving={adicionarConstatacaoManualMutation.isPending}
-                constatacaoParaEditar={constatacaoParaEditar}
-            />
+            {showAddConstatacao ? (
+                <ConstatacaoManualForm
+                    open={showAddConstatacao}
+                    onOpenChange={(open) => {
+                        setShowAddConstatacao(open);
+                        if (!open) setConstatacaoParaEditar(null);
+                    }}
+                    onSave={(data) => adicionarConstatacaoManualMutation.mutate(data)}
+                    isSaving={adicionarConstatacaoManualMutation.isPending}
+                    constatacaoParaEditar={constatacaoParaEditar}
+                />
+            ) : null}
 
             {/* Dialog Editar NC */}
-            <EditarNCModal
-                open={showEditarNC}
-                onOpenChange={setShowEditarNC}
-                onSave={(data) => salvarNCMutation.mutate(data)}
-                isSaving={salvarNCMutation.isPending}
-                numeroNC={numerosParaNC?.numeroNC}
-                numeroDeterminacao={numerosParaNC?.numeroDeterminacao}
-                numeroRecomendacao={numerosParaNC?.numeroRecomendacao}
-                numeroConstatacao={numerosParaNC?.numeroConstatacao}
-                constatacaoTexto={constatacaoParaNC?.descricao}
-                ncExistente={numerosParaNC?.ncExistente}
-                determinacaoExistente={numerosParaNC?.determinacaoExistente}
-                recomendacaoExistente={numerosParaNC?.recomendacaoExistente}
-            />
+            {showEditarNC ? (
+                <EditarNCModal
+                    open={showEditarNC}
+                    onOpenChange={setShowEditarNC}
+                    onSave={(data) => salvarNCMutation.mutate(data)}
+                    isSaving={salvarNCMutation.isPending}
+                    numeroNC={numerosParaNC?.numeroNC}
+                    numeroDeterminacao={numerosParaNC?.numeroDeterminacao}
+                    numeroRecomendacao={numerosParaNC?.numeroRecomendacao}
+                    numeroConstatacao={numerosParaNC?.numeroConstatacao}
+                    constatacaoTexto={constatacaoParaNC?.descricao}
+                    ncExistente={numerosParaNC?.ncExistente}
+                    determinacaoExistente={numerosParaNC?.determinacaoExistente}
+                    recomendacaoExistente={numerosParaNC?.recomendacaoExistente}
+                />
+            ) : null}
 
             {/* Dialog Confirmação Exclusão Constatação */}
             <Dialog open={showConfirmaExclusao} onOpenChange={setShowConfirmaExclusao}>

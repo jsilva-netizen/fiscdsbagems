@@ -417,6 +417,13 @@ async function compactOutbox(): Promise<number> {
     'tipos_unidade',
     'itens_checklist'
   ])
+  const mergePayloadDefined = (prev: any, next: any) => {
+    const out: any = { ...(prev || {}) }
+    for (const [k, v] of Object.entries(next || {})) {
+      if (v !== undefined) out[k] = v
+    }
+    return out
+  }
   const keepByKey = new Map<string, { id: UUID; ts: number; payload: any; entity: string; tipo: string }>()
   const deletables: UUID[] = []
   for (const m of pending) {
@@ -434,7 +441,7 @@ async function compactOutbox(): Promise<number> {
       deletables.push(prev.id)
       const nextPayload =
         mergeable.has(entity) && prev?.payload && (m as any)?.payload
-          ? { ...prev.payload, ...(m as any).payload }
+          ? mergePayloadDefined(prev.payload, (m as any).payload)
           : (m as any).payload
       keepByKey.set(key, { id: (m as any).id as UUID, ts, payload: nextPayload, entity, tipo: String((m as any)?.tipo || '') })
     } else {
