@@ -34,6 +34,8 @@ export default function VistoriarUnidade() {
     const fotosCarregadasRef = useRef(null); // Armazena o ID da unidade carregada
     const [showAddRecomendacao, setShowAddRecomendacao] = useState(false);
     const [novaRecomendacao, setNovaRecomendacao] = useState('');
+    const [showConfirmaExclusaoRecomendacao, setShowConfirmaExclusaoRecomendacao] = useState(false);
+    const [recomendacaoParaExcluir, setRecomendacaoParaExcluir] = useState(null);
     const [showConfirmaSemFotos, setShowConfirmaSemFotos] = useState(false);
     const [contadoresCarregados, setContadoresCarregados] = useState(false);
     const [showAddConstatacao, setShowAddConstatacao] = useState(false);
@@ -358,6 +360,23 @@ export default function VistoriarUnidade() {
             queryClient.invalidateQueries({ queryKey: ['recomendacoes', unidadeId] });
             setNovaRecomendacao('');
             setShowAddRecomendacao(false);
+        }
+    });
+
+    const excluirRecomendacaoMutation = useMutation({
+        mutationFn: async (recomendacaoId) => {
+            if (unidade?.status === 'finalizada' && !modoEdicao) {
+                throw new Error('Não é possível modificar uma unidade finalizada');
+            }
+            await Repository.removeRecomendacao(recomendacaoId);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['recomendacoes', unidadeId] });
+            setShowConfirmaExclusaoRecomendacao(false);
+            setRecomendacaoParaExcluir(null);
+        },
+        onError: (err) => {
+            alert(err.message);
         }
     });
 
@@ -915,6 +934,20 @@ export default function VistoriarUnidade() {
                                     <div className="flex items-start gap-3">
                                         <Badge variant="secondary">{rec.numero_recomendacao}</Badge>
                                         <p className="text-sm flex-1">{rec.descricao}</p>
+                                        {(unidade?.status !== 'finalizada' || modoEdicao) && rec?.origem === 'manual' && (
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={() => {
+                                                    setRecomendacaoParaExcluir(rec);
+                                                    setShowConfirmaExclusaoRecomendacao(true);
+                                                }}
+                                                className="text-red-600 hover:text-red-700"
+                                                title="Excluir recomendação"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        )}
                                     </div>
                                 </CardContent>
                             </Card>
@@ -1177,6 +1210,36 @@ export default function VistoriarUnidade() {
                             Sim, Finalizar
                         </Button>
                         <Button variant="outline" onClick={() => setShowConfirmaSemFotos(false)}>
+                            Cancelar
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Dialog Confirmação Exclusão Recomendação */}
+            <Dialog open={showConfirmaExclusaoRecomendacao} onOpenChange={setShowConfirmaExclusaoRecomendacao}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-red-700">
+                            <AlertCircle className="h-5 w-5" />
+                            Excluir Recomendação
+                        </DialogTitle>
+                        <DialogDescription>
+                            Tem certeza que deseja excluir a recomendação <strong>{recomendacaoParaExcluir?.numero_recomendacao}</strong>?
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex gap-2">
+                        <Button
+                            className="flex-1 bg-red-600 hover:bg-red-700"
+                            onClick={() => excluirRecomendacaoMutation.mutate(recomendacaoParaExcluir?.id)}
+                            disabled={excluirRecomendacaoMutation.isPending}
+                        >
+                            {excluirRecomendacaoMutation.isPending ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            ) : null}
+                            Sim, Excluir
+                        </Button>
+                        <Button variant="outline" onClick={() => setShowConfirmaExclusaoRecomendacao(false)}>
                             Cancelar
                         </Button>
                     </div>

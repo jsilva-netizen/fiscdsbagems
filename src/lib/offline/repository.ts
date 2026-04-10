@@ -438,6 +438,11 @@ export const Repository = {
     await db.recomendacoes.add(item as any)
     await enqueueMutation(item, 'insert', 'recomendacoes')
   },
+
+  async removeRecomendacao(id: string): Promise<void> {
+    await db.recomendacoes.delete(id as any)
+    await enqueueMutation({ id }, 'delete', 'recomendacoes')
+  },
   
   async countDeterminacoesByUnidade(unidadeId: string): Promise<number> {
     const list = await db.constatacoes_manuais.where('unidade_fiscalizada_id').equals(unidadeId).toArray()
