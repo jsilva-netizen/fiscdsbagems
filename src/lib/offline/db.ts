@@ -38,6 +38,17 @@ export type Municipio = {
 export type Prestador = {
   id: UUID
   nome: string
+  razao_social?: string
+  endereco?: string
+  cidade?: string
+  telefone?: string
+  email_contato?: string
+  cnpj?: string
+  responsavel?: string
+  cargo?: string
+  tipo?: string
+  documentos?: any
+  created_at?: string
   updated_at?: string
 }
 

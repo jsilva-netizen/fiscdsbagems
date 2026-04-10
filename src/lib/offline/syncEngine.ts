@@ -1003,6 +1003,8 @@ function selectColsForPull(entity: Entity): string {
       return '*'
     case 'constatacoes_manuais':
       return '*'
+    case 'prestadores':
+      return 'id,nome,razao_social,endereco,cidade,telefone,email_contato,cnpj,responsavel,cargo,tipo,documentos,created_at,updated_at'
     default:
       return '*'
   }
@@ -1073,6 +1075,9 @@ async function pullEntity(entity: Entity, since?: string) {
       case 'constatacoes_manuais':
         await db.constatacoes_manuais.put(normalized)
         break
+      case 'prestadores':
+        await db.prestadores.put(normalized)
+        break
       case 'fotos':
         // servidor não tem tabela fotos; se vier via unidade, já coberto
         break
@@ -1113,7 +1118,8 @@ export async function syncDown(onProgress?: (msg: string, isError?: boolean) => 
     pullEntity('fiscalizacoes', since),
     pullEntity('unidades', since),
     pullEntity('respostas', since),
-    pullEntity('constatacoes_manuais', since)
+    pullEntity('constatacoes_manuais', since),
+    pullEntity('prestadores', since)
   ])
   // itens_checklist e recomendacoes: tabelas adicionais
   log('Baixando municípios...')
@@ -1143,15 +1149,7 @@ export async function syncDown(onProgress?: (msg: string, isError?: boolean) => 
       }
     }
   }, 15000))
-  log('Baixando prestadores...')
-  await withBackoff(() => withTimeout(async () => {
-    const data = await safeSelectSince('prestadores_servico', 'id, nome', since)
-    if (Array.isArray(data)) {
-      for (const row of data) {
-        await db.prestadores.put(row as any)
-      }
-    }
-  }, 15000))
+  // prestadores são baixados em pullEntity('prestadores') para manter campos completos
   log('Baixando checklist...')
   await withBackoff(() => withTimeout(async () => {
     const data = await safeSelectSince(
