@@ -296,7 +296,7 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
                         }
                         solicitarGeracao();
                     }}
-                    disabled={!isOnlineAndReady || isRequesting || isSyncingBeforeReport || isRunning || (!isDone && !canRequest)}
+                    disabled={!isOnlineAndReady || isRequesting || isSyncingBeforeReport || isRunning}
                     className="flex-1 bg-blue-600 hover:bg-blue-700"
                     size="sm"
                 >
@@ -320,7 +320,7 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
                             e.stopPropagation();
                             solicitarGeracao();
                         }}
-                        disabled={!isOnlineAndReady || isRequesting || isSyncingBeforeReport || isRunning || !canRequest}
+                        disabled={!isOnlineAndReady || isRequesting || isSyncingBeforeReport || isRunning}
                         variant="outline"
                         className="text-orange-600 border-orange-200 hover:bg-orange-50"
                         size="sm"

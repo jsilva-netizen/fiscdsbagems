@@ -183,6 +183,7 @@ async function generatePdfForJob(adminClient: any, job: any) {
   // Garantia de consistência: recalcula NC/D/R e totais por unidade antes de gerar o PDF.
   // Isso evita relatório "antigo" quando houve edição/reabertura e apenas os dados base (respostas/constatações manuais)
   // foram sincronizados.
+  let recalculoErr: string | null = null
   for (let i = 0; i < unidades.length; i++) {
     const u: any = unidades[i]
     try {
@@ -191,13 +192,18 @@ async function generatePdfForJob(adminClient: any, job: any) {
         p_fotos: (u as any).fotos_unidade ?? null,
         p_finalizar: false
       })
-    } catch {}
+    } catch (err: any) {
+      if (!recalculoErr) recalculoErr = String(err?.message || err || 'Falha ao recalcular NC/D/R')
+    }
     try {
       await adminClient
         .from('relatorios_jobs')
         .update({ progress_unidades: i + 1 })
         .eq('id', job.id)
     } catch {}
+  }
+  if (recalculoErr) {
+    throw new Error(`Falha ao recalcular NC/D/R antes do relatório: ${recalculoErr}`)
   }
 
   const unidadeIds = (unidades || []).map((u: any) => u.id)
