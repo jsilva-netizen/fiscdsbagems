@@ -56,8 +56,16 @@ export default function EditarNCModal({
                 }
                 setTextoDeterminacao(textoLimpo);
             } else {
-                setGeraDeterminacao(true);
-                setTextoDeterminacao('Regularizar a situação conforme normas vigentes.');
+                // Se já existe recomendação mas não existe determinação, não marcar determinação automaticamente
+                // (mantém o que foi escolhido anteriormente para esta constatação).
+                if (recomendacaoExistente) {
+                    setGeraDeterminacao(false);
+                    setTextoDeterminacao('');
+                } else {
+                    // Para nova NC, manter comportamento padrão: gerar determinação por default
+                    setGeraDeterminacao(true);
+                    setTextoDeterminacao('Regularizar a situação conforme normas vigentes.');
+                }
             }
 
             // Se tem Recomendação existente, usar seus dados
