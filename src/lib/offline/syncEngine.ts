@@ -697,7 +697,24 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
       return []
     }
     // insert/update via upsert
-    const mapped = { ...payload }
+    const mergeDefined = (base: any, patch: any) => {
+      const out: any = { ...(base || {}) }
+      for (const [k, v] of Object.entries(patch || {})) {
+        if (v !== undefined) out[k] = v
+      }
+      return out
+    }
+
+    let mapped: any = { ...payload }
+    if (entity === 'constatacoes_manuais' && payload?.id) {
+      try {
+        const local = await db.constatacoes_manuais.get(payload.id as any)
+        if (local) mapped = mergeDefined(local as any, payload)
+      } catch {}
+      if (mapped?.descricao === null || mapped?.descricao === undefined || String(mapped?.descricao || '').trim() === '') {
+        throw new Error('Constatação manual inválida: descrição vazia.')
+      }
+    }
     if (entity === 'unidades') {
       mapped.fiscalizacao_id = await resolveId('fiscalizacoes', payload?.fiscalizacao_id)
       mapped.tipo_unidade_id = await resolveId('tipos_unidade', payload?.tipo_unidade_id)
@@ -739,6 +756,8 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
         if (m1?.[1]) return m1[1]
         const m2 = m.match(/column\s+"([^"]+)"\s+does\s+not\s+exist/i)
         if (m2?.[1]) return m2[1]
+        const m3 = m.match(/Could not find the '([^']+)' column of '[^']+' in the schema cache/i)
+        if (m3?.[1]) return m3[1]
         return null
       }
 
@@ -752,6 +771,9 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
           } catch (err: any) {
             const col = parseMissingColumn(err)
             if (!col) throw err
+            if (col === 'descricao_nc') {
+              throw new Error('O Supabase está com schema desatualizado para NC manual. Execute a migration 072 (descricao_nc/updated_at em constatacoes_manuais) e sincronize novamente.')
+            }
             delete attemptPayload[col]
           }
         }
@@ -824,6 +846,8 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
           if (m1?.[1]) return m1[1]
           const m2 = m.match(/column\s+"([^"]+)"\s+does\s+not\s+exist/i)
           if (m2?.[1]) return m2[1]
+          const m3 = m.match(/Could not find the '([^']+)' column of '[^']+' in the schema cache/i)
+          if (m3?.[1]) return m3[1]
           return null
         }
 

@@ -418,7 +418,7 @@ export default function VistoriarUnidade() {
                 numero_constatacao: numeroConstatacao,
                 descricao: descricaoFinal,
                 gera_nc: data.gera_nc,
-                ordem: Date.now()
+                ordem: Math.floor(Date.now() / 1000)
             });
             return { constatacao, foiEdicao: false };
         },
