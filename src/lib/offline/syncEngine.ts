@@ -474,12 +474,12 @@ async function compactOutbox(): Promise<number> {
   return deletables.length
 }
 
-async function retryOutboxErrors(): Promise<void> {
+async function retryOutboxErrors(force = false): Promise<void> {
   const errs = await db.fila_mutacoes.where('status').equals('error').toArray()
   const nowIso = now()
   for (const e of errs) {
     const nextRetryAt = (e as any).nextRetryAt as string | undefined
-    if (!nextRetryAt || nextRetryAt <= nowIso) {
+    if (force || !nextRetryAt || nextRetryAt <= nowIso) {
       await db.fila_mutacoes.update(e.id as any, { status: 'pending', nextRetryAt: undefined })
     }
   }
@@ -1401,7 +1401,7 @@ export async function runFullSync(onProgress?: (msg: string, isError?: boolean) 
   }
   
   log('Reprocessando erros anteriores...')
-  await retryOutboxErrors()
+  await retryOutboxErrors(true)
   try {
     const st = await db.estados_sync.get('global' as UUID)
     const lastPruneAt = (st as any)?.last_prune_at as string | undefined

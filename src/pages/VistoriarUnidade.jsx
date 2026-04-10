@@ -350,7 +350,7 @@ export default function VistoriarUnidade() {
     const adicionarRecomendacaoMutation = useMutation({
         mutationFn: async (texto) => {
             if (unidade?.status === 'finalizada' && !modoEdicao) {
-                throw new Error('Não é possível modificar uma fiscalização finalizada');
+                throw new Error('Não é possível modificar uma unidade finalizada');
             }
             const recCount = await Repository.countRecomendacoesByUnidade(unidadeId);
             const numeroRecomendacao = `R${(recCount || 0) + 1}`;
