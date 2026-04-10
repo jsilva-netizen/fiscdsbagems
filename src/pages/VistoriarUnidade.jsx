@@ -218,14 +218,8 @@ export default function VistoriarUnidade() {
                     });
                 });
 
-                // 2. Iterar sobre TODOS os itens do checklist na ordem correta
-                let contadorC = 1;
                 const operacoes = [];
 
-                // Se houver constatações manuais antes, precisamos ajustar o contador?
-                // Assumindo que manuais vêm DEPOIS ou têm numeração separada.
-                // Vamos assumir que Checklist começa do 1.
-                
                 for (const item of itensChecklist) {
                     const resposta = mapaRespostas.get(item.id);
                     
@@ -250,25 +244,20 @@ export default function VistoriarUnidade() {
                         if (!textoConstatacao.trim().endsWith(';')) {
                             textoConstatacao = textoConstatacao.trim() + ';';
                         }
-                        
-                        // ATRIBUI NOVO NÚMERO SEQUENCIAL
-                        const novoNumero = `C${contadorC++}`;
-                        
+
                         // Preparar dados para salvar
                         const dadosParaSalvar = {
                             resposta: resposta.resposta,
                             observacao: resposta.observacao || '',
                             pergunta: textoConstatacao,
-                            numero_constatacao: novoNumero,
                             gera_nc: resposta.resposta === 'NAO' && item.gera_nc
                         };
 
                         // Verificar se precisa atualizar (se mudou algo ou se veio do batch)
-                        const mudouNumero = resposta.numero_constatacao !== novoNumero;
                         const veioDoBatch = resposta.origem === 'batch';
                         
                         // Sempre atualiza se veio do batch OU se o número mudou (renumeração em cascata)
-                        if (veioDoBatch || mudouNumero) {
+                        if (veioDoBatch) {
                             if (resposta.id) {
                                 operacoes.push(Repository.saveResposta(unidadeId, item.id, dadosParaSalvar));
                             } else {
@@ -294,7 +283,9 @@ export default function VistoriarUnidade() {
                 console.log(`🔍 processarBatch: Gerando ${operacoes.length} operações de atualização.`);
 
                 await Promise.all(operacoes);
+                await Repository.recomputeConstatacoesNumeracao(unidadeId);
                 await queryClient.invalidateQueries({ queryKey: ['respostas', unidadeId] });
+                await queryClient.invalidateQueries({ queryKey: ['constatacoes-manuais', unidadeId] });
 
             } catch (err) {
                 console.error('Erro ao processar batch:', err);
@@ -305,7 +296,7 @@ export default function VistoriarUnidade() {
         // Debounce de 3s - só salva após usuário parar de responder
         const timer = setTimeout(processarBatch, 3000);
         return () => clearTimeout(timer);
-    }, [filaRespostas, unidadeId, itensChecklist]);
+    }, [filaRespostas, unidadeId, itensChecklist, constatacoesManuais]);
 
     const salvarRespostaMutation = useMutation({
         mutationFn: async ({ itemId, data }) => {
@@ -402,20 +393,13 @@ export default function VistoriarUnidade() {
                 return { constatacao: updated, foiEdicao: true };
             }
 
-            // Se for nova constatação, criar (NC/D geradas apenas ao finalizar)
-            const totalRespostas = await Repository.countRespostasComPergunta(unidadeId);
-            const totalManuais = await Repository.countConstatacoesManuais(unidadeId);
-
-            const totalConstatacoes = (totalRespostas || 0) + (totalManuais || 0);
-            const numeroConstatacao = `C${totalConstatacoes + 1}`;
-
             let descricaoFinal = data.descricao;
             if (descricaoFinal && !descricaoFinal.trim().endsWith(';')) {
                 descricaoFinal = descricaoFinal.trim() + ';';
             }
 
             const constatacao = await Repository.addConstatacaoManual(unidadeId, {
-                numero_constatacao: numeroConstatacao,
+                numero_constatacao: null,
                 descricao: descricaoFinal,
                 gera_nc: data.gera_nc,
                 ordem: Math.floor(Date.now() / 1000)
@@ -425,32 +409,36 @@ export default function VistoriarUnidade() {
         onSuccess: async ({ constatacao, foiEdicao }) => {
             queryClient.invalidateQueries({ queryKey: ['constatacoes-manuais', unidadeId] });
             setShowAddConstatacao(false);
+
+            await Repository.recomputeConstatacoesNumeracao(unidadeId);
+            const constatacaoAtualizada = await Repository.getConstatacaoManualById(constatacao.id);
+            const baseConst = constatacaoAtualizada || constatacao;
             
             // Se gera NC, abrir modal para definir NC/D/R
-            if (constatacao.gera_nc) {
+            if (baseConst.gera_nc) {
                 const totalDets = await Repository.countDeterminacoesByUnidade(unidadeId);
                 const totalRecs = await Repository.countRecomendacoesByUnidade(unidadeId);
                 
                 // Se for edição E já era uma NC antes, carregar dados existentes
-                const ncExistente = (foiEdicao && constatacao.artigo_portaria) ? {
-                    artigo_portaria: constatacao.artigo_portaria,
-                    descricao: constatacao.descricao_nc || `A Constatação ${constatacao.numero_constatacao} não cumpre o disposto no ${constatacao.artigo_portaria || 'artigo aplicável'};`
+                const ncExistente = (foiEdicao && baseConst.artigo_portaria) ? {
+                    artigo_portaria: baseConst.artigo_portaria,
+                    descricao: baseConst.descricao_nc || `A Constatação ${baseConst.numero_constatacao} não cumpre o disposto no ${baseConst.artigo_portaria || 'artigo aplicável'};`
                 } : null;
 
-                const detExistente = (foiEdicao && constatacao.texto_determinacao) ? {
-                    descricao: constatacao.texto_determinacao
+                const detExistente = (foiEdicao && baseConst.texto_determinacao) ? {
+                    descricao: baseConst.texto_determinacao
                 } : null;
 
-                const recExistente = (foiEdicao && constatacao.texto_recomendacao) ? {
-                    descricao: constatacao.texto_recomendacao
+                const recExistente = (foiEdicao && baseConst.texto_recomendacao) ? {
+                    descricao: baseConst.texto_recomendacao
                 } : null;
 
-                setConstatacaoParaNC(constatacao);
+                setConstatacaoParaNC(baseConst);
                 setNumerosParaNC({
                     numeroNC: `NC?`,
                     numeroDeterminacao: `D${(totalDets || 0) + 1}`,
                     numeroRecomendacao: `R${(totalRecs || 0) + 1}`,
-                    numeroConstatacao: constatacao.numero_constatacao,
+                    numeroConstatacao: baseConst.numero_constatacao,
                     ncExistente,
                     determinacaoExistente: detExistente,
                     recomendacaoExistente: recExistente
@@ -474,6 +462,7 @@ export default function VistoriarUnidade() {
 
             // Nota: O banco de dados já deve ter ON DELETE CASCADE configurado
             await Repository.removeConstatacaoManual(constatacaoId);
+            await Repository.recomputeConstatacoesNumeracao(unidadeId);
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['constatacoes-manuais', unidadeId] });
@@ -773,107 +762,115 @@ export default function VistoriarUnidade() {
                             </Button>
                         )}
 
-                        {/* Constatações Manuais (primeiro) */}
-                        {constatacoesManuais.map(constatacao => (
-                            <Card key={constatacao.id} className="border-blue-200 bg-blue-50">
-                                <CardContent className="p-4">
-                                    <div className="flex items-start gap-3">
-                                        <Badge className="bg-blue-600">{constatacao.numero_constatacao}</Badge>
-                                        <div className="flex-1">
-                                            <p className="text-sm">{constatacao.descricao}</p>
-                                            {constatacao.gera_nc && (
-                                                <Badge variant="outline" className="mt-2 text-xs">
-                                                    Gera NC
-                                                </Badge>
-                                            )}
-                                        </div>
-                                        {(unidade?.status !== 'finalizada' || modoEdicao) && (
-                                            <div className="flex gap-2">
-                                                <Button
-                                                    size="sm"
-                                                    variant="ghost"
-                                                    onClick={async () => {
-                                                        setConstatacaoParaEditar(constatacao);
-                                                        
-                                                        // Se gera NC, buscar dados relacionados para permitir edição completa
-                                                        if (constatacao.gera_nc) {
-                                                            const totalDets = await Repository.countDeterminacoesByUnidade(unidadeId);
-                                                            const totalRecs = await Repository.countRecomendacoesByUnidade(unidadeId);
-                                                            setConstatacaoParaNC(constatacao);
-                                                            setNumerosParaNC({
-                                                                numeroNC: `NC?`,
-                                                                numeroDeterminacao: `D${(totalDets || 0) + 1}`,
-                                                                numeroRecomendacao: `R${(totalRecs || 0) + 1}`,
-                                                                numeroConstatacao: constatacao.numero_constatacao,
-                                                                ncExistente: {
-                                                                    artigo_portaria: constatacao.artigo_portaria,
-                                                                    descricao: constatacao.descricao_nc || `A Constatação ${constatacao.numero_constatacao} não cumpre o disposto no ${constatacao.artigo_portaria || 'artigo aplicável'};`
-                                                                },
-                                                                determinacaoExistente: constatacao.texto_determinacao ? {
-                                                                    descricao: constatacao.texto_determinacao
-                                                                } : null,
-                                                                recomendacaoExistente: constatacao.texto_recomendacao ? {
-                                                                    descricao: constatacao.texto_recomendacao
-                                                                } : null
-                                                            });
-                                                            setShowEditarNC(true);
-                                                        } else {
-                                                            setShowAddConstatacao(true);
-                                                        }
-                                                    }}
-                                                >
-                                                    <Pencil className="h-4 w-4" />
-                                                </Button>
-                                                <Button
-                                                    size="sm"
-                                                    variant="ghost"
-                                                    onClick={() => {
-                                                        setConstatacaoParaExcluir(constatacao);
-                                                        setShowConfirmaExclusao(true);
-                                                    }}
-                                                    className="text-red-600 hover:text-red-700"
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                        )}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
-
-                        {/* Constatações do Checklist (depois) */}
-                        {respostasExistentes
-                            .filter(r => (r.resposta === 'SIM' || r.resposta === 'NAO') && r.pergunta && r.pergunta.trim())
-                            .sort((a, b) => {
-                                // Ordenar pela ordem do checklist
-                                const indexA = itensChecklist.findIndex(i => i.id === a.item_checklist_id);
-                                const indexB = itensChecklist.findIndex(i => i.id === b.item_checklist_id);
-                                return indexA - indexB;
-                            })
-                            .map(resp => (
-                                <Card key={resp.id}>
-                                    <CardContent className="p-4">
-                                        <div className="flex items-start gap-3">
-                                            <Badge variant="secondary">{resp.numero_constatacao}</Badge>
-                                            <div className="flex-1">
-                                                <p className="text-sm">{resp.pergunta}</p>
-                                                {resp.gera_nc && resp.resposta === 'NAO' && (
-                                                    <Badge variant="outline" className="mt-2 text-xs text-red-600 border-red-300">
-                                                        Gera NC
-                                                    </Badge>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            ))}
-
-                        {constatacoesManuais.length === 0 && respostasExistentes.filter(r => r.resposta === 'SIM' || r.resposta === 'NAO').length === 0 && (
-                            <p className="text-center text-gray-500 text-sm py-4">
-                                Nenhuma constatação registrada ainda.
-                            </p>
-                        )}
+                        {(() => {
+                            const parseC = (v) => {
+                                const n = parseInt(String(v || '').replace(/[^\d]/g, ''), 10);
+                                return Number.isFinite(n) ? n : 999999;
+                            };
+                            const constChecklist = respostasExistentes
+                                .filter(r => (r.resposta === 'SIM' || r.resposta === 'NAO') && r.pergunta && r.pergunta.trim())
+                                .map(r => ({ kind: 'checklist', id: r.id, resp: r, n: parseC(r.numero_constatacao) }));
+                            const constManuais = (constatacoesManuais || [])
+                                .map(m => ({ kind: 'manual', id: m.id, manual: m, n: parseC(m.numero_constatacao) }));
+                            const itens = [...constChecklist, ...constManuais].sort((a, b) => a.n - b.n || String(a.id).localeCompare(String(b.id)));
+                            return (
+                                <>
+                                    {itens.map(item => {
+                                        if (item.kind === 'manual') {
+                                            const constatacao = item.manual;
+                                            return (
+                                                <Card key={constatacao.id} className="border-blue-200 bg-blue-50">
+                                                    <CardContent className="p-4">
+                                                        <div className="flex items-start gap-3">
+                                                            <Badge className="bg-blue-600">{constatacao.numero_constatacao || '-'}</Badge>
+                                                            <div className="flex-1">
+                                                                <p className="text-sm">{constatacao.descricao}</p>
+                                                                {constatacao.gera_nc && (
+                                                                    <Badge variant="outline" className="mt-2 text-xs">
+                                                                        Gera NC
+                                                                    </Badge>
+                                                                )}
+                                                            </div>
+                                                            {(unidade?.status !== 'finalizada' || modoEdicao) && (
+                                                                <div className="flex gap-2">
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="ghost"
+                                                                        onClick={async () => {
+                                                                            setConstatacaoParaEditar(constatacao);
+                                                                            if (constatacao.gera_nc) {
+                                                                                const totalDets = await Repository.countDeterminacoesByUnidade(unidadeId);
+                                                                                const totalRecs = await Repository.countRecomendacoesByUnidade(unidadeId);
+                                                                                setConstatacaoParaNC(constatacao);
+                                                                                setNumerosParaNC({
+                                                                                    numeroNC: `NC?`,
+                                                                                    numeroDeterminacao: `D${(totalDets || 0) + 1}`,
+                                                                                    numeroRecomendacao: `R${(totalRecs || 0) + 1}`,
+                                                                                    numeroConstatacao: constatacao.numero_constatacao,
+                                                                                    ncExistente: {
+                                                                                        artigo_portaria: constatacao.artigo_portaria,
+                                                                                        descricao: constatacao.descricao_nc || `A Constatação ${constatacao.numero_constatacao} não cumpre o disposto no ${constatacao.artigo_portaria || 'artigo aplicável'};`
+                                                                                    },
+                                                                                    determinacaoExistente: constatacao.texto_determinacao ? {
+                                                                                        descricao: constatacao.texto_determinacao
+                                                                                    } : null,
+                                                                                    recomendacaoExistente: constatacao.texto_recomendacao ? {
+                                                                                        descricao: constatacao.texto_recomendacao
+                                                                                    } : null
+                                                                                });
+                                                                                window.setTimeout(() => setShowEditarNC(true), 0);
+                                                                            } else {
+                                                                                setShowAddConstatacao(true);
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        <Pencil className="h-4 w-4" />
+                                                                    </Button>
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="ghost"
+                                                                        onClick={() => {
+                                                                            setConstatacaoParaExcluir(constatacao);
+                                                                            setShowConfirmaExclusao(true);
+                                                                        }}
+                                                                        className="text-red-600 hover:text-red-700"
+                                                                    >
+                                                                        <Trash2 className="h-4 w-4" />
+                                                                    </Button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </CardContent>
+                                                </Card>
+                                            );
+                                        }
+                                        const resp = item.resp;
+                                        return (
+                                            <Card key={resp.id}>
+                                                <CardContent className="p-4">
+                                                    <div className="flex items-start gap-3">
+                                                        <Badge variant="secondary">{resp.numero_constatacao || '-'}</Badge>
+                                                        <div className="flex-1">
+                                                            <p className="text-sm">{resp.pergunta}</p>
+                                                            {resp.gera_nc && resp.resposta === 'NAO' && (
+                                                                <Badge variant="outline" className="mt-2 text-xs text-red-600 border-red-300">
+                                                                    Gera NC
+                                                                </Badge>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+                                        );
+                                    })}
+                                    {itens.length === 0 ? (
+                                        <p className="text-center text-gray-500 text-sm py-4">
+                                            Nenhuma constatação registrada ainda.
+                                        </p>
+                                    ) : null}
+                                </>
+                            );
+                        })()}
                     </TabsContent>
 
                     {/* Checklist Tab */}

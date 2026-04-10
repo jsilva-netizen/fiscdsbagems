@@ -114,6 +114,7 @@ export type RespostaChecklist = {
   numero_constatacao?: string | null
   gera_nc?: boolean
   created_at?: string
+  updated_at?: string
 }
 
 export type ConstatacaoManual = {

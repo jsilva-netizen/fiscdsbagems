@@ -851,16 +851,20 @@ export const Repository = {
       .and(r => r.item_checklist_id === itemId)
       .first()
     if (existing?.id) {
-      await db.respostas.update(existing.id, {
+      const updated = {
         ...existing,
-        ...data
+        ...data,
+        updated_at: now()
+      }
+      await db.respostas.update(existing.id, {
+        ...updated
       })
       await enqueueMutation(
         {
           id: existing.id,
           unidade_fiscalizada_id: unidadeId,
           item_checklist_id: itemId,
-          ...data
+          ...updated
         },
         'update',
         'respostas'
@@ -872,6 +876,7 @@ export const Repository = {
         unidade_fiscalizada_id: unidadeId,
         item_checklist_id: itemId,
         created_at: now(),
+        updated_at: now(),
         ...data
       })
       await enqueueMutation(
@@ -879,6 +884,7 @@ export const Repository = {
           id: newId,
           unidade_fiscalizada_id: unidadeId,
           item_checklist_id: itemId,
+          updated_at: now(),
           ...data
         },
         'insert',
@@ -911,45 +917,96 @@ export const Repository = {
 
   async listConstatacoesManuais(unidadeId: string): Promise<ConstatacaoManual[]> {
     const list = await db.constatacoes_manuais.where('unidade_fiscalizada_id').equals(unidadeId).toArray()
-    const sorted = list.sort((a, b) => (a.ordem || 0) - (b.ordem || 0))
+    return list.sort((a, b) => (a.ordem || 0) - (b.ordem || 0))
+  },
 
-    const parseC = (v: unknown) => {
-      const n = parseInt(String(v || '').replace(/[^\d]/g, ''), 10)
-      return Number.isFinite(n) ? n : null
+  async getConstatacaoManualById(id: string): Promise<ConstatacaoManual | null> {
+    const row = await db.constatacoes_manuais.get(id as any)
+    return (row as any) || null
+  },
+
+  async recomputeConstatacoesNumeracao(unidadeId: string): Promise<void> {
+    if (!unidadeId) return
+    const [respostasAll, manuais] = await Promise.all([
+      db.respostas.where('unidade_fiscalizada_id').equals(unidadeId).toArray(),
+      db.constatacoes_manuais.where('unidade_fiscalizada_id').equals(unidadeId).toArray()
+    ])
+
+    const isConstResposta = (r: any) => {
+      const resp = String(r?.resposta || '').toUpperCase()
+      const pergunta = String(r?.pergunta || '').trim()
+      return (resp === 'SIM' || resp === 'NAO' || resp === 'NÃO') && pergunta !== ''
     }
 
-    const respostas = await db.respostas.where('unidade_fiscalizada_id').equals(unidadeId).toArray()
-    const used = new Set<number>()
-    for (const r of respostas || []) {
-      const n = parseC((r as any).numero_constatacao)
-      if (typeof n === 'number') used.add(n)
+    const timeOf = (r: any) => {
+      const iso = String(r?.created_at || r?.updated_at || '')
+      const t = Date.parse(iso)
+      return Number.isFinite(t) ? t : 0
     }
-    for (const m of sorted || []) {
-      const n = parseC((m as any).numero_constatacao)
-      if (typeof n === 'number') used.add(n)
-    }
-    let next = used.size > 0 ? Math.max(...Array.from(used.values())) + 1 : 1
 
-    const missing = sorted.filter((m) => !String((m as any).numero_constatacao || '').trim())
-    if (missing.length > 0) {
-      for (const m of missing) {
-        while (used.has(next)) next++
-        const numero = `C${next}`
-        used.add(next)
-        next++
-        try {
-          await db.constatacoes_manuais.update((m as any).id as any, { numero_constatacao: numero, updated_at: now() } as any)
-          await enqueueMutation(
-            { id: (m as any).id, unidade_fiscalizada_id: unidadeId, numero_constatacao: numero, updated_at: now() },
-            'update',
-            'constatacoes_manuais'
-          )
-          ;(m as any).numero_constatacao = numero
-        } catch {}
+    const manualTimeOf = (m: any) => {
+      const t = timeOf(m)
+      if (t > 0) return t
+      const ord = Number(m?.ordem)
+      if (Number.isFinite(ord) && ord > 0) {
+        if (ord > 10_000_000_000) return ord
+        return ord * 1000
+      }
+      return 0
+    }
+
+    const respostas = respostasAll || []
+    for (const r of respostas) {
+      if (!isConstResposta(r) && r?.numero_constatacao) {
+        await db.respostas.update(r.id as any, { ...r, numero_constatacao: null, updated_at: now() } as any)
+        await enqueueMutation(
+          { id: r.id, unidade_fiscalizada_id: unidadeId, item_checklist_id: r.item_checklist_id, numero_constatacao: null, updated_at: now() },
+          'update',
+          'respostas'
+        )
       }
     }
 
-    return sorted
+    const itens: any[] = [
+      ...respostas.filter(isConstResposta).map((r) => ({ kind: 'checklist', r, id: r.id, t: timeOf(r) })),
+      ...manuais.map((m) => ({ kind: 'manual', m, id: m.id, t: manualTimeOf(m) }))
+    ].sort((a, b) => {
+      if (a.t !== b.t) return a.t - b.t
+      if (a.kind !== b.kind) return a.kind === 'checklist' ? -1 : 1
+      return String(a.id).localeCompare(String(b.id))
+    })
+
+    for (let i = 0; i < itens.length; i++) {
+      const desired = `C${i + 1}`
+      const item = itens[i]
+      if (item.kind === 'checklist') {
+        const r = item.r
+        if (r?.numero_constatacao !== desired) {
+          await db.respostas.update(r.id as any, { ...r, numero_constatacao: desired, updated_at: now() } as any)
+          await enqueueMutation(
+            {
+              id: r.id,
+              unidade_fiscalizada_id: unidadeId,
+              item_checklist_id: r.item_checklist_id,
+              numero_constatacao: desired,
+              updated_at: now()
+            },
+            'update',
+            'respostas'
+          )
+        }
+      } else {
+        const m = item.m
+        if (m?.numero_constatacao !== desired) {
+          await db.constatacoes_manuais.update(m.id as any, { ...m, numero_constatacao: desired, updated_at: now() } as any)
+          await enqueueMutation(
+            { id: m.id, unidade_fiscalizada_id: unidadeId, numero_constatacao: desired, updated_at: now() },
+            'update',
+            'constatacoes_manuais'
+          )
+        }
+      }
+    }
   },
 
   async updateUnidadeFotos(unidadeId: string, fotos: Partial<Foto>[]): Promise<void> {
