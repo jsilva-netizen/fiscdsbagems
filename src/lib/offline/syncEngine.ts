@@ -714,8 +714,8 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
       } catch {}
 
       const mergedPayload: any = {
-        ...(localResp || {}),
-        ...(payload || {})
+        ...(payload || {}),
+        ...(localResp || {})
       }
       if (mergedPayload?.pergunta === null || mergedPayload?.pergunta === undefined) mergedPayload.pergunta = ''
       if (mergedPayload?.observacao === null || mergedPayload?.observacao === undefined) mergedPayload.observacao = ''
@@ -795,7 +795,7 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
     if (entity === 'constatacoes_manuais' && payload?.id) {
       try {
         const local = await db.constatacoes_manuais.get(payload.id as any)
-        if (local) mapped = mergeDefined(local as any, payload)
+        if (local) mapped = mergeDefined(payload, local as any)
       } catch {}
       if (mapped?.descricao === null || mapped?.descricao === undefined || String(mapped?.descricao || '').trim() === '') {
         throw new Error('Constatação manual inválida: descrição vazia.')
