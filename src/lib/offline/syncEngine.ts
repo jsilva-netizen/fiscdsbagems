@@ -701,6 +701,7 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
       const isUuid = (v: unknown) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(v || ''))
       const unidadeLocalId = payload?.unidade_fiscalizada_id
       const unidadeId = await ensureUnidadeServerId(unidadeLocalId)
+      if (!unidadeId) throw new Error('Resposta inválida: unidade_fiscalizada_id ausente.')
       const itemLocalId = payload?.item_checklist_id
       const itemId = itemLocalId ? await resolveId('itens_checklist', itemLocalId) : undefined
       const normalizedItemId = isUuid(itemId) ? itemId : undefined
@@ -729,7 +730,27 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
       }
 
       const safe = serializePayload(entity, type, mapped)
-      const { data, error } = await supabase.from('respostas_checklist').upsert(safe as any, { onConflict: 'id' }).select()
+      const parseMissingColumn = (err: any): string | null => {
+        const m = String(err?.message || '')
+        const m1 = m.match(/column\s+"([^"]+)"\s+of\s+relation\s+"[^"]+"\s+does\s+not\s+exist/i)
+        if (m1?.[1]) return m1[1]
+        const m2 = m.match(/column\s+"([^"]+)"\s+does\s+not\s+exist/i)
+        if (m2?.[1]) return m2[1]
+        const m3 = m.match(/Could not find the '([^']+)' column of '[^']+' in the schema cache/i)
+        if (m3?.[1]) return m3[1]
+        return null
+      }
+
+      let attemptPayload: any = { ...(safe as any) }
+      for (let i = 0; i < 6; i++) {
+        const { data, error } = await supabase.from('respostas_checklist').upsert(attemptPayload, { onConflict: 'id' }).select()
+        if (!error) return data || []
+        const col = parseMissingColumn(error)
+        if (!col) throw error
+        delete attemptPayload[col]
+      }
+
+      const { data, error } = await supabase.from('respostas_checklist').upsert(attemptPayload, { onConflict: 'id' }).select()
       if (error) throw error
       return data || []
     }
