@@ -359,8 +359,10 @@ export async function getOutboxCount(): Promise<number> {
   return (pendingOrError || 0) + (unknownStatus || 0)
 }
 
-export async function getSyncPendingForFiscalizacao(fiscalizacaoId: UUID): Promise<{ outboxCount: number; fotosCount: number }> {
-  if (!fiscalizacaoId) return { outboxCount: 0, fotosCount: 0 }
+export async function getSyncPendingForFiscalizacao(
+  fiscalizacaoId: UUID
+): Promise<{ outboxCount: number; fotosCount: number; sampleErrors?: string[] }> {
+  if (!fiscalizacaoId) return { outboxCount: 0, fotosCount: 0, sampleErrors: [] }
   const unidades = await db.unidades.where('fiscalizacao_id').equals(fiscalizacaoId as any).toArray()
   const unidadeIds = new Set<string>(unidades.map((u: any) => String(u?.id || '')).filter(Boolean))
 
@@ -390,13 +392,18 @@ export async function getSyncPendingForFiscalizacao(fiscalizacaoId: UUID): Promi
     return false
   }
 
-  const outboxCount = all.reduce((acc, m) => acc + (matchesFiscalizacao(m) ? 1 : 0), 0)
+  const related = all.filter((m) => matchesFiscalizacao(m))
+  const outboxCount = related.length
+  const sampleErrors = related
+    .filter((m: any) => String(m?.status || '') === 'error' && m?.lastError)
+    .slice(0, 3)
+    .map((m: any) => `${String(m?.entity || '')}:${String(m?.tipo || '')}: ${String(m?.lastError || '').slice(0, 140)}`)
 
   const fotosCount = await db.fotos_local
     .filter((f: any) => !f?.syncedAt && unidadeIds.has(String(f?.unidadeLocalId || '')))
     .count()
 
-  return { outboxCount, fotosCount }
+  return { outboxCount, fotosCount, sampleErrors }
 }
 
 export async function getLastSync(): Promise<{ lastSyncAt?: string }> {
@@ -706,6 +713,41 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
     }
 
     let mapped: any = { ...payload }
+    if (entity === 'respostas') {
+      try {
+        let local: any = null
+        if (payload?.id) {
+          local = await db.respostas.get(payload.id as any)
+        }
+        if (!local && payload?.unidade_fiscalizada_id && payload?.item_checklist_id) {
+          local = await db.respostas
+            .where('unidade_fiscalizada_id')
+            .equals(payload.unidade_fiscalizada_id as any)
+            .and((r: any) => String(r?.item_checklist_id || '') === String(payload.item_checklist_id))
+            .first()
+        }
+        if (!local && payload?.unidade_fiscalizada_id && payload?.pergunta) {
+          const perg = String(payload.pergunta || '').trim()
+          if (perg) {
+            local = await db.respostas
+              .where('unidade_fiscalizada_id')
+              .equals(payload.unidade_fiscalizada_id as any)
+              .and((r: any) => String(r?.pergunta || '').trim() === perg)
+              .first()
+          }
+        }
+        if (local) mapped = mergeDefined(local as any, payload)
+        if (!mapped?.id && local?.id) mapped.id = local.id
+        if (!mapped?.unidade_fiscalizada_id) mapped.unidade_fiscalizada_id = local?.unidade_fiscalizada_id
+        if (!mapped?.item_checklist_id) mapped.item_checklist_id = local?.item_checklist_id
+      } catch {}
+      if (!mapped?.unidade_fiscalizada_id) {
+        throw new Error('Resposta inválida: unidade_fiscalizada_id ausente.')
+      }
+      if (!mapped?.id) {
+        throw new Error('Resposta inválida: id ausente.')
+      }
+    }
     if (entity === 'constatacoes_manuais' && payload?.id) {
       try {
         const local = await db.constatacoes_manuais.get(payload.id as any)
