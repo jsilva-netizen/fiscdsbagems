@@ -1,11 +1,25 @@
 -- Garante unicidade de unidade por (fiscalizacao_id, codigo_unidade).
 -- Motivo: evitar conflitos quando a mesma unidade (mesmo código) é excluída/recriada na mesma fiscalização.
 
--- 1) Normaliza codigo_unidade (trim + upper) para reduzir duplicidades por espaços/caixa.
+-- 1) Normaliza codigo_unidade (trim + upper + normalização de espaços e hífen) para reduzir duplicidades.
 UPDATE public.unidades_fiscalizadas
-SET codigo_unidade = upper(btrim(codigo_unidade))
+SET codigo_unidade = upper(
+  regexp_replace(
+    regexp_replace(btrim(codigo_unidade), '\s*-\s*', '-', 'g'),
+    '\s+',
+    ' ',
+    'g'
+  )
+)
 WHERE codigo_unidade IS NOT NULL
-  AND codigo_unidade <> upper(btrim(codigo_unidade));
+  AND codigo_unidade <> upper(
+    regexp_replace(
+      regexp_replace(btrim(codigo_unidade), '\s*-\s*', '-', 'g'),
+      '\s+',
+      ' ',
+      'g'
+    )
+  );
 
 -- 2) Remove duplicadas mantendo a mais recente (updated_at/created_at).
 WITH ranked AS (

@@ -699,6 +699,28 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
     }
     if (entity === 'respostas') {
       const isUuid = (v: unknown) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(v || ''))
+      let localResp: any = null
+      try {
+        if (payload?.id) {
+          localResp = await db.respostas.get(payload.id as any)
+        }
+        if (!localResp && payload?.unidade_fiscalizada_id && payload?.item_checklist_id) {
+          localResp = await db.respostas
+            .where('unidade_fiscalizada_id')
+            .equals(payload.unidade_fiscalizada_id as any)
+            .and((r: any) => String(r?.item_checklist_id || '') === String(payload.item_checklist_id))
+            .first()
+        }
+      } catch {}
+
+      const mergedPayload: any = {
+        ...(localResp || {}),
+        ...(payload || {})
+      }
+      if (mergedPayload?.pergunta === null || mergedPayload?.pergunta === undefined) mergedPayload.pergunta = ''
+      if (mergedPayload?.observacao === null || mergedPayload?.observacao === undefined) mergedPayload.observacao = ''
+      if (mergedPayload?.gera_nc === null || mergedPayload?.gera_nc === undefined) mergedPayload.gera_nc = false
+
       const unidadeLocalId = payload?.unidade_fiscalizada_id
       const unidadeId = await ensureUnidadeServerId(unidadeLocalId)
       if (!unidadeId) throw new Error('Resposta inválida: unidade_fiscalizada_id ausente.')
@@ -723,8 +745,8 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
       }
 
       const mapped = {
-        ...(payload || {}),
-        id: serverExistingId || payload?.id,
+        ...(mergedPayload || {}),
+        id: serverExistingId || mergedPayload?.id,
         unidade_fiscalizada_id: unidadeId,
         item_checklist_id: normalizedItemId
       }
