@@ -50,6 +50,9 @@ export default function VistoriarUnidade() {
     const [novoCodigoUnidade, setNovoCodigoUnidade] = useState('');
     const [showEditarEnderecoUnidade, setShowEditarEnderecoUnidade] = useState(false);
     const [novoEnderecoUnidade, setNovoEnderecoUnidade] = useState('');
+    const [showEditarConstatacaoChecklist, setShowEditarConstatacaoChecklist] = useState(false);
+    const [respostaChecklistParaEditar, setRespostaChecklistParaEditar] = useState(null);
+    const [textoConstatacaoChecklist, setTextoConstatacaoChecklist] = useState('');
 
     // Queries
     const { data: unidade, isLoading: loadingUnidade } = useQuery({
@@ -331,6 +334,37 @@ export default function VistoriarUnidade() {
             
             // Adicionar à fila - debounce de 3s vai processar tudo de uma vez
             setFilaRespostas(prev => [...prev, { itemId, data }]);
+        },
+        onError: (err) => {
+            alert(err.message);
+        }
+    });
+
+    const editarConstatacaoChecklistMutation = useMutation({
+        mutationFn: async ({ itemId, texto }) => {
+            if (fiscalizacao?.status === 'finalizada' && !modoEdicao) {
+                throw new Error('Não é possível modificar uma fiscalização finalizada');
+            }
+            const base = String(texto || '').trim();
+            if (!base) {
+                throw new Error('O texto da constatação não pode ficar vazio');
+            }
+            const pergunta = base.endsWith(';') ? base : `${base};`;
+            await Repository.saveResposta(unidadeId, itemId, { pergunta });
+            return { itemId, pergunta };
+        },
+        onSuccess: async ({ itemId, pergunta }) => {
+            setRespostas(prev => ({
+                ...prev,
+                [itemId]: {
+                    ...(prev[itemId] || {}),
+                    pergunta
+                }
+            }));
+            setShowEditarConstatacaoChecklist(false);
+            setRespostaChecklistParaEditar(null);
+            setTextoConstatacaoChecklist('');
+            await queryClient.invalidateQueries({ queryKey: ['respostas', unidadeId] });
         },
         onError: (err) => {
             alert(err.message);
@@ -858,6 +892,21 @@ export default function VistoriarUnidade() {
                                                                 </Badge>
                                                             )}
                                                         </div>
+                                                        {(unidade?.status !== 'finalizada' || modoEdicao) && (
+                                                            <div className="flex gap-2">
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="ghost"
+                                                                    onClick={() => {
+                                                                        setRespostaChecklistParaEditar(resp);
+                                                                        setTextoConstatacaoChecklist(resp.pergunta || '');
+                                                                        setShowEditarConstatacaoChecklist(true);
+                                                                    }}
+                                                                >
+                                                                    <Pencil className="h-4 w-4" />
+                                                                </Button>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </CardContent>
                                             </Card>
@@ -1144,6 +1193,61 @@ export default function VistoriarUnidade() {
                     recomendacaoExistente={numerosParaNC?.recomendacaoExistente}
                 />
             ) : null}
+
+            <Dialog
+                open={showEditarConstatacaoChecklist}
+                onOpenChange={(open) => {
+                    setShowEditarConstatacaoChecklist(open);
+                    if (!open) {
+                        setRespostaChecklistParaEditar(null);
+                        setTextoConstatacaoChecklist('');
+                    }
+                }}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Editar Constatação</DialogTitle>
+                        <DialogDescription>
+                            Edita apenas o texto da constatação gerada pelo checklist.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>Texto</Label>
+                            <Textarea
+                                value={textoConstatacaoChecklist}
+                                onChange={(e) => setTextoConstatacaoChecklist(e.target.value)}
+                                rows={5}
+                                disabled={editarConstatacaoChecklistMutation.isPending}
+                            />
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <Button
+                                variant="outline"
+                                onClick={() => setShowEditarConstatacaoChecklist(false)}
+                                disabled={editarConstatacaoChecklistMutation.isPending}
+                            >
+                                Cancelar
+                            </Button>
+                            <Button
+                                onClick={() =>
+                                    editarConstatacaoChecklistMutation.mutate({
+                                        itemId: respostaChecklistParaEditar?.item_checklist_id,
+                                        texto: textoConstatacaoChecklist
+                                    })
+                                }
+                                disabled={editarConstatacaoChecklistMutation.isPending || !respostaChecklistParaEditar?.item_checklist_id}
+                            >
+                                {editarConstatacaoChecklistMutation.isPending ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    'Salvar'
+                                )}
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
 
             {/* Dialog Confirmação Exclusão Constatação */}
             <Dialog open={showConfirmaExclusao} onOpenChange={setShowConfirmaExclusao}>
