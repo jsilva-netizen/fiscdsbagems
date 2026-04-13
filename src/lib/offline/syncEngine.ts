@@ -1004,7 +1004,7 @@ function selectColsForPull(entity: Entity): string {
     case 'constatacoes_manuais':
       return '*'
     case 'prestadores':
-      return 'id,nome,razao_social,endereco,cidade,telefone,email_contato,cnpj,responsavel,cargo,tipo,documentos,created_at,updated_at'
+      return '*'
     default:
       return '*'
   }
@@ -1013,6 +1013,45 @@ function selectColsForPull(entity: Entity): string {
 async function pullEntity(entity: Entity, since?: string) {
   const table = entityTableMap[entity]
   const prefer = selectColsForPull(entity)
+  if (!since) {
+    const rows = await withBackoff(() => withTimeout(() => safeSelect(table, prefer), 15000))
+    for (const row of rows) {
+      const server_id = row.id as UUID
+      const map = await db.id_map.where('server_id').equals(server_id).and((m) => m.entity === entity).first()
+      const local_id = map?.local_id || server_id
+      const normalized: any = { ...row, id: local_id }
+      if (entity === 'unidades' && normalized?.fiscalizacao_id) {
+        const fkMap = await db.id_map.where('server_id').equals(normalized.fiscalizacao_id as any).and((m) => m.entity === 'fiscalizacoes').first()
+        if (fkMap?.local_id) normalized.fiscalizacao_id = fkMap.local_id
+      }
+      if ((entity === 'respostas' || entity === 'constatacoes_manuais' || entity === 'recomendacoes') && normalized?.unidade_fiscalizada_id) {
+        const fkMap = await db.id_map.where('server_id').equals(normalized.unidade_fiscalizada_id as any).and((m) => m.entity === 'unidades').first()
+        if (fkMap?.local_id) normalized.unidade_fiscalizada_id = fkMap.local_id
+      }
+      switch (entity) {
+        case 'fiscalizacoes':
+          await db.fiscalizacoes.put(normalized)
+          break
+        case 'unidades':
+          await db.unidades.put(normalized)
+          break
+        case 'respostas':
+          await db.respostas.put(normalized)
+          break
+        case 'constatacoes_manuais':
+          await db.constatacoes_manuais.put(normalized)
+          break
+        case 'prestadores':
+          await db.prestadores.put(normalized)
+          break
+        case 'fotos':
+          break
+        default:
+          break
+      }
+    }
+    return
+  }
   const doRequest = async () => {
     const run = async (cols: string, mode: 'since' | 'created', v?: string, strategy: 'updated' | 'or' = 'updated') => {
       let q = supabase.from(table).select(cols)
