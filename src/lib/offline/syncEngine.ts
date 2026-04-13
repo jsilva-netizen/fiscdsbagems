@@ -1403,6 +1403,44 @@ async function authRefresh(): Promise<void> {
   }
 }
 
+async function repairOutboxRespostasMissingId(): Promise<void> {
+  const [pendingOrError, unknownStatus] = await Promise.all([
+    db.fila_mutacoes.where('status').anyOf('pending', 'error').toArray(),
+    db.fila_mutacoes.filter((m: any) => !m?.status).toArray()
+  ])
+  const all = [...(pendingOrError || []), ...(unknownStatus || [])]
+  const targets = all.filter((m: any) => String(m?.entity || '') === 'respostas' && !(m?.payload?.id))
+  for (const m of targets) {
+    try {
+      const p: any = m?.payload || {}
+      const unidadeId = p?.unidade_fiscalizada_id
+      const itemId = p?.item_checklist_id
+      let local: any = null
+      if (unidadeId && itemId) {
+        local = await db.respostas
+          .where('unidade_fiscalizada_id')
+          .equals(unidadeId as any)
+          .and((r: any) => String(r?.item_checklist_id || '') === String(itemId))
+          .first()
+      }
+      if (!local && unidadeId && p?.pergunta) {
+        const perg = String(p.pergunta || '').trim()
+        if (perg) {
+          local = await db.respostas
+            .where('unidade_fiscalizada_id')
+            .equals(unidadeId as any)
+            .and((r: any) => String(r?.pergunta || '').trim() === perg)
+            .first()
+        }
+      }
+      if (local?.id) {
+        const nextPayload = { ...p, id: local.id, item_checklist_id: p?.item_checklist_id ?? local.item_checklist_id }
+        await db.fila_mutacoes.update(m.id as any, { payload: nextPayload })
+      }
+    } catch {}
+  }
+}
+
 export async function runFullSync(onProgress?: (msg: string, isError?: boolean) => void): Promise<{ outbox: number; lastSyncAt?: string }> {
   const log = (msg: string, isError = false) => { if (onProgress) onProgress(msg, isError) }
   
@@ -1451,6 +1489,10 @@ export async function runFullSync(onProgress?: (msg: string, isError?: boolean) 
   try {
     log('Otimizando fila de sincronização...')
     await compactOutbox()
+  } catch {}
+
+  try {
+    await repairOutboxRespostasMissingId()
   } catch {}
   
   log('Enviando dados (Sync Up)...')
