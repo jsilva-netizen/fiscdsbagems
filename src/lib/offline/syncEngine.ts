@@ -697,6 +697,42 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
       if (error) throw error
       return []
     }
+    if (entity === 'respostas') {
+      const isUuid = (v: unknown) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(v || ''))
+      const unidadeLocalId = payload?.unidade_fiscalizada_id
+      const unidadeId = await ensureUnidadeServerId(unidadeLocalId)
+      const itemLocalId = payload?.item_checklist_id
+      const itemId = itemLocalId ? await resolveId('itens_checklist', itemLocalId) : undefined
+      const normalizedItemId = isUuid(itemId) ? itemId : undefined
+
+      let serverExistingId: string | undefined
+      if (unidadeId && normalizedItemId) {
+        try {
+          const { data: existing } = await supabase
+            .from('respostas_checklist')
+            .select('id,updated_at,created_at')
+            .eq('unidade_fiscalizada_id', unidadeId as any)
+            .eq('item_checklist_id', normalizedItemId as any)
+            .order('updated_at', { ascending: false })
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+          if (existing?.id) serverExistingId = existing.id
+        } catch {}
+      }
+
+      const mapped = {
+        ...(payload || {}),
+        id: serverExistingId || payload?.id,
+        unidade_fiscalizada_id: unidadeId,
+        item_checklist_id: normalizedItemId
+      }
+
+      const safe = serializePayload(entity, type, mapped)
+      const { data, error } = await supabase.from('respostas_checklist').upsert(safe as any, { onConflict: 'id' }).select()
+      if (error) throw error
+      return data || []
+    }
     if (type === 'delete') {
       const deleteId = await resolveId(entity, payload?.id)
       const { error } = await supabase.from(table).delete().eq('id', deleteId)
@@ -713,41 +749,6 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
     }
 
     let mapped: any = { ...payload }
-    if (entity === 'respostas') {
-      try {
-        let local: any = null
-        if (payload?.id) {
-          local = await db.respostas.get(payload.id as any)
-        }
-        if (!local && payload?.unidade_fiscalizada_id && payload?.item_checklist_id) {
-          local = await db.respostas
-            .where('unidade_fiscalizada_id')
-            .equals(payload.unidade_fiscalizada_id as any)
-            .and((r: any) => String(r?.item_checklist_id || '') === String(payload.item_checklist_id))
-            .first()
-        }
-        if (!local && payload?.unidade_fiscalizada_id && payload?.pergunta) {
-          const perg = String(payload.pergunta || '').trim()
-          if (perg) {
-            local = await db.respostas
-              .where('unidade_fiscalizada_id')
-              .equals(payload.unidade_fiscalizada_id as any)
-              .and((r: any) => String(r?.pergunta || '').trim() === perg)
-              .first()
-          }
-        }
-        if (local) mapped = mergeDefined(local as any, payload)
-        if (!mapped?.id && local?.id) mapped.id = local.id
-        if (!mapped?.unidade_fiscalizada_id) mapped.unidade_fiscalizada_id = local?.unidade_fiscalizada_id
-        if (!mapped?.item_checklist_id) mapped.item_checklist_id = local?.item_checklist_id
-      } catch {}
-      if (!mapped?.unidade_fiscalizada_id) {
-        throw new Error('Resposta inválida: unidade_fiscalizada_id ausente.')
-      }
-      if (!mapped?.id) {
-        throw new Error('Resposta inválida: id ausente.')
-      }
-    }
     if (entity === 'constatacoes_manuais' && payload?.id) {
       try {
         const local = await db.constatacoes_manuais.get(payload.id as any)
@@ -760,8 +761,29 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
     if (entity === 'unidades') {
       mapped.fiscalizacao_id = await resolveId('fiscalizacoes', payload?.fiscalizacao_id)
       mapped.tipo_unidade_id = await resolveId('tipos_unidade', payload?.tipo_unidade_id)
+      const codigo = String(mapped?.codigo_unidade || '').trim()
+      if (type === 'insert' && codigo && mapped?.fiscalizacao_id) {
+        try {
+          const { data: existing } = await supabase
+            .from('unidades_fiscalizadas')
+            .select('id,updated_at,created_at')
+            .eq('fiscalizacao_id', mapped.fiscalizacao_id as any)
+            .eq('codigo_unidade', codigo)
+            .order('updated_at', { ascending: false })
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+          if (existing?.id) {
+            const localId = payload?.id as any
+            mapped.id = existing.id
+            if (localId && String(localId) !== String(existing.id)) {
+              await db.id_map.put({ entity: 'unidades', local_id: localId, server_id: existing.id } as any)
+            }
+          }
+        } catch {}
+      }
     }
-    if (entity === 'respostas' || entity === 'constatacoes_manuais' || entity === 'recomendacoes') {
+    if (entity === 'constatacoes_manuais' || entity === 'recomendacoes') {
       mapped.unidade_fiscalizada_id = await ensureUnidadeServerId(payload?.unidade_fiscalizada_id)
     }
     if (entity === 'recomendacoes') {
@@ -771,10 +793,6 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
       } else {
         mapped.numero_recomendacao = typeof raw === 'string' ? raw : String(raw)
       }
-    }
-    if (entity === 'respostas') {
-      mapped.item_checklist_id = await resolveId('itens_checklist', payload?.item_checklist_id)
-      if (!mapped.updated_at) mapped.updated_at = now()
     }
     if (entity === 'itens_checklist') {
       mapped.tipo_unidade_id = await resolveId('tipos_unidade', payload?.tipo_unidade_id)
@@ -881,71 +899,9 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
       if (error) throw error
       return data || []
     } else {
-      if (entity === 'respostas') {
-        const parseMissingColumn = (err: any): string | null => {
-          const m = String(err?.message || '')
-          const m1 = m.match(/column\s+"([^"]+)"\s+of\s+relation\s+"[^"]+"\s+does\s+not\s+exist/i)
-          if (m1?.[1]) return m1[1]
-          const m2 = m.match(/column\s+"([^"]+)"\s+does\s+not\s+exist/i)
-          if (m2?.[1]) return m2[1]
-          const m3 = m.match(/Could not find the '([^']+)' column of '[^']+' in the schema cache/i)
-          if (m3?.[1]) return m3[1]
-          return null
-        }
-
-        const tryUpsert = async (o: any, withConflict: boolean) => {
-          if (withConflict) {
-            const hasItem = o?.item_checklist_id !== undefined && o?.item_checklist_id !== null && String(o.item_checklist_id).trim() !== ''
-            const onConflict = hasItem ? 'unidade_fiscalizada_id,item_checklist_id' : 'id'
-            return await supabase.from(table).upsert(o, { onConflict }).select()
-          }
-          return await supabase.from(table).upsert(o).select()
-        }
-
-        const tryUpsertWithStripping = async () => {
-          let attemptPayload: any = { ...(safe as any) }
-          for (let i = 0; i < 6; i++) {
-            try {
-              const { data, error } = await tryUpsert(attemptPayload, true)
-              if (error) throw error
-              return data || []
-            } catch (err: any) {
-              const msg = String(err?.message || '').toLowerCase()
-              const noConstraint =
-                msg.includes('no unique') || msg.includes('there is no unique') || msg.includes('on conflict') || err?.status === 400
-              const col = parseMissingColumn(err)
-              if (col) {
-                delete attemptPayload[col]
-                continue
-              }
-              if (noConstraint) break
-              throw err
-            }
-          }
-
-          // fallback sem onConflict (ou sem constraint)
-          for (let i = 0; i < 6; i++) {
-            try {
-              const { data, error } = await tryUpsert(attemptPayload, false)
-              if (error) throw error
-              return data || []
-            } catch (err: any) {
-              const col = parseMissingColumn(err)
-              if (!col) throw err
-              delete attemptPayload[col]
-            }
-          }
-
-          const { data, error } = await tryUpsert(attemptPayload, false)
-          if (error) throw error
-          return data || []
-        }
-        return await tryUpsertWithStripping()
-      } else {
-        const { data, error } = await supabase.from(table).upsert(safe, upsertOptions).select()
-        if (error) throw error
-        return data || []
-      }
+      const { data, error } = await supabase.from(table).upsert(safe, upsertOptions).select()
+      if (error) throw error
+      return data || []
     }
   }
   const timeoutMs = entity === 'finalizacao_fiscalizacao' ? 60000 : 15000
@@ -1483,6 +1439,43 @@ async function repairOutboxRespostasMissingId(): Promise<void> {
   }
 }
 
+async function pruneOutboxOrphans(): Promise<void> {
+  const [pendingOrError, unknownStatus] = await Promise.all([
+    db.fila_mutacoes.where('status').anyOf('pending', 'error').toArray(),
+    db.fila_mutacoes.filter((m: any) => !m?.status).toArray()
+  ])
+  const all = [...(pendingOrError || []), ...(unknownStatus || [])]
+  const deletables: UUID[] = []
+
+  const existsIn = async (entity: string, id: any): Promise<boolean> => {
+    try {
+      if (!id) return false
+      if (entity === 'unidades') return !!(await db.unidades.get(id as any))
+      if (entity === 'respostas') return !!(await db.respostas.get(id as any))
+      if (entity === 'constatacoes_manuais') return !!(await db.constatacoes_manuais.get(id as any))
+      if (entity === 'recomendacoes') return !!(await db.recomendacoes.get(id as any))
+      return true
+    } catch {
+      return true
+    }
+  }
+
+  for (const m of all as any[]) {
+    const entity = String(m?.entity || '')
+    const tipo = String(m?.tipo || '')
+    if (tipo === 'delete' || tipo === 'finalize' || tipo === 'reopen') continue
+    const pid = m?.payload?.id
+    if (!pid) continue
+    if (entity === 'unidades' || entity === 'respostas' || entity === 'constatacoes_manuais' || entity === 'recomendacoes') {
+      const ok = await existsIn(entity, pid)
+      if (!ok) deletables.push(m.id as UUID)
+    }
+  }
+  if (deletables.length > 0) {
+    await db.fila_mutacoes.bulkDelete(deletables as any)
+  }
+}
+
 export async function runFullSync(onProgress?: (msg: string, isError?: boolean) => void): Promise<{ outbox: number; lastSyncAt?: string }> {
   const log = (msg: string, isError = false) => { if (onProgress) onProgress(msg, isError) }
   
@@ -1535,6 +1528,9 @@ export async function runFullSync(onProgress?: (msg: string, isError?: boolean) 
 
   try {
     await repairOutboxRespostasMissingId()
+  } catch {}
+  try {
+    await pruneOutboxOrphans()
   } catch {}
   
   log('Enviando dados (Sync Up)...')
