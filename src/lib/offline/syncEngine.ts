@@ -802,6 +802,12 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
         throw new Error('Constatação manual inválida: descrição vazia.')
       }
     }
+    if (entity === 'recomendacoes' && payload?.id) {
+      try {
+        const local = await db.recomendacoes.get(payload.id as any)
+        if (local) mapped = mergeDefined(payload, local as any)
+      } catch {}
+    }
     if (entity === 'unidades') {
       mapped.fiscalizacao_id = await resolveId('fiscalizacoes', payload?.fiscalizacao_id)
       mapped.tipo_unidade_id = await resolveId('tipos_unidade', payload?.tipo_unidade_id)

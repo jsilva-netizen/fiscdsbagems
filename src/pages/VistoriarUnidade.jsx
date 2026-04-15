@@ -343,6 +343,31 @@ export default function VistoriarUnidade() {
         }
     });
 
+    const excluirConstatacaoChecklistMutation = useMutation({
+        mutationFn: async (resp) => {
+            if (unidade?.status === 'finalizada' && !modoEdicao) {
+                throw new Error('Não é possível modificar uma unidade finalizada');
+            }
+            if (!resp?.item_checklist_id) return;
+            await Repository.saveResposta(unidadeId, resp.item_checklist_id, {
+                pergunta: '',
+                numero_constatacao: null,
+                gera_nc: false
+            });
+            await Repository.recomputeConstatacoesNumeracao(unidadeId);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['constatacoes-manuais', unidadeId] });
+            queryClient.invalidateQueries({ queryKey: ['respostas', unidadeId] });
+            queryClient.invalidateQueries({ queryKey: ['ncs', unidadeId] });
+            queryClient.invalidateQueries({ queryKey: ['determinacoes', unidadeId] });
+            queryClient.invalidateQueries({ queryKey: ['recomendacoes', unidadeId] });
+        },
+        onError: (err) => {
+            alert(err.message);
+        }
+    });
+
     const editarConstatacaoChecklistMutation = useMutation({
         mutationFn: async ({ itemId, texto }) => {
             if (fiscalizacao?.status === 'finalizada' && !modoEdicao) {
@@ -932,6 +957,18 @@ export default function VistoriarUnidade() {
                                                                 >
                                                                     <Pencil className="h-4 w-4" />
                                                                 </Button>
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="ghost"
+                                                                    onClick={() => {
+                                                                        const ok = window.confirm(`Excluir a constatação ${resp.numero_constatacao || ''}?`);
+                                                                        if (ok) excluirConstatacaoChecklistMutation.mutate(resp);
+                                                                    }}
+                                                                    className="text-red-600 hover:text-red-700"
+                                                                    title="Excluir constatação"
+                                                                >
+                                                                    <Trash2 className="h-4 w-4" />
+                                                                </Button>
                                                             </div>
                                                         )}
                                                     </div>
@@ -1021,20 +1058,18 @@ export default function VistoriarUnidade() {
                                                 >
                                                     <Pencil className="h-4 w-4" />
                                                 </Button>
-                                                {rec?.origem === 'manual' && (
-                                                    <Button
-                                                        size="sm"
-                                                        variant="ghost"
-                                                        onClick={() => {
-                                                            setRecomendacaoParaExcluir(rec);
-                                                            setShowConfirmaExclusaoRecomendacao(true);
-                                                        }}
-                                                        className="text-red-600 hover:text-red-700"
-                                                        title="Excluir recomendação"
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                )}
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    onClick={() => {
+                                                        setRecomendacaoParaExcluir(rec);
+                                                        setShowConfirmaExclusaoRecomendacao(true);
+                                                    }}
+                                                    className="text-red-600 hover:text-red-700"
+                                                    title="Excluir recomendação"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
                                             </div>
                                         )}
                                     </div>

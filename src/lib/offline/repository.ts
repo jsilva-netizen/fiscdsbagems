@@ -480,7 +480,18 @@ export const Repository = {
     if (!cur) return
     const next = { ...cur, ...changes, updated_at: now() }
     await db.recomendacoes.update(id as any, next as any)
-    await enqueueMutation({ id, ...changes, updated_at: next.updated_at }, 'update', 'recomendacoes')
+    if (next?.unidade_fiscalizada_id && next?.numero_recomendacao) {
+      const sameNumber = await db.recomendacoes
+        .where('unidade_fiscalizada_id')
+        .equals(next.unidade_fiscalizada_id as any)
+        .and((r: any) => String(r?.numero_recomendacao || '') === String(next.numero_recomendacao || '') && String(r?.id || '') !== String(id))
+        .toArray()
+      for (const dup of sameNumber || []) {
+        await db.recomendacoes.delete(dup.id as any)
+        await enqueueMutation({ id: dup.id }, 'delete', 'recomendacoes')
+      }
+    }
+    await enqueueMutation(next, 'update', 'recomendacoes')
   },
   
   async countDeterminacoesByUnidade(unidadeId: string): Promise<number> {
