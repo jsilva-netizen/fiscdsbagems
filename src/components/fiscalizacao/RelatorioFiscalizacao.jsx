@@ -27,16 +27,16 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
         const baseUrl = import.meta.env.VITE_SUPABASE_URL;
         const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
         const jwt = await ensureAuth();
+        if (!jwt) throw new Error('Sessão inválida. Faça login novamente.');
         
         const url = `${String(baseUrl).replace(/\/$/, '')}/functions/v1/${functionName}`;
         const res = await fetch(url, {
             method: 'POST',
             headers: { 
                 'apikey': anonKey,
-                'Authorization': `Bearer ${jwt}`,
                 'Content-Type': 'application/json' 
             },
-            body: JSON.stringify({ ...(body || {}) })
+            body: JSON.stringify({ ...(body || {}), jwt })
         });
         
         const json = await res.json();
