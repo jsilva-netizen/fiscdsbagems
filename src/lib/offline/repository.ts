@@ -466,7 +466,7 @@ export const Repository = {
     const item = {
       id,
       unidade_fiscalizada_id: unidadeId,
-      numero_recomendacao: numero ? canonicalNumeroRecomendacao(numero) || String(numero) : undefined,
+      numero_recomendacao: null,
       descricao,
       origem,
       created_at: now(),
@@ -474,13 +474,14 @@ export const Repository = {
     }
     await db.recomendacoes.add(item as any)
     await enqueueMutation(item, 'insert', 'recomendacoes')
+    await Repository.recomputeRecomendacoesNumeracao(unidadeId)
   },
 
   async removeRecomendacao(id: string): Promise<void> {
     const cur = await db.recomendacoes.get(id as any)
     const unidadeId = cur?.unidade_fiscalizada_id
     await db.recomendacoes.delete(id as any)
-    await enqueueMutation({ id }, 'delete', 'recomendacoes')
+    await enqueueMutation({ id, unidade_fiscalizada_id: unidadeId }, 'delete', 'recomendacoes')
     if (unidadeId) {
       await Repository.recomputeRecomendacoesNumeracao(unidadeId)
     }
@@ -489,24 +490,30 @@ export const Repository = {
   async updateRecomendacao(id: string, changes: Partial<import('./db').Recomendacao>): Promise<void> {
     const cur = await db.recomendacoes.get(id as any)
     if (!cur) return
-    const next = { ...cur, ...changes, updated_at: now() }
-    if (next?.numero_recomendacao) {
-      const canon = canonicalNumeroRecomendacao(next.numero_recomendacao)
-      if (canon) next.numero_recomendacao = canon
+    const unidadeId = cur?.unidade_fiscalizada_id
+    if (!unidadeId) return
+
+    const desc = changes?.descricao !== undefined ? String(changes.descricao || '').trim() : String(cur?.descricao || '').trim()
+    const origem = changes?.origem !== undefined ? String(changes.origem || '').trim() : String(cur?.origem || '').trim()
+
+    const novoId = uid()
+    const item = {
+      id: novoId,
+      unidade_fiscalizada_id: unidadeId,
+      numero_recomendacao: null,
+      descricao: desc,
+      origem: origem || 'manual',
+      created_at: now(),
+      updated_at: now()
     }
-    await db.recomendacoes.update(id as any, next as any)
-    if (next?.unidade_fiscalizada_id && next?.numero_recomendacao) {
-      const sameNumber = await db.recomendacoes
-        .where('unidade_fiscalizada_id')
-        .equals(next.unidade_fiscalizada_id as any)
-        .and((r: any) => canonicalNumeroRecomendacao(r?.numero_recomendacao) === canonicalNumeroRecomendacao(next.numero_recomendacao) && String(r?.id || '') !== String(id))
-        .toArray()
-      for (const dup of sameNumber || []) {
-        await db.recomendacoes.delete(dup.id as any)
-        await enqueueMutation({ id: dup.id }, 'delete', 'recomendacoes')
-      }
-    }
-    await enqueueMutation(next, 'update', 'recomendacoes')
+
+    await db.recomendacoes.add(item as any)
+    await enqueueMutation(item, 'insert', 'recomendacoes')
+
+    await db.recomendacoes.delete(id as any)
+    await enqueueMutation({ id, unidade_fiscalizada_id: unidadeId }, 'delete', 'recomendacoes')
+
+    await Repository.recomputeRecomendacoesNumeracao(unidadeId)
   },
 
   async recomputeRecomendacoesNumeracao(unidadeId: string): Promise<void> {

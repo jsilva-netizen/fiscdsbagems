@@ -949,15 +949,8 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
       }
 
       let attemptPayload: any = { ...(safe as any) }
-      const hasNumero = !!(attemptPayload?.numero_recomendacao && String(attemptPayload.numero_recomendacao).trim() !== '')
-      if (hasNumero) {
-        delete attemptPayload.id
-      }
       for (let i = 0; i < 6; i++) {
-        const { data, error } = await supabase
-          .from(table)
-          .upsert(attemptPayload, { onConflict: hasNumero ? 'unidade_fiscalizada_id,numero_recomendacao' : 'id' })
-          .select()
+        const { data, error } = await supabase.from(table).upsert(attemptPayload, { onConflict: 'id' }).select()
         if (!error) return data || []
         const msg = String((error as any)?.message || '')
         const code = String((error as any)?.code || '')
@@ -988,10 +981,7 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
         if (!col) throw error
         delete attemptPayload[col]
       }
-      const { data, error } = await supabase
-        .from(table)
-        .upsert(attemptPayload, { onConflict: hasNumero ? 'unidade_fiscalizada_id,numero_recomendacao' : 'id' })
-        .select()
+      const { data, error } = await supabase.from(table).upsert(attemptPayload, { onConflict: 'id' }).select()
       if (error) throw error
       return data || []
     } else if (entity === 'tipos_unidade' || entity === 'itens_checklist') {
@@ -1104,10 +1094,120 @@ export async function syncUp(onProgress?: (msg: string, isError?: boolean) => vo
       }
     }
   }
+  const syncRecomendacoesSnapshot = async (items: typeof sorted) => {
+    const byUnidade = new Map<string, any[]>()
+    const orphans: any[] = []
+    for (const m of items) {
+      const p = m?.payload || {}
+      const uid = String(p?.unidade_fiscalizada_id || '').trim()
+      if (uid) {
+        const arr = byUnidade.get(uid) || []
+        arr.push(m)
+        byUnidade.set(uid, arr)
+        continue
+      }
+      const rid = String(p?.id || '').trim()
+      if (rid) {
+        const local = await db.recomendacoes.get(rid as any)
+        const luid = String((local as any)?.unidade_fiscalizada_id || '').trim()
+        if (luid) {
+          const arr = byUnidade.get(luid) || []
+          arr.push(m)
+          byUnidade.set(luid, arr)
+          continue
+        }
+      }
+      orphans.push(m)
+    }
+
+    const parseR = (v: any) => {
+      const n = parseInt(String(v || '').replace(/[^\d]/g, ''), 10)
+      return Number.isFinite(n) ? n : 999999
+    }
+
+    const ensureUnidadeServerIdForSnapshot = async (unidadeLocalId: string): Promise<string> => {
+      const local = String(unidadeLocalId || '').trim()
+      if (!local) throw new Error('unidade_fiscalizada_id ausente')
+      const map = await db.id_map.where('local_id').equals(local as any).and((m) => m.entity === 'unidades').first()
+      const candidate = String((map as any)?.server_id || local)
+      if (candidate && candidate !== local) return candidate
+      try {
+        const { data: exists } = await supabase.from('unidades_fiscalizadas').select('id').eq('id', candidate as any).maybeSingle()
+        if ((exists as any)?.id) return candidate
+      } catch {}
+      const unidadeLocal = await db.unidades.get(local as any)
+      if (!unidadeLocal) return candidate
+      await pushOne('unidades', 'insert', { ...unidadeLocal })
+      const map2 = await db.id_map.where('local_id').equals(local as any).and((m) => m.entity === 'unidades').first()
+      return String((map2 as any)?.server_id || candidate)
+    }
+
+    const setErr = async (m: any, err: any) => {
+      const attempts = (m as any).attempts ? Number((m as any).attempts) + 1 : 1
+      const retryable = isRetryableError(err)
+      const nextRetryAt = computeNextRetryAt(attempts, retryable)
+      const msg = errorInfo(err).message
+      await db.fila_mutacoes.update(m.id, { status: 'error', attempts, lastError: msg, nextRetryAt })
+    }
+
+    for (const [unidadeLocalId, muts] of byUnidade.entries()) {
+      log(`Sincronizando recomendações da unidade...`)
+      try {
+        const unidadeServerId = await ensureUnidadeServerIdForSnapshot(unidadeLocalId)
+        const localList = await db.recomendacoes.where('unidade_fiscalizada_id').equals(unidadeLocalId as any).toArray()
+        const ordered = (localList || [])
+          .filter((r: any) => String(r?.descricao || '').trim() !== '')
+          .slice()
+          .sort((a: any, b: any) => parseR(a?.numero_recomendacao) - parseR(b?.numero_recomendacao) || String(a?.id || '').localeCompare(String(b?.id || '')))
+
+        const payload = ordered.map((r: any, idx: number) => ({
+          id: String(r.id),
+          unidade_fiscalizada_id: unidadeServerId,
+          numero_recomendacao: `R${idx + 1}`,
+          descricao: String(r.descricao || ''),
+          origem: String(r.origem || 'manual'),
+          updated_at: String(r.updated_at || r.created_at || now())
+        }))
+
+        const { error: delErr } = await supabase.from('recomendacoes').delete().eq('unidade_fiscalizada_id', unidadeServerId as any)
+        if (delErr) throw delErr
+        if (payload.length > 0) {
+          const { error: insErr } = await supabase.from('recomendacoes').insert(payload as any).select()
+          if (insErr) throw insErr
+        }
+
+        for (const r of ordered) {
+          const id = String((r as any)?.id || '')
+          if (id) await db.id_map.put({ entity: 'recomendacoes', local_id: id as any, server_id: id as any } as any)
+        }
+
+        for (const m of muts) {
+          await db.fila_mutacoes.update(m.id, { status: 'done', lastError: '', nextRetryAt: undefined })
+          processed++
+        }
+      } catch (err: any) {
+        for (const m of muts) await setErr(m, err)
+      }
+    }
+
+    for (const m of orphans) {
+      try {
+        await pushOne(m.entity as Entity, m.tipo as MutationType, m.payload)
+        await db.fila_mutacoes.update(m.id, { status: 'done', lastError: '', nextRetryAt: undefined })
+        processed++
+      } catch (err: any) {
+        await setErr(m, err)
+      }
+    }
+  }
   for (const entity of orderForSyncUp) {
     const items = groupByEntity[entity] || []
     if (items.length > 0) {
-      await runBatch(items, entity, entity)
+      if (entity === 'recomendacoes') {
+        await syncRecomendacoesSnapshot(items)
+      } else {
+        await runBatch(items, entity, entity)
+      }
     }
     if (entity === 'fiscalizacoes') {
       try {

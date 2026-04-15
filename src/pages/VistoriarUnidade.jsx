@@ -450,9 +450,7 @@ export default function VistoriarUnidade() {
             if (unidade?.status === 'finalizada' && !modoEdicao) {
                 throw new Error('Não é possível modificar uma unidade finalizada');
             }
-            const recCount = await Repository.countRecomendacoesByUnidade(unidadeId);
-            const numeroRecomendacao = `R${(recCount || 0) + 1}`;
-            await Repository.addRecomendacao(unidadeId, texto, numeroRecomendacao, 'manual');
+            await Repository.addRecomendacao(unidadeId, texto, undefined, 'manual');
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['recomendacoes', unidadeId] });
