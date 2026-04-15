@@ -62,16 +62,18 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
             } catch {
                 lastJobId = null;
             }
-            if (!lastJobId) {
-                setJob(null);
-                setJobId(null);
-                return;
-            }
-            const st = await invokeEdgeFunction('relatorios_status', { job_id: lastJobId });
+            const st = lastJobId
+                ? await invokeEdgeFunction('relatorios_status', { job_id: lastJobId })
+                : await invokeEdgeFunction('relatorios_status', { fiscalizacao_id });
             if (!st) {
                 setJob(null);
                 setJobId(null);
                 return;
+            }
+            if (st?.id) {
+                try {
+                    localStorage.setItem(key, String(st.id));
+                } catch {}
             }
             if (st.status === 'done' && !st?.signed_url) {
                 try { localStorage.removeItem(key); } catch {}
@@ -81,7 +83,7 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
             }
             setJob(st);
             const active = st.status === 'queued' || st.status === 'processing';
-            setJobId(active ? lastJobId : null);
+            setJobId(active ? (st?.id || lastJobId) : null);
         } catch (err) {
             console.error('Erro ao carregar histórico de relatórios:', err);
             setError(err?.message || 'Erro ao carregar histórico de relatórios.');

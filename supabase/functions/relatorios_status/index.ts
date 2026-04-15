@@ -35,7 +35,8 @@ serve(async (req) => {
   if (!jwt) return jsonResponse({ error: 'unauthorized' }, 401)
 
   const job_id = String(payload?.job_id || '')
-  if (!job_id) return jsonResponse({ error: 'missing_job_id' }, 400)
+  const fiscalizacao_id = String(payload?.fiscalizacao_id || '')
+  if (!job_id && !fiscalizacao_id) return jsonResponse({ error: 'missing_job_id' }, 400)
 
   const userClient = createClient(supabaseUrl, anonKey)
   const adminClient = createClient(supabaseUrl, serviceKey)
@@ -46,11 +47,20 @@ serve(async (req) => {
 
   const { data: profile } = await adminClient.from('profiles').select('role, ativo').eq('id', user.id).maybeSingle()
 
-  const { data: job, error: jobErr } = await adminClient
-    .from('relatorios_jobs')
-    .select('id, fiscalizacao_id, requested_by, status, progress_unidades, progress_fotos, error_message, storage_path, created_at, updated_at')
-    .eq('id', job_id)
-    .maybeSingle()
+  const selectCols = 'id, fiscalizacao_id, requested_by, status, progress_unidades, progress_fotos, error_message, storage_path, created_at, updated_at'
+  const { data: job, error: jobErr } = job_id
+    ? await adminClient
+        .from('relatorios_jobs')
+        .select(selectCols)
+        .eq('id', job_id)
+        .maybeSingle()
+    : await adminClient
+        .from('relatorios_jobs')
+        .select(selectCols)
+        .eq('fiscalizacao_id', fiscalizacao_id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
   if (jobErr) return jsonResponse({ error: 'job_fetch_failed', details: jobErr.message }, 500)
   if (!job) return jsonResponse({ error: 'job_not_found' }, 404)
 
