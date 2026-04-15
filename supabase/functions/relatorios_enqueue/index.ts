@@ -31,7 +31,12 @@ serve(async (req) => {
     payload = {}
   }
 
-  const jwt = String(payload?.jwt || req.headers.get('x-user-jwt') || '')
+  const extractBearer = (v: string) => {
+    const m = /^Bearer\s+(.+)$/i.exec(String(v || '').trim())
+    return m?.[1] ? String(m[1]).trim() : ''
+  }
+
+  const jwt = extractBearer(req.headers.get('Authorization') || '') || String(payload?.jwt || req.headers.get('x-user-jwt') || '')
   if (!jwt) return jsonResponse({ error: 'unauthorized' }, 401)
 
   const fiscalizacao_id = String(payload?.fiscalizacao_id || '')

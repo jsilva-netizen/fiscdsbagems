@@ -24,24 +24,14 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
     };
 
     const invokeEdgeFunction = async (functionName, body) => {
-        const baseUrl = import.meta.env.VITE_SUPABASE_URL;
-        const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
         const jwt = await ensureAuth();
         if (!jwt) throw new Error('Sessão inválida. Faça login novamente.');
-        
-        const url = `${String(baseUrl).replace(/\/$/, '')}/functions/v1/${functionName}`;
-        const res = await fetch(url, {
-            method: 'POST',
-            headers: { 
-                'apikey': anonKey,
-                'Content-Type': 'application/json' 
-            },
-            body: JSON.stringify({ ...(body || {}), jwt })
-        });
-        
-        const json = await res.json();
-        if (!res.ok) throw new Error(json?.error || `Erro ${res.status}`);
-        return json;
+        const { data, error } = await supabase.functions.invoke(functionName, { body: body || {} });
+        if (error) {
+            const msg = error?.message || String(error || '');
+            throw new Error(msg || 'Erro ao chamar função de relatório.');
+        }
+        return data;
     };
 
     const resolveServerFiscalizacaoId = async () => {
