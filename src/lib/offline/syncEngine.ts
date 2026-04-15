@@ -107,7 +107,8 @@ function serializePayload(entity: Entity, type: MutationType, payload: any): any
         'numero_recomendacao',
         'descricao',
         'origem',
-        'created_at'
+        'created_at',
+        'updated_at'
       ])
     case 'tipos_unidade':
       return pick(payload, [
@@ -908,15 +909,28 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
       upsertOptions.returning = 'representation'
     }
     if (entity === 'recomendacoes') {
-      if (type === 'insert') {
-        const { data, error } = await supabase.from(table).insert(safe).select()
-        if (error) throw error
-        return data || []
-      } else {
-        const { data, error } = await supabase.from(table).update(safe).eq('id', safe.id as any).select()
-        if (error) throw error
-        return data || []
+      const parseMissingColumn = (err: any): string | null => {
+        const m = String(err?.message || '')
+        const m1 = m.match(/column\s+"([^"]+)"\s+of\s+relation\s+"[^"]+"\s+does\s+not\s+exist/i)
+        if (m1?.[1]) return m1[1]
+        const m2 = m.match(/column\s+"([^"]+)"\s+does\s+not\s+exist/i)
+        if (m2?.[1]) return m2[1]
+        const m3 = m.match(/Could not find the '([^']+)' column of '[^']+' in the schema cache/i)
+        if (m3?.[1]) return m3[1]
+        return null
       }
+
+      let attemptPayload: any = { ...(safe as any) }
+      for (let i = 0; i < 6; i++) {
+        const { data, error } = await supabase.from(table).upsert(attemptPayload, { onConflict: 'id' }).select()
+        if (!error) return data || []
+        const col = parseMissingColumn(error)
+        if (!col) throw error
+        delete attemptPayload[col]
+      }
+      const { data, error } = await supabase.from(table).upsert(attemptPayload, { onConflict: 'id' }).select()
+      if (error) throw error
+      return data || []
     } else if (entity === 'tipos_unidade' || entity === 'itens_checklist') {
       if (type === 'insert') {
         try {

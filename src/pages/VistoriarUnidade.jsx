@@ -36,6 +36,9 @@ export default function VistoriarUnidade() {
     const [novaRecomendacao, setNovaRecomendacao] = useState('');
     const [showConfirmaExclusaoRecomendacao, setShowConfirmaExclusaoRecomendacao] = useState(false);
     const [recomendacaoParaExcluir, setRecomendacaoParaExcluir] = useState(null);
+    const [showEditarRecomendacao, setShowEditarRecomendacao] = useState(false);
+    const [recomendacaoParaEditar, setRecomendacaoParaEditar] = useState(null);
+    const [textoRecomendacaoEdicao, setTextoRecomendacaoEdicao] = useState('');
     const [showConfirmaSemFotos, setShowConfirmaSemFotos] = useState(false);
     const [contadoresCarregados, setContadoresCarregados] = useState(false);
     const [showAddConstatacao, setShowAddConstatacao] = useState(false);
@@ -385,6 +388,30 @@ export default function VistoriarUnidade() {
             queryClient.invalidateQueries({ queryKey: ['recomendacoes', unidadeId] });
             setNovaRecomendacao('');
             setShowAddRecomendacao(false);
+        }
+    });
+
+    const editarRecomendacaoMutation = useMutation({
+        mutationFn: async ({ id, texto, origemAtual }) => {
+            if (unidade?.status === 'finalizada' && !modoEdicao) {
+                throw new Error('Não é possível modificar uma unidade finalizada');
+            }
+            const desc = String(texto || '').trim();
+            if (!desc) throw new Error('A recomendação não pode ficar vazia');
+            const changes = { descricao: desc };
+            if (origemAtual && origemAtual !== 'manual') {
+                changes.origem = 'manual';
+            }
+            await Repository.updateRecomendacao(id, changes);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['recomendacoes', unidadeId] });
+            setShowEditarRecomendacao(false);
+            setRecomendacaoParaEditar(null);
+            setTextoRecomendacaoEdicao('');
+        },
+        onError: (err) => {
+            alert(err.message);
         }
     });
 
@@ -980,19 +1007,35 @@ export default function VistoriarUnidade() {
                                     <div className="flex items-start gap-3">
                                         <Badge variant="secondary">{rec.numero_recomendacao}</Badge>
                                         <p className="text-sm flex-1">{rec.descricao}</p>
-                                        {(unidade?.status !== 'finalizada' || modoEdicao) && rec?.origem === 'manual' && (
-                                            <Button
-                                                size="sm"
-                                                variant="ghost"
-                                                onClick={() => {
-                                                    setRecomendacaoParaExcluir(rec);
-                                                    setShowConfirmaExclusaoRecomendacao(true);
-                                                }}
-                                                className="text-red-600 hover:text-red-700"
-                                                title="Excluir recomendação"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
+                                        {(unidade?.status !== 'finalizada' || modoEdicao) && (
+                                            <div className="flex gap-2">
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    onClick={() => {
+                                                        setRecomendacaoParaEditar(rec);
+                                                        setTextoRecomendacaoEdicao(rec.descricao || '');
+                                                        setShowEditarRecomendacao(true);
+                                                    }}
+                                                    title="Editar recomendação"
+                                                >
+                                                    <Pencil className="h-4 w-4" />
+                                                </Button>
+                                                {rec?.origem === 'manual' && (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        onClick={() => {
+                                                            setRecomendacaoParaExcluir(rec);
+                                                            setShowConfirmaExclusaoRecomendacao(true);
+                                                        }}
+                                                        className="text-red-600 hover:text-red-700"
+                                                        title="Excluir recomendação"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                )}
+                                            </div>
                                         )}
                                     </div>
                                 </CardContent>
@@ -1073,6 +1116,55 @@ export default function VistoriarUnidade() {
                                 Salvar
                             </Button>
                             <Button variant="outline" onClick={() => setShowAddRecomendacao(false)}>
+                                Cancelar
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={showEditarRecomendacao}
+                onOpenChange={(open) => {
+                    setShowEditarRecomendacao(open);
+                    if (!open) {
+                        setRecomendacaoParaEditar(null);
+                        setTextoRecomendacaoEdicao('');
+                    }
+                }}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Editar Recomendação</DialogTitle>
+                        <DialogDescription>
+                            Mantém a numeração e aplica o texto editado no relatório.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>Texto</Label>
+                            <Textarea
+                                value={textoRecomendacaoEdicao}
+                                onChange={(e) => setTextoRecomendacaoEdicao(e.target.value)}
+                                rows={4}
+                                disabled={editarRecomendacaoMutation.isPending}
+                            />
+                        </div>
+                        <div className="flex gap-2">
+                            <Button
+                                className="flex-1"
+                                onClick={() =>
+                                    editarRecomendacaoMutation.mutate({
+                                        id: recomendacaoParaEditar?.id,
+                                        texto: textoRecomendacaoEdicao,
+                                        origemAtual: recomendacaoParaEditar?.origem
+                                    })
+                                }
+                                disabled={!textoRecomendacaoEdicao.trim() || editarRecomendacaoMutation.isPending || !recomendacaoParaEditar?.id}
+                            >
+                                Salvar
+                            </Button>
+                            <Button variant="outline" onClick={() => setShowEditarRecomendacao(false)} disabled={editarRecomendacaoMutation.isPending}>
                                 Cancelar
                             </Button>
                         </div>

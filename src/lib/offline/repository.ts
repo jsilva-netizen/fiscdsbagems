@@ -417,7 +417,38 @@ export const Repository = {
 
   async listRecomendacoesByUnidade(unidadeId: string): Promise<import('./db').Recomendacao[]> {
     const list = await db.recomendacoes.where('unidade_fiscalizada_id').equals(unidadeId).toArray()
-    return list.sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''))
+    const timeOf = (r: any) => Date.parse(String(r?.updated_at || r?.created_at || 0)) || 0
+    const keyOf = (r: any) => {
+      const num = String(r?.numero_recomendacao || '').trim()
+      if (num) return `num:${num}`
+      const desc = String(r?.descricao || '').trim()
+      const origem = String(r?.origem || '').trim()
+      return `desc:${origem}:${desc}`
+    }
+    const bestByKey = new Map<string, any>()
+    for (const r of list || []) {
+      const k = keyOf(r)
+      const prev = bestByKey.get(k)
+      if (!prev) bestByKey.set(k, r)
+      else {
+        const pt = timeOf(prev)
+        const nt = timeOf(r)
+        if (nt > pt || (nt === pt && String(r?.id || '') > String(prev?.id || ''))) bestByKey.set(k, r)
+      }
+    }
+    const parseR = (v: any) => {
+      const n = parseInt(String(v || '').replace(/[^\d]/g, ''), 10)
+      return Number.isFinite(n) ? n : 999999
+    }
+    return Array.from(bestByKey.values()).sort((a: any, b: any) => {
+      const na = parseR(a?.numero_recomendacao)
+      const nb = parseR(b?.numero_recomendacao)
+      if (na !== nb) return na - nb
+      const ta = timeOf(a)
+      const tb = timeOf(b)
+      if (ta !== tb) return ta - tb
+      return String(a?.id || '').localeCompare(String(b?.id || ''))
+    })
   },
   
   async countRecomendacoesByUnidade(unidadeId: string): Promise<number> {
@@ -442,6 +473,14 @@ export const Repository = {
   async removeRecomendacao(id: string): Promise<void> {
     await db.recomendacoes.delete(id as any)
     await enqueueMutation({ id }, 'delete', 'recomendacoes')
+  },
+
+  async updateRecomendacao(id: string, changes: Partial<import('./db').Recomendacao>): Promise<void> {
+    const cur = await db.recomendacoes.get(id as any)
+    if (!cur) return
+    const next = { ...cur, ...changes, updated_at: now() }
+    await db.recomendacoes.update(id as any, next as any)
+    await enqueueMutation({ id, ...changes, updated_at: next.updated_at }, 'update', 'recomendacoes')
   },
   
   async countDeterminacoesByUnidade(unidadeId: string): Promise<number> {
