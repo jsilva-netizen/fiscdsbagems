@@ -86,6 +86,12 @@ const pad2 = (n: number) => String(n).padStart(2, '0')
 const formatDateBR = (d: Date) => `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${d.getFullYear()}`
 const formatTimeBR = (d: Date) => `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`
 
+const canonicalNumeroRecomendacao = (v: any): string => {
+  const digits = String(v ?? '').replace(/[^\d]/g, '')
+  const n = parseInt(digits, 10)
+  return Number.isFinite(n) ? `R${n}` : ''
+}
+
 export const Repository = {
   parseStorageUrl(url: string): { bucket: string; path: string } | null {
     if (typeof url !== 'string' || !url) return null
@@ -419,7 +425,7 @@ export const Repository = {
     const list = await db.recomendacoes.where('unidade_fiscalizada_id').equals(unidadeId).toArray()
     const timeOf = (r: any) => Date.parse(String(r?.updated_at || r?.created_at || 0)) || 0
     const keyOf = (r: any) => {
-      const num = String(r?.numero_recomendacao || '').trim()
+      const num = canonicalNumeroRecomendacao(r?.numero_recomendacao)
       if (num) return `num:${num}`
       const desc = String(r?.descricao || '').trim()
       const origem = String(r?.origem || '').trim()
@@ -437,7 +443,7 @@ export const Repository = {
       }
     }
     const parseR = (v: any) => {
-      const n = parseInt(String(v || '').replace(/[^\d]/g, ''), 10)
+      const n = parseInt(canonicalNumeroRecomendacao(v).replace(/[^\d]/g, ''), 10)
       return Number.isFinite(n) ? n : 999999
     }
     return Array.from(bestByKey.values()).sort((a: any, b: any) => {
@@ -460,7 +466,7 @@ export const Repository = {
     const item = {
       id,
       unidade_fiscalizada_id: unidadeId,
-      numero_recomendacao: numero,
+      numero_recomendacao: numero ? canonicalNumeroRecomendacao(numero) || String(numero) : undefined,
       descricao,
       origem,
       created_at: now(),
@@ -479,12 +485,16 @@ export const Repository = {
     const cur = await db.recomendacoes.get(id as any)
     if (!cur) return
     const next = { ...cur, ...changes, updated_at: now() }
+    if (next?.numero_recomendacao) {
+      const canon = canonicalNumeroRecomendacao(next.numero_recomendacao)
+      if (canon) next.numero_recomendacao = canon
+    }
     await db.recomendacoes.update(id as any, next as any)
     if (next?.unidade_fiscalizada_id && next?.numero_recomendacao) {
       const sameNumber = await db.recomendacoes
         .where('unidade_fiscalizada_id')
         .equals(next.unidade_fiscalizada_id as any)
-        .and((r: any) => String(r?.numero_recomendacao || '') === String(next.numero_recomendacao || '') && String(r?.id || '') !== String(id))
+        .and((r: any) => canonicalNumeroRecomendacao(r?.numero_recomendacao) === canonicalNumeroRecomendacao(next.numero_recomendacao) && String(r?.id || '') !== String(id))
         .toArray()
       for (const dup of sameNumber || []) {
         await db.recomendacoes.delete(dup.id as any)

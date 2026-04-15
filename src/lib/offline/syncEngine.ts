@@ -841,7 +841,9 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
       if (raw === undefined || raw === null || (typeof raw === 'string' && raw.trim() === '')) {
         mapped.numero_recomendacao = null
       } else {
-        mapped.numero_recomendacao = typeof raw === 'string' ? raw : String(raw)
+        const digits = String(raw).replace(/[^\d]/g, '')
+        const n = parseInt(digits, 10)
+        mapped.numero_recomendacao = Number.isFinite(n) ? `R${n}` : null
       }
     }
     if (entity === 'itens_checklist') {
@@ -985,12 +987,27 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
 export async function syncUp(onProgress?: (msg: string, isError?: boolean) => void): Promise<number> {
   const log = (msg: string, isError = false) => { if (onProgress) onProgress(msg, isError) }
   const pendingAll = await db.fila_mutacoes.where('status').equals('pending').toArray()
+  const mutationPriority = (entity: Entity, tipo: MutationType): number => {
+    if (entity === 'recomendacoes') {
+      if (tipo === 'delete') return 0
+      if (tipo === 'update') return 1
+      if (tipo === 'insert') return 2
+      return 3
+    }
+    if (tipo === 'delete') return 0
+    if (tipo === 'insert') return 1
+    if (tipo === 'update') return 2
+    return 3
+  }
   const sorted = pendingAll
     .slice()
     .sort((a, b) => {
       const ai = orderForSyncUp.indexOf(a.entity as Entity)
       const bi = orderForSyncUp.indexOf(b.entity as Entity)
       if (ai !== bi) return ai - bi
+      const ap = mutationPriority(a.entity as Entity, a.tipo as MutationType)
+      const bp = mutationPriority(b.entity as Entity, b.tipo as MutationType)
+      if (ap !== bp) return ap - bp
       const at = a.created_at || ''
       const bt = b.created_at || ''
       return at.localeCompare(bt)
@@ -1004,35 +1021,38 @@ export async function syncUp(onProgress?: (msg: string, isError?: boolean) => vo
     groupByEntity[k] = arr
   }
   const limit = 50
-  const runBatch = async (items: typeof sorted, entityName: string) => {
+  const runBatch = async (items: typeof sorted, entity: Entity, entityName: string) => {
+    const processOne = async (m: any) => {
+      try {
+        await pushOne(m.entity as Entity, m.tipo as MutationType, m.payload)
+        await db.fila_mutacoes.update(m.id, { status: 'done', lastError: '', nextRetryAt: undefined })
+        const localId = m.payload?.id
+        if (localId && (m.entity === 'fiscalizacoes' || m.entity === 'unidades')) {
+          await db.pending_entities.delete(`${m.entity}:${localId}` as any)
+        }
+        processed++
+      } catch (err: any) {
+        const attempts = (m as any).attempts ? Number((m as any).attempts) + 1 : 1
+        const retryable = isRetryableError(err)
+        const nextRetryAt = computeNextRetryAt(attempts, retryable)
+        const msg = errorInfo(err).message
+        await db.fila_mutacoes.update(m.id, { status: 'error', attempts, lastError: msg, nextRetryAt })
+      }
+    }
     for (let i = 0; i < items.length; i += limit) {
       log(`Enviando ${entityName} (${Math.min(i + limit, items.length)} de ${items.length})...`)
       const chunk = items.slice(i, i + limit)
-      await Promise.all(
-        chunk.map(async (m) => {
-          try {
-            await pushOne(m.entity as Entity, m.tipo as MutationType, m.payload)
-            await db.fila_mutacoes.update(m.id, { status: 'done', lastError: '', nextRetryAt: undefined })
-            const localId = m.payload?.id
-            if (localId && (m.entity === 'fiscalizacoes' || m.entity === 'unidades')) {
-              await db.pending_entities.delete(`${m.entity}:${localId}` as any)
-            }
-            processed++
-          } catch (err: any) {
-            const attempts = (m as any).attempts ? Number((m as any).attempts) + 1 : 1
-            const retryable = isRetryableError(err)
-            const nextRetryAt = computeNextRetryAt(attempts, retryable)
-            const msg = errorInfo(err).message
-            await db.fila_mutacoes.update(m.id, { status: 'error', attempts, lastError: msg, nextRetryAt })
-          }
-        })
-      )
+      if (entity === 'recomendacoes') {
+        for (const m of chunk) await processOne(m)
+      } else {
+        await Promise.all(chunk.map(processOne))
+      }
     }
   }
   for (const entity of orderForSyncUp) {
     const items = groupByEntity[entity] || []
     if (items.length > 0) {
-      await runBatch(items, entity)
+      await runBatch(items, entity, entity)
     }
     if (entity === 'fiscalizacoes') {
       try {

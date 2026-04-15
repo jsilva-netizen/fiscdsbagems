@@ -350,7 +350,7 @@ export default function VistoriarUnidade() {
             }
             if (!resp?.item_checklist_id) return;
             await Repository.saveResposta(unidadeId, resp.item_checklist_id, {
-                pergunta: '',
+                pergunta: null,
                 numero_constatacao: null,
                 gera_nc: false
             });
