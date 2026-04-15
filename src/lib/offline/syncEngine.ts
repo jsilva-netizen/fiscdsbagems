@@ -949,8 +949,15 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
       }
 
       let attemptPayload: any = { ...(safe as any) }
+      const hasNumero = !!(attemptPayload?.numero_recomendacao && String(attemptPayload.numero_recomendacao).trim() !== '')
+      if (hasNumero) {
+        delete attemptPayload.id
+      }
       for (let i = 0; i < 6; i++) {
-        const { data, error } = await supabase.from(table).upsert(attemptPayload, { onConflict: 'id' }).select()
+        const { data, error } = await supabase
+          .from(table)
+          .upsert(attemptPayload, { onConflict: hasNumero ? 'unidade_fiscalizada_id,numero_recomendacao' : 'id' })
+          .select()
         if (!error) return data || []
         const msg = String((error as any)?.message || '')
         const code = String((error as any)?.code || '')
@@ -970,8 +977,9 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
               .limit(1)
               .maybeSingle()
             if (existing?.id) {
-              attemptPayload.id = existing.id
-              const { data: upd, error: updErr } = await supabase.from(table).update(attemptPayload).eq('id', existing.id as any).select()
+              const updatePayload = { ...attemptPayload }
+              delete (updatePayload as any).id
+              const { data: upd, error: updErr } = await supabase.from(table).update(updatePayload).eq('id', existing.id as any).select()
               if (!updErr) return upd || []
             }
           } catch {}
@@ -980,7 +988,10 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
         if (!col) throw error
         delete attemptPayload[col]
       }
-      const { data, error } = await supabase.from(table).upsert(attemptPayload, { onConflict: 'id' }).select()
+      const { data, error } = await supabase
+        .from(table)
+        .upsert(attemptPayload, { onConflict: hasNumero ? 'unidade_fiscalizada_id,numero_recomendacao' : 'id' })
+        .select()
       if (error) throw error
       return data || []
     } else if (entity === 'tipos_unidade' || entity === 'itens_checklist') {
