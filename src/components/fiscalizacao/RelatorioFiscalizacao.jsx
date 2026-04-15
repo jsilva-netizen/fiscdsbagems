@@ -33,7 +33,7 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
             method: 'POST',
             headers: { 
                 'apikey': anonKey,
-                'Authorization': `Bearer ${anonKey}`,
+                'Authorization': `Bearer ${jwt}`,
                 'Content-Type': 'application/json' 
             },
             body: JSON.stringify({ ...(body || {}), jwt })
@@ -54,47 +54,34 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
 
     const carregarUltimoJob = async () => {
         try {
-            await ensureAuth();
-            
             const fiscalizacao_id = await resolveServerFiscalizacaoId();
-            const { data, error: qErr } = await supabase
-                .from('relatorios_jobs')
-                .select('id, status, progress_unidades, progress_fotos, error_message, storage_path, created_at, updated_at')
-                .eq('fiscalizacao_id', fiscalizacao_id)
-                .order('created_at', { ascending: false })
-                .limit(1);
-            if (qErr) throw qErr;
-
-            const row = Array.isArray(data) ? data[0] : null;
-            if (!row) {
+            const key = `relatorio_last_job:${String(fiscalizacao_id)}`;
+            let lastJobId = null;
+            try {
+                lastJobId = localStorage.getItem(key);
+            } catch {
+                lastJobId = null;
+            }
+            if (!lastJobId) {
                 setJob(null);
                 setJobId(null);
                 return;
             }
-
-            if (row.status === 'done') {
-                try {
-                    const st = await invokeEdgeFunction('relatorios_status', { job_id: row.id });
-                    if (!st?.signed_url) {
-                        setError(null);
-                        setJob(null);
-                        setJobId(null);
-                        return;
-                    }
-                    setJob({ ...row, signed_url: st.signed_url });
-                    setJobId(null);
-                    return;
-                } catch {
-                    setError(null);
-                    setJob(null);
-                    setJobId(null);
-                    return;
-                }
+            const st = await invokeEdgeFunction('relatorios_status', { job_id: lastJobId });
+            if (!st) {
+                setJob(null);
+                setJobId(null);
+                return;
             }
-
-            setJob(row);
-            const active = row.status === 'queued' || row.status === 'processing';
-            setJobId(active ? row.id : null);
+            if (st.status === 'done' && !st?.signed_url) {
+                try { localStorage.removeItem(key); } catch {}
+                setJob(null);
+                setJobId(null);
+                return;
+            }
+            setJob(st);
+            const active = st.status === 'queued' || st.status === 'processing';
+            setJobId(active ? lastJobId : null);
         } catch (err) {
             console.error('Erro ao carregar histórico de relatórios:', err);
             setError(err?.message || 'Erro ao carregar histórico de relatórios.');
@@ -162,6 +149,9 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
             if (!data?.job_id) throw new Error('Falha ao criar job');
             
             queryClient.invalidateQueries({ queryKey: ['fiscalizacoes'] });
+            try {
+                localStorage.setItem(`relatorio_last_job:${String(fiscalizacao_id)}`, String(data.job_id));
+            } catch {}
 
             setJobId(data.job_id);
             setJob({ status: 'queued', progress_unidades: 0, progress_fotos: 0 });

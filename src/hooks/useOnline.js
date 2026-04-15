@@ -3,8 +3,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 const headReachable = async () => {
   try {
     const base = import.meta.env.VITE_SUPABASE_URL
+    const key = import.meta.env.VITE_SUPABASE_ANON_KEY
     if (!base) return false
-    const urls = [`${base}/rest/v1/`, `${base}/auth/v1/health`]
+    const apikeyParam = key ? `?apikey=${encodeURIComponent(String(key))}` : ''
+    const urls = [`${base}/auth/v1/health${apikeyParam}`, `${base}/rest/v1/${apikeyParam}`]
     const ctrl = new AbortController()
     const t = setTimeout(() => ctrl.abort(), 6000)
     for (const url of urls) {

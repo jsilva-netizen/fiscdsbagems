@@ -1492,10 +1492,12 @@ export async function syncFotosWithProgress(onProgress?: (uploaded: number, tota
 async function reachability(): Promise<boolean> {
   try {
     const base = (import.meta as any).env?.VITE_SUPABASE_URL || ''
+    const key = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || ''
     if (!base) return false
     const ctrl = new AbortController()
     const t = setTimeout(() => ctrl.abort(), 8000)
-    const urls = [`${base}/rest/v1/`, `${base}/auth/v1/health`]
+    const apikeyParam = key ? `?apikey=${encodeURIComponent(String(key))}` : ''
+    const urls = [`${base}/auth/v1/health${apikeyParam}`, `${base}/rest/v1/${apikeyParam}`]
     for (const url of urls) {
       try {
         const resp = await fetch(url, { method: 'GET', cache: 'no-store', signal: ctrl.signal })
