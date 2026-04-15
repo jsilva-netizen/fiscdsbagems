@@ -36,7 +36,7 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
                 'Authorization': `Bearer ${jwt}`,
                 'Content-Type': 'application/json' 
             },
-            body: JSON.stringify({ ...(body || {}), jwt })
+            body: JSON.stringify({ ...(body || {}) })
         });
         
         const json = await res.json();
