@@ -859,7 +859,27 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
       mapped.servicos = arr
       delete (mapped as any).servico
     }
-    mapped.id = await resolveId(entity, payload?.id)
+    if (entity === 'recomendacoes' && mapped?.unidade_fiscalizada_id && mapped?.numero_recomendacao) {
+      try {
+        const { data: existing } = await supabase
+          .from('recomendacoes')
+          .select('id,updated_at,created_at')
+          .eq('unidade_fiscalizada_id', mapped.unidade_fiscalizada_id as any)
+          .eq('numero_recomendacao', mapped.numero_recomendacao as any)
+          .order('updated_at', { ascending: false })
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        if (existing?.id) {
+          const localId = payload?.id as any
+          mapped.id = existing.id
+          if (localId && String(localId) !== String(existing.id)) {
+            await db.id_map.put({ entity: 'recomendacoes', local_id: localId, server_id: existing.id } as any)
+          }
+        }
+      } catch {}
+    }
+    if (!mapped?.id) mapped.id = await resolveId(entity, payload?.id)
     const safe = serializePayload(entity, type, mapped)
     if (entity === 'constatacoes_manuais') {
       const parseMissingColumn = (err: any): string | null => {
@@ -932,6 +952,30 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
       for (let i = 0; i < 6; i++) {
         const { data, error } = await supabase.from(table).upsert(attemptPayload, { onConflict: 'id' }).select()
         if (!error) return data || []
+        const msg = String((error as any)?.message || '')
+        const code = String((error as any)?.code || '')
+        const isDup =
+          code === '23505' ||
+          msg.toLowerCase().includes('duplicate key value') ||
+          msg.toLowerCase().includes('recomendacoes_unidade_numero_unq')
+        if (isDup && attemptPayload?.unidade_fiscalizada_id && attemptPayload?.numero_recomendacao) {
+          try {
+            const { data: existing } = await supabase
+              .from('recomendacoes')
+              .select('id,updated_at,created_at')
+              .eq('unidade_fiscalizada_id', attemptPayload.unidade_fiscalizada_id as any)
+              .eq('numero_recomendacao', attemptPayload.numero_recomendacao as any)
+              .order('updated_at', { ascending: false })
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle()
+            if (existing?.id) {
+              attemptPayload.id = existing.id
+              const { data: upd, error: updErr } = await supabase.from(table).update(attemptPayload).eq('id', existing.id as any).select()
+              if (!updErr) return upd || []
+            }
+          } catch {}
+        }
         const col = parseMissingColumn(error)
         if (!col) throw error
         delete attemptPayload[col]

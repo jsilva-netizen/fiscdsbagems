@@ -105,13 +105,10 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
         if (isRequesting) return;
         
         try {
-            const pending = await getSyncPendingForFiscalizacao(String(fiscalizacao.id));
-            if (pending.outboxCount > 0 || pending.fotosCount > 0) {
+            if (syncStatus.online && syncStatus.sessionValid) {
                 setIsSyncingBeforeReport(true);
                 try {
                     await runFullSync();
-                } catch (syncErr) {
-                    console.error('Falha ao sincronizar antes do relatório:', syncErr);
                 } finally {
                     setIsSyncingBeforeReport(false);
                 }
@@ -151,7 +148,9 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
                 }
             }
         } catch (e) {
-            console.error('Erro ao verificar sincronia:', e);
+            console.error('Falha ao sincronizar antes do relatório:', e);
+            setError(e?.message || 'Falha ao sincronizar antes do relatório.');
+            return;
         }
 
         setError(null);

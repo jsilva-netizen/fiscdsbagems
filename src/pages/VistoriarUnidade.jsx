@@ -27,6 +27,10 @@ export default function VistoriarUnidade() {
     const unidadeId = urlParams.get('id');
     const modoEdicao = urlParams.get('modo') === 'edicao';
 
+    const isMountedRef = useRef(true);
+    const filaRespostasRef = useRef([]);
+    const itensChecklistRef = useRef([]);
+
     const [activeTab, setActiveTab] = useState('checklist');
     const [respostas, setRespostas] = useState({});
     const [fotos, setFotos] = useState([]);
@@ -56,6 +60,12 @@ export default function VistoriarUnidade() {
     const [showEditarConstatacaoChecklist, setShowEditarConstatacaoChecklist] = useState(false);
     const [respostaChecklistParaEditar, setRespostaChecklistParaEditar] = useState(null);
     const [textoConstatacaoChecklist, setTextoConstatacaoChecklist] = useState('');
+
+    useEffect(() => {
+        return () => {
+            isMountedRef.current = false;
+        };
+    }, []);
 
     // Queries
     const { data: unidade, isLoading: loadingUnidade } = useQuery({
@@ -92,6 +102,10 @@ export default function VistoriarUnidade() {
         staleTime: 60000,
         gcTime: 300000
     });
+
+    useEffect(() => {
+        itensChecklistRef.current = Array.isArray(itensChecklist) ? itensChecklist : [];
+    }, [itensChecklist]);
 
 
     const { data: determinacoesExistentes = [] } = useQuery({
@@ -187,6 +201,93 @@ export default function VistoriarUnidade() {
         }
     }, [respostasExistentes.length]);
 
+    useEffect(() => {
+        filaRespostasRef.current = Array.isArray(filaRespostas) ? filaRespostas : [];
+    }, [filaRespostas]);
+
+    const flushFilaRespostas = async (batch, silent = false) => {
+        try {
+            const unidade = unidadeId;
+            if (!unidade) return;
+            const batchArr = Array.isArray(batch) ? batch : [];
+            if (batchArr.length === 0) return;
+
+            const respostasAtuais = await Repository.listRespostasByUnidade(unidade);
+            const itens = Array.isArray(itensChecklistRef.current) ? itensChecklistRef.current : [];
+
+            const mapaRespostas = new Map();
+            (respostasAtuais || []).forEach(r => mapaRespostas.set(r.item_checklist_id, { ...r, origem: 'db' }));
+            batchArr.forEach(item => {
+                const respostaExistente = mapaRespostas.get(item.itemId);
+                mapaRespostas.set(item.itemId, {
+                    ...respostaExistente,
+                    item_checklist_id: item.itemId,
+                    resposta: item.data?.resposta,
+                    observacao: item.data?.observacao,
+                    origem: 'batch'
+                });
+            });
+
+            const operacoes = [];
+            for (const item of itens) {
+                const resposta = mapaRespostas.get(item.id);
+                if (!resposta || (resposta.resposta !== 'SIM' && resposta.resposta !== 'NAO')) continue;
+
+                let textoConstatacao = resposta.resposta === 'SIM'
+                    ? item.texto_constatacao_sim
+                    : resposta.resposta === 'NAO'
+                        ? item.texto_constatacao_nao
+                        : null;
+
+                const temTexto = textoConstatacao && String(textoConstatacao).trim();
+                if (temTexto) {
+                    if (!String(textoConstatacao).trim().endsWith(';')) {
+                        textoConstatacao = String(textoConstatacao).trim() + ';';
+                    }
+                    const dadosParaSalvar = {
+                        resposta: resposta.resposta,
+                        observacao: resposta.observacao || '',
+                        pergunta: textoConstatacao,
+                        gera_nc: resposta.resposta === 'NAO' && item.gera_nc
+                    };
+                    if (resposta.origem === 'batch') {
+                        operacoes.push(Repository.saveResposta(unidade, item.id, dadosParaSalvar));
+                    }
+                } else {
+                    const dadosParaSalvar = {
+                        resposta: resposta.resposta,
+                        observacao: resposta.observacao || '',
+                        pergunta: null,
+                        numero_constatacao: null,
+                        gera_nc: false
+                    };
+                    if (resposta.origem === 'batch') {
+                        operacoes.push(Repository.saveResposta(unidade, item.id, dadosParaSalvar));
+                    }
+                }
+            }
+
+            await Promise.all(operacoes);
+            await Repository.recomputeConstatacoesNumeracao(unidade);
+            await queryClient.invalidateQueries({ queryKey: ['respostas', unidade] });
+            await queryClient.invalidateQueries({ queryKey: ['constatacoes-manuais', unidade] });
+        } catch (err) {
+            if (!silent) {
+                console.error('Erro ao processar batch:', err);
+                alert(err.message);
+            }
+        }
+    };
+
+    useEffect(() => {
+        return () => {
+            const batch = Array.isArray(filaRespostasRef.current) ? filaRespostasRef.current : [];
+            if (batch.length > 0) {
+                flushFilaRespostas(batch, true).catch(() => {});
+            }
+        };
+    }, [unidadeId]);
+
     // Debouncing inteligente: aguarda 3s após última resposta para salvar tudo de uma vez
     useEffect(() => {
         if (filaRespostas.length === 0) return;
@@ -195,104 +296,7 @@ export default function VistoriarUnidade() {
             try {
                 const batch = [...filaRespostas];
                 setFilaRespostas([]);
-
-                // Buscar dados atuais uma única vez
-                const [respostasAtuais] = await Promise.all([
-                    Repository.listRespostasByUnidade(unidadeId)
-                ]);
-
-                console.log('🔍 processarBatch: Itens Checklist:', itensChecklist);
-                console.log('🔍 processarBatch: Batch:', batch);
-                console.log('🔍 processarBatch: Respostas Atuais:', respostasAtuais);
-
-                // --- NOVA LÓGICA DE RENUMERAÇÃO ---
-                // 1. Mesclar respostas atuais com o batch (para ter o estado final desejado)
-                const mapaRespostas = new Map();
-                
-                // Adiciona respostas atuais ao mapa
-                respostasAtuais.forEach(r => mapaRespostas.set(r.item_checklist_id, { ...r, origem: 'db' }));
-                
-                // Atualiza com os dados do batch (sobrescreve se existir)
-                batch.forEach(item => {
-                    const respostaExistente = mapaRespostas.get(item.itemId);
-                    mapaRespostas.set(item.itemId, {
-                        ...respostaExistente,
-                        item_checklist_id: item.itemId,
-                        resposta: item.data.resposta,
-                        observacao: item.data.observacao,
-                        origem: 'batch' // Marca que veio do batch
-                    });
-                });
-
-                const operacoes = [];
-
-                for (const item of itensChecklist) {
-                    const resposta = mapaRespostas.get(item.id);
-                    
-                    // Se não tem resposta ou não é SIM/NAO, pula (não gera constatação)
-                    if (!resposta || (resposta.resposta !== 'SIM' && resposta.resposta !== 'NAO')) {
-                        // Se existia no banco com constatação, precisamos limpar?
-                        // O update abaixo vai cuidar disso se tiver ID.
-                        continue;
-                    }
-
-                    // Calcular texto da constatação
-                    let textoConstatacao = resposta.resposta === 'SIM' 
-                        ? item.texto_constatacao_sim 
-                        : resposta.resposta === 'NAO' 
-                            ? item.texto_constatacao_nao 
-                            : null;
-                    
-                    const temTexto = textoConstatacao && textoConstatacao.trim();
-                    
-                    // Se tem texto, formata e numera
-                    if (temTexto) {
-                        if (!textoConstatacao.trim().endsWith(';')) {
-                            textoConstatacao = textoConstatacao.trim() + ';';
-                        }
-
-                        // Preparar dados para salvar
-                        const dadosParaSalvar = {
-                            resposta: resposta.resposta,
-                            observacao: resposta.observacao || '',
-                            pergunta: textoConstatacao,
-                            gera_nc: resposta.resposta === 'NAO' && item.gera_nc
-                        };
-
-                        // Verificar se precisa atualizar (se mudou algo ou se veio do batch)
-                        const veioDoBatch = resposta.origem === 'batch';
-                        
-                        // Sempre atualiza se veio do batch OU se o número mudou (renumeração em cascata)
-                        if (veioDoBatch) {
-                            if (resposta.id) {
-                                operacoes.push(Repository.saveResposta(unidadeId, item.id, dadosParaSalvar));
-                            } else {
-                                operacoes.push(Repository.saveResposta(unidadeId, item.id, dadosParaSalvar));
-                            }
-                        }
-                    } else {
-                        // Resposta SIM/NAO mas sem texto configurado -> Salva sem número C
-                        const dadosParaSalvar = {
-                            resposta: resposta.resposta,
-                            observacao: resposta.observacao || '',
-                            pergunta: null,
-                            numero_constatacao: null,
-                            gera_nc: false
-                        };
-
-                        if (resposta.origem === 'batch') {
-                             operacoes.push(Repository.saveResposta(unidadeId, item.id, dadosParaSalvar));
-                        }
-                    }
-                }
-
-                console.log(`🔍 processarBatch: Gerando ${operacoes.length} operações de atualização.`);
-
-                await Promise.all(operacoes);
-                await Repository.recomputeConstatacoesNumeracao(unidadeId);
-                await queryClient.invalidateQueries({ queryKey: ['respostas', unidadeId] });
-                await queryClient.invalidateQueries({ queryKey: ['constatacoes-manuais', unidadeId] });
-
+                await flushFilaRespostas(batch, false);
             } catch (err) {
                 console.error('Erro ao processar batch:', err);
                 alert(err.message);
