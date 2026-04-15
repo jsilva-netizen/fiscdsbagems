@@ -310,8 +310,11 @@ export default function VistoriarUnidade() {
 
             await Promise.all(operacoes);
             await Repository.recomputeConstatacoesNumeracao(unidade);
+            const respostasAtualizadas = await Repository.listRespostasByUnidade(unidade);
+            await Repository.syncRecomendacoesFromChecklist(unidade, itens, respostasAtualizadas);
             await queryClient.invalidateQueries({ queryKey: ['respostas', unidade] });
             await queryClient.invalidateQueries({ queryKey: ['constatacoes-manuais', unidade] });
+            await queryClient.invalidateQueries({ queryKey: ['recomendacoes', unidade] });
         } catch (err) {
             if (!silent) {
                 console.error('Erro ao processar batch:', err);
@@ -382,6 +385,16 @@ export default function VistoriarUnidade() {
             
             // Adicionar à fila - debounce de 3s vai processar tudo de uma vez
             setFilaRespostas(prev => [...prev, { itemId, data }]);
+
+            try {
+                const itens = Array.isArray(itensChecklistRef.current) ? itensChecklistRef.current : [];
+                const item = itens.find((x) => x && x.id === itemId);
+                if (item && unidadeId) {
+                    Repository.syncRecomendacaoFromChecklistItem(unidadeId, item, { resposta: data.resposta }).then(() => {
+                        queryClient.invalidateQueries({ queryKey: ['recomendacoes', unidadeId] });
+                    }).catch(() => {});
+                }
+            } catch {}
         },
         onError: (err) => {
             alert(err.message);

@@ -248,35 +248,10 @@ async function generatePdfForJob(adminClient: any, job: any) {
     return (n === 'SIM' || n === 'NAO') && hasText(r?.pergunta)
   }
 
-  const isRecomendacaoManual = (r: any) => {
-    const o = String(r?.origem ?? '').trim().toLowerCase()
-    return o === '' || o === 'manual'
-  }
-
-  const todasRecomendacoesManual = (todasRecomendacoes || []).filter(isRecomendacaoManual)
-
   const canonicalNumeroRecomendacao = (v: unknown) => {
     const digits = String(v ?? '').replace(/[^\d]/g, '')
     const n = parseInt(digits, 10)
     return Number.isFinite(n) ? `R${n}` : ''
-  }
-
-  const timeOfAny = (x: any) => Date.parse(String(x?.updated_at || x?.created_at || 0)) || 0
-
-  const dedupeRecomendacoes = (rows: any[]) => {
-    const bestByKey = new Map<string, any>()
-    for (const r of rows || []) {
-      const num = canonicalNumeroRecomendacao(r?.numero_recomendacao)
-      const key = num ? `num:${num}` : `id:${String(r?.id || '')}`
-      const prev = bestByKey.get(key)
-      if (!prev) bestByKey.set(key, r)
-      else {
-        const pt = timeOfAny(prev)
-        const nt = timeOfAny(r)
-        if (nt > pt || (nt === pt && String(r?.id || '') > String(prev?.id || ''))) bestByKey.set(key, r)
-      }
-    }
-    return Array.from(bestByKey.values())
   }
 
   const dedupeRespostasChecklist = (rows: any[]) => {
@@ -341,7 +316,7 @@ async function generatePdfForJob(adminClient: any, job: any) {
     const respostas = respostasByUnidade.get(String(u.id)) || []
     const ncs = todasNcs.filter((n) => n.unidade_fiscalizada_id === u.id)
     const determinacoes = todasDeterminacoes.filter((d) => d.unidade_fiscalizada_id === u.id)
-    const recomendacoes = dedupeRecomendacoes(todasRecomendacoesManual.filter((r) => r.unidade_fiscalizada_id === u.id))
+    const recomendacoes = (todasRecomendacoes || []).filter((r) => r.unidade_fiscalizada_id === u.id)
     const manuais = todasConstatacoesManuais.filter((m) => m.unidade_fiscalizada_id === u.id && hasText(m?.descricao))
 
     const mapeamentoUnidade: any = { constatacoes: {}, ncs: {}, determinacoes: {}, recomendacoes: {} }
@@ -544,19 +519,7 @@ async function generatePdfForJob(adminClient: any, job: any) {
     totalConstatacoesChecklist += rs.filter((r) => isRespostaConstatacao(r)).length
   }
   const totalConstatacoes = totalConstatacoesChecklist + todasConstatacoesManuais.filter((m) => hasText(m?.descricao)).length
-  const totalRecomendacoes = (() => {
-    const seen = new Set<string>()
-    let total = 0
-    for (const r of todasRecomendacoesManual || []) {
-      const uid = String(r?.unidade_fiscalizada_id || '')
-      const num = canonicalNumeroRecomendacao(r?.numero_recomendacao)
-      const key = num ? `${uid}:num:${num}` : `${uid}:id:${String(r?.id || '')}`
-      if (seen.has(key)) continue
-      seen.add(key)
-      total++
-    }
-    return total
-  })()
+  const totalRecomendacoes = (todasRecomendacoes || []).length
   drawTextAt(`• Unidades Vistoriadas: ${(unidades || []).length}`, margin + mm2pt(2), yPos, 10)
   yPos += mm2pt(6)
   drawTextAt(`• Total de Constatações: ${totalConstatacoes}`, margin + mm2pt(2), yPos, 10)
@@ -950,7 +913,7 @@ async function generatePdfForJob(adminClient: any, job: any) {
     const respostas = respostasByUnidade.get(String(unidade.id)) || []
     const ncs = todasNcs.filter((n) => n.unidade_fiscalizada_id === unidade.id)
     const determinacoes = todasDeterminacoes.filter((d) => d.unidade_fiscalizada_id === unidade.id)
-    const recomendacoes = dedupeRecomendacoes(todasRecomendacoesManual.filter((r) => r.unidade_fiscalizada_id === unidade.id))
+    const recomendacoes = (todasRecomendacoes || []).filter((r) => r.unidade_fiscalizada_id === unidade.id)
     const constatacoesManuais = todasConstatacoesManuais.filter((m) => m.unidade_fiscalizada_id === unidade.id && hasText(m?.descricao))
     const fotosRaw = Array.isArray(unidade.fotos_unidade) ? unidade.fotos_unidade : []
     const mapeamento = mapeamentosNumeracao[idx]

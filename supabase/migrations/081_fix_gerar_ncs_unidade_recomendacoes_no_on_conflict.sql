@@ -76,23 +76,10 @@ BEGIN
     FROM public.determinacoes d
     WHERE d.unidade_fiscalizada_id = ANY(ids_anteriores);
 
-    SELECT count(*) INTO contR
-    FROM public.recomendacoes r
-    WHERE r.unidade_fiscalizada_id = ANY(ids_anteriores);
   END IF;
 
   DELETE FROM public.determinacoes d WHERE d.unidade_fiscalizada_id = p_unidade_id;
   DELETE FROM public.nao_conformidades nc WHERE nc.unidade_fiscalizada_id = p_unidade_id;
-
-  IF has_rec_origem THEN
-    EXECUTE
-      'DELETE FROM public.recomendacoes r
-       WHERE r.unidade_fiscalizada_id = $1
-         AND coalesce(nullif(btrim(r.origem), ''''), ''manual'') IN (''checklist'', ''manual_constatacao'')'
-    USING p_unidade_id;
-  ELSE
-    DELETE FROM public.recomendacoes r WHERE r.unidade_fiscalizada_id = p_unidade_id;
-  END IF;
 
   FOR r_resp IN
     WITH ranked AS (
@@ -147,45 +134,6 @@ BEGIN
           (now()::date + coalesce(r_resp.prazo_dias, 30)),
           'pendente'
         );
-      ELSIF r_resp.texto_recomendacao IS NOT NULL AND btrim(r_resp.texto_recomendacao) <> '' THEN
-        contR := contR + 1;
-        IF has_rec_numero THEN
-          IF has_rec_origem AND EXISTS (
-            SELECT 1 FROM public.recomendacoes r
-            WHERE r.unidade_fiscalizada_id = p_unidade_id
-              AND r.numero_recomendacao = 'R'||contR
-              AND coalesce(nullif(btrim(r.origem), ''), 'manual') = 'manual'
-          ) THEN
-            NULL;
-          ELSE
-            UPDATE public.recomendacoes r
-            SET descricao = r_resp.texto_recomendacao,
-                origem = CASE WHEN has_rec_origem THEN 'checklist' ELSE r.origem END,
-                updated_at = CASE WHEN has_rec_updated THEN now() ELSE r.updated_at END
-            WHERE r.unidade_fiscalizada_id = p_unidade_id
-              AND r.numero_recomendacao = 'R'||contR
-              AND (NOT has_rec_origem OR coalesce(nullif(btrim(r.origem), ''), 'manual') IN ('checklist','manual_constatacao'));
-            GET DIAGNOSTICS v_rowcount = ROW_COUNT;
-            IF v_rowcount = 0 THEN
-              IF has_rec_origem AND has_rec_updated THEN
-                INSERT INTO public.recomendacoes (unidade_fiscalizada_id, numero_recomendacao, descricao, origem, created_at, updated_at)
-                VALUES (p_unidade_id, 'R'||contR, r_resp.texto_recomendacao, 'checklist', now(), now());
-              ELSIF has_rec_origem AND NOT has_rec_updated THEN
-                INSERT INTO public.recomendacoes (unidade_fiscalizada_id, numero_recomendacao, descricao, origem, created_at)
-                VALUES (p_unidade_id, 'R'||contR, r_resp.texto_recomendacao, 'checklist', now());
-              ELSIF NOT has_rec_origem AND has_rec_updated THEN
-                INSERT INTO public.recomendacoes (unidade_fiscalizada_id, numero_recomendacao, descricao, created_at, updated_at)
-                VALUES (p_unidade_id, 'R'||contR, r_resp.texto_recomendacao, now(), now());
-              ELSE
-                INSERT INTO public.recomendacoes (unidade_fiscalizada_id, numero_recomendacao, descricao, created_at)
-                VALUES (p_unidade_id, 'R'||contR, r_resp.texto_recomendacao, now());
-              END IF;
-            END IF;
-          END IF;
-        ELSE
-          INSERT INTO public.recomendacoes (unidade_fiscalizada_id, descricao, created_at)
-          VALUES (p_unidade_id, r_resp.texto_recomendacao, now());
-        END IF;
       END IF;
     END IF;
   END LOOP;
@@ -241,45 +189,6 @@ BEGIN
           (now()::date + 30),
           'pendente'
         );
-      ELSIF r_man.texto_recomendacao IS NOT NULL AND btrim(r_man.texto_recomendacao) <> '' THEN
-        contR := contR + 1;
-        IF has_rec_numero THEN
-          IF has_rec_origem AND EXISTS (
-            SELECT 1 FROM public.recomendacoes r
-            WHERE r.unidade_fiscalizada_id = p_unidade_id
-              AND r.numero_recomendacao = 'R'||contR
-              AND coalesce(nullif(btrim(r.origem), ''), 'manual') = 'manual'
-          ) THEN
-            NULL;
-          ELSE
-            UPDATE public.recomendacoes r
-            SET descricao = r_man.texto_recomendacao,
-                origem = CASE WHEN has_rec_origem THEN 'manual_constatacao' ELSE r.origem END,
-                updated_at = CASE WHEN has_rec_updated THEN now() ELSE r.updated_at END
-            WHERE r.unidade_fiscalizada_id = p_unidade_id
-              AND r.numero_recomendacao = 'R'||contR
-              AND (NOT has_rec_origem OR coalesce(nullif(btrim(r.origem), ''), 'manual') IN ('checklist','manual_constatacao'));
-            GET DIAGNOSTICS v_rowcount = ROW_COUNT;
-            IF v_rowcount = 0 THEN
-              IF has_rec_origem AND has_rec_updated THEN
-                INSERT INTO public.recomendacoes (unidade_fiscalizada_id, numero_recomendacao, descricao, origem, created_at, updated_at)
-                VALUES (p_unidade_id, 'R'||contR, r_man.texto_recomendacao, 'manual_constatacao', now(), now());
-              ELSIF has_rec_origem AND NOT has_rec_updated THEN
-                INSERT INTO public.recomendacoes (unidade_fiscalizada_id, numero_recomendacao, descricao, origem, created_at)
-                VALUES (p_unidade_id, 'R'||contR, r_man.texto_recomendacao, 'manual_constatacao', now());
-              ELSIF NOT has_rec_origem AND has_rec_updated THEN
-                INSERT INTO public.recomendacoes (unidade_fiscalizada_id, numero_recomendacao, descricao, created_at, updated_at)
-                VALUES (p_unidade_id, 'R'||contR, r_man.texto_recomendacao, now(), now());
-              ELSE
-                INSERT INTO public.recomendacoes (unidade_fiscalizada_id, numero_recomendacao, descricao, created_at)
-                VALUES (p_unidade_id, 'R'||contR, r_man.texto_recomendacao, now());
-              END IF;
-            END IF;
-          END IF;
-        ELSE
-          INSERT INTO public.recomendacoes (unidade_fiscalizada_id, descricao, created_at)
-          VALUES (p_unidade_id, r_man.texto_recomendacao, now());
-        END IF;
       END IF;
     END IF;
   END LOOP;

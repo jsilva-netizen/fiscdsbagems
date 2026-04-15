@@ -424,29 +424,11 @@ export const Repository = {
   async listRecomendacoesByUnidade(unidadeId: string): Promise<import('./db').Recomendacao[]> {
     const list = await db.recomendacoes.where('unidade_fiscalizada_id').equals(unidadeId).toArray()
     const timeOf = (r: any) => Date.parse(String(r?.updated_at || r?.created_at || 0)) || 0
-    const keyOf = (r: any) => {
-      const num = canonicalNumeroRecomendacao(r?.numero_recomendacao)
-      if (num) return `num:${num}`
-      const desc = String(r?.descricao || '').trim()
-      const origem = String(r?.origem || '').trim()
-      return `desc:${origem}:${desc}`
-    }
-    const bestByKey = new Map<string, any>()
-    for (const r of list || []) {
-      const k = keyOf(r)
-      const prev = bestByKey.get(k)
-      if (!prev) bestByKey.set(k, r)
-      else {
-        const pt = timeOf(prev)
-        const nt = timeOf(r)
-        if (nt > pt || (nt === pt && String(r?.id || '') > String(prev?.id || ''))) bestByKey.set(k, r)
-      }
-    }
     const parseR = (v: any) => {
       const n = parseInt(canonicalNumeroRecomendacao(v).replace(/[^\d]/g, ''), 10)
       return Number.isFinite(n) ? n : 999999
     }
-    return Array.from(bestByKey.values()).sort((a: any, b: any) => {
+    return (list || []).sort((a: any, b: any) => {
       const na = parseR(a?.numero_recomendacao)
       const nb = parseR(b?.numero_recomendacao)
       if (na !== nb) return na - nb
@@ -492,28 +474,9 @@ export const Repository = {
     if (!cur) return
     const unidadeId = cur?.unidade_fiscalizada_id
     if (!unidadeId) return
-
-    const desc = changes?.descricao !== undefined ? String(changes.descricao || '').trim() : String(cur?.descricao || '').trim()
-    const origem = changes?.origem !== undefined ? String(changes.origem || '').trim() : String(cur?.origem || '').trim()
-
-    const novoId = uid()
-    const item = {
-      id: novoId,
-      unidade_fiscalizada_id: unidadeId,
-      numero_recomendacao: null,
-      descricao: desc,
-      origem: origem || 'manual',
-      created_at: now(),
-      updated_at: now()
-    }
-
-    await db.recomendacoes.add(item as any)
-    await enqueueMutation(item, 'insert', 'recomendacoes')
-
-    await db.recomendacoes.delete(id as any)
-    await enqueueMutation({ id, unidade_fiscalizada_id: unidadeId }, 'delete', 'recomendacoes')
-
-    await Repository.recomputeRecomendacoesNumeracao(unidadeId)
+    const next = { ...cur, ...changes, updated_at: now() }
+    await db.recomendacoes.update(id as any, next as any)
+    await enqueueMutation(next, 'update', 'recomendacoes')
   },
 
   async recomputeRecomendacoesNumeracao(unidadeId: string): Promise<void> {
@@ -588,6 +551,125 @@ export const Repository = {
       const desired = `R${i + 1}`
       await db.recomendacoes.update(r.id, { ...r, numero_recomendacao: desired, updated_at: now() } as any)
       await enqueueMutation({ id: r.id, unidade_fiscalizada_id: unidadeId, numero_recomendacao: desired, updated_at: now() }, 'update', 'recomendacoes')
+    }
+  },
+
+  async syncRecomendacoesFromChecklist(
+    unidadeId: string,
+    itensChecklist: any[],
+    respostasAtuais: any[]
+  ): Promise<void> {
+    if (!unidadeId) return
+    const itens = Array.isArray(itensChecklist) ? itensChecklist : []
+    const respostas = Array.isArray(respostasAtuais) ? respostasAtuais : []
+
+    const byItem = new Map<string, any>()
+    for (const r of respostas) {
+      const itemId = String(r?.item_checklist_id || '')
+      if (itemId) byItem.set(itemId, r)
+    }
+
+    const list = await db.recomendacoes.where('unidade_fiscalizada_id').equals(unidadeId).toArray()
+    const byOrigem = new Map<string, any>()
+    for (const r of list || []) {
+      const o = String((r as any)?.origem || '').trim()
+      if (o) byOrigem.set(o, r)
+    }
+
+    const shouldHaveRec = (item: any, resp: any): { ok: boolean; desc?: string } => {
+      const r = String(resp?.resposta || '').toUpperCase()
+      const geraNc = !!item?.gera_nc
+      const temDet = String(item?.texto_determinacao || '').trim() !== ''
+      const recTxt = String(item?.texto_recomendacao || '').trim()
+      if (r !== 'NAO' && r !== 'NÃO') return { ok: false }
+      if (!geraNc) return { ok: false }
+      if (temDet) return { ok: false }
+      if (!recTxt) return { ok: false }
+      return { ok: true, desc: recTxt }
+    }
+
+    const adds: any[] = []
+    const deletes: any[] = []
+
+    for (const item of itens) {
+      const itemId = String(item?.id || '').trim()
+      if (!itemId) continue
+      const origem = `checklist:${itemId}`
+      const resp = byItem.get(itemId)
+      const s = shouldHaveRec(item, resp)
+      const existing = byOrigem.get(origem)
+      if (s.ok) {
+        if (!existing) {
+          const id = uid()
+          adds.push({
+            id,
+            unidade_fiscalizada_id: unidadeId,
+            numero_recomendacao: null,
+            descricao: String(s.desc || ''),
+            origem,
+            created_at: now(),
+            updated_at: now()
+          })
+        }
+      } else {
+        if (existing) {
+          deletes.push(existing)
+        }
+      }
+    }
+
+    for (const r of deletes) {
+      await db.recomendacoes.delete((r as any).id)
+      await enqueueMutation({ id: (r as any).id, unidade_fiscalizada_id: unidadeId }, 'delete', 'recomendacoes')
+    }
+    for (const r of adds) {
+      await db.recomendacoes.add(r as any)
+      await enqueueMutation(r, 'insert', 'recomendacoes')
+    }
+
+    if (adds.length > 0 || deletes.length > 0) {
+      await Repository.recomputeRecomendacoesNumeracao(unidadeId)
+    }
+  },
+
+  async syncRecomendacaoFromChecklistItem(unidadeId: string, item: any, resposta: any): Promise<void> {
+    if (!unidadeId) return
+    const itemId = String(item?.id || '').trim()
+    if (!itemId) return
+    const origem = `checklist:${itemId}`
+
+    const r = String(resposta?.resposta || '').toUpperCase()
+    const geraNc = !!item?.gera_nc
+    const temDet = String(item?.texto_determinacao || '').trim() !== ''
+    const recTxt = String(item?.texto_recomendacao || '').trim()
+    const should = (r === 'NAO' || r === 'NÃO') && geraNc && !temDet && recTxt !== ''
+
+    const list = await db.recomendacoes.where('unidade_fiscalizada_id').equals(unidadeId).toArray()
+    const existing = (list || []).find((x: any) => String(x?.origem || '').trim() === origem)
+
+    if (should) {
+      if (!existing) {
+        const id = uid()
+        const row = {
+          id,
+          unidade_fiscalizada_id: unidadeId,
+          numero_recomendacao: null,
+          descricao: recTxt,
+          origem,
+          created_at: now(),
+          updated_at: now()
+        }
+        await db.recomendacoes.add(row as any)
+        await enqueueMutation(row, 'insert', 'recomendacoes')
+        await Repository.recomputeRecomendacoesNumeracao(unidadeId)
+      }
+      return
+    }
+
+    if (existing) {
+      await db.recomendacoes.delete((existing as any).id)
+      await enqueueMutation({ id: (existing as any).id, unidade_fiscalizada_id: unidadeId }, 'delete', 'recomendacoes')
+      await Repository.recomputeRecomendacoesNumeracao(unidadeId)
     }
   },
   
