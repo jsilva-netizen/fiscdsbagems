@@ -477,8 +477,13 @@ export const Repository = {
   },
 
   async removeRecomendacao(id: string): Promise<void> {
+    const cur = await db.recomendacoes.get(id as any)
+    const unidadeId = cur?.unidade_fiscalizada_id
     await db.recomendacoes.delete(id as any)
     await enqueueMutation({ id }, 'delete', 'recomendacoes')
+    if (unidadeId) {
+      await Repository.recomputeRecomendacoesNumeracao(unidadeId)
+    }
   },
 
   async updateRecomendacao(id: string, changes: Partial<import('./db').Recomendacao>): Promise<void> {
@@ -502,6 +507,81 @@ export const Repository = {
       }
     }
     await enqueueMutation(next, 'update', 'recomendacoes')
+  },
+
+  async recomputeRecomendacoesNumeracao(unidadeId: string): Promise<void> {
+    if (!unidadeId) return
+    const list = await db.recomendacoes.where('unidade_fiscalizada_id').equals(unidadeId).toArray()
+
+    const parseR = (v: any) => {
+      const n = parseInt(canonicalNumeroRecomendacao(v).replace(/[^\d]/g, ''), 10)
+      return Number.isFinite(n) ? n : null
+    }
+
+    const timeOf = (r: any) => {
+      const iso = String(r?.created_at || r?.updated_at || '')
+      const t = Date.parse(iso)
+      return Number.isFinite(t) ? t : 0
+    }
+
+    const itens = (list || [])
+      .filter((r: any) => String(r?.descricao || '').trim() !== '')
+      .map((r: any) => ({ r, id: r.id, k: parseR(r?.numero_recomendacao), t: timeOf(r) }))
+      .sort((a, b) => {
+        if (a.k !== null && b.k !== null && a.k !== b.k) return a.k - b.k
+        if (a.k !== null && b.k === null) return -1
+        if (a.k === null && b.k !== null) return 1
+        if (a.t !== b.t) return a.t - b.t
+        return String(a.id).localeCompare(String(b.id))
+      })
+
+    for (const it of itens) {
+      const r = it.r
+      if (r?.numero_recomendacao) {
+        await db.recomendacoes.update(r.id as any, { ...r, numero_recomendacao: null, updated_at: now() } as any)
+        await enqueueMutation({ id: r.id, unidade_fiscalizada_id: unidadeId, numero_recomendacao: null, updated_at: now() }, 'update', 'recomendacoes')
+      }
+    }
+
+    for (let i = 0; i < itens.length; i++) {
+      const desired = `R${i + 1}`
+      const r = itens[i].r
+      await db.recomendacoes.update(r.id as any, { ...r, numero_recomendacao: desired, updated_at: now() } as any)
+      await enqueueMutation(
+        { id: r.id, unidade_fiscalizada_id: unidadeId, numero_recomendacao: desired, updated_at: now() },
+        'update',
+        'recomendacoes'
+      )
+    }
+  },
+
+  async reorderRecomendacoes(unidadeId: string, orderedIds: string[]): Promise<void> {
+    if (!unidadeId) return
+    const ids = (Array.isArray(orderedIds) ? orderedIds : []).filter(Boolean)
+    const rows = await db.recomendacoes.where('unidade_fiscalizada_id').equals(unidadeId).toArray()
+    const byId = new Map((rows || []).map((r: any) => [String(r.id), r]))
+    const ordered = ids.map((id) => byId.get(String(id))).filter(Boolean) as any[]
+    for (const r of rows || []) {
+      if (!ids.includes(String((r as any).id))) ordered.push(r as any)
+    }
+
+    for (const r of ordered) {
+      if ((r as any)?.numero_recomendacao) {
+        await db.recomendacoes.update((r as any).id, { ...(r as any), numero_recomendacao: null, updated_at: now() } as any)
+        await enqueueMutation(
+          { id: (r as any).id, unidade_fiscalizada_id: unidadeId, numero_recomendacao: null, updated_at: now() },
+          'update',
+          'recomendacoes'
+        )
+      }
+    }
+
+    for (let i = 0; i < ordered.length; i++) {
+      const r = ordered[i] as any
+      const desired = `R${i + 1}`
+      await db.recomendacoes.update(r.id, { ...r, numero_recomendacao: desired, updated_at: now() } as any)
+      await enqueueMutation({ id: r.id, unidade_fiscalizada_id: unidadeId, numero_recomendacao: desired, updated_at: now() }, 'update', 'recomendacoes')
+    }
   },
   
   async countDeterminacoesByUnidade(unidadeId: string): Promise<number> {
@@ -1004,6 +1084,11 @@ export const Repository = {
       return Number.isFinite(t) ? t : 0
     }
 
+    const parseC = (v: any) => {
+      const n = parseInt(String(v || '').replace(/[^\d]/g, ''), 10)
+      return Number.isFinite(n) ? n : null
+    }
+
     const manualTimeOf = (m: any) => {
       const t = timeOf(m)
       if (t > 0) return t
@@ -1028,9 +1113,12 @@ export const Repository = {
     }
 
     const itens: any[] = [
-      ...respostas.filter(isConstResposta).map((r) => ({ kind: 'checklist', r, id: r.id, t: timeOf(r) })),
-      ...manuais.map((m) => ({ kind: 'manual', m, id: m.id, t: manualTimeOf(m) }))
+      ...respostas.filter(isConstResposta).map((r) => ({ kind: 'checklist', r, id: r.id, k: parseC(r?.numero_constatacao), t: timeOf(r) })),
+      ...manuais.map((m) => ({ kind: 'manual', m, id: m.id, k: parseC(m?.numero_constatacao), t: manualTimeOf(m) }))
     ].sort((a, b) => {
+      if (a.k !== null && b.k !== null && a.k !== b.k) return a.k - b.k
+      if (a.k !== null && b.k === null) return -1
+      if (a.k === null && b.k !== null) return 1
       if (a.t !== b.t) return a.t - b.t
       if (a.kind !== b.kind) return a.kind === 'checklist' ? -1 : 1
       return String(a.id).localeCompare(String(b.id))
@@ -1064,6 +1152,44 @@ export const Repository = {
             'update',
             'constatacoes_manuais'
           )
+        }
+      }
+    }
+  },
+
+  async reorderConstatacoes(
+    unidadeId: string,
+    ordered: Array<{ kind: 'checklist' | 'manual'; id: string }>
+  ): Promise<void> {
+    if (!unidadeId) return
+    const input = Array.isArray(ordered) ? ordered : []
+    if (input.length === 0) return
+
+    const respostasAll = await db.respostas.where('unidade_fiscalizada_id').equals(unidadeId).toArray()
+    const byRespId = new Map((respostasAll || []).map((r: any) => [String(r.id), r]))
+    const manuaisAll = await db.constatacoes_manuais.where('unidade_fiscalizada_id').equals(unidadeId).toArray()
+    const byManId = new Map((manuaisAll || []).map((m: any) => [String(m.id), m]))
+
+    for (let i = 0; i < input.length; i++) {
+      const desired = `C${i + 1}`
+      const it = input[i]
+      if (it.kind === 'checklist') {
+        const r: any = byRespId.get(String(it.id))
+        if (!r) continue
+        if (r?.numero_constatacao !== desired) {
+          await db.respostas.update(r.id as any, { ...r, numero_constatacao: desired, updated_at: now() } as any)
+          await enqueueMutation(
+            { id: r.id, unidade_fiscalizada_id: unidadeId, item_checklist_id: r.item_checklist_id, numero_constatacao: desired, updated_at: now() },
+            'update',
+            'respostas'
+          )
+        }
+      } else {
+        const m: any = byManId.get(String(it.id))
+        if (!m) continue
+        if (m?.numero_constatacao !== desired) {
+          await db.constatacoes_manuais.update(m.id as any, { ...m, numero_constatacao: desired, updated_at: now() } as any)
+          await enqueueMutation({ id: m.id, unidade_fiscalizada_id: unidadeId, numero_constatacao: desired, updated_at: now() }, 'update', 'constatacoes_manuais')
         }
       }
     }

@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Repository } from '@/lib/offline/repository';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -17,7 +18,7 @@ import ChecklistItem from '@/components/fiscalizacao/ChecklistItem';
 import PhotoGrid from '@/components/fiscalizacao/PhotoGrid';
 import ConstatacaoManualForm from '@/components/fiscalizacao/ConstatacaoManualForm';
 import EditarNCModal from '@/components/fiscalizacao/EditarNCModal';
-import { ArrowLeft, Loader2, AlertTriangle, Save, Trash2, Camera, ClipboardCheck, FileText, Plus, Pencil, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Loader2, AlertTriangle, Save, Trash2, Camera, ClipboardCheck, FileText, Plus, Pencil, AlertCircle, GripVertical } from 'lucide-react';
 
 
 export default function VistoriarUnidade() {
@@ -60,6 +61,10 @@ export default function VistoriarUnidade() {
     const [showEditarConstatacaoChecklist, setShowEditarConstatacaoChecklist] = useState(false);
     const [respostaChecklistParaEditar, setRespostaChecklistParaEditar] = useState(null);
     const [textoConstatacaoChecklist, setTextoConstatacaoChecklist] = useState('');
+
+    const reorderInFlightRef = useRef(false);
+    const [constatacoesOrdenadas, setConstatacoesOrdenadas] = useState([]);
+    const [recomendacoesOrdenadas, setRecomendacoesOrdenadas] = useState([]);
 
     useEffect(() => {
         return () => {
@@ -143,6 +148,42 @@ export default function VistoriarUnidade() {
         refetchOnMount: false,
         refetchOnReconnect: false
     });
+
+    const parseC = (v) => {
+        const n = parseInt(String(v || '').replace(/[^\d]/g, ''), 10);
+        return Number.isFinite(n) ? n : 999999;
+    };
+
+    const computedConstatacoes = useMemo(() => {
+        const constChecklist = (respostasExistentes || [])
+            .filter(r => (r.resposta === 'SIM' || r.resposta === 'NAO') && r.pergunta && r.pergunta.trim())
+            .map(r => ({ kind: 'checklist', id: r.id, resp: r, n: parseC(r.numero_constatacao) }));
+        const constManuais = (constatacoesManuais || [])
+            .filter(m => m && m.descricao && String(m.descricao).trim())
+            .map(m => ({ kind: 'manual', id: m.id, manual: m, n: parseC(m.numero_constatacao) }));
+        return [...constChecklist, ...constManuais].sort((a, b) => a.n - b.n || String(a.id).localeCompare(String(b.id)));
+    }, [respostasExistentes, constatacoesManuais]);
+
+    const computedRecomendacoes = useMemo(() => {
+        const parseR = (v) => {
+            const n = parseInt(String(v || '').replace(/[^\d]/g, ''), 10);
+            return Number.isFinite(n) ? n : 999999;
+        };
+        return (recomendacoesExistentes || [])
+            .filter(r => r && r.descricao && String(r.descricao).trim())
+            .slice()
+            .sort((a, b) => parseR(a.numero_recomendacao) - parseR(b.numero_recomendacao) || String(a.id).localeCompare(String(b.id)));
+    }, [recomendacoesExistentes]);
+
+    useEffect(() => {
+        if (reorderInFlightRef.current) return;
+        setConstatacoesOrdenadas(computedConstatacoes);
+    }, [computedConstatacoes]);
+
+    useEffect(() => {
+        if (reorderInFlightRef.current) return;
+        setRecomendacoesOrdenadas(computedRecomendacoes);
+    }, [computedRecomendacoes]);
 
     useEffect(() => {
         if (!unidadeId) return;
@@ -460,6 +501,48 @@ export default function VistoriarUnidade() {
             alert(err.message);
         }
     });
+
+    const canEditReorder = unidade?.status !== 'finalizada' || modoEdicao;
+
+    const reorderArray = (list, startIndex, endIndex) => {
+        const result = Array.from(list);
+        const [removed] = result.splice(startIndex, 1);
+        result.splice(endIndex, 0, removed);
+        return result;
+    };
+
+    const onDragEndConstatacoes = async (result) => {
+        if (!canEditReorder) return;
+        if (!result?.destination) return;
+        const { source, destination } = result;
+        if (source.index === destination.index) return;
+        const next = reorderArray(constatacoesOrdenadas, source.index, destination.index);
+        setConstatacoesOrdenadas(next);
+        reorderInFlightRef.current = true;
+        try {
+            await Repository.reorderConstatacoes(unidadeId, next.map((x) => ({ kind: x.kind, id: x.id })));
+            await queryClient.invalidateQueries({ queryKey: ['respostas', unidadeId] });
+            await queryClient.invalidateQueries({ queryKey: ['constatacoes-manuais', unidadeId] });
+        } finally {
+            reorderInFlightRef.current = false;
+        }
+    };
+
+    const onDragEndRecomendacoes = async (result) => {
+        if (!canEditReorder) return;
+        if (!result?.destination) return;
+        const { source, destination } = result;
+        if (source.index === destination.index) return;
+        const next = reorderArray(recomendacoesOrdenadas, source.index, destination.index);
+        setRecomendacoesOrdenadas(next);
+        reorderInFlightRef.current = true;
+        try {
+            await Repository.reorderRecomendacoes(unidadeId, next.map((r) => r.id));
+            await queryClient.invalidateQueries({ queryKey: ['recomendacoes', unidadeId] });
+        } finally {
+            reorderInFlightRef.current = false;
+        }
+    };
 
     const adicionarConstatacaoManualMutation = useMutation({
         mutationFn: async (data) => {
@@ -852,142 +935,159 @@ export default function VistoriarUnidade() {
                             </Button>
                         )}
 
-                        {(() => {
-                            const parseC = (v) => {
-                                const n = parseInt(String(v || '').replace(/[^\d]/g, ''), 10);
-                                return Number.isFinite(n) ? n : 999999;
-                            };
-                            const constChecklist = respostasExistentes
-                                .filter(r => (r.resposta === 'SIM' || r.resposta === 'NAO') && r.pergunta && r.pergunta.trim())
-                                .map(r => ({ kind: 'checklist', id: r.id, resp: r, n: parseC(r.numero_constatacao) }));
-                            const constManuais = (constatacoesManuais || [])
-                                .map(m => ({ kind: 'manual', id: m.id, manual: m, n: parseC(m.numero_constatacao) }));
-                            const itens = [...constChecklist, ...constManuais].sort((a, b) => a.n - b.n || String(a.id).localeCompare(String(b.id)));
-                            return (
-                                <>
-                                    {itens.map(item => {
-                                        if (item.kind === 'manual') {
-                                            const constatacao = item.manual;
-                                            return (
-                                                <Card key={constatacao.id} className="border-blue-200 bg-blue-50">
-                                                    <CardContent className="p-4">
-                                                        <div className="flex items-start gap-3">
-                                                            <Badge className="bg-blue-600">{constatacao.numero_constatacao || '-'}</Badge>
-                                                            <div className="flex-1">
-                                                                <p className="text-sm">{constatacao.descricao}</p>
-                                                                {constatacao.gera_nc && (
-                                                                    <Badge variant="outline" className="mt-2 text-xs">
-                                                                        Gera NC
-                                                                    </Badge>
-                                                                )}
-                                                            </div>
-                                                            {(unidade?.status !== 'finalizada' || modoEdicao) && (
-                                                                <div className="flex gap-2">
-                                                                    <Button
-                                                                        size="sm"
-                                                                        variant="ghost"
-                                                                        onClick={async () => {
-                                                                            setConstatacaoParaEditar(constatacao);
-                                                                            if (constatacao.gera_nc) {
-                                                                                const totalDets = await Repository.countDeterminacoesByUnidade(unidadeId);
-                                                                                const totalRecs = await Repository.countRecomendacoesByUnidade(unidadeId);
-                                                                                setConstatacaoParaNC(constatacao);
-                                                                                setNumerosParaNC({
-                                                                                    numeroNC: `NC?`,
-                                                                                    numeroDeterminacao: `D${(totalDets || 0) + 1}`,
-                                                                                    numeroRecomendacao: `R${(totalRecs || 0) + 1}`,
-                                                                                    numeroConstatacao: constatacao.numero_constatacao,
-                                                                                    ncExistente: {
-                                                                                        artigo_portaria: constatacao.artigo_portaria,
-                                                                                        descricao: constatacao.descricao_nc || `A Constatação ${constatacao.numero_constatacao} não cumpre o disposto no ${constatacao.artigo_portaria || 'artigo aplicável'};`
-                                                                                    },
-                                                                                    determinacaoExistente: constatacao.texto_determinacao ? {
-                                                                                        descricao: constatacao.texto_determinacao
-                                                                                    } : null,
-                                                                                    recomendacaoExistente: constatacao.texto_recomendacao ? {
-                                                                                        descricao: constatacao.texto_recomendacao
-                                                                                    } : null
-                                                                                });
-                                                                                window.setTimeout(() => setShowEditarNC(true), 0);
-                                                                            } else {
-                                                                                setShowAddConstatacao(true);
-                                                                            }
-                                                                        }}
-                                                                    >
-                                                                        <Pencil className="h-4 w-4" />
-                                                                    </Button>
-                                                                    <Button
-                                                                        size="sm"
-                                                                        variant="ghost"
-                                                                        onClick={() => {
-                                                                            setConstatacaoParaExcluir(constatacao);
-                                                                            setShowConfirmaExclusao(true);
-                                                                        }}
-                                                                        className="text-red-600 hover:text-red-700"
-                                                                    >
-                                                                        <Trash2 className="h-4 w-4" />
-                                                                    </Button>
+                        {constatacoesOrdenadas.length === 0 ? (
+                            <p className="text-center text-gray-500 text-sm py-4">
+                                Nenhuma constatação registrada ainda.
+                            </p>
+                        ) : (
+                            <DragDropContext onDragEnd={onDragEndConstatacoes}>
+                                <Droppable droppableId="constatacoes">
+                                    {(provided) => (
+                                        <div ref={provided.innerRef} {...provided.droppableProps} className="space-y-3">
+                                            {constatacoesOrdenadas.map((item, index) => (
+                                                <Draggable
+                                                    key={`${item.kind}:${item.id}`}
+                                                    draggableId={`${item.kind}:${item.id}`}
+                                                    index={index}
+                                                    isDragDisabled={!canEditReorder}
+                                                >
+                                                    {(drag) => {
+                                                        if (item.kind === 'manual') {
+                                                            const constatacao = item.manual;
+                                                            return (
+                                                                <div ref={drag.innerRef} {...drag.draggableProps} style={drag.draggableProps.style}>
+                                                                    <Card className="border-blue-200 bg-blue-50">
+                                                                        <CardContent className="p-4">
+                                                                            <div className="flex items-start gap-3">
+                                                                                {canEditReorder ? (
+                                                                                    <div {...drag.dragHandleProps} className="pt-1 text-gray-500">
+                                                                                        <GripVertical className="h-4 w-4" />
+                                                                                    </div>
+                                                                                ) : null}
+                                                                                <Badge className="bg-blue-600">{constatacao.numero_constatacao || '-'}</Badge>
+                                                                                <div className="flex-1">
+                                                                                    <p className="text-sm">{constatacao.descricao}</p>
+                                                                                    {constatacao.gera_nc && (
+                                                                                        <Badge variant="outline" className="mt-2 text-xs">
+                                                                                            Gera NC
+                                                                                        </Badge>
+                                                                                    )}
+                                                                                </div>
+                                                                                {(unidade?.status !== 'finalizada' || modoEdicao) && (
+                                                                                    <div className="flex gap-2">
+                                                                                        <Button
+                                                                                            size="sm"
+                                                                                            variant="ghost"
+                                                                                            onClick={async () => {
+                                                                                                setConstatacaoParaEditar(constatacao);
+                                                                                                if (constatacao.gera_nc) {
+                                                                                                    const totalDets = await Repository.countDeterminacoesByUnidade(unidadeId);
+                                                                                                    const totalRecs = await Repository.countRecomendacoesByUnidade(unidadeId);
+                                                                                                    setConstatacaoParaNC(constatacao);
+                                                                                                    setNumerosParaNC({
+                                                                                                        numeroNC: `NC?`,
+                                                                                                        numeroDeterminacao: `D${(totalDets || 0) + 1}`,
+                                                                                                        numeroRecomendacao: `R${(totalRecs || 0) + 1}`,
+                                                                                                        numeroConstatacao: constatacao.numero_constatacao,
+                                                                                                        ncExistente: {
+                                                                                                            artigo_portaria: constatacao.artigo_portaria,
+                                                                                                            descricao: constatacao.descricao_nc || `A Constatação ${constatacao.numero_constatacao} não cumpre o disposto no ${constatacao.artigo_portaria || 'artigo aplicável'};`
+                                                                                                        },
+                                                                                                        determinacaoExistente: constatacao.texto_determinacao ? {
+                                                                                                            descricao: constatacao.texto_determinacao
+                                                                                                        } : null,
+                                                                                                        recomendacaoExistente: constatacao.texto_recomendacao ? {
+                                                                                                            descricao: constatacao.texto_recomendacao
+                                                                                                        } : null
+                                                                                                    });
+                                                                                                    window.setTimeout(() => setShowEditarNC(true), 0);
+                                                                                                } else {
+                                                                                                    setShowAddConstatacao(true);
+                                                                                                }
+                                                                                            }}
+                                                                                        >
+                                                                                            <Pencil className="h-4 w-4" />
+                                                                                        </Button>
+                                                                                        <Button
+                                                                                            size="sm"
+                                                                                            variant="ghost"
+                                                                                            onClick={() => {
+                                                                                                setConstatacaoParaExcluir(constatacao);
+                                                                                                setShowConfirmaExclusao(true);
+                                                                                            }}
+                                                                                            className="text-red-600 hover:text-red-700"
+                                                                                        >
+                                                                                            <Trash2 className="h-4 w-4" />
+                                                                                        </Button>
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        </CardContent>
+                                                                    </Card>
                                                                 </div>
-                                                            )}
-                                                        </div>
-                                                    </CardContent>
-                                                </Card>
-                                            );
-                                        }
-                                        const resp = item.resp;
-                                        return (
-                                            <Card key={resp.id}>
-                                                <CardContent className="p-4">
-                                                    <div className="flex items-start gap-3">
-                                                        <Badge variant="secondary">{resp.numero_constatacao || '-'}</Badge>
-                                                        <div className="flex-1">
-                                                            <p className="text-sm">{resp.pergunta}</p>
-                                                            {resp.gera_nc && resp.resposta === 'NAO' && (
-                                                                <Badge variant="outline" className="mt-2 text-xs text-red-600 border-red-300">
-                                                                    Gera NC
-                                                                </Badge>
-                                                            )}
-                                                        </div>
-                                                        {(unidade?.status !== 'finalizada' || modoEdicao) && (
-                                                            <div className="flex gap-2">
-                                                                <Button
-                                                                    size="sm"
-                                                                    variant="ghost"
-                                                                    onClick={() => {
-                                                                        setRespostaChecklistParaEditar(resp);
-                                                                        setTextoConstatacaoChecklist(resp.pergunta || '');
-                                                                        setShowEditarConstatacaoChecklist(true);
-                                                                    }}
-                                                                >
-                                                                    <Pencil className="h-4 w-4" />
-                                                                </Button>
-                                                                <Button
-                                                                    size="sm"
-                                                                    variant="ghost"
-                                                                    onClick={() => {
-                                                                        const ok = window.confirm(`Excluir a constatação ${resp.numero_constatacao || ''}?`);
-                                                                        if (ok) excluirConstatacaoChecklistMutation.mutate(resp);
-                                                                    }}
-                                                                    className="text-red-600 hover:text-red-700"
-                                                                    title="Excluir constatação"
-                                                                >
-                                                                    <Trash2 className="h-4 w-4" />
-                                                                </Button>
+                                                            );
+                                                        }
+                                                        const resp = item.resp;
+                                                        return (
+                                                            <div ref={drag.innerRef} {...drag.draggableProps} style={drag.draggableProps.style}>
+                                                                <Card>
+                                                                    <CardContent className="p-4">
+                                                                        <div className="flex items-start gap-3">
+                                                                            {canEditReorder ? (
+                                                                                <div {...drag.dragHandleProps} className="pt-1 text-gray-500">
+                                                                                    <GripVertical className="h-4 w-4" />
+                                                                                </div>
+                                                                            ) : null}
+                                                                            <Badge variant="secondary">{resp.numero_constatacao || '-'}</Badge>
+                                                                            <div className="flex-1">
+                                                                                <p className="text-sm">{resp.pergunta}</p>
+                                                                                {resp.gera_nc && resp.resposta === 'NAO' && (
+                                                                                    <Badge variant="outline" className="mt-2 text-xs text-red-600 border-red-300">
+                                                                                        Gera NC
+                                                                                    </Badge>
+                                                                                )}
+                                                                            </div>
+                                                                            {(unidade?.status !== 'finalizada' || modoEdicao) && (
+                                                                                <div className="flex gap-2">
+                                                                                    <Button
+                                                                                        size="sm"
+                                                                                        variant="ghost"
+                                                                                        onClick={() => {
+                                                                                            setRespostaChecklistParaEditar(resp);
+                                                                                            setTextoConstatacaoChecklist(resp.pergunta || '');
+                                                                                            setShowEditarConstatacaoChecklist(true);
+                                                                                        }}
+                                                                                    >
+                                                                                        <Pencil className="h-4 w-4" />
+                                                                                    </Button>
+                                                                                    <Button
+                                                                                        size="sm"
+                                                                                        variant="ghost"
+                                                                                        onClick={() => {
+                                                                                            const ok = window.confirm(`Excluir a constatação ${resp.numero_constatacao || ''}?`);
+                                                                                            if (ok) excluirConstatacaoChecklistMutation.mutate(resp);
+                                                                                        }}
+                                                                                        className="text-red-600 hover:text-red-700"
+                                                                                        title="Excluir constatação"
+                                                                                    >
+                                                                                        <Trash2 className="h-4 w-4" />
+                                                                                    </Button>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    </CardContent>
+                                                                </Card>
                                                             </div>
-                                                        )}
-                                                    </div>
-                                                </CardContent>
-                                            </Card>
-                                        );
-                                    })}
-                                    {itens.length === 0 ? (
-                                        <p className="text-center text-gray-500 text-sm py-4">
-                                            Nenhuma constatação registrada ainda.
-                                        </p>
-                                    ) : null}
-                                </>
-                            );
-                        })()}
+                                                        );
+                                                    }}
+                                                </Draggable>
+                                            ))}
+                                            {provided.placeholder}
+                                        </div>
+                                    )}
+                                </Droppable>
+                            </DragDropContext>
+                        )}
                     </TabsContent>
 
                     {/* Checklist Tab */}
@@ -1042,50 +1142,76 @@ export default function VistoriarUnidade() {
                             </Button>
                         )}
 
-                        {recomendacoesExistentes.map(rec => (
-                            <Card key={rec.id}>
-                                <CardContent className="p-4">
-                                    <div className="flex items-start gap-3">
-                                        <Badge variant="secondary">{rec.numero_recomendacao}</Badge>
-                                        <p className="text-sm flex-1">{rec.descricao}</p>
-                                        {(unidade?.status !== 'finalizada' || modoEdicao) && (
-                                            <div className="flex gap-2">
-                                                <Button
-                                                    size="sm"
-                                                    variant="ghost"
-                                                    onClick={() => {
-                                                        setRecomendacaoParaEditar(rec);
-                                                        setTextoRecomendacaoEdicao(rec.descricao || '');
-                                                        setShowEditarRecomendacao(true);
-                                                    }}
-                                                    title="Editar recomendação"
-                                                >
-                                                    <Pencil className="h-4 w-4" />
-                                                </Button>
-                                                <Button
-                                                    size="sm"
-                                                    variant="ghost"
-                                                    onClick={() => {
-                                                        setRecomendacaoParaExcluir(rec);
-                                                        setShowConfirmaExclusaoRecomendacao(true);
-                                                    }}
-                                                    className="text-red-600 hover:text-red-700"
-                                                    title="Excluir recomendação"
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                        )}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
-
-                        {recomendacoesExistentes.length === 0 && (
+                        {recomendacoesOrdenadas.length === 0 ? (
                             <p className="text-center text-gray-500 text-sm py-4">
                                 Nenhuma recomendação adicionada.
                             </p>
+                        ) : (
+                            <DragDropContext onDragEnd={onDragEndRecomendacoes}>
+                                <Droppable droppableId="recomendacoes">
+                                    {(provided) => (
+                                        <div ref={provided.innerRef} {...provided.droppableProps} className="space-y-3">
+                                            {recomendacoesOrdenadas.map((rec, index) => (
+                                                <Draggable
+                                                    key={rec.id}
+                                                    draggableId={String(rec.id)}
+                                                    index={index}
+                                                    isDragDisabled={!canEditReorder}
+                                                >
+                                                    {(drag) => (
+                                                        <div ref={drag.innerRef} {...drag.draggableProps} style={drag.draggableProps.style}>
+                                                            <Card>
+                                                                <CardContent className="p-4">
+                                                                    <div className="flex items-start gap-3">
+                                                                        {canEditReorder ? (
+                                                                            <div {...drag.dragHandleProps} className="pt-1 text-gray-500">
+                                                                                <GripVertical className="h-4 w-4" />
+                                                                            </div>
+                                                                        ) : null}
+                                                                        <Badge variant="secondary">{rec.numero_recomendacao}</Badge>
+                                                                        <p className="text-sm flex-1">{rec.descricao}</p>
+                                                                        {(unidade?.status !== 'finalizada' || modoEdicao) && (
+                                                                            <div className="flex gap-2">
+                                                                                <Button
+                                                                                    size="sm"
+                                                                                    variant="ghost"
+                                                                                    onClick={() => {
+                                                                                        setRecomendacaoParaEditar(rec);
+                                                                                        setTextoRecomendacaoEdicao(rec.descricao || '');
+                                                                                        setShowEditarRecomendacao(true);
+                                                                                    }}
+                                                                                    title="Editar recomendação"
+                                                                                >
+                                                                                    <Pencil className="h-4 w-4" />
+                                                                                </Button>
+                                                                                <Button
+                                                                                    size="sm"
+                                                                                    variant="ghost"
+                                                                                    onClick={() => {
+                                                                                        setRecomendacaoParaExcluir(rec);
+                                                                                        setShowConfirmaExclusaoRecomendacao(true);
+                                                                                    }}
+                                                                                    className="text-red-600 hover:text-red-700"
+                                                                                    title="Excluir recomendação"
+                                                                                >
+                                                                                    <Trash2 className="h-4 w-4" />
+                                                                                </Button>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </CardContent>
+                                                            </Card>
+                                                        </div>
+                                                    )}
+                                                </Draggable>
+                                            ))}
+                                            {provided.placeholder}
+                                        </div>
+                                    )}
+                                </Droppable>
+                            </DragDropContext>
                         )}
+
                     </TabsContent>
                 </Tabs>
             </div>
