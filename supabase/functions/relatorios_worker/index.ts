@@ -248,6 +248,13 @@ async function generatePdfForJob(adminClient: any, job: any) {
     return (n === 'SIM' || n === 'NAO') && hasText(r?.pergunta)
   }
 
+  const isRecomendacaoManual = (r: any) => {
+    const o = String(r?.origem ?? '').trim().toLowerCase()
+    return o === '' || o === 'manual'
+  }
+
+  const todasRecomendacoesManual = (todasRecomendacoes || []).filter(isRecomendacaoManual)
+
   const canonicalNumeroRecomendacao = (v: unknown) => {
     const digits = String(v ?? '').replace(/[^\d]/g, '')
     const n = parseInt(digits, 10)
@@ -334,7 +341,7 @@ async function generatePdfForJob(adminClient: any, job: any) {
     const respostas = respostasByUnidade.get(String(u.id)) || []
     const ncs = todasNcs.filter((n) => n.unidade_fiscalizada_id === u.id)
     const determinacoes = todasDeterminacoes.filter((d) => d.unidade_fiscalizada_id === u.id)
-    const recomendacoes = dedupeRecomendacoes(todasRecomendacoes.filter((r) => r.unidade_fiscalizada_id === u.id))
+    const recomendacoes = dedupeRecomendacoes(todasRecomendacoesManual.filter((r) => r.unidade_fiscalizada_id === u.id))
     const manuais = todasConstatacoesManuais.filter((m) => m.unidade_fiscalizada_id === u.id && hasText(m?.descricao))
 
     const mapeamentoUnidade: any = { constatacoes: {}, ncs: {}, determinacoes: {}, recomendacoes: {} }
@@ -540,7 +547,7 @@ async function generatePdfForJob(adminClient: any, job: any) {
   const totalRecomendacoes = (() => {
     const seen = new Set<string>()
     let total = 0
-    for (const r of todasRecomendacoes || []) {
+    for (const r of todasRecomendacoesManual || []) {
       const uid = String(r?.unidade_fiscalizada_id || '')
       const num = canonicalNumeroRecomendacao(r?.numero_recomendacao)
       const key = num ? `${uid}:num:${num}` : `${uid}:id:${String(r?.id || '')}`
@@ -943,7 +950,7 @@ async function generatePdfForJob(adminClient: any, job: any) {
     const respostas = respostasByUnidade.get(String(unidade.id)) || []
     const ncs = todasNcs.filter((n) => n.unidade_fiscalizada_id === unidade.id)
     const determinacoes = todasDeterminacoes.filter((d) => d.unidade_fiscalizada_id === unidade.id)
-    const recomendacoes = dedupeRecomendacoes(todasRecomendacoes.filter((r) => r.unidade_fiscalizada_id === unidade.id))
+    const recomendacoes = dedupeRecomendacoes(todasRecomendacoesManual.filter((r) => r.unidade_fiscalizada_id === unidade.id))
     const constatacoesManuais = todasConstatacoesManuais.filter((m) => m.unidade_fiscalizada_id === unidade.id && hasText(m?.descricao))
     const fotosRaw = Array.isArray(unidade.fotos_unidade) ? unidade.fotos_unidade : []
     const mapeamento = mapeamentosNumeracao[idx]

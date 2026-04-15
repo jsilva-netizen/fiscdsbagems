@@ -1165,7 +1165,7 @@ export async function syncUp(onProgress?: (msg: string, isError?: boolean) => vo
           unidade_fiscalizada_id: unidadeServerId,
           numero_recomendacao: `R${idx + 1}`,
           descricao: String(r.descricao || ''),
-          origem: String(r.origem || 'manual'),
+          origem: 'manual',
           updated_at: String(r.updated_at || r.created_at || now())
         }))
 
