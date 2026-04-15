@@ -36,7 +36,30 @@ serve(async (req) => {
     return m?.[1] ? String(m[1]).trim() : ''
   }
 
-  const jwt = extractBearer(req.headers.get('Authorization') || '') || String(payload?.jwt || req.headers.get('x-user-jwt') || '')
+  const decodeJwtPayload = (token: string) => {
+    try {
+      const parts = String(token || '').split('.')
+      if (parts.length < 2) return null
+      const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+      const pad = b64.length % 4 === 0 ? '' : '='.repeat(4 - (b64.length % 4))
+      const json = atob(b64 + pad)
+      return JSON.parse(json)
+    } catch {
+      return null
+    }
+  }
+
+  const isProbablyUserAccessToken = (token: string) => {
+    const p: any = decodeJwtPayload(token)
+    if (!p) return false
+    if (p?.role && String(p.role).toLowerCase() === 'anon') return false
+    if (!p?.sub) return false
+    return true
+  }
+
+  const tokenFromAuth = extractBearer(req.headers.get('Authorization') || '')
+  const tokenFromPayload = String(payload?.jwt || req.headers.get('x-user-jwt') || '')
+  const jwt = (isProbablyUserAccessToken(tokenFromAuth) ? tokenFromAuth : '') || (isProbablyUserAccessToken(tokenFromPayload) ? tokenFromPayload : '')
   if (!jwt) return jsonResponse({ error: 'unauthorized' }, 401)
 
   const fiscalizacao_id = String(payload?.fiscalizacao_id || '')
