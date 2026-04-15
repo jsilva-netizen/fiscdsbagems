@@ -3,14 +3,20 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 const headReachable = async () => {
   try {
     const base = import.meta.env.VITE_SUPABASE_URL
-    const key = import.meta.env.VITE_SUPABASE_ANON_KEY
     if (!base) return false
-    const url = `${base}/auth/v1/health`
+    const urls = [`${base}/rest/v1/`, `${base}/auth/v1/health`]
     const ctrl = new AbortController()
-    const t = setTimeout(() => ctrl.abort(), 3000)
-    const res = await fetch(url, { method: 'GET', cache: 'no-store', headers: key ? { apikey: key } : {}, signal: ctrl.signal })
+    const t = setTimeout(() => ctrl.abort(), 6000)
+    for (const url of urls) {
+      try {
+        const res = await fetch(url, { method: 'GET', cache: 'no-store', signal: ctrl.signal })
+        clearTimeout(t)
+        return !!res
+      } catch {
+      }
+    }
     clearTimeout(t)
-    return !!res && res.ok
+    return false
   } catch {
     return false
   }
@@ -23,18 +29,26 @@ export function useOnline(debounceMs = 1500, intervalMs = 5000) {
   const [lastCheckAt, setLastCheckAt] = useState(null)
   const timer = useRef(null)
   const poller = useRef(null)
+  const failStreak = useRef(0)
 
   const doCheck = useMemo(() => {
     return async () => {
       setChecking(true)
       if (!navigatorOnline) {
+        failStreak.current = 0
         setReachable(false)
         setChecking(false)
         setLastCheckAt(Date.now())
         return
       }
       const ok = await headReachable()
-      setReachable(ok)
+      if (ok) {
+        failStreak.current = 0
+        setReachable(true)
+      } else {
+        failStreak.current = (failStreak.current || 0) + 1
+        if (failStreak.current >= 2) setReachable(false)
+      }
       setChecking(false)
       setLastCheckAt(Date.now())
     }
