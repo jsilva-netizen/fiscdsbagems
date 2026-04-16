@@ -1024,7 +1024,7 @@ async function generatePdfForJob(adminClient: any, job: any) {
 
         const novoNumNC = `NC${mapeamento.ncs[nc.id]}.`
         const descricaoCompleta = numConstatacaoNovo
-          ? `A Constatação ${numConstatacaoNovo} não cumpre o disposto no ${nc.artigo_portaria || 'artigo'};`
+          ? `Constatação ${numConstatacaoNovo}: não cumprimento do ${nc.artigo_portaria || 'artigo'};`
           : String(nc.descricao || '')
         const lines = wrapText(descricaoCompleta, mm2pt(210 - 2 * 10 - 15), font, 9)
         const cellHeight = Math.max(rowHeight, lines.length * mm2pt(5) + mm2pt(4))

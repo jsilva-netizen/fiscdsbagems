@@ -602,7 +602,7 @@ export default function VistoriarUnidade() {
                 // Se for edição E já era uma NC antes, carregar dados existentes
                 const ncExistente = (foiEdicao && baseConst.artigo_portaria) ? {
                     artigo_portaria: baseConst.artigo_portaria,
-                    descricao: baseConst.descricao_nc || `A Constatação ${baseConst.numero_constatacao} não cumpre o disposto no ${baseConst.artigo_portaria || 'artigo aplicável'};`
+                    descricao: baseConst.descricao_nc || `Constatação ${baseConst.numero_constatacao}: não cumprimento do ${baseConst.artigo_portaria || 'artigo aplicável'};`
                 } : null;
 
                 const detExistente = (foiEdicao && baseConst.texto_determinacao) ? {
@@ -1002,10 +1002,10 @@ export default function VistoriarUnidade() {
                                                                                                         numeroDeterminacao: `D${(totalDets || 0) + 1}`,
                                                                                                         numeroRecomendacao: `R${(totalRecs || 0) + 1}`,
                                                                                                         numeroConstatacao: constatacao.numero_constatacao,
-                                                                                                        ncExistente: {
-                                                                                                            artigo_portaria: constatacao.artigo_portaria,
-                                                                                                            descricao: constatacao.descricao_nc || `A Constatação ${constatacao.numero_constatacao} não cumpre o disposto no ${constatacao.artigo_portaria || 'artigo aplicável'};`
-                                                                                                        },
+                                                                                    ncExistente: {
+                                                                                        artigo_portaria: constatacao.artigo_portaria,
+                                                                                        descricao: constatacao.descricao_nc || `Constatação ${constatacao.numero_constatacao}: não cumprimento do ${constatacao.artigo_portaria || 'artigo aplicável'};`
+                                                                                    },
                                                                                                         determinacaoExistente: constatacao.texto_determinacao ? {
                                                                                                             descricao: constatacao.texto_determinacao
                                                                                                         } : null,

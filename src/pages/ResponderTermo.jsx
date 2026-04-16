@@ -757,7 +757,7 @@ export default function ResponderTermo() {
 
                 const descricaoNC =
                   nc && constNumero
-                    ? `A Constatação ${constNumero} não cumpre o disposto no ${nc.artigo_portaria || 'artigo'};`
+                    ? `Constatação ${constNumero}: não cumprimento do ${nc.artigo_portaria || 'artigo'};`
                     : nc?.descricao || '';
 
                 let textoDet = String(det?.descricao || '').trim();

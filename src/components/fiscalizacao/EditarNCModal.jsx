@@ -90,7 +90,7 @@ export default function EditarNCModal({
             texto_constatacao: textoConstatacao.trim(),
             artigo_portaria: artigoPortaria.trim(),
             // A descrição da NC será gerada automaticamente no Repository/RPC
-            texto_nc: `A Constatação ${numeroConstatacao} não cumpre o disposto no ${artigoPortaria.trim()};`,
+            texto_nc: `Constatação ${numeroConstatacao}: não cumprimento do ${artigoPortaria.trim()};`,
             gera_determinacao: geraDeterminacao,
             gera_recomendacao: geraRecomendacao,
             texto_determinacao: geraDeterminacao ? textoDeterminacao.trim() : null,
@@ -146,7 +146,7 @@ export default function EditarNCModal({
                         />
                         <p className="text-xs text-gray-500 mt-2 italic bg-gray-50 p-2 rounded border">
                             A Não Conformidade será gerada como: <br/>
-                            <strong>A Constatação {numeroConstatacao} não cumpre o disposto no {artigoPortaria || '...'};</strong>
+                            <strong>Constatação {numeroConstatacao}: não cumprimento do {artigoPortaria || '...'};</strong>
                         </p>
                     </div>
 

@@ -551,7 +551,7 @@ export default function AnalisarResposta() {
                                         }
 
                                         const descricaoNC = numConstatacaoNovo
-                                            ? `A Constatação ${numConstatacaoNovo} não cumpre o disposto no ${nc?.artigo_portaria || 'artigo'};`
+                                            ? `Constatação ${numConstatacaoNovo}: não cumprimento do ${nc?.artigo_portaria || 'artigo'};`
                                             : (nc?.descricao || '');
 
                                         let textoDet = det?.descricao || '';
@@ -668,7 +668,7 @@ export default function AnalisarResposta() {
                                     }
 
                                     const descricaoNC = numConstatacaoNovo
-                                        ? `A Constatação ${numConstatacaoNovo} não cumpre o disposto no ${nc?.artigo_portaria || 'artigo'};`
+                                        ? `Constatação ${numConstatacaoNovo}: não cumprimento do ${nc?.artigo_portaria || 'artigo'};`
                                         : (nc?.descricao || '');
 
                                     return (

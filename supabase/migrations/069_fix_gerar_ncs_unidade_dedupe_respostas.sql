@@ -83,7 +83,7 @@ BEGIN
     IF upper(coalesce(r_resp.resposta, '')) IN ('NAO','NÃO') AND coalesce(r_resp.gera_nc, false) THEN
       contNC := contNC + 1;
 
-      v_nc_descricao := 'A Constatação '||r_resp.numero_constatacao||' não cumpre o disposto no '||coalesce(r_resp.artigo_portaria, 'artigo aplicável')||';';
+      v_nc_descricao := 'Constatação '||r_resp.numero_constatacao||': não cumprimento do '||coalesce(r_resp.artigo_portaria, 'artigo aplicável')||';';
 
       INSERT INTO public.nao_conformidades (
         unidade_fiscalizada_id, resposta_checklist_id, numero_nc, artigo_portaria, descricao, gravidade
@@ -128,8 +128,8 @@ BEGIN
       contNC := contNC + 1;
 
       v_nc_descricao := coalesce(
-        r_man.descricao_nc,
-        'A Constatação '||r_man.numero_constatacao||' não cumpre o disposto no '||coalesce(r_man.artigo_portaria, 'artigo aplicável')||';'
+        nullif(btrim(r_man.descricao_nc), ''),
+        'Constatação '||r_man.numero_constatacao||': não cumprimento do '||coalesce(r_man.artigo_portaria, 'artigo aplicável')||';'
       );
 
       INSERT INTO public.nao_conformidades (

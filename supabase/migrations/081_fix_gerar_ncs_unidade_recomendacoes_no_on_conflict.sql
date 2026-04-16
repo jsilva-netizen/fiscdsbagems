@@ -102,7 +102,7 @@ BEGIN
     IF upper(coalesce(r_resp.resposta, '')) IN ('NAO','NÃO') AND coalesce(r_resp.gera_nc, false) THEN
       contNC := contNC + 1;
 
-      v_nc_descricao := 'A Constatação '||coalesce(r_resp.numero_constatacao, 'C?')||' não cumpre o disposto no '||coalesce(r_resp.artigo_portaria, 'artigo aplicável')||';';
+      v_nc_descricao := 'Constatação '||coalesce(r_resp.numero_constatacao, 'C?')||': não cumprimento do '||coalesce(r_resp.artigo_portaria, 'artigo aplicável')||';';
       IF v_nc_descricao IS NULL OR btrim(v_nc_descricao) = '' THEN
         v_nc_descricao := 'Não conformidade sem descrição;';
       END IF;
@@ -148,7 +148,7 @@ BEGIN
 
       v_nc_descricao := coalesce(
         nullif(btrim(r_man.descricao_nc), ''),
-        'A Constatação '||coalesce(r_man.numero_constatacao, 'C?')||' não cumpre o disposto no '||coalesce(r_man.artigo_portaria, 'artigo aplicável')||';'
+        'Constatação '||coalesce(r_man.numero_constatacao, 'C?')||': não cumprimento do '||coalesce(r_man.artigo_portaria, 'artigo aplicável')||';'
       );
       v_nc_descricao := regexp_replace(
         v_nc_descricao,
