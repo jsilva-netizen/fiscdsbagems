@@ -1287,7 +1287,7 @@ export const Repository = {
   async updateUnidadeFotos(unidadeId: string, fotos: Partial<Foto>[]): Promise<void> {
     const unidade = await db.unidades.get(unidadeId)
     const input = Array.isArray(fotos) ? fotos : []
-    const normalized = input
+    const normalizedAll = input
       .map((f) => {
         const anyF: any = f as any
         const bucket = typeof anyF.bucket === 'string' ? String(anyF.bucket) : ''
@@ -1297,7 +1297,7 @@ export const Repository = {
         }
         const url = String(anyF.url || '')
         if (!url) return null
-        if (isLocalUrl(url)) return null
+        if (isLocalUrl(url)) return normalizeFoto({ ...f, url })
         const parsed = Repository.parseStorageUrl(url)
         if (parsed) {
           return normalizeFoto({ ...f, url: toStorageUrl(parsed.bucket, parsed.path), bucket: parsed.bucket, path: parsed.path })
@@ -1305,10 +1305,14 @@ export const Repository = {
         return normalizeFoto(f)
       })
       .filter(Boolean) as any
+    const normalizedRemote = (normalizedAll || []).filter((f: any) => {
+      const url = String(f?.url || '')
+      return !!url && !isLocalUrl(url)
+    }) as any
     if (unidade) {
       await db.unidades.update(unidadeId, {
         ...unidade,
-        fotos_unidade: normalized,
+        fotos_unidade: normalizedAll,
         updated_at: now()
       })
     }
@@ -1316,7 +1320,7 @@ export const Repository = {
     for (const f of old) {
       await db.fotos.delete((f as any).id)
     }
-    for (const f of normalized) {
+    for (const f of normalizedRemote) {
       await db.fotos.add({
         id: uid(),
         unidade_fiscalizada_id: unidadeId,
@@ -1330,7 +1334,7 @@ export const Repository = {
     }
     // Sempre enfileira a mutação de atualização da lista de fotos (fotos remotas que sobraram)
     // Se houver fotos locais novas, elas serão adicionadas à lista pelo syncFotos do motor de sincronia
-    await enqueueMutation({ unidade_fiscalizada_id: unidadeId, fotos_unidade: normalized }, 'update', 'fotos')
+    await enqueueMutation({ unidade_fiscalizada_id: unidadeId, fotos_unidade: normalizedRemote }, 'update', 'fotos')
   },
 
   async addLocalFotoFromFile(

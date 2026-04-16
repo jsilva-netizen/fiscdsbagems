@@ -599,6 +599,7 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
       const unidadeLocalId = payload?.unidade_fiscalizada_id
       const unidadeId = await ensureUnidadeServerId(unidadeLocalId)
       const fotosRemotas = Array.isArray(payload?.fotos_unidade) ? payload.fotos_unidade : []
+      const isLocalUrl = (u: string) => /^blob:|^data:|^file:/i.test(String(u || ''))
       
       const { data: existingRow } = await supabase
         .from('unidades_fiscalizadas')
@@ -647,7 +648,30 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
         }
       }
 
-      const merged = Array.from(byKey.values())
+      const desiredKeys: string[] = []
+      if (localUnit && Array.isArray(localUnit.fotos_unidade)) {
+        for (const x of localUnit.fotos_unidade as any[]) {
+          const u = typeof x?.url === 'string' ? String(x.url) : ''
+          if (u && isLocalUrl(u)) continue
+          const k = keyOf(x)
+          if (k) desiredKeys.push(k)
+        }
+      }
+      if (desiredKeys.length === 0) {
+        for (const x of fotosRemotas) {
+          const k = keyOf(x)
+          if (k) desiredKeys.push(k)
+        }
+      }
+
+      const merged: any[] = []
+      for (const k of desiredKeys) {
+        const v = byKey.get(k)
+        if (!v) continue
+        merged.push(v)
+        byKey.delete(k)
+      }
+      for (const v of byKey.values()) merged.push(v)
       const { error } = await supabase
         .from('unidades_fiscalizadas')
         .update({ fotos_unidade: merged, updated_at: now() })
@@ -1251,6 +1275,14 @@ function selectColsForPull(entity: Entity): string {
 async function pullEntity(entity: Entity, since?: string) {
   const table = entityTableMap[entity]
   const prefer = selectColsForPull(entity)
+  const isLocalUrl = (u: string) => /^blob:|^data:|^file:/i.test(String(u || ''))
+  const keyOfFoto = (x: any): string => {
+    const b = typeof x?.bucket === 'string' ? x.bucket : ''
+    const p = typeof x?.path === 'string' ? x.path : ''
+    if (b && p) return `${b}:${p}`
+    const u = typeof x?.url === 'string' ? x.url : ''
+    return u ? String(u) : ''
+  }
   if (!since) {
     const rows = await withBackoff(() => withTimeout(() => safeSelect(table, prefer), 15000))
     for (const row of rows) {
@@ -1271,6 +1303,42 @@ async function pullEntity(entity: Entity, since?: string) {
           await db.fiscalizacoes.put(normalized)
           break
         case 'unidades':
+          try {
+            const existingLocal: any = await db.unidades.get(local_id as any)
+            if (existingLocal && Array.isArray(existingLocal.fotos_unidade) && Array.isArray((normalized as any).fotos_unidade)) {
+              const hasLocal = (existingLocal.fotos_unidade as any[]).some((f) => isLocalUrl(String(f?.url || '')))
+              if (hasLocal) {
+                const serverFotos = (normalized as any).fotos_unidade as any[]
+                const serverByKey = new Map<string, any>()
+                for (const sf of serverFotos) {
+                  const k = keyOfFoto(sf)
+                  if (k) serverByKey.set(k, sf)
+                }
+                const used = new Set<string>()
+                const mergedLocal: any[] = []
+                for (const lf of existingLocal.fotos_unidade as any[]) {
+                  const u = String(lf?.url || '')
+                  if (u && isLocalUrl(u)) {
+                    mergedLocal.push(lf)
+                    continue
+                  }
+                  const k = keyOfFoto(lf)
+                  if (k && serverByKey.has(k)) {
+                    mergedLocal.push({ ...lf, ...serverByKey.get(k) })
+                    used.add(k)
+                  } else {
+                    mergedLocal.push(lf)
+                  }
+                }
+                for (const sf of serverFotos) {
+                  const k = keyOfFoto(sf)
+                  if (!k || used.has(k)) continue
+                  mergedLocal.push(sf)
+                }
+                ;(normalized as any).fotos_unidade = mergedLocal
+              }
+            }
+          } catch {}
           await db.unidades.put(normalized)
           break
         case 'respostas':
@@ -1344,6 +1412,42 @@ async function pullEntity(entity: Entity, since?: string) {
         await db.fiscalizacoes.put(normalized)
         break
       case 'unidades':
+        try {
+          const existingLocal: any = await db.unidades.get(local_id as any)
+          if (existingLocal && Array.isArray(existingLocal.fotos_unidade) && Array.isArray((normalized as any).fotos_unidade)) {
+            const hasLocal = (existingLocal.fotos_unidade as any[]).some((f) => isLocalUrl(String(f?.url || '')))
+            if (hasLocal) {
+              const serverFotos = (normalized as any).fotos_unidade as any[]
+              const serverByKey = new Map<string, any>()
+              for (const sf of serverFotos) {
+                const k = keyOfFoto(sf)
+                if (k) serverByKey.set(k, sf)
+              }
+              const used = new Set<string>()
+              const mergedLocal: any[] = []
+              for (const lf of existingLocal.fotos_unidade as any[]) {
+                const u = String(lf?.url || '')
+                if (u && isLocalUrl(u)) {
+                  mergedLocal.push(lf)
+                  continue
+                }
+                const k = keyOfFoto(lf)
+                if (k && serverByKey.has(k)) {
+                  mergedLocal.push({ ...lf, ...serverByKey.get(k) })
+                  used.add(k)
+                } else {
+                  mergedLocal.push(lf)
+                }
+              }
+              for (const sf of serverFotos) {
+                const k = keyOfFoto(sf)
+                if (!k || used.has(k)) continue
+                mergedLocal.push(sf)
+              }
+              ;(normalized as any).fotos_unidade = mergedLocal
+            }
+          }
+        } catch {}
         await db.unidades.put(normalized)
         break
       case 'respostas':
@@ -1548,11 +1652,11 @@ export async function syncFotosWithProgress(onProgress?: (uploaded: number, tota
   }
   const workers = Array.from({ length: Math.max(1, Math.min(concurrency, unsynced.length)) }, () => worker())
   await Promise.all(workers)
-  const byUnidade: Record<string, { bucket: string; path: string; legenda?: string }[]> = {}
+  const byUnidade: Record<string, { bucket: string; path: string; legenda?: string; localId?: string }[]> = {}
   const syncedAll = await db.fotos_local.where('syncedAt').above('' as any).toArray()
   for (const f of syncedAll.filter((x) => !!x.storagePath)) {
     const list = byUnidade[f.unidadeLocalId] || []
-    list.push({ bucket: 'fotos_fiscalizacao', path: f.storagePath!, legenda: f.legenda })
+    list.push({ bucket: 'fotos_fiscalizacao', path: f.storagePath!, legenda: f.legenda, localId: String((f as any).localId || '') })
     byUnidade[f.unidadeLocalId] = list
   }
   const entries = Object.entries(byUnidade)
@@ -1588,6 +1692,13 @@ export async function syncFotosWithProgress(onProgress?: (uploaded: number, tota
           if (!u) return ''
           return u
         }
+        const isLocalUrl = (u: string) => /^blob:|^data:|^file:/i.test(String(u || ''))
+        const uploadedKeyByLocalId = new Map<string, string>()
+        for (const x of fotos_unidade as any[]) {
+          const lid = String(x?.localId || '').trim()
+          const k = keyOf(x)
+          if (lid && k) uploadedKeyByLocalId.set(lid, k)
+        }
         for (const x of existing) {
           const k = keyOf(x)
           if (k) byKey.set(k, x)
@@ -1611,17 +1722,85 @@ export async function syncFotosWithProgress(onProgress?: (uploaded: number, tota
           }
         }
 
-        const merged = Array.from(byKey.values())
+        const desiredKeys: string[] = []
+        if (localUnitCurrent && Array.isArray((localUnitCurrent as any).fotos_unidade)) {
+          for (const it of (localUnitCurrent as any).fotos_unidade as any[]) {
+            const u = typeof it?.url === 'string' ? String(it.url) : ''
+            const lid = String(it?.localId || '').trim()
+            if (u && isLocalUrl(u) && lid && uploadedKeyByLocalId.has(lid)) {
+              desiredKeys.push(String(uploadedKeyByLocalId.get(lid)))
+              continue
+            }
+            if (u && isLocalUrl(u)) continue
+            const k = keyOf(it)
+            if (k) desiredKeys.push(k)
+          }
+        }
+        if (desiredKeys.length === 0) {
+          for (const x of existing) {
+            const k = keyOf(x)
+            if (k) desiredKeys.push(k)
+          }
+        }
+
+        const merged: any[] = []
+        for (const k of desiredKeys) {
+          const v = byKey.get(k)
+          if (!v) continue
+          merged.push(v)
+          byKey.delete(k)
+        }
+        for (const v of byKey.values()) merged.push(v)
         const { error } = await supabase
           .from('unidades_fiscalizadas')
           .update({ fotos_unidade: merged, updated_at: new Date().toISOString() })
           .eq('id', serverId as any)
         if (error) throw error
 
-        // Atualiza a unidade localmente para que as fotos apareçam imediatamente,
-        // sem depender do syncDown (que poderia falhar ou pular)
+        // Atualiza a unidade local preservando placeholders locais (ordem da UI),
+        // substituindo os locais que já foram enviados pelo objeto remoto correspondente.
         const localUnit = await db.unidades.get(unidadeId as any)
-        if (localUnit) {
+        if (localUnit && Array.isArray((localUnit as any).fotos_unidade)) {
+          const remoteByKey = new Map<string, any>()
+          for (const x of merged) {
+            const k = keyOf(x)
+            if (k) remoteByKey.set(k, x)
+          }
+          const usedRemote = new Set<string>()
+          const nextLocal: any[] = []
+          for (const it of (localUnit as any).fotos_unidade as any[]) {
+            const u = typeof it?.url === 'string' ? String(it.url) : ''
+            const lid = String(it?.localId || '').trim()
+            if (u && isLocalUrl(u) && lid && uploadedKeyByLocalId.has(lid)) {
+              const k = String(uploadedKeyByLocalId.get(lid))
+              const v = remoteByKey.get(k)
+              if (v) {
+                nextLocal.push(v)
+                usedRemote.add(k)
+                continue
+              }
+            }
+            if (u && isLocalUrl(u)) {
+              nextLocal.push(it)
+              continue
+            }
+            const k = keyOf(it)
+            const v = k ? remoteByKey.get(k) : null
+            if (k && v) {
+              nextLocal.push(v)
+              usedRemote.add(k)
+            } else if (k) {
+              nextLocal.push(it)
+            }
+          }
+          for (const x of merged) {
+            const k = keyOf(x)
+            if (!k) continue
+            if (usedRemote.has(k)) continue
+            nextLocal.push(x)
+          }
+          await db.unidades.update(unidadeId as any, { fotos_unidade: nextLocal })
+        } else if (localUnit) {
           await db.unidades.update(unidadeId as any, { fotos_unidade: merged })
         }
       }

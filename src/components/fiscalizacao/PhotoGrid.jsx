@@ -6,7 +6,8 @@ import { MAX_PHOTOS_PER_UNIDADE, extractCaptureFromImageFile } from '@/lib/offli
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import OptimizedImage from '@/components/fiscalizacao/OptimizedImage.jsx';
-import { Loader2, Image as ImageIcon, Camera as CameraIcon, Trash2, Save, Edit2, X, Clock } from 'lucide-react';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { Loader2, Image as ImageIcon, Camera as CameraIcon, Trash2, Save, Edit2, X, Clock, GripVertical } from 'lucide-react';
 
 export default function PhotoGrid({ 
     fotos = [], 
@@ -14,11 +15,15 @@ export default function PhotoGrid({
     onAddFoto, 
     onRemoveFoto,
     onUpdateLegenda,
+    onReorderFotos,
     titulo = "Fotos da Unidade",
     fiscalizacaoId,
     unidadeId,
     isEditable = true
 }) {
+    const fotosList = (Array.isArray(fotos) ? fotos : [])
+        .map((f) => (typeof f === 'string' ? { url: f, legenda: '' } : f))
+        .filter(Boolean);
     const [selectedFoto, setSelectedFoto] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
     const [isCapturing, setIsCapturing] = useState(false);
@@ -35,6 +40,22 @@ export default function PhotoGrid({
     const GPS_FIX_MAX_AGE_MS = 2 * 60 * 1000;
     const GPS_FALLBACK_MAX_AGE_MS = 10 * 60 * 1000;
     const captureResetTimerRef = useRef(null);
+
+    const fotoKey = (foto, index) => {
+        const f = foto || {};
+        if (f.bucket && f.path) return `${f.bucket}:${f.path}`;
+        if (f.localId) return `local:${f.localId}`;
+        const url = String(f.url || '');
+        if (url) return `url:${url}`;
+        return `idx:${index}`;
+    };
+
+    const reorderArray = (list, startIndex, endIndex) => {
+        const result = Array.from(list);
+        const [removed] = result.splice(startIndex, 1);
+        result.splice(endIndex, 0, removed);
+        return result;
+    };
 
     const resolveFotoSrc = (foto) => {
         if (!foto) return '';
@@ -57,7 +78,7 @@ export default function PhotoGrid({
         const run = async () => {
             const next = { ...signedByKey };
             const pending = [];
-            for (const foto of fotos || []) {
+            for (const foto of fotosList || []) {
                 if (!foto) continue;
                 if (foto.bucket && foto.path) {
                     const k = `${foto.bucket}:${foto.path}`;
@@ -93,7 +114,7 @@ export default function PhotoGrid({
         return () => {
             cancelled = true;
         };
-    }, [fotos]);
+    }, [fotosList]);
 
     const getValidatedGpsFix = async () => {
         if (!('geolocation' in navigator) || !navigator.geolocation) {
@@ -272,7 +293,7 @@ export default function PhotoGrid({
         }
     };
 
-    const faltam = Math.max(0, minFotos - fotos.length);
+    const faltam = Math.max(0, minFotos - fotosList.length);
 
     return (
         <div className="space-y-4">
@@ -339,79 +360,115 @@ export default function PhotoGrid({
             </div>
 
             {/* Grid de fotos */}
-            {fotos.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {fotos.filter(f => !!(f?.url || (f?.bucket && f?.path) || f?.localId)).map((foto, index) => (
-                        <div 
-                            key={`foto-${index}-${(foto?.bucket && foto?.path) ? `${foto.bucket}:${foto.path}` : (foto?.url || foto?.localId || '').split('/').pop()}`}
-                            className="relative group rounded-lg overflow-hidden border"
-                        >
-                            <OptimizedImage 
-                                src={resolveFotoSrc(foto)} 
-                                alt={`Foto ${index + 1}`}
-                                className="w-full h-32 object-cover cursor-pointer"
-                                onClick={() => setSelectedFoto(foto)}
-                            />
-                            {isEditable && (
-                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                    <Button
-                                        variant="destructive"
-                                        size="sm"
-                                        onClick={() => onRemoveFoto(index)}
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            )}
-                            {isEditable ? (
-                                <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-1 flex gap-1">
-                                    <Input
-                                        placeholder="Legenda..."
-                                        value={editingLegenda[index] ? (tempLegendas[index] ?? foto.legenda ?? '') : (foto.legenda || '')}
-                                        onChange={(e) => setTempLegendas(prev => ({ ...prev, [index]: e.target.value }))}
-                                        readOnly={!editingLegenda[index]}
-                                        className="h-6 text-xs bg-transparent border-none text-white placeholder:text-gray-300"
-                                    />
-                                    <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        className="h-6 w-6 p-0 text-white hover:bg-white/20"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            if (editingLegenda[index]) {
-                                                let legenda = tempLegendas[index] ?? foto.legenda ?? '';
-                                                legenda = legenda.trim();
-                                                if (legenda) {
-                                                    legenda = legenda.replace(/\.+$/, '.');
-                                                    if (!/[.!?]$/.test(legenda)) {
-                                                        legenda = `${legenda}.`;
-                                                    }
-                                                }
-                                                onUpdateLegenda(index, legenda);
-                                                if (foto.localId) {
-                                                    Repository.updateLocalFotoLegenda(foto.localId, legenda).catch(() => {});
-                                                }
-                                                setEditingLegenda(prev => ({ ...prev, [index]: false }));
-                                            } else {
-                                                setEditingLegenda(prev => ({ ...prev, [index]: true }));
-                                                setTempLegendas(prev => ({ ...prev, [index]: foto.legenda || '' }));
-                                            }
-                                        }}
-                                    >
-                                        {editingLegenda[index] ? <Save className="h-3 w-3" /> : <Edit2 className="h-3 w-3" />}
-                                    </Button>
-                                </div>
-                            ) : (
-                                foto.legenda && (
-                                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-1">
-                                        <p className="px-1">{foto.legenda}</p>
-                                    </div>
-                                )
-                            )}
+            {fotosList.length > 0 && (
+                <DragDropContext
+                    onDragEnd={(result) => {
+                        if (!onReorderFotos) return;
+                        if (!isEditable) return;
+                        if (!result?.destination) return;
+                        const { source, destination } = result;
+                        if (source.index === destination.index) return;
+                        const next = reorderArray(fotosList, source.index, destination.index);
+                        onReorderFotos(next);
+                    }}
+                >
+                    <Droppable droppableId="fotos" direction="horizontal">
+                        {(provided) => (
+                            <div ref={provided.innerRef} {...provided.droppableProps} className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                {fotosList.filter(f => !!(f?.url || (f?.bucket && f?.path) || f?.localId)).map((foto, index) => {
+                                    const k = fotoKey(foto, index);
+                                    return (
+                                        <Draggable
+                                            key={k}
+                                            draggableId={k}
+                                            index={index}
+                                            isDragDisabled={!isEditable || !onReorderFotos}
+                                        >
+                                            {(drag) => (
+                                                <div
+                                                    ref={drag.innerRef}
+                                                    {...drag.draggableProps}
+                                                    style={drag.draggableProps.style}
+                                                    className="relative group rounded-lg overflow-hidden border"
+                                                >
+                                                    {isEditable && onReorderFotos ? (
+                                                        <div {...drag.dragHandleProps} className="absolute top-1 left-1 z-10 bg-black/60 text-white rounded p-1">
+                                                            <GripVertical className="h-4 w-4" />
+                                                        </div>
+                                                    ) : null}
+                                                    <OptimizedImage 
+                                                        src={resolveFotoSrc(foto)} 
+                                                        alt={`Foto ${index + 1}`}
+                                                        className="w-full h-32 object-cover cursor-pointer"
+                                                        onClick={() => setSelectedFoto(foto)}
+                                                    />
+                                                    {isEditable && (
+                                                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                            <Button
+                                                                variant="destructive"
+                                                                size="sm"
+                                                                onClick={() => onRemoveFoto(index)}
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                    {isEditable ? (
+                                                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-1 flex gap-1">
+                                                            <Input
+                                                                placeholder="Legenda..."
+                                                                value={editingLegenda[k] ? (tempLegendas[k] ?? foto.legenda ?? '') : (foto.legenda || '')}
+                                                                onChange={(e) => setTempLegendas(prev => ({ ...prev, [k]: e.target.value }))}
+                                                                readOnly={!editingLegenda[k]}
+                                                                className="h-6 text-xs bg-transparent border-none text-white placeholder:text-gray-300"
+                                                            />
+                                                            <Button
+                                                                size="sm"
+                                                                variant="ghost"
+                                                                className="h-6 w-6 p-0 text-white hover:bg-white/20"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    if (editingLegenda[k]) {
+                                                                        let legenda = tempLegendas[k] ?? foto.legenda ?? '';
+                                                                        legenda = legenda.trim();
+                                                                        if (legenda) {
+                                                                            legenda = legenda.replace(/\.+$/, '.');
+                                                                            if (!/[.!?]$/.test(legenda)) {
+                                                                                legenda = `${legenda}.`;
+                                                                            }
+                                                                        }
+                                                                        onUpdateLegenda(index, legenda);
+                                                                        if (foto.localId) {
+                                                                            Repository.updateLocalFotoLegenda(foto.localId, legenda).catch(() => {});
+                                                                        }
+                                                                        setEditingLegenda(prev => ({ ...prev, [k]: false }));
+                                                                    } else {
+                                                                        setEditingLegenda(prev => ({ ...prev, [k]: true }));
+                                                                        setTempLegendas(prev => ({ ...prev, [k]: foto.legenda || '' }));
+                                                                    }
+                                                                }}
+                                                            >
+                                                                {editingLegenda[k] ? <Save className="h-3 w-3" /> : <Edit2 className="h-3 w-3" />}
+                                                            </Button>
+                                                        </div>
+                                                    ) : (
+                                                        foto.legenda && (
+                                                            <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-1">
+                                                                <p className="px-1">{foto.legenda}</p>
+                                                            </div>
+                                                        )
+                                                    )}
 
-                        </div>
-                    ))}
-                </div>
+                                                </div>
+                                            )}
+                                        </Draggable>
+                                    );
+                                })}
+                                {provided.placeholder}
+                            </div>
+                        )}
+                    </Droppable>
+                </DragDropContext>
             )}
 
 

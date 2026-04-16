@@ -815,12 +815,22 @@ export default function VistoriarUnidade() {
             const novasFotos = [...prev];
             const alvo = novasFotos[index];
             if (!alvo) return prev;
-            novasFotos[index] = { ...alvo, legenda };
+            if (typeof alvo === 'string') {
+                novasFotos[index] = { url: alvo, legenda };
+            } else {
+                novasFotos[index] = { ...alvo, legenda };
+            }
             if (alvo?.localId) {
                 Repository.updateLocalFotoLegenda(alvo.localId, legenda).catch(() => {});
             }
             return novasFotos;
         });
+        setFotosDirty(true);
+    };
+
+    const handleReorderFotos = (nextFotos) => {
+        if (!Array.isArray(nextFotos)) return;
+        setFotos(nextFotos);
         setFotosDirty(true);
     };
 
@@ -1137,6 +1147,7 @@ export default function VistoriarUnidade() {
                         onAddFoto={handleAddFoto}
                         onRemoveFoto={handleRemoveFoto}
                         onUpdateLegenda={handleUpdateLegenda}
+                        onReorderFotos={handleReorderFotos}
                         titulo="Fotos da Unidade"
                         fiscalizacaoId={unidade?.fiscalizacao_id}
                         unidadeId={unidadeId}
