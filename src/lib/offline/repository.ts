@@ -1447,8 +1447,20 @@ export const Repository = {
   },
 
   async removeConstatacaoManual(id: string): Promise<void> {
+    const cur = await db.constatacoes_manuais.get(id as any)
+    const unidadeId = (cur as any)?.unidade_fiscalizada_id
     await db.constatacoes_manuais.delete(id)
     await enqueueMutation({ id }, 'delete', 'constatacoes_manuais')
+    if (unidadeId) {
+      const list = await db.recomendacoes.where('unidade_fiscalizada_id').equals(unidadeId as any).toArray()
+      const origem = `manual_constatacao:${String(id)}`
+      const existing = (list || []).find((x: any) => String(x?.origem || '').trim() === origem)
+      if (existing) {
+        await db.recomendacoes.delete((existing as any).id)
+        await enqueueMutation({ id: (existing as any).id, unidade_fiscalizada_id: unidadeId }, 'delete', 'recomendacoes')
+        await Repository.recomputeRecomendacoesNumeracao(unidadeId)
+      }
+    }
   },
 
   async updateConstatacaoManual(id: string, changes: Partial<ConstatacaoManual>): Promise<void> {
@@ -1469,6 +1481,48 @@ export const Repository = {
       'update',
       'constatacoes_manuais'
     )
+  },
+
+  async upsertRecomendacaoFromManualConstatacao(
+    unidadeId: string,
+    constatacaoId: string,
+    enabled: boolean,
+    descricao?: string | null
+  ): Promise<void> {
+    if (!unidadeId) return
+    if (!constatacaoId) return
+    const origem = `manual_constatacao:${String(constatacaoId)}`
+    const list = await db.recomendacoes.where('unidade_fiscalizada_id').equals(unidadeId).toArray()
+    const existing = (list || []).find((x: any) => String(x?.origem || '').trim() === origem)
+    if (!enabled) {
+      if (existing) {
+        await db.recomendacoes.delete((existing as any).id)
+        await enqueueMutation({ id: (existing as any).id, unidade_fiscalizada_id: unidadeId }, 'delete', 'recomendacoes')
+        await Repository.recomputeRecomendacoesNumeracao(unidadeId)
+      }
+      return
+    }
+    const desc = String(descricao || '').trim()
+    if (!desc) return
+    if (existing) {
+      await db.recomendacoes.update((existing as any).id, { ...(existing as any), descricao: desc, updated_at: now() } as any)
+      await enqueueMutation({ id: (existing as any).id, unidade_fiscalizada_id: unidadeId, descricao: desc, updated_at: now() }, 'update', 'recomendacoes')
+      await Repository.recomputeRecomendacoesNumeracao(unidadeId)
+      return
+    }
+    const id2 = uid()
+    const row = {
+      id: id2,
+      unidade_fiscalizada_id: unidadeId,
+      numero_recomendacao: null,
+      descricao: desc,
+      origem,
+      created_at: now(),
+      updated_at: now()
+    }
+    await db.recomendacoes.add(row as any)
+    await enqueueMutation(row, 'insert', 'recomendacoes')
+    await Repository.recomputeRecomendacoesNumeracao(unidadeId)
   },
 
   async updateUnidadeStatus(unidadeId: string, status: string): Promise<void> {

@@ -473,17 +473,13 @@ export default function VistoriarUnidade() {
     });
 
     const editarRecomendacaoMutation = useMutation({
-        mutationFn: async ({ id, texto, origemAtual }) => {
+        mutationFn: async ({ id, texto }) => {
             if (unidade?.status === 'finalizada' && !modoEdicao) {
                 throw new Error('Não é possível modificar uma unidade finalizada');
             }
             const desc = String(texto || '').trim();
             if (!desc) throw new Error('A recomendação não pode ficar vazia');
-            const changes = { descricao: desc };
-            if (origemAtual && origemAtual !== 'manual') {
-                changes.origem = 'manual';
-            }
-            await Repository.updateRecomendacao(id, changes);
+            await Repository.updateRecomendacao(id, { descricao: desc });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['recomendacoes', unidadeId] });
@@ -679,9 +675,15 @@ export default function VistoriarUnidade() {
                 texto_determinacao: data.gera_determinacao ? data.texto_determinacao : null,
                 texto_recomendacao: data.gera_recomendacao ? data.texto_recomendacao : null
             });
+
+            if (unidadeId) {
+                const enabled = !!data.gera_recomendacao && !data.gera_determinacao
+                await Repository.upsertRecomendacaoFromManualConstatacao(unidadeId, constatacaoParaNC.id, enabled, data.texto_recomendacao)
+            }
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['constatacoes-manuais', unidadeId] });
+            queryClient.invalidateQueries({ queryKey: ['recomendacoes', unidadeId] });
             setShowEditarNC(false);
             setConstatacaoParaNC(null);
             setNumerosParaNC(null);
@@ -1332,8 +1334,7 @@ export default function VistoriarUnidade() {
                                 onClick={() =>
                                     editarRecomendacaoMutation.mutate({
                                         id: recomendacaoParaEditar?.id,
-                                        texto: textoRecomendacaoEdicao,
-                                        origemAtual: recomendacaoParaEditar?.origem
+                                        texto: textoRecomendacaoEdicao
                                     })
                                 }
                                 disabled={!textoRecomendacaoEdicao.trim() || editarRecomendacaoMutation.isPending || !recomendacaoParaEditar?.id}
