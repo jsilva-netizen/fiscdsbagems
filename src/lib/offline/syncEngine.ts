@@ -1,6 +1,7 @@
 import { db, UUID } from './db'
 import { supabase } from '@/lib/supabase'
 import { base64ToBlob } from './image'
+import { clearAllPreviewUrls, revokeManyPreviewUrls } from './photoPreviewCache'
 
 type Entity =
   | 'fiscalizacoes'
@@ -1601,6 +1602,7 @@ async function hardResetLocalData(): Promise<void> {
     await db.fila_mutacoes.clear()
     await db.estados_sync.clear()
   })
+  clearAllPreviewUrls()
 }
 
 export async function syncFotosWithProgress(onProgress?: (uploaded: number, total: number) => void): Promise<number> {
@@ -1812,6 +1814,7 @@ export async function syncFotosWithProgress(onProgress?: (uploaded: number, tota
           .and((x) => !!x.syncedAt && !!x.storagePath)
           .toArray()
         if (deletables.length > 0) {
+          revokeManyPreviewUrls(deletables.map((d: any) => String(d?.localId || '')).filter(Boolean))
           await db.fotos_local.bulkDelete(deletables.map((d) => d.localId as any))
         }
       } catch (err) {

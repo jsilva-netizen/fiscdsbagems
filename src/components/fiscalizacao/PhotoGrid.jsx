@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Repository } from '@/lib/offline/repository';
@@ -21,9 +21,9 @@ export default function PhotoGrid({
     unidadeId,
     isEditable = true
 }) {
-    const fotosList = (Array.isArray(fotos) ? fotos : [])
-        .map((f) => (typeof f === 'string' ? { url: f, legenda: '' } : f))
-        .filter(Boolean);
+    const fotosList = useMemo(() => {
+        return (Array.isArray(fotos) ? fotos : []).map((f) => (typeof f === 'string' ? { url: f, legenda: '' } : f)).filter(Boolean);
+    }, [fotos]);
     const [selectedFoto, setSelectedFoto] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
     const [isCapturing, setIsCapturing] = useState(false);

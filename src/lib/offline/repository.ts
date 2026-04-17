@@ -1,6 +1,7 @@
 import { db, Foto, Fiscalizacao, Unidade, ItemChecklist, RespostaChecklist, ConstatacaoManual, OfflineFoto } from './db'
 import { enqueueMutation } from './syncEngine'
 import { compressFileToBlob, MAX_DIMENSION, JPEG_QUALITY, MAX_PHOTOS_PER_UNIDADE, MAX_PHOTO_BYTES } from './image'
+import { getOrCreatePreviewUrl, revokePreviewUrl } from './photoPreviewCache'
 import { supabase } from '@/lib/supabase'
 
 const now = () => new Date().toISOString()
@@ -68,18 +69,8 @@ const toStorageUrl = (bucket: string, path: string): string => {
   return `storage://${bucket}/${path}`
 }
 
-const localFotoUrlCache = new Map<string, string>()
 const localFotoPreviewUrl = (f: OfflineFoto): string => {
-  if (f.url) return f.url
-  const cached = localFotoUrlCache.get(f.localId)
-  if (cached) return cached
-  if (f.blob instanceof Blob) {
-    const u = URL.createObjectURL(f.blob)
-    localFotoUrlCache.set(f.localId, u)
-    return u
-  }
-  if (typeof f.base64 === 'string' && f.base64.trim() !== '') return f.base64
-  return ''
+  return getOrCreatePreviewUrl(f.localId, f.blob as any, (f as any).base64 as any, (f as any).url as any)
 }
 
 const pad2 = (n: number) => String(n).padStart(2, '0')
@@ -1417,11 +1408,7 @@ export const Repository = {
 
   async deleteLocalFoto(localId: string): Promise<void> {
     await db.fotos_local.delete(localId as any)
-    const u = localFotoUrlCache.get(localId)
-    if (u) {
-      URL.revokeObjectURL(u)
-      localFotoUrlCache.delete(localId)
-    }
+    revokePreviewUrl(localId)
   },
 
   async markLocalFotoSynced(localId: string, publicUrl: string): Promise<void> {
