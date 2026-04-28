@@ -35,7 +35,8 @@ CREATE TABLE IF NOT EXISTS public.prestadores_servico (
     tipo TEXT, -- 'titular' ou 'prestador_servico'
     documentos JSONB DEFAULT '[]'::jsonb, -- Array de documentos {nome, tipo, url, data_upload}
     ativo BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Tabela de Tipos de Unidade
@@ -344,6 +345,9 @@ CREATE TRIGGER update_fiscalizacoes_updated_at BEFORE UPDATE ON public.fiscaliza
 
 DROP TRIGGER IF EXISTS update_unidades_updated_at ON public.unidades_fiscalizadas;
 CREATE TRIGGER update_unidades_updated_at BEFORE UPDATE ON public.unidades_fiscalizadas FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_prestadores_updated_at ON public.prestadores_servico;
+CREATE TRIGGER update_prestadores_updated_at BEFORE UPDATE ON public.prestadores_servico FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 
 -- Função para criar profile automaticamente
 CREATE OR REPLACE FUNCTION public.handle_new_user()
