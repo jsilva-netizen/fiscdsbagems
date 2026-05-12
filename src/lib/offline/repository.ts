@@ -275,17 +275,54 @@ export const Repository = {
 
   async listUnidadesByFiscalizacao(fiscalizacaoId: string, limit = 50): Promise<Unidade[]> {
     const all = await db.unidades.where('fiscalizacao_id').equals(fiscalizacaoId).toArray()
-    return all.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || '')).slice(0, limit)
+    const ord = (x: any) => {
+      const n = Number(x?.ordem)
+      return Number.isFinite(n) && n > 0 ? n : 999999
+    }
+    return all
+      .slice()
+      .sort(
+        (a: any, b: any) =>
+          ord(a) - ord(b) ||
+          String(a?.created_at || '').localeCompare(String(b?.created_at || '')) ||
+          String(a?.id || '').localeCompare(String(b?.id || ''))
+      )
+      .slice(0, limit)
+  },
+
+  async reorderUnidades(fiscalizacaoId: string, orderedUnidadeIds: string[]): Promise<void> {
+    if (!fiscalizacaoId) return
+    const ids = (Array.isArray(orderedUnidadeIds) ? orderedUnidadeIds : []).map((x) => String(x || '')).filter(Boolean)
+    if (ids.length === 0) return
+    const unidades = await db.unidades.where('fiscalizacao_id').equals(fiscalizacaoId).toArray()
+    const byId = new Map<string, any>()
+    for (const u of unidades as any[]) byId.set(String((u as any)?.id || ''), u)
+    const nowIso = now()
+    await db.transaction('rw', db.unidades, db.fila_mutacoes, async () => {
+      for (let i = 0; i < ids.length; i++) {
+        const id = ids[i]
+        const u = byId.get(id)
+        if (!u) continue
+        const nextOrdem = i + 1
+        if (Number((u as any)?.ordem) !== nextOrdem) {
+          await db.unidades.update(id as any, { ...(u as any), ordem: nextOrdem, updated_at: nowIso } as any)
+          await enqueueMutation({ id, ordem: nextOrdem, updated_at: nowIso }, 'update', 'unidades')
+        }
+      }
+    })
   },
   
   async createUnidade(data: { fiscalizacao_id: string; tipo_unidade_id: string; codigo_unidade?: string; nome_unidade?: string; endereco?: string; latitude?: number | null; longitude?: number | null; data_hora_vistoria?: string }): Promise<Unidade> {
     const id = uid()
+    const all = await db.unidades.where('fiscalizacao_id').equals(data.fiscalizacao_id).toArray()
+    const maxOrdem = (all || []).reduce((acc: number, u: any) => Math.max(acc, Number(u?.ordem) || 0), 0)
     const item: Unidade & { endereco?: string; latitude?: number | null; longitude?: number | null; data_hora_vistoria?: string } = {
       id,
       fiscalizacao_id: data.fiscalizacao_id,
       tipo_unidade_id: data.tipo_unidade_id,
       codigo_unidade: data.codigo_unidade || '',
       nome_unidade: data.nome_unidade || '',
+      ordem: maxOrdem + 1,
       status: 'em_andamento',
       endereco: data.endereco || '',
       latitude: data.latitude ?? null,

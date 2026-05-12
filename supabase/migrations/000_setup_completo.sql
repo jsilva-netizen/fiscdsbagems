@@ -97,6 +97,7 @@ CREATE TABLE IF NOT EXISTS public.unidades_fiscalizadas (
     nome_unidade TEXT,
     codigo_unidade TEXT,
     endereco TEXT,
+    ordem INTEGER DEFAULT 0,
     status TEXT DEFAULT 'pendente',
     total_constatacoes INTEGER DEFAULT 0,
     total_ncs INTEGER DEFAULT 0,

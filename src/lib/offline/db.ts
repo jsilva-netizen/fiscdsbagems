@@ -74,6 +74,7 @@ export type Unidade = {
   tipo_unidade_nome?: string
   codigo_unidade?: string
   nome_unidade?: string
+  ordem?: number
   status?: string
   endereco?: string
   latitude?: number | null
@@ -265,6 +266,35 @@ export class AppDB extends Dexie {
           if (next.lastError === undefined) next.lastError = undefined
           if (next.nextRetryAt === undefined) next.nextRetryAt = undefined
           await fila.put(next)
+        }
+      })
+
+    this.version(9)
+      .stores({
+        unidades: 'id, fiscalizacao_id, ordem, tipo_unidade_id, status, codigo_unidade, nome_unidade, created_at, updated_at'
+      })
+      .upgrade(async (tx) => {
+        const table = tx.table('unidades') as Table<Unidade, UUID>
+        const all = await table.toArray()
+        const byFisc = new Map<string, any[]>()
+        for (const u of all as any[]) {
+          const fid = String(u?.fiscalizacao_id || '')
+          if (!fid) continue
+          const arr = byFisc.get(fid) || []
+          arr.push(u)
+          byFisc.set(fid, arr)
+        }
+        for (const [fid, unidades] of byFisc.entries()) {
+          const sorted = unidades
+            .slice()
+            .sort((a, b) => String(a?.created_at || '').localeCompare(String(b?.created_at || '')) || String(a?.id || '').localeCompare(String(b?.id || '')))
+          for (let i = 0; i < sorted.length; i++) {
+            const u = sorted[i]
+            const nextOrdem = Number(u?.ordem) > 0 ? Number(u.ordem) : i + 1
+            if (Number(u?.ordem) !== nextOrdem) {
+              await table.update(u.id as any, { ...u, ordem: nextOrdem } as any)
+            }
+          }
         }
       })
   }

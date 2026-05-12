@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Repository } from '@/lib/offline/repository';
@@ -11,8 +11,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Loader2, Plus, Trash2, AlertTriangle, MapPin, Building2, CheckCircle2, Camera, Edit, FileText } from 'lucide-react';
+import { ArrowLeft, Loader2, Plus, Trash2, AlertTriangle, MapPin, Building2, CheckCircle2, Camera, Edit, FileText, GripVertical } from 'lucide-react';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
 
 
@@ -42,7 +43,7 @@ export default function ExecutarFiscalizacao() {
 
     const { data: unidades = [], isLoading: loadingUnidades } = useQuery({
         queryKey: ['unidades-fiscalizacao', fiscalizacaoId],
-        queryFn: async () => Repository.listUnidadesByFiscalizacao(fiscalizacaoId, 50),
+        queryFn: async () => Repository.listUnidadesByFiscalizacao(fiscalizacaoId, 1000),
         enabled: !!fiscalizacaoId,
         staleTime: 30000,
         gcTime: 300000
@@ -94,6 +95,16 @@ export default function ExecutarFiscalizacao() {
         }
     };
 
+    const reorderMutation = useMutation({
+        mutationFn: async (orderedIds) => {
+            if (!fiscalizacaoId) return;
+            await Repository.reorderUnidades(fiscalizacaoId, orderedIds);
+        },
+        onError: () => {
+            queryClient.invalidateQueries({ queryKey: ['unidades-fiscalizacao', fiscalizacaoId] });
+        }
+    });
+
     const handleEditarUnidade = (e, unidadeId) => {
         e.preventDefault();
         e.stopPropagation();
@@ -106,6 +117,24 @@ export default function ExecutarFiscalizacao() {
         const isAdmin = user.role === 'admin';
         const isFiscalCriador = fiscalizacao?.fiscal_email === user.email;
         return isAdmin || isFiscalCriador;
+    };
+
+    const podeReordenar = useMemo(() => {
+        return !!fiscalizacaoId && podeEditarOuExcluir() && fiscalizacao?.status !== 'finalizada';
+    }, [fiscalizacaoId, fiscalizacao?.status, fiscalizacao?.fiscal_email, user?.role, user?.email]);
+
+    const handleDragEnd = (result) => {
+        if (!podeReordenar) return;
+        if (!result?.destination) return;
+        const from = result.source?.index;
+        const to = result.destination?.index;
+        if (typeof from !== 'number' || typeof to !== 'number') return;
+        if (from === to) return;
+        const next = Array.from(unidades);
+        const [moved] = next.splice(from, 1);
+        next.splice(to, 0, moved);
+        queryClient.setQueryData(['unidades-fiscalizacao', fiscalizacaoId], next);
+        reorderMutation.mutate(next.map((u) => u.id));
     };
 
     if (loadingFiscalizacao) {
@@ -211,81 +240,108 @@ export default function ExecutarFiscalizacao() {
                 )}
 
                 {/* Units List */}
-                <div className="space-y-3">
-                    {unidades.map((unidade) => (
-                        <div key={unidade.id} className="relative">
-                            <Card className="hover:shadow-md transition-shadow">
-                                <CardContent className="p-4">
-                                    <Link to={createPageUrl('VistoriarUnidade') + `?id=${unidade.id}`} className="block">
-                                        <div className="flex items-start gap-3">
-                                            <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                                                unidade.status === 'finalizada' ? 'bg-green-100' : 'bg-blue-100'
-                                            }`}>
-                                                <Building2 className={`h-6 w-6 ${
-                                                    unidade.status === 'finalizada' ? 'text-green-600' : 'text-blue-600'
-                                                }`} />
-                                            </div>
-                                            <div className="flex-1">
-                                                <div className="flex items-start justify-between">
-                                                    <div>
-                                                        <h3 className="font-medium">{unidade.codigo_unidade || unidade.tipo_unidade_nome}</h3>
-                                                        {unidade.nome_unidade && (
-                                                            <p className="text-sm text-gray-500">{unidade.nome_unidade}</p>
-                                                        )}
-                                                    </div>
-                                                    <Badge variant={unidade.status === 'finalizada' ? 'default' : 'secondary'} className="text-xs">
-                                                        {unidade.status === 'finalizada' ? (
-                                                            <><CheckCircle2 className="h-3 w-3 mr-1" /> Completa</>
-                                                        ) : (
-                                                            'Pendente'
-                                                        )}
-                                                    </Badge>
-                                                </div>
-                                                <div className="flex flex-wrap gap-3 mt-2 text-xs text-gray-500">
-                                                    <span className="flex items-center gap-1">
-                                                        <CheckCircle2 className="h-3 w-3 text-green-500" />
-                                                        {unidade.total_constatacoes || 0} C
-                                                    </span>
-                                                    <span className="flex items-center gap-1">
-                                                        <AlertTriangle className="h-3 w-3 text-red-500" />
-                                                        {unidade.total_ncs || 0} NC
-                                                    </span>
-                                                    <span className="flex items-center gap-1">
-                                                        <Camera className="h-3 w-3" />
-                                                        {unidade.fotos_unidade?.length || 0} fotos
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </Link>
-                                    {podeEditarOuExcluir() && (
-                                        <div className="flex gap-2 mt-3">
-                                            {unidade.status === 'finalizada' && (
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    onClick={(e) => handleEditarUnidade(e, unidade.id)}
-                                                >
-                                                    <Edit className="w-3 h-3 mr-1" />
-                                                    Editar
-                                                </Button>
-                                            )}
-                                            <Button
-                                                size="sm"
-                                                variant="destructive"
-                                                onClick={(e) => handleExcluirUnidade(e, unidade)}
-                                                disabled={excluirUnidadeMutation.isPending}
+                <DragDropContext onDragEnd={handleDragEnd}>
+                    <Droppable droppableId={`unidades:${fiscalizacaoId || 'none'}`}>
+                        {(dropProvided) => (
+                            <div className="space-y-3" ref={dropProvided.innerRef} {...dropProvided.droppableProps}>
+                                {unidades.map((unidade, index) => (
+                                    <Draggable key={unidade.id} draggableId={unidade.id} index={index} isDragDisabled={!podeReordenar}>
+                                        {(dragProvided) => (
+                                            <div
+                                                ref={dragProvided.innerRef}
+                                                {...dragProvided.draggableProps}
+                                                style={dragProvided.draggableProps.style}
+                                                className="relative"
                                             >
-                                                <Trash2 className="w-3 h-3 mr-1" />
-                                                Excluir
-                                            </Button>
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        </div>
-                    ))}
-                </div>
+                                                <Card className="hover:shadow-md transition-shadow">
+                                                    <CardContent className="p-4">
+                                                        <div className="flex items-start gap-3">
+                                                            {podeReordenar && (
+                                                                <button
+                                                                    type="button"
+                                                                    className="mt-1 p-1 text-gray-400 hover:text-gray-600"
+                                                                    {...dragProvided.dragHandleProps}
+                                                                >
+                                                                    <GripVertical className="h-4 w-4" />
+                                                                </button>
+                                                            )}
+                                                            <Link to={createPageUrl('VistoriarUnidade') + `?id=${unidade.id}`} className="block flex-1">
+                                                                <div className="flex items-start gap-3">
+                                                                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                                                                        unidade.status === 'finalizada' ? 'bg-green-100' : 'bg-blue-100'
+                                                                    }`}>
+                                                                        <Building2 className={`h-6 w-6 ${
+                                                                            unidade.status === 'finalizada' ? 'text-green-600' : 'text-blue-600'
+                                                                        }`} />
+                                                                    </div>
+                                                                    <div className="flex-1">
+                                                                        <div className="flex items-start justify-between">
+                                                                            <div>
+                                                                                <h3 className="font-medium">{unidade.codigo_unidade || unidade.tipo_unidade_nome}</h3>
+                                                                                {unidade.nome_unidade && (
+                                                                                    <p className="text-sm text-gray-500">{unidade.nome_unidade}</p>
+                                                                                )}
+                                                                            </div>
+                                                                            <Badge variant={unidade.status === 'finalizada' ? 'default' : 'secondary'} className="text-xs">
+                                                                                {unidade.status === 'finalizada' ? (
+                                                                                    <><CheckCircle2 className="h-3 w-3 mr-1" /> Completa</>
+                                                                                ) : (
+                                                                                    'Pendente'
+                                                                                )}
+                                                                            </Badge>
+                                                                        </div>
+                                                                        <div className="flex flex-wrap gap-3 mt-2 text-xs text-gray-500">
+                                                                            <span className="flex items-center gap-1">
+                                                                                <CheckCircle2 className="h-3 w-3 text-green-500" />
+                                                                                {unidade.total_constatacoes || 0} C
+                                                                            </span>
+                                                                            <span className="flex items-center gap-1">
+                                                                                <AlertTriangle className="h-3 w-3 text-red-500" />
+                                                                                {unidade.total_ncs || 0} NC
+                                                                            </span>
+                                                                            <span className="flex items-center gap-1">
+                                                                                <Camera className="h-3 w-3" />
+                                                                                {unidade.fotos_unidade?.length || 0} fotos
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </Link>
+                                                        </div>
+                                                        {podeEditarOuExcluir() && (
+                                                            <div className="flex gap-2 mt-3">
+                                                                {unidade.status === 'finalizada' && (
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="outline"
+                                                                        onClick={(e) => handleEditarUnidade(e, unidade.id)}
+                                                                    >
+                                                                        <Edit className="w-3 h-3 mr-1" />
+                                                                        Editar
+                                                                    </Button>
+                                                                )}
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="destructive"
+                                                                    onClick={(e) => handleExcluirUnidade(e, unidade)}
+                                                                    disabled={excluirUnidadeMutation.isPending}
+                                                                >
+                                                                    <Trash2 className="w-3 h-3 mr-1" />
+                                                                    Excluir
+                                                                </Button>
+                                                            </div>
+                                                        )}
+                                                    </CardContent>
+                                                </Card>
+                                            </div>
+                                        )}
+                                    </Draggable>
+                                ))}
+                                {dropProvided.placeholder}
+                            </div>
+                        )}
+                    </Droppable>
+                </DragDropContext>
 
                 {unidades.length === 0 && (
                     <div className="text-center py-12 text-gray-500">

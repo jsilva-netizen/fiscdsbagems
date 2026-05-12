@@ -23,6 +23,10 @@ BEGIN
         ALTER TABLE public.unidades_fiscalizadas ADD COLUMN data_hora_vistoria TIMESTAMPTZ DEFAULT NOW();
     END IF;
 
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'unidades_fiscalizadas' AND column_name = 'ordem') THEN
+        ALTER TABLE public.unidades_fiscalizadas ADD COLUMN ordem INTEGER DEFAULT 0;
+    END IF;
+
     -- 4. Ajustar default do status para 'em_andamento' (padrão do legado)
     ALTER TABLE public.unidades_fiscalizadas ALTER COLUMN status SET DEFAULT 'em_andamento';
 
@@ -33,5 +37,23 @@ UPDATE public.unidades_fiscalizadas
 SET status = 'em_andamento' 
 WHERE status = 'pendente';
 
+WITH ranked AS (
+  SELECT
+    id,
+    row_number() OVER (
+      PARTITION BY fiscalizacao_id
+      ORDER BY created_at asc, id asc
+    ) AS rn
+  FROM public.unidades_fiscalizadas
+)
+UPDATE public.unidades_fiscalizadas u
+SET ordem = ranked.rn
+FROM ranked
+WHERE ranked.id = u.id
+  AND (u.ordem IS NULL OR u.ordem = 0);
+
+CREATE INDEX IF NOT EXISTS unidades_fiscalizadas_fiscalizacao_ordem_idx
+  ON public.unidades_fiscalizadas (fiscalizacao_id, ordem);
+
 -- 6. Forçar reload do schema cache do PostgREST (para garantir que a API veja as novas colunas)
-NOTIFY pgrst, 'reload config';
+NOTIFY pgrst, 'reload schema';

@@ -170,12 +170,25 @@ async function generatePdfForJob(adminClient: any, job: any) {
     } catch {}
   }
 
-  const { data: unidades, error: uErr } = await adminClient
-    .from('unidades_fiscalizadas')
-    .select('*')
-    .eq('fiscalizacao_id', job.fiscalizacao_id)
-    .order('created_at', { ascending: true })
-  if (uErr) throw new Error(uErr.message)
+  let unidades: any[] | null = null
+  try {
+    const { data: u1, error: uErr1 } = await adminClient
+      .from('unidades_fiscalizadas')
+      .select('*')
+      .eq('fiscalizacao_id', job.fiscalizacao_id)
+      .order('ordem', { ascending: true, nullsFirst: true })
+      .order('created_at', { ascending: true })
+    if (uErr1) throw new Error(uErr1.message)
+    unidades = u1
+  } catch {
+    const { data: u2, error: uErr2 } = await adminClient
+      .from('unidades_fiscalizadas')
+      .select('*')
+      .eq('fiscalizacao_id', job.fiscalizacao_id)
+      .order('created_at', { ascending: true })
+    if (uErr2) throw new Error(uErr2.message)
+    unidades = u2
+  }
   if (!Array.isArray(unidades) || unidades.length === 0) {
     throw new Error('Nenhuma unidade encontrada para esta fiscalização. Sincronize todas as unidades e tente novamente.')
   }
