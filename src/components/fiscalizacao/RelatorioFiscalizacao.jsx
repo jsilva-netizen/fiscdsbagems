@@ -76,6 +76,13 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
             const st = lastJobId
                 ? await invokeEdgeFunction('relatorios_status', { job_id: lastJobId })
                 : await invokeEdgeFunction('relatorios_status', { fiscalizacao_id });
+            if (st?.status === 'not_found') {
+                try { localStorage.removeItem(key); } catch {}
+                setJob(null);
+                setJobId(null);
+                setError(null);
+                return;
+            }
             if (!st) {
                 setJob(null);
                 setJobId(null);
@@ -97,7 +104,19 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
             setJobId(active ? (st?.id || lastJobId) : null);
         } catch (err) {
             console.error('Erro ao carregar histórico de relatórios:', err);
-            setError(err?.message || 'Erro ao carregar histórico de relatórios.');
+            const msg = err?.message || 'Erro ao carregar histórico de relatórios.'
+            if (String(msg).toLowerCase().includes('job_not_found')) {
+                try {
+                    const fiscalizacao_id = await resolveServerFiscalizacaoId();
+                    const key = `relatorio_last_job:${String(fiscalizacao_id)}`;
+                    localStorage.removeItem(key);
+                } catch {}
+                setJob(null);
+                setJobId(null);
+                setError(null);
+                return;
+            }
+            setError(msg);
         }
     };
 
@@ -183,6 +202,14 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
             try {
                 const data = await invokeEdgeFunction('relatorios_status', { job_id: jobId });
                 if (stopped) return;
+                if (data?.status === 'not_found') {
+                    stopped = true;
+                    clearInterval(intervalId);
+                    setJobId(null);
+                    setJob(null);
+                    setError(null);
+                    return;
+                }
                 if (data?.status === 'done' && !data?.signed_url) {
                     stopped = true;
                     clearInterval(intervalId);
@@ -205,7 +232,16 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
                 }
             } catch (err) {
                 if (stopped) return;
-                setError(err?.message || 'Erro ao consultar status.');
+                const msg = err?.message || 'Erro ao consultar status.'
+                if (String(msg).toLowerCase().includes('job_not_found')) {
+                    stopped = true;
+                    clearInterval(intervalId);
+                    setJobId(null);
+                    setJob(null);
+                    setError(null);
+                    return;
+                }
+                setError(msg);
             }
         };
         poll();
@@ -243,6 +279,10 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
     const baixarJob = async (selectedJobId) => {
         try {
             const data = await invokeEdgeFunction('relatorios_status', { job_id: selectedJobId });
+            if (data?.status === 'not_found') {
+                setError(null);
+                return;
+            }
             if (data?.signed_url) {
                 window.open(data.signed_url, '_blank', 'noopener,noreferrer');
             } else {
@@ -250,7 +290,12 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
             }
         } catch (err) {
             console.error('Erro ao obter URL de download:', err);
-            setError(err?.message || 'Erro ao obter URL de download.');
+            const msg = err?.message || 'Erro ao obter URL de download.'
+            if (String(msg).toLowerCase().includes('job_not_found')) {
+                setError(null);
+                return;
+            }
+            setError(msg);
         }
     };
 

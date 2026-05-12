@@ -90,7 +90,7 @@ serve(async (req) => {
         .limit(1)
         .maybeSingle()
   if (jobErr) return jsonResponse({ error: 'job_fetch_failed', details: jobErr.message }, 500)
-  if (!job) return jsonResponse({ error: 'job_not_found' }, 404)
+  if (!job) return jsonResponse({ status: 'not_found' }, 200)
 
   if (profile?.ativo !== true) return jsonResponse({ error: 'forbidden' }, 403)
 
