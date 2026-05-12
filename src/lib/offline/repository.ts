@@ -298,7 +298,7 @@ export const Repository = {
     const byId = new Map<string, any>()
     for (const u of unidades as any[]) byId.set(String((u as any)?.id || ''), u)
     const nowIso = now()
-    await db.transaction('rw', db.unidades, db.fila_mutacoes, async () => {
+    await db.transaction('rw', db.unidades, db.fila_mutacoes, db.estados_sync, async () => {
       for (let i = 0; i < ids.length; i++) {
         const id = ids[i]
         const u = byId.get(id)

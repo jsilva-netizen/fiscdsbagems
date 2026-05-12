@@ -100,6 +100,9 @@ export default function ExecutarFiscalizacao() {
             if (!fiscalizacaoId) return;
             await Repository.reorderUnidades(fiscalizacaoId, orderedIds);
         },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['unidades-fiscalizacao', fiscalizacaoId] });
+        },
         onError: () => {
             queryClient.invalidateQueries({ queryKey: ['unidades-fiscalizacao', fiscalizacaoId] });
         }
@@ -133,8 +136,9 @@ export default function ExecutarFiscalizacao() {
         const next = Array.from(unidades);
         const [moved] = next.splice(from, 1);
         next.splice(to, 0, moved);
-        queryClient.setQueryData(['unidades-fiscalizacao', fiscalizacaoId], next);
-        reorderMutation.mutate(next.map((u) => u.id));
+        const nextWithOrdem = next.map((u, idx) => ({ ...u, ordem: idx + 1 }));
+        queryClient.setQueryData(['unidades-fiscalizacao', fiscalizacaoId], nextWithOrdem);
+        reorderMutation.mutate(nextWithOrdem.map((u) => u.id));
     };
 
     if (loadingFiscalizacao) {
