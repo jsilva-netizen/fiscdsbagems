@@ -1,5 +1,5 @@
 export const MAX_DIMENSION = 1600
-export const JPEG_QUALITY = 0.7
+export const JPEG_QUALITY = 0.82
 export const MAX_PHOTO_BYTES = 5 * 1024 * 1024
 export const MAX_PHOTOS_PER_UNIDADE = 20
 
@@ -481,8 +481,9 @@ async function addExifToJpegBlob(blob: Blob, options: { latitude: number; longit
 function drawWatermark(canvas: HTMLCanvasElement, lines: string[]): void {
   if (!lines || lines.length === 0) return
   const ctx = canvas.getContext('2d')!
-  const padding = Math.max(10, Math.round(canvas.width * 0.015))
-  const fontSize = Math.max(14, Math.round(canvas.width * 0.028))
+  const base = Math.max(canvas.width, canvas.height)
+  const padding = Math.max(10, Math.round(base * 0.015))
+  const fontSize = Math.max(14, Math.round(base * 0.028))
   ctx.save()
   ctx.font = `600 ${fontSize}px system-ui, -apple-system, Segoe UI, Roboto, Arial`
   ctx.textBaseline = 'bottom'
@@ -502,7 +503,7 @@ function drawWatermark(canvas: HTMLCanvasElement, lines: string[]): void {
   const heights = fitted.length * fontSize + (fitted.length - 1) * lineGap
   const boxH = heights + padding * 2
   const yBottom = canvas.height - padding
-  const boxY = canvas.height - boxH
+  const boxY = Math.max(padding, canvas.height - boxH - padding)
   const maxW = Math.max(...fitted.map((t) => ctx.measureText(t).width))
   const boxW = Math.min(canvas.width - padding * 2, Math.ceil(maxW) + padding * 2)
   const boxX = padding
@@ -545,8 +546,8 @@ export async function compressFileToBase64(file: File, maxDimension = MAX_DIMENS
     img.src = fileLoad
   })
   void imgLoad
-  let w = img.width
-  let h = img.height
+  let w = (img as any).naturalWidth || img.width
+  let h = (img as any).naturalHeight || img.height
   const maxSide = Math.max(w, h)
   if (maxSide > maxDimension) {
     const scale = maxDimension / maxSide
@@ -557,6 +558,10 @@ export async function compressFileToBase64(file: File, maxDimension = MAX_DIMENS
   canvas.width = w
   canvas.height = h
   const ctx = canvas.getContext('2d')!
+  ctx.imageSmoothingEnabled = true
+  try {
+    ctx.imageSmoothingQuality = 'high'
+  } catch {}
   ctx.drawImage(img, 0, 0, w, h)
   const dataUrl = canvas.toDataURL('image/jpeg', quality)
   const blob = dataURLToBlob(dataUrl)
@@ -594,8 +599,8 @@ export async function compressFileToBlob(
     img.src = fileLoad
   })
   void imgLoad
-  let w = img.width
-  let h = img.height
+  let w = (img as any).naturalWidth || img.width
+  let h = (img as any).naturalHeight || img.height
   const maxSide = Math.max(w, h)
   if (maxSide > maxDimension) {
     const scale = maxDimension / maxSide
@@ -606,20 +611,33 @@ export async function compressFileToBlob(
   canvas.width = w
   canvas.height = h
   const ctx = canvas.getContext('2d')!
+  ctx.imageSmoothingEnabled = true
+  try {
+    ctx.imageSmoothingQuality = 'high'
+  } catch {}
   ctx.drawImage(img, 0, 0, w, h)
   if (options?.watermarkLines?.length) {
     drawWatermark(canvas, options.watermarkLines)
   }
-  const blob = await new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob(
-      (b) => {
-        if (!b) reject(new Error('Falha ao comprimir imagem'))
-        else resolve(b)
-      },
-      'image/jpeg',
-      quality
-    )
-  })
+  const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n))
+  const encode = async (q: number) => {
+    return await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (b) => {
+          if (!b) reject(new Error('Falha ao comprimir imagem'))
+          else resolve(b)
+        },
+        'image/jpeg',
+        q
+      )
+    })
+  }
+  let q = clamp(Number(quality) || JPEG_QUALITY, 0.55, 0.92)
+  let blob = await encode(q)
+  while (blob.size > MAX_PHOTO_BYTES && q > 0.56) {
+    q = clamp(q - 0.07, 0.55, 0.92)
+    blob = await encode(q)
+  }
   const finalBlob = options?.exif ? await addExifToJpegBlob(blob, options.exif) : blob
   return {
     blob: finalBlob,
