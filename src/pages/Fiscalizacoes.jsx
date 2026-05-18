@@ -305,7 +305,7 @@ export default function Fiscalizacoes() {
 
                                          <div className="mt-3 pt-3 border-t flex gap-2">
                                               {fisc.status === 'finalizada' && (
-                                                  <div className="flex-1 flex gap-2">
+                                                  <div className="flex-1 flex gap-2 items-end">
                                                       <RelatorioFiscalizacao fiscalizacao={fisc} />
                                                       {podeDeleter && (
                                                           <Button
