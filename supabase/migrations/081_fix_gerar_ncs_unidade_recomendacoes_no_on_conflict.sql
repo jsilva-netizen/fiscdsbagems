@@ -19,7 +19,6 @@ DECLARE
   ids_anteriores uuid[];
   contC int := 0;
   contNC int := 0;
-  contD int := 0;
   contR int := 0;
   r_resp record;
   r_man record;
@@ -72,13 +71,8 @@ BEGIN
     FROM public.unidades_fiscalizadas uf
     WHERE uf.id = ANY(ids_anteriores);
 
-    SELECT count(*) INTO contD
-    FROM public.determinacoes d
-    WHERE d.unidade_fiscalizada_id = ANY(ids_anteriores);
-
   END IF;
 
-  DELETE FROM public.determinacoes d WHERE d.unidade_fiscalizada_id = p_unidade_id;
   DELETE FROM public.nao_conformidades nc WHERE nc.unidade_fiscalizada_id = p_unidade_id;
 
   FOR r_resp IN
@@ -119,22 +113,6 @@ BEGIN
         'Média'
       )
       RETURNING id INTO v_nc_id;
-
-      IF r_resp.texto_determinacao IS NOT NULL AND btrim(r_resp.texto_determinacao) <> '' THEN
-        contD := contD + 1;
-        INSERT INTO public.determinacoes (
-          unidade_fiscalizada_id, nao_conformidade_id, numero_determinacao, descricao, prazo_dias, data_limite, status
-        )
-        VALUES (
-          p_unidade_id,
-          v_nc_id,
-          'D'||contD,
-          'Para sanar a NC'||contNC||' '||r_resp.texto_determinacao,
-          coalesce(r_resp.prazo_dias, 30),
-          (now()::date + coalesce(r_resp.prazo_dias, 30)),
-          'pendente'
-        );
-      END IF;
     END IF;
   END LOOP;
 
@@ -171,25 +149,6 @@ BEGIN
         'Média'
       )
       RETURNING id INTO v_nc_id;
-
-      IF r_man.texto_determinacao IS NOT NULL AND btrim(r_man.texto_determinacao) <> '' THEN
-        contD := contD + 1;
-        INSERT INTO public.determinacoes (
-          unidade_fiscalizada_id, nao_conformidade_id, numero_determinacao, descricao, prazo_dias, data_limite, status
-        )
-        VALUES (
-          p_unidade_id,
-          v_nc_id,
-          'D'||contD,
-          CASE
-            WHEN r_man.texto_determinacao ILIKE 'Para sanar%' THEN r_man.texto_determinacao
-            ELSE 'Para sanar a NC'||contNC||' '||r_man.texto_determinacao||'. Prazo: 30 dias.'
-          END,
-          30,
-          (now()::date + 30),
-          'pendente'
-        );
-      END IF;
     END IF;
   END LOOP;
 

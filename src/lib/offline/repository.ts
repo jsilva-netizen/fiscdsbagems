@@ -702,8 +702,330 @@ export const Repository = {
   },
   
   async countDeterminacoesByUnidade(unidadeId: string): Promise<number> {
-    const list = await db.constatacoes_manuais.where('unidade_fiscalizada_id').equals(unidadeId).toArray()
-    return list.filter(c => !!c.texto_determinacao && c.texto_determinacao.trim() !== '').length
+    if (!unidadeId) return 0
+    return db.determinacoes.where('unidade_fiscalizada_id').equals(unidadeId).count()
+  },
+
+  async upsertDeterminacaoByOrigem(
+    unidadeId: string,
+    origem: string,
+    descricao?: string | null,
+    prazoDias?: number | null
+  ): Promise<void> {
+    if (!unidadeId) return
+    const origemFinal = String(origem || '').trim()
+    if (!origemFinal) return
+    const list = await db.determinacoes.where('unidade_fiscalizada_id').equals(unidadeId).toArray()
+    const existing = (list || []).find((x: any) => String(x?.origem || '').trim() === origemFinal)
+    const descRaw = String(descricao || '').trim()
+    const desc = descRaw && !descRaw.toLowerCase().startsWith('para sanar') ? `Para sanar a NC? ${descRaw}` : descRaw
+    const prazo = prazoDias !== undefined && prazoDias !== null ? Number(prazoDias) : null
+    const prazoOk = Number.isFinite(prazo as any) && (prazo as any) > 0 ? (prazo as any) : null
+    const dataLimite = prazoOk ? new Date(Date.now() + prazoOk * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) : null
+
+    if (!desc) {
+      if (existing) {
+        await db.determinacoes.delete((existing as any).id)
+        await enqueueMutation({ id: (existing as any).id, unidade_fiscalizada_id: unidadeId }, 'delete', 'determinacoes' as any)
+        await Repository.recomputeDeterminacoesNumeracao(unidadeId)
+      }
+      return
+    }
+
+    if (existing) {
+      const next = {
+        ...(existing as any),
+        descricao: desc,
+        prazo_dias: prazoOk ?? (existing as any)?.prazo_dias ?? null,
+        data_limite: prazoOk ? dataLimite : (existing as any)?.data_limite ?? null,
+        status: String((existing as any)?.status || '').trim() || 'pendente',
+        updated_at: now()
+      }
+      await db.determinacoes.update((existing as any).id, next as any)
+      await enqueueMutation(next, 'update', 'determinacoes' as any)
+      await Repository.recomputeDeterminacoesNumeracao(unidadeId)
+      return
+    }
+
+    const id = uid()
+    const row = {
+      id,
+      unidade_fiscalizada_id: unidadeId,
+      numero_determinacao: null,
+      descricao: desc,
+      prazo_dias: prazoOk,
+      data_limite: dataLimite,
+      status: 'pendente',
+      origem: origemFinal,
+      created_at: now(),
+      updated_at: now()
+    }
+    await db.determinacoes.add(row as any)
+    await enqueueMutation(row, 'insert', 'determinacoes' as any)
+    await Repository.recomputeDeterminacoesNumeracao(unidadeId)
+  },
+
+  async listDeterminacoesByUnidade(unidadeId: string): Promise<any[]> {
+    if (!unidadeId) return []
+    const list = await db.determinacoes.where('unidade_fiscalizada_id').equals(unidadeId).toArray()
+    const parseD = (v: any) => {
+      const n = parseInt(String(v || '').replace(/[^\d]/g, ''), 10)
+      return Number.isFinite(n) ? n : 999999
+    }
+    return (list || [])
+      .filter((d: any) => String(d?.descricao || '').trim() !== '')
+      .slice()
+      .sort((a: any, b: any) => parseD(a?.numero_determinacao) - parseD(b?.numero_determinacao) || String(a?.id || '').localeCompare(String(b?.id || '')))
+  },
+
+  async addDeterminacao(unidadeId: string, descricao: string, origem: string = 'manual'): Promise<void> {
+    if (!unidadeId) return
+    const desc = String(descricao || '').trim()
+    if (!desc) return
+    const id = uid()
+    const origemFinal = String(origem || '').trim() === '' || String(origem || '').trim() === 'manual' ? `manual:${id}` : String(origem).trim()
+    const row = {
+      id,
+      unidade_fiscalizada_id: unidadeId,
+      numero_determinacao: null,
+      descricao: desc,
+      prazo_dias: null,
+      data_limite: null,
+      status: 'pendente',
+      origem: origemFinal,
+      created_at: now(),
+      updated_at: now()
+    }
+    await db.determinacoes.add(row as any)
+    await enqueueMutation(row, 'insert', 'determinacoes' as any)
+    await Repository.recomputeDeterminacoesNumeracao(unidadeId)
+  },
+
+  async removeDeterminacao(id: string): Promise<void> {
+    const cur = await db.determinacoes.get(id as any)
+    const unidadeId = (cur as any)?.unidade_fiscalizada_id
+    await db.determinacoes.delete(id as any)
+    await enqueueMutation({ id, unidade_fiscalizada_id: unidadeId }, 'delete', 'determinacoes' as any)
+    if (unidadeId) await Repository.recomputeDeterminacoesNumeracao(unidadeId)
+  },
+
+  async updateDeterminacao(id: string, changes: any): Promise<void> {
+    const cur = await db.determinacoes.get(id as any)
+    if (!cur) return
+    const unidadeId = (cur as any)?.unidade_fiscalizada_id
+    if (!unidadeId) return
+    const next = { ...(cur as any), ...(changes || {}), updated_at: now() }
+    await db.determinacoes.update(id as any, next as any)
+    await enqueueMutation(next, 'update', 'determinacoes' as any)
+  },
+
+  async recomputeDeterminacoesNumeracao(unidadeId: string): Promise<void> {
+    if (!unidadeId) return
+    const [list, respostas, manuais] = await Promise.all([
+      db.determinacoes.where('unidade_fiscalizada_id').equals(unidadeId).toArray(),
+      db.respostas.where('unidade_fiscalizada_id').equals(unidadeId).toArray(),
+      db.constatacoes_manuais.where('unidade_fiscalizada_id').equals(unidadeId).toArray()
+    ])
+    const parseD = (v: any) => {
+      const n = parseInt(String(v || '').replace(/[^\d]/g, ''), 10)
+      return Number.isFinite(n) ? n : null
+    }
+    const parseC = (v: any) => {
+      const n = parseInt(String(v || '').replace(/[^\d]/g, ''), 10)
+      return Number.isFinite(n) ? n : 999999
+    }
+    const timeOf = (r: any) => {
+      const iso = String(r?.created_at || r?.updated_at || '')
+      const t = Date.parse(iso)
+      return Number.isFinite(t) ? t : 0
+    }
+    const numConstByOrigem = new Map<string, number>()
+    for (const r of respostas || []) {
+      const itemId = String((r as any)?.item_checklist_id || '').trim()
+      if (!itemId) continue
+      numConstByOrigem.set(`checklist:${itemId}`, parseC((r as any)?.numero_constatacao))
+    }
+    for (const m of manuais || []) {
+      const id = String((m as any)?.id || '').trim()
+      if (!id) continue
+      numConstByOrigem.set(`manual_constatacao:${id}`, parseC((m as any)?.numero_constatacao))
+    }
+    const itens = (list || [])
+      .filter((d: any) => String(d?.descricao || '').trim() !== '')
+      .map((d: any) => {
+        const origem = String(d?.origem || '').trim()
+        const cOrd = numConstByOrigem.get(origem) ?? 999999
+        return { d, id: d.id, cOrd, k: parseD(d?.numero_determinacao), t: timeOf(d) }
+      })
+      .sort((a, b) => {
+        if (a.cOrd !== b.cOrd) return a.cOrd - b.cOrd
+        if (a.k !== null && b.k !== null && a.k !== b.k) return a.k - b.k
+        if (a.k !== null && b.k === null) return -1
+        if (a.k === null && b.k !== null) return 1
+        if (a.t !== b.t) return a.t - b.t
+        return String(a.id).localeCompare(String(b.id))
+      })
+
+    for (const it of itens) {
+      const d = it.d
+      if (d?.numero_determinacao) {
+        await db.determinacoes.update(d.id as any, { ...d, numero_determinacao: null, updated_at: now() } as any)
+        await enqueueMutation({ id: d.id, unidade_fiscalizada_id: unidadeId, numero_determinacao: null, updated_at: now() }, 'update', 'determinacoes' as any)
+      }
+    }
+
+    for (let i = 0; i < itens.length; i++) {
+      const desired = `D${i + 1}`
+      const d = itens[i].d
+      await db.determinacoes.update(d.id as any, { ...d, numero_determinacao: desired, updated_at: now() } as any)
+      await enqueueMutation({ id: d.id, unidade_fiscalizada_id: unidadeId, numero_determinacao: desired, updated_at: now() }, 'update', 'determinacoes' as any)
+    }
+  },
+
+  async reorderDeterminacoes(unidadeId: string, orderedIds: string[]): Promise<void> {
+    if (!unidadeId) return
+    const ids = (Array.isArray(orderedIds) ? orderedIds : []).filter(Boolean)
+    const rows = await db.determinacoes.where('unidade_fiscalizada_id').equals(unidadeId).toArray()
+    const byId = new Map((rows || []).map((r: any) => [String(r.id), r]))
+    const ordered = ids.map((id) => byId.get(String(id))).filter(Boolean) as any[]
+    for (const r of rows || []) {
+      if (!ids.includes(String((r as any).id))) ordered.push(r as any)
+    }
+    for (const d of ordered) {
+      if ((d as any)?.numero_determinacao) {
+        await db.determinacoes.update((d as any).id, { ...(d as any), numero_determinacao: null, updated_at: now() } as any)
+        await enqueueMutation({ id: (d as any).id, unidade_fiscalizada_id: unidadeId, numero_determinacao: null, updated_at: now() }, 'update', 'determinacoes' as any)
+      }
+    }
+    for (let i = 0; i < ordered.length; i++) {
+      const d = ordered[i] as any
+      const desired = `D${i + 1}`
+      await db.determinacoes.update(d.id, { ...d, numero_determinacao: desired, updated_at: now() } as any)
+      await enqueueMutation({ id: d.id, unidade_fiscalizada_id: unidadeId, numero_determinacao: desired, updated_at: now() }, 'update', 'determinacoes' as any)
+    }
+  },
+
+  async syncDeterminacoesFromChecklist(unidadeId: string, itensChecklist: any[], respostasAtuais: any[]): Promise<void> {
+    if (!unidadeId) return
+    const itens = Array.isArray(itensChecklist) ? itensChecklist : []
+    const respostas = Array.isArray(respostasAtuais) ? respostasAtuais : []
+    const byItem = new Map<string, any>()
+    for (const r of respostas) {
+      const itemId = String(r?.item_checklist_id || '')
+      if (itemId) byItem.set(itemId, r)
+    }
+    const list = await db.determinacoes.where('unidade_fiscalizada_id').equals(unidadeId).toArray()
+    const byOrigem = new Map<string, any>()
+    for (const d of list || []) {
+      const o = String((d as any)?.origem || '').trim()
+      if (o) byOrigem.set(o, d)
+    }
+    const shouldHaveDet = (item: any, resp: any): { ok: boolean; desc?: string; prazo?: number | null } => {
+      const r = String(resp?.resposta || '').toUpperCase()
+      const geraNc = !!item?.gera_nc
+      const detTxt = String(item?.texto_determinacao || '').trim()
+      const prazo = item?.prazo_dias !== undefined && item?.prazo_dias !== null ? Number(item?.prazo_dias) : null
+      if (r !== 'NAO' && r !== 'NÃO') return { ok: false }
+      if (!geraNc) return { ok: false }
+      if (!detTxt) return { ok: false }
+      const desc = detTxt.toLowerCase().startsWith('para sanar') ? detTxt : `Para sanar a NC? ${detTxt}`
+      return { ok: true, desc, prazo: Number.isFinite(prazo as any) ? (prazo as any) : null }
+    }
+    const adds: any[] = []
+    const deletes: any[] = []
+    for (const item of itens) {
+      const itemId = String(item?.id || '').trim()
+      if (!itemId) continue
+      const origem = `checklist:${itemId}`
+      const resp = byItem.get(itemId)
+      const s = shouldHaveDet(item, resp)
+      const existing = byOrigem.get(origem)
+      if (s.ok) {
+        if (!existing) {
+          const id = uid()
+          const prazoDias = s.prazo ?? null
+          adds.push({
+            id,
+            unidade_fiscalizada_id: unidadeId,
+            numero_determinacao: null,
+            descricao: String(s.desc || ''),
+            prazo_dias: prazoDias,
+            data_limite: prazoDias ? new Date(Date.now() + prazoDias * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) : null,
+            status: 'pendente',
+            origem,
+            created_at: now(),
+            updated_at: now()
+          })
+        }
+      } else {
+        if (existing) deletes.push(existing)
+      }
+    }
+    for (const d of deletes) {
+      await db.determinacoes.delete((d as any).id)
+      await enqueueMutation({ id: (d as any).id, unidade_fiscalizada_id: unidadeId }, 'delete', 'determinacoes' as any)
+    }
+    for (const d of adds) {
+      await db.determinacoes.add(d as any)
+      await enqueueMutation(d, 'insert', 'determinacoes' as any)
+    }
+    if (adds.length > 0 || deletes.length > 0) {
+      await Repository.recomputeDeterminacoesNumeracao(unidadeId)
+    }
+  },
+
+  async syncDeterminacaoFromChecklistItem(unidadeId: string, item: any, resposta: any): Promise<void> {
+    if (!unidadeId) return
+    const itemId = String(item?.id || '').trim()
+    if (!itemId) return
+    const origem = `checklist:${itemId}`
+    const r = String(resposta?.resposta || '').toUpperCase()
+    const geraNc = !!item?.gera_nc
+    const detTxt = String(item?.texto_determinacao || '').trim()
+    const prazo = item?.prazo_dias !== undefined && item?.prazo_dias !== null ? Number(item?.prazo_dias) : null
+    const should = (r === 'NAO' || r === 'NÃO') && geraNc && detTxt !== ''
+    const list = await db.determinacoes.where('unidade_fiscalizada_id').equals(unidadeId).toArray()
+    const existing = (list || []).find((x: any) => String(x?.origem || '').trim() === origem)
+    if (should) {
+      if (!existing) {
+        const id = uid()
+        const prazoDias = Number.isFinite(prazo as any) ? (prazo as any) : null
+        const desc = detTxt.toLowerCase().startsWith('para sanar') ? detTxt : `Para sanar a NC? ${detTxt}`
+        const row = {
+          id,
+          unidade_fiscalizada_id: unidadeId,
+          numero_determinacao: null,
+          descricao: desc,
+          prazo_dias: prazoDias,
+          data_limite: prazoDias ? new Date(Date.now() + prazoDias * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) : null,
+          status: 'pendente',
+          origem,
+          created_at: now(),
+          updated_at: now()
+        }
+        await db.determinacoes.add(row as any)
+        await enqueueMutation(row, 'insert', 'determinacoes' as any)
+        await Repository.recomputeDeterminacoesNumeracao(unidadeId)
+      }
+      return
+    }
+    if (existing) {
+      await db.determinacoes.delete((existing as any).id)
+      await enqueueMutation({ id: (existing as any).id, unidade_fiscalizada_id: unidadeId }, 'delete', 'determinacoes' as any)
+      await Repository.recomputeDeterminacoesNumeracao(unidadeId)
+    }
+  },
+
+  async upsertDeterminacaoFromManualConstatacao(
+    unidadeId: string,
+    constatacaoId: string,
+    enabled: boolean,
+    descricao?: string | null
+  ): Promise<void> {
+    if (!unidadeId) return
+    if (!constatacaoId) return
+    const origem = `manual_constatacao:${String(constatacaoId)}`
+    await Repository.upsertDeterminacaoByOrigem(unidadeId, origem, enabled ? descricao : null, 30)
   },
   
   async countNCsByUnidade(unidadeId: string): Promise<number> {
@@ -1272,6 +1594,7 @@ export const Repository = {
         }
       }
     }
+    await Repository.recomputeDeterminacoesNumeracao(unidadeId)
   },
 
   async reorderConstatacoes(
@@ -1310,6 +1633,7 @@ export const Repository = {
         }
       }
     }
+    await Repository.recomputeDeterminacoesNumeracao(unidadeId)
   },
 
   async updateUnidadeFotos(unidadeId: string, fotos: Partial<Foto>[]): Promise<void> {
@@ -1456,7 +1780,7 @@ export const Repository = {
   },
 
   async removeUnidade(unidadeId: string): Promise<void> {
-    await db.transaction('rw', db.unidades, db.constatacoes_manuais, db.respostas, db.fotos, async () => {
+    await db.transaction('rw', [db.unidades, db.constatacoes_manuais, db.respostas, db.fotos, db.determinacoes], async () => {
       const fotos = await db.fotos.where('unidade_fiscalizada_id').equals(unidadeId).toArray()
       for (const f of fotos) {
         await db.fotos.delete((f as any).id)
@@ -1469,6 +1793,10 @@ export const Repository = {
       for (const c of constatacoes) {
         await db.constatacoes_manuais.delete(c.id)
       }
+      const dets = await db.determinacoes.where('unidade_fiscalizada_id').equals(unidadeId).toArray()
+      for (const d of dets) {
+        await db.determinacoes.delete((d as any).id)
+      }
       await db.unidades.delete(unidadeId)
     })
     await enqueueMutation({ id: unidadeId }, 'delete', 'unidades')
@@ -1480,6 +1808,14 @@ export const Repository = {
     await db.constatacoes_manuais.delete(id)
     await enqueueMutation({ id }, 'delete', 'constatacoes_manuais')
     if (unidadeId) {
+      const dets = await db.determinacoes.where('unidade_fiscalizada_id').equals(unidadeId as any).toArray()
+      const origemDet = `manual_constatacao:${String(id)}`
+      const existingDet = (dets || []).find((x: any) => String(x?.origem || '').trim() === origemDet)
+      if (existingDet) {
+        await db.determinacoes.delete((existingDet as any).id)
+        await enqueueMutation({ id: (existingDet as any).id, unidade_fiscalizada_id: unidadeId }, 'delete', 'determinacoes' as any)
+        await Repository.recomputeDeterminacoesNumeracao(unidadeId)
+      }
       const list = await db.recomendacoes.where('unidade_fiscalizada_id').equals(unidadeId as any).toArray()
       const origem = `manual_constatacao:${String(id)}`
       const existing = (list || []).find((x: any) => String(x?.origem || '').trim() === origem)
@@ -1492,13 +1828,15 @@ export const Repository = {
   },
 
   async updateConstatacaoManual(id: string, changes: Partial<ConstatacaoManual>): Promise<void> {
-    const cur = await db.constatacoes_manuais.get(id as any)
-    const cleaned: any = {}
-    for (const [k, v] of Object.entries(changes || {})) {
-      if (v !== undefined) cleaned[k] = v
+    const cur = await db.constatacoes_manuais.get(id as any);
+    const cleaned: any = {};
+    const entries = changes ? Object.keys(changes as any) : [];
+    for (const k of entries) {
+      const v = (changes as any)[k];
+      if (v !== undefined) cleaned[k] = v;
     }
-    const next = { ...(cur as any), ...cleaned, updated_at: now() }
-    await db.constatacoes_manuais.update(id, next)
+    const next = { ...(cur as any), ...cleaned, updated_at: now() };
+    await db.constatacoes_manuais.update(id, next);
     await enqueueMutation(
       {
         id,
@@ -1508,7 +1846,7 @@ export const Repository = {
       },
       'update',
       'constatacoes_manuais'
-    )
+    );
   },
 
   async upsertRecomendacaoFromManualConstatacao(

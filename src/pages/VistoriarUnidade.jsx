@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ChecklistItem from '@/components/fiscalizacao/ChecklistItem';
 import PhotoGrid from '@/components/fiscalizacao/PhotoGrid';
 import ConstatacaoManualForm from '@/components/fiscalizacao/ConstatacaoManualForm';
@@ -44,6 +45,14 @@ export default function VistoriarUnidade() {
     const [showEditarRecomendacao, setShowEditarRecomendacao] = useState(false);
     const [recomendacaoParaEditar, setRecomendacaoParaEditar] = useState(null);
     const [textoRecomendacaoEdicao, setTextoRecomendacaoEdicao] = useState('');
+    const [showAddDeterminacao, setShowAddDeterminacao] = useState(false);
+    const [novaDeterminacao, setNovaDeterminacao] = useState('');
+    const [novaDeterminacaoOrigem, setNovaDeterminacaoOrigem] = useState('');
+    const [showConfirmaExclusaoDeterminacao, setShowConfirmaExclusaoDeterminacao] = useState(false);
+    const [determinacaoParaExcluir, setDeterminacaoParaExcluir] = useState(null);
+    const [showEditarDeterminacao, setShowEditarDeterminacao] = useState(false);
+    const [determinacaoParaEditar, setDeterminacaoParaEditar] = useState(null);
+    const [textoDeterminacaoEdicao, setTextoDeterminacaoEdicao] = useState('');
     const [showConfirmaSemFotos, setShowConfirmaSemFotos] = useState(false);
     const [contadoresCarregados, setContadoresCarregados] = useState(false);
     const [showAddConstatacao, setShowAddConstatacao] = useState(false);
@@ -65,6 +74,7 @@ export default function VistoriarUnidade() {
     const reorderInFlightRef = useRef(false);
     const [constatacoesOrdenadas, setConstatacoesOrdenadas] = useState([]);
     const [recomendacoesOrdenadas, setRecomendacoesOrdenadas] = useState([]);
+    const [determinacoesOrdenadas, setDeterminacoesOrdenadas] = useState([]);
 
     useEffect(() => {
         return () => {
@@ -115,10 +125,7 @@ export default function VistoriarUnidade() {
 
     const { data: determinacoesExistentes = [] } = useQuery({
         queryKey: ['determinacoes', unidadeId],
-        queryFn: async () => {
-            const list = await Repository.listConstatacoesManuais(unidadeId);
-            return list.filter(c => !!c.texto_determinacao && c.texto_determinacao.trim() !== '');
-        },
+        queryFn: async () => Repository.listDeterminacoesByUnidade(unidadeId),
         enabled: !!unidadeId,
         staleTime: Infinity,
         gcTime: Infinity,
@@ -175,6 +182,47 @@ export default function VistoriarUnidade() {
             .sort((a, b) => parseR(a.numero_recomendacao) - parseR(b.numero_recomendacao) || String(a.id).localeCompare(String(b.id)));
     }, [recomendacoesExistentes]);
 
+    const computedDeterminacoes = useMemo(() => {
+        const parseD = (v) => {
+            const n = parseInt(String(v || '').replace(/[^\d]/g, ''), 10);
+            return Number.isFinite(n) ? n : 999999;
+        };
+        return (determinacoesExistentes || [])
+            .filter(d => d && d.descricao && String(d.descricao).trim())
+            .slice()
+            .sort((a, b) => parseD(a.numero_determinacao) - parseD(b.numero_determinacao) || String(a.id).localeCompare(String(b.id)));
+    }, [determinacoesExistentes]);
+
+    const opcoesConstatacaoParaDeterminacao = useMemo(() => {
+        const list = Array.isArray(constatacoesOrdenadas) ? constatacoesOrdenadas : [];
+        const options = [];
+        for (const c of list) {
+            if (!c) continue;
+            if (c.kind === 'checklist') {
+                const itemId = c?.resp?.item_checklist_id;
+                if (!itemId) continue;
+                const numero = c?.resp?.numero_constatacao;
+                const texto = String(c?.resp?.pergunta || '').trim();
+                options.push({
+                    value: `checklist:${String(itemId)}`,
+                    label: `${String(numero || 'C?')} - ${texto ? texto.slice(0, 60) : 'Constatação do checklist'}`
+                });
+                continue;
+            }
+            if (c.kind === 'manual') {
+                const id = c?.id;
+                if (!id) continue;
+                const numero = c?.manual?.numero_constatacao;
+                const texto = String(c?.manual?.descricao || '').trim();
+                options.push({
+                    value: `manual_constatacao:${String(id)}`,
+                    label: `${String(numero || 'C?')} - ${texto ? texto.slice(0, 60) : 'Constatação manual'}`
+                });
+            }
+        }
+        return options;
+    }, [constatacoesOrdenadas]);
+
     useEffect(() => {
         if (reorderInFlightRef.current) return;
         setConstatacoesOrdenadas(computedConstatacoes);
@@ -184,6 +232,11 @@ export default function VistoriarUnidade() {
         if (reorderInFlightRef.current) return;
         setRecomendacoesOrdenadas(computedRecomendacoes);
     }, [computedRecomendacoes]);
+
+    useEffect(() => {
+        if (reorderInFlightRef.current) return;
+        setDeterminacoesOrdenadas(computedDeterminacoes);
+    }, [computedDeterminacoes]);
 
     useEffect(() => {
         if (!unidadeId) return;
@@ -312,9 +365,11 @@ export default function VistoriarUnidade() {
             await Repository.recomputeConstatacoesNumeracao(unidade);
             const respostasAtualizadas = await Repository.listRespostasByUnidade(unidade);
             await Repository.syncRecomendacoesFromChecklist(unidade, itens, respostasAtualizadas);
+            await Repository.syncDeterminacoesFromChecklist(unidade, itens, respostasAtualizadas);
             await queryClient.invalidateQueries({ queryKey: ['respostas', unidade] });
             await queryClient.invalidateQueries({ queryKey: ['constatacoes-manuais', unidade] });
             await queryClient.invalidateQueries({ queryKey: ['recomendacoes', unidade] });
+            await queryClient.invalidateQueries({ queryKey: ['determinacoes', unidade] });
         } catch (err) {
             if (!silent) {
                 console.error('Erro ao processar batch:', err);
@@ -392,6 +447,9 @@ export default function VistoriarUnidade() {
                 if (item && unidadeId) {
                     Repository.syncRecomendacaoFromChecklistItem(unidadeId, item, { resposta: data.resposta }).then(() => {
                         queryClient.invalidateQueries({ queryKey: ['recomendacoes', unidadeId] });
+                    }).catch(() => {});
+                    Repository.syncDeterminacaoFromChecklistItem(unidadeId, item, { resposta: data.resposta }).then(() => {
+                        queryClient.invalidateQueries({ queryKey: ['determinacoes', unidadeId] });
                     }).catch(() => {});
                 }
             } catch {}
@@ -509,6 +567,60 @@ export default function VistoriarUnidade() {
         }
     });
 
+    const adicionarDeterminacaoMutation = useMutation({
+        mutationFn: async ({ origem, texto }) => {
+            if (unidade?.status === 'finalizada' && !modoEdicao) {
+                throw new Error('Não é possível modificar uma unidade finalizada');
+            }
+            const origemFinal = String(origem || '').trim();
+            if (!origemFinal) throw new Error('Selecione a constatação vinculada.');
+            await Repository.upsertDeterminacaoByOrigem(unidadeId, origemFinal, texto, null);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['determinacoes', unidadeId] });
+            setNovaDeterminacao('');
+            setNovaDeterminacaoOrigem('');
+            setShowAddDeterminacao(false);
+        }
+    });
+
+    const editarDeterminacaoMutation = useMutation({
+        mutationFn: async ({ id, texto }) => {
+            if (unidade?.status === 'finalizada' && !modoEdicao) {
+                throw new Error('Não é possível modificar uma unidade finalizada');
+            }
+            const desc = String(texto || '').trim();
+            if (!desc) throw new Error('A determinação não pode ficar vazia');
+            await Repository.updateDeterminacao(id, { descricao: desc });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['determinacoes', unidadeId] });
+            setShowEditarDeterminacao(false);
+            setDeterminacaoParaEditar(null);
+            setTextoDeterminacaoEdicao('');
+        },
+        onError: (err) => {
+            alert(err.message);
+        }
+    });
+
+    const excluirDeterminacaoMutation = useMutation({
+        mutationFn: async (determinacaoId) => {
+            if (unidade?.status === 'finalizada' && !modoEdicao) {
+                throw new Error('Não é possível modificar uma unidade finalizada');
+            }
+            await Repository.removeDeterminacao(determinacaoId);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['determinacoes', unidadeId] });
+            setShowConfirmaExclusaoDeterminacao(false);
+            setDeterminacaoParaExcluir(null);
+        },
+        onError: (err) => {
+            alert(err.message);
+        }
+    });
+
     const canEditReorder = unidade?.status !== 'finalizada' || modoEdicao;
 
     const reorderArray = (list, startIndex, endIndex) => {
@@ -530,6 +642,7 @@ export default function VistoriarUnidade() {
             await Repository.reorderConstatacoes(unidadeId, next.map((x) => ({ kind: x.kind, id: x.id })));
             await queryClient.invalidateQueries({ queryKey: ['respostas', unidadeId] });
             await queryClient.invalidateQueries({ queryKey: ['constatacoes-manuais', unidadeId] });
+            await queryClient.invalidateQueries({ queryKey: ['determinacoes', unidadeId] });
         } finally {
             reorderInFlightRef.current = false;
         }
@@ -550,6 +663,8 @@ export default function VistoriarUnidade() {
             reorderInFlightRef.current = false;
         }
     };
+
+    
 
     const adicionarConstatacaoManualMutation = useMutation({
         mutationFn: async (data) => {
@@ -591,6 +706,7 @@ export default function VistoriarUnidade() {
             setShowAddConstatacao(false);
 
             await Repository.recomputeConstatacoesNumeracao(unidadeId);
+            queryClient.invalidateQueries({ queryKey: ['determinacoes', unidadeId] });
             const constatacaoAtualizada = await Repository.getConstatacaoManualById(constatacao.id);
             const baseConst = constatacaoAtualizada || constatacao;
             
@@ -679,11 +795,14 @@ export default function VistoriarUnidade() {
             if (unidadeId) {
                 const enabled = !!data.gera_recomendacao && !data.gera_determinacao
                 await Repository.upsertRecomendacaoFromManualConstatacao(unidadeId, constatacaoParaNC.id, enabled, data.texto_recomendacao)
+                const enabledDet = !!data.gera_determinacao
+                await Repository.upsertDeterminacaoFromManualConstatacao(unidadeId, constatacaoParaNC.id, enabledDet, data.texto_determinacao)
             }
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['constatacoes-manuais', unidadeId] });
             queryClient.invalidateQueries({ queryKey: ['recomendacoes', unidadeId] });
+            queryClient.invalidateQueries({ queryKey: ['determinacoes', unidadeId] });
             setShowEditarNC(false);
             setConstatacaoParaNC(null);
             setNumerosParaNC(null);
@@ -923,7 +1042,7 @@ export default function VistoriarUnidade() {
             {/* Tabs */}
             <div className="max-w-4xl mx-auto px-4 py-4">
                 <Tabs value={activeTab} onValueChange={setActiveTab}>
-                    <TabsList className="w-full grid grid-cols-4">
+                    <TabsList className="w-full grid grid-cols-5">
                         <TabsTrigger value="checklist" className="text-xs">
                             <ClipboardCheck className="h-4 w-4 mr-1" />
                             Checklist
@@ -936,6 +1055,10 @@ export default function VistoriarUnidade() {
                             <Camera className="h-4 w-4 mr-1" />
                             Fotos
                             {fotos.length === 0 && <span className="ml-1 text-red-500">!</span>}
+                        </TabsTrigger>
+                        <TabsTrigger value="determinacoes" className="text-xs">
+                            <FileText className="h-4 w-4 mr-1" />
+                            Det ({determinacoesExistentes.length})
                         </TabsTrigger>
                         <TabsTrigger value="recomendacoes" className="text-xs">
                             <FileText className="h-4 w-4 mr-1" />
@@ -1155,6 +1278,63 @@ export default function VistoriarUnidade() {
                     />
                     </TabsContent>
 
+                    {/* Determinações Tab */}
+                    <TabsContent value="determinacoes" className="mt-4 space-y-4">
+                        {(unidade?.status !== 'finalizada' || modoEdicao) && (
+                            <Button onClick={() => setShowAddDeterminacao(true)} className="w-full">
+                                <Plus className="h-4 w-4 mr-2" />
+                                Adicionar Determinação
+                            </Button>
+                        )}
+
+                        {determinacoesOrdenadas.length === 0 ? (
+                            <p className="text-center text-gray-500 text-sm py-4">
+                                Nenhuma determinação adicionada.
+                            </p>
+                        ) : (
+                            <div className="space-y-3">
+                                {determinacoesOrdenadas.map((det) => (
+                                    <Card key={det.id}>
+                                        <CardContent className="p-4">
+                                            <div className="flex items-start gap-3">
+                                                <Badge variant="secondary">{det.numero_determinacao}</Badge>
+                                                <p className="text-sm flex-1">{det.descricao}</p>
+                                                {(unidade?.status !== 'finalizada' || modoEdicao) && (
+                                                    <div className="flex gap-2">
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            onClick={() => {
+                                                                setDeterminacaoParaEditar(det);
+                                                                setTextoDeterminacaoEdicao(det.descricao || '');
+                                                                setShowEditarDeterminacao(true);
+                                                            }}
+                                                            title="Editar determinação"
+                                                        >
+                                                            <Pencil className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            onClick={() => {
+                                                                setDeterminacaoParaExcluir(det);
+                                                                setShowConfirmaExclusaoDeterminacao(true);
+                                                            }}
+                                                            className="text-red-600 hover:text-red-700"
+                                                            title="Excluir determinação"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
+                        )}
+                    </TabsContent>
+
 
 
                     {/* Recomendações Tab */}
@@ -1279,6 +1459,115 @@ export default function VistoriarUnidade() {
                     </div>
                 </div>
             )}
+
+            {/* Dialog Determinação */}
+            <Dialog
+                open={showAddDeterminacao}
+                onOpenChange={(open) => {
+                    setShowAddDeterminacao(open);
+                    if (!open) {
+                        setNovaDeterminacao('');
+                        setNovaDeterminacaoOrigem('');
+                    }
+                }}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Nova Determinação</DialogTitle>
+                        <DialogDescription>
+                            Descreva a determinação a ser registrada para esta unidade.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>Constatação vinculada</Label>
+                            <Select value={novaDeterminacaoOrigem} onValueChange={setNovaDeterminacaoOrigem}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecione a constatação" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {opcoesConstatacaoParaDeterminacao.map((opt) => (
+                                        <SelectItem key={opt.value} value={opt.value}>
+                                            {opt.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <Textarea
+                            placeholder="Descreva a determinação..."
+                            value={novaDeterminacao}
+                            onChange={(e) => setNovaDeterminacao(e.target.value)}
+                            rows={4}
+                        />
+                        <div className="flex gap-2">
+                            <Button
+                                className="flex-1"
+                                onClick={() =>
+                                    adicionarDeterminacaoMutation.mutate({
+                                        origem: novaDeterminacaoOrigem,
+                                        texto: novaDeterminacao
+                                    })
+                                }
+                                disabled={!novaDeterminacao.trim() || !novaDeterminacaoOrigem || adicionarDeterminacaoMutation.isPending}
+                            >
+                                Salvar
+                            </Button>
+                            <Button variant="outline" onClick={() => setShowAddDeterminacao(false)}>
+                                Cancelar
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={showEditarDeterminacao}
+                onOpenChange={(open) => {
+                    setShowEditarDeterminacao(open);
+                    if (!open) {
+                        setDeterminacaoParaEditar(null);
+                        setTextoDeterminacaoEdicao('');
+                    }
+                }}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Editar Determinação</DialogTitle>
+                        <DialogDescription>
+                            Mantém a numeração e aplica o texto editado no relatório.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>Texto</Label>
+                            <Textarea
+                                value={textoDeterminacaoEdicao}
+                                onChange={(e) => setTextoDeterminacaoEdicao(e.target.value)}
+                                rows={4}
+                                disabled={editarDeterminacaoMutation.isPending}
+                            />
+                        </div>
+                        <div className="flex gap-2">
+                            <Button
+                                className="flex-1"
+                                onClick={() =>
+                                    editarDeterminacaoMutation.mutate({
+                                        id: determinacaoParaEditar?.id,
+                                        texto: textoDeterminacaoEdicao
+                                    })
+                                }
+                                disabled={!textoDeterminacaoEdicao.trim() || editarDeterminacaoMutation.isPending || !determinacaoParaEditar?.id}
+                            >
+                                Salvar
+                            </Button>
+                            <Button variant="outline" onClick={() => setShowEditarDeterminacao(false)} disabled={editarDeterminacaoMutation.isPending}>
+                                Cancelar
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
 
             {/* Dialog Recomendação */}
             <Dialog open={showAddRecomendacao} onOpenChange={setShowAddRecomendacao}>
@@ -1621,6 +1910,36 @@ export default function VistoriarUnidade() {
                             Sim, Excluir
                         </Button>
                         <Button variant="outline" onClick={() => setShowConfirmaExclusaoRecomendacao(false)}>
+                            Cancelar
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+            
+            {/* Dialog Confirmação Exclusão Determinação */}
+            <Dialog open={showConfirmaExclusaoDeterminacao} onOpenChange={setShowConfirmaExclusaoDeterminacao}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-red-700">
+                            <AlertCircle className="h-5 w-5" />
+                            Excluir Determinação
+                        </DialogTitle>
+                        <DialogDescription>
+                            Tem certeza que deseja excluir a determinação <strong>{determinacaoParaExcluir?.numero_determinacao}</strong>?
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex gap-2">
+                        <Button
+                            className="flex-1 bg-red-600 hover:bg-red-700"
+                            onClick={() => excluirDeterminacaoMutation.mutate(determinacaoParaExcluir?.id)}
+                            disabled={excluirDeterminacaoMutation.isPending}
+                        >
+                            {excluirDeterminacaoMutation.isPending ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            ) : null}
+                            Sim, Excluir
+                        </Button>
+                        <Button variant="outline" onClick={() => setShowConfirmaExclusaoDeterminacao(false)}>
                             Cancelar
                         </Button>
                     </div>

@@ -143,6 +143,19 @@ export type Recomendacao = {
   updated_at?: string
 }
 
+export type Determinacao = {
+  id: UUID
+  unidade_fiscalizada_id: UUID
+  numero_determinacao?: string
+  descricao?: string
+  prazo_dias?: number | null
+  data_limite?: string | null
+  status?: string | null
+  origem?: string
+  created_at?: string
+  updated_at?: string
+}
+
 export type FilaMutacao = {
   id: UUID
   tipo: string
@@ -180,6 +193,7 @@ export class AppDB extends Dexie {
   respostas!: Table<RespostaChecklist, UUID>
   constatacoes_manuais!: Table<ConstatacaoManual, UUID>
   recomendacoes!: Table<Recomendacao, UUID>
+  determinacoes!: Table<Determinacao, UUID>
   fotos!: Table<Foto & { id: UUID; unidade_fiscalizada_id: UUID; created_at?: string }, UUID>
   fotos_local!: Table<OfflineFoto, UUID>
   fila_mutacoes!: Table<FilaMutacao, UUID>
@@ -297,6 +311,10 @@ export class AppDB extends Dexie {
           }
         }
       })
+
+    this.version(10).stores({
+      determinacoes: 'id, unidade_fiscalizada_id, numero_determinacao, origem, created_at'
+    })
   }
 }
 

@@ -266,6 +266,11 @@ async function generatePdfForJob(adminClient: any, job: any) {
     const n = parseInt(digits, 10)
     return Number.isFinite(n) ? `R${n}` : ''
   }
+  const canonicalNumeroDeterminacao = (v: unknown) => {
+    const digits = String(v ?? '').replace(/[^\d]/g, '')
+    const n = parseInt(digits, 10)
+    return Number.isFinite(n) ? `D${n}` : ''
+  }
 
   const dedupeRespostasChecklist = (rows: any[]) => {
     const primary = new Map<string, any>()
@@ -332,7 +337,7 @@ async function generatePdfForJob(adminClient: any, job: any) {
     const recomendacoes = (todasRecomendacoes || []).filter((r) => r.unidade_fiscalizada_id === u.id)
     const manuais = todasConstatacoesManuais.filter((m) => m.unidade_fiscalizada_id === u.id && hasText(m?.descricao))
 
-    const mapeamentoUnidade: any = { constatacoes: {}, ncs: {}, determinacoes: {}, recomendacoes: {} }
+    const mapeamentoUnidade: any = { constatacoes: {}, ncs: {}, determinacoes: {}, recomendacoes: {}, ncNumeroByOrigem: {} }
 
     const constItensOrdenados = [
       ...respostas
@@ -365,36 +370,44 @@ async function generatePdfForJob(adminClient: any, job: any) {
     for (const nc of ncsOrd) {
       contadores.ncs++
       mapeamentoUnidade.ncs[nc.id] = contadores.ncs
+      try {
+        let origemNc: string | null = null
+        if (nc.resposta_checklist_id) {
+          const resp = respostas.find((r) => r.id === nc.resposta_checklist_id)
+          if (resp?.item_checklist_id) origemNc = `checklist:${String(resp.item_checklist_id)}`
+        } else {
+          const manual = manuais.find((cm) => nc.descricao && cm.numero_constatacao && String(nc.descricao).includes(String(cm.numero_constatacao)))
+          if (manual?.id) origemNc = `manual_constatacao:${String(manual.id)}`
+        }
+        if (origemNc) mapeamentoUnidade.ncNumeroByOrigem[origemNc] = contadores.ncs
+      } catch {}
     }
 
     const detsOrd = [...determinacoes].sort((a, b) => {
-      const ordNcA = mapeamentoUnidade.ncs[a.nao_conformidade_id] ?? 9999
-      const ordNcB = mapeamentoUnidade.ncs[b.nao_conformidade_id] ?? 9999
-      if (ordNcA !== ordNcB) return ordNcA - ordNcB
-      const numA = parseInt(String(a.numero_determinacao || '').replace('D', '') || '999', 10)
-      const numB = parseInt(String(b.numero_determinacao || '').replace('D', '') || '999', 10)
-      return numA - numB
+      const origA = String((a as any)?.origem || '').trim()
+      const origB = String((b as any)?.origem || '').trim()
+      const ordA = (mapeamentoUnidade as any)?.ncNumeroByOrigem?.[origA] ?? 9999
+      const ordB = (mapeamentoUnidade as any)?.ncNumeroByOrigem?.[origB] ?? 9999
+      if (ordA !== ordB) return ordA - ordB
+      const numA = parseInt(canonicalNumeroDeterminacao(a?.numero_determinacao).replace('D', '') || '999', 10)
+      const numB = parseInt(canonicalNumeroDeterminacao(b?.numero_determinacao).replace('D', '') || '999', 10)
+      if (numA !== numB) return numA - numB
+      const createdA = String(a?.created_at || '')
+      const createdB = String(b?.created_at || '')
+      if (createdA !== createdB) return createdA.localeCompare(createdB)
+      return String(a?.id || '').localeCompare(String(b?.id || ''))
     })
     for (const det of detsOrd) {
-      const numNcRelacionado = mapeamentoUnidade.ncs[det.nao_conformidade_id]
-      mapeamentoUnidade.determinacoes[det.id] = numNcRelacionado ?? parseInt(String(det.numero_determinacao || '').replace('D', '') || '999', 10)
+      contadores.determinacoes++
+      mapeamentoUnidade.determinacoes[det.id] = contadores.determinacoes
     }
 
-    const ncsSemDetOrd = ncsOrd.filter((nc) => !determinacoes.some((d) => d.nao_conformidade_id === nc.id))
     const recsBase = [...recomendacoes].sort((a, b) => {
       const numA = parseInt(canonicalNumeroRecomendacao(a?.numero_recomendacao).replace('R', '') || '999', 10)
       const numB = parseInt(canonicalNumeroRecomendacao(b?.numero_recomendacao).replace('R', '') || '999', 10)
       return numA - numB
     })
-    let recIdx = 0
-    for (let i = 0; i < ncsSemDetOrd.length; i++) {
-      const rec = recsBase[recIdx]
-      if (!rec) continue
-      contadores.recomendacoes++
-      mapeamentoUnidade.recomendacoes[rec.id] = contadores.recomendacoes
-      recIdx++
-    }
-    for (; recIdx < recsBase.length; recIdx++) {
+    for (let recIdx = 0; recIdx < recsBase.length; recIdx++) {
       const rec = recsBase[recIdx]
       contadores.recomendacoes++
       mapeamentoUnidade.recomendacoes[rec.id] = contadores.recomendacoes
@@ -1087,30 +1100,20 @@ async function generatePdfForJob(adminClient: any, job: any) {
     yPos += rowHeight
 
     if (determinacoes.length > 0) {
-      const ncsSortedForDet = [...ncs].sort((a, b) => (mapeamento.ncs[a.id] ?? 9999) - (mapeamento.ncs[b.id] ?? 9999))
-      const posPorNc: any = {}
-      ncsSortedForDet.forEach((nc, i) => {
-        posPorNc[nc.id] = i
-      })
-      const detsSorted = [...determinacoes].sort((a, b) => {
-        const posA = posPorNc[a.nao_conformidade_id] ?? 9999
-        const posB = posPorNc[b.nao_conformidade_id] ?? 9999
-        if (posA !== posB) return posA - posB
-        const numA = parseInt(String(a.numero_determinacao || '').replace('D', '') || '999', 10)
-        const numB = parseInt(String(b.numero_determinacao || '').replace('D', '') || '999', 10)
-        return numA - numB
-      })
+      const detsSorted = [...determinacoes].sort((a, b) => (mapeamento.determinacoes[a.id] ?? 9999) - (mapeamento.determinacoes[b.id] ?? 9999))
 
       for (const det of detsSorted) {
         const novoNumDet = `D${mapeamento.determinacoes[det.id]}.`
         let texto = String(det.descricao || '')
-        const ncRelacionada = ncs.find((nc) => nc.id === det.nao_conformidade_id)
-        if (ncRelacionada) {
-          const novoNumNC = `NC${mapeamento.ncs[ncRelacionada.id]}`
-          texto = texto.replace(/NC\d+/g, novoNumNC)
+        const origem = String((det as any)?.origem || '').trim()
+        const ncNum = origem && mapeamento?.ncNumeroByOrigem ? (mapeamento.ncNumeroByOrigem[origem] as any) : null
+        if (ncNum) {
+          const novoNumNC = `NC${ncNum}`
+          texto = texto.replace(/NC\?/g, novoNumNC).replace(/NC\d+/g, novoNumNC)
         }
         if (!texto.trim().endsWith('.')) texto = `${texto.trim()}.`
-        if (!texto.includes('Prazo:')) texto = `${texto} Prazo: ${det.prazo_dias} dias.`
+        const prazoDias = Number((det as any)?.prazo_dias)
+        if (!texto.includes('Prazo:') && Number.isFinite(prazoDias) && prazoDias > 0) texto = `${texto} Prazo: ${prazoDias} dias.`
 
         const lines = wrapText(texto, mm2pt(210 - 2 * 10 - 15), font, 9)
         const cellHeight = Math.max(rowHeight, lines.length * mm2pt(5) + mm2pt(4))

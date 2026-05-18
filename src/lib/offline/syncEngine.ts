@@ -13,6 +13,7 @@ type Entity =
   | 'tipos_unidade'
   | 'itens_checklist'
   | 'recomendacoes'
+  | 'determinacoes'
   | 'finalizacao_fiscalizacao'
   | 'reabrir_fiscalizacao'
   | 'prestadores'
@@ -29,6 +30,7 @@ const entityTableMap: Record<Entity, string> = {
   tipos_unidade: 'tipos_unidade',
   itens_checklist: 'itens_checklist',
   recomendacoes: 'recomendacoes',
+  determinacoes: 'determinacoes',
   finalizacao_fiscalizacao: 'fiscalizacoes',
   reabrir_fiscalizacao: 'fiscalizacoes'
   ,
@@ -112,6 +114,19 @@ function serializePayload(entity: Entity, type: MutationType, payload: any): any
         'created_at',
         'updated_at'
       ])
+    case 'determinacoes':
+      return pick(payload, [
+        'id',
+        'unidade_fiscalizada_id',
+        'numero_determinacao',
+        'descricao',
+        'prazo_dias',
+        'data_limite',
+        'status',
+        'origem',
+        'created_at',
+        'updated_at'
+      ])
     case 'tipos_unidade':
       return pick(payload, [
         'id',
@@ -169,6 +184,7 @@ const orderForSyncUp: Entity[] = [
   'respostas',
   'constatacoes_manuais',
   'recomendacoes',
+  'determinacoes',
   'fotos',
   'finalizacao_unidade',
   'finalizacao_fiscalizacao'
@@ -834,6 +850,12 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
         if (local) mapped = mergeDefined(payload, local as any)
       } catch {}
     }
+    if (entity === 'determinacoes' && payload?.id) {
+      try {
+        const local = await (db as any).determinacoes.get(payload.id as any)
+        if (local) mapped = mergeDefined(payload, local as any)
+      } catch {}
+    }
     if (entity === 'unidades') {
       mapped.fiscalizacao_id = await resolveId('fiscalizacoes', payload?.fiscalizacao_id)
       mapped.tipo_unidade_id = await resolveId('tipos_unidade', payload?.tipo_unidade_id)
@@ -859,7 +881,7 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
         } catch {}
       }
     }
-    if (entity === 'constatacoes_manuais' || entity === 'recomendacoes') {
+    if (entity === 'constatacoes_manuais' || entity === 'recomendacoes' || entity === 'determinacoes') {
       mapped.unidade_fiscalizada_id = await ensureUnidadeServerId(payload?.unidade_fiscalizada_id)
     }
     if (entity === 'recomendacoes') {
@@ -871,6 +893,17 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
         const n = parseInt(digits, 10)
         mapped.numero_recomendacao = Number.isFinite(n) ? `R${n}` : null
       }
+    }
+    if (entity === 'determinacoes') {
+      const raw = mapped?.numero_determinacao
+      if (raw === undefined || raw === null || (typeof raw === 'string' && raw.trim() === '')) {
+        mapped.numero_determinacao = null
+      } else {
+        const digits = String(raw).replace(/[^\d]/g, '')
+        const n = parseInt(digits, 10)
+        mapped.numero_determinacao = Number.isFinite(n) ? `D${n}` : null
+      }
+      if (mapped?.origem === undefined) mapped.origem = payload?.origem
     }
     if (entity === 'itens_checklist') {
       mapped.tipo_unidade_id = await resolveId('tipos_unidade', payload?.tipo_unidade_id)
@@ -901,6 +934,25 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
           mapped.id = existing.id
           if (localId && String(localId) !== String(existing.id)) {
             await db.id_map.put({ entity: 'recomendacoes', local_id: localId, server_id: existing.id } as any)
+          }
+        }
+      } catch {}
+    }
+    if (entity === 'determinacoes' && mapped?.unidade_fiscalizada_id && String(mapped?.origem || '').trim() !== '') {
+      try {
+        const { data: existing } = await supabase
+          .from('determinacoes')
+          .select('id,created_at')
+          .eq('unidade_fiscalizada_id', mapped.unidade_fiscalizada_id as any)
+          .eq('origem', String(mapped.origem).trim() as any)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        if (existing?.id) {
+          const localId = payload?.id as any
+          mapped.id = existing.id
+          if (localId && String(localId) !== String(existing.id)) {
+            await db.id_map.put({ entity: 'determinacoes', local_id: localId, server_id: existing.id } as any)
           }
         }
       } catch {}
@@ -946,6 +998,7 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
       respostas: 'unidade_fiscalizada_id,item_checklist_id',
       constatacoes_manuais: 'id',
       recomendacoes: undefined,
+      determinacoes: 'id',
       fiscalizacoes: 'id',
       unidades: 'id',
       itens_checklist: 'id',
@@ -962,7 +1015,30 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
       upsertOptions.ignoreDuplicates = false
       upsertOptions.returning = 'representation'
     }
-    if (entity === 'recomendacoes') {
+    if (entity === 'determinacoes') {
+      const parseMissingColumn = (err: any): string | null => {
+        const m = String(err?.message || '')
+        const m1 = m.match(/column\s+"([^"]+)"\s+of\s+relation\s+"[^"]+"\s+does\s+not\s+exist/i)
+        if (m1?.[1]) return m1[1]
+        const m2 = m.match(/column\s+"([^"]+)"\s+does\s+not\s+exist/i)
+        if (m2?.[1]) return m2[1]
+        const m3 = m.match(/Could not find the '([^']+)' column of '[^']+' in the schema cache/i)
+        if (m3?.[1]) return m3[1]
+        return null
+      }
+
+      let attemptPayload: any = { ...(safe as any) }
+      for (let i = 0; i < 6; i++) {
+        const { data, error } = await supabase.from(table).upsert(attemptPayload, { onConflict: 'id' }).select()
+        if (!error) return data || []
+        const col = parseMissingColumn(error)
+        if (!col) throw error
+        delete attemptPayload[col]
+      }
+      const { data, error } = await supabase.from(table).upsert(attemptPayload, { onConflict: 'id' }).select()
+      if (error) throw error
+      return data || []
+    } else if (entity === 'recomendacoes') {
       const parseMissingColumn = (err: any): string | null => {
         const m = String(err?.message || '')
         const m1 = m.match(/column\s+"([^"]+)"\s+of\s+relation\s+"[^"]+"\s+does\s+not\s+exist/i)
@@ -1296,7 +1372,7 @@ async function pullEntity(entity: Entity, since?: string) {
         const fkMap = await db.id_map.where('server_id').equals(normalized.fiscalizacao_id as any).and((m) => m.entity === 'fiscalizacoes').first()
         if (fkMap?.local_id) normalized.fiscalizacao_id = fkMap.local_id
       }
-      if ((entity === 'respostas' || entity === 'constatacoes_manuais' || entity === 'recomendacoes') && normalized?.unidade_fiscalizada_id) {
+      if ((entity === 'respostas' || entity === 'constatacoes_manuais' || entity === 'recomendacoes' || entity === 'determinacoes') && normalized?.unidade_fiscalizada_id) {
         const fkMap = await db.id_map.where('server_id').equals(normalized.unidade_fiscalizada_id as any).and((m) => m.entity === 'unidades').first()
         if (fkMap?.local_id) normalized.unidade_fiscalizada_id = fkMap.local_id
       }
@@ -1348,6 +1424,9 @@ async function pullEntity(entity: Entity, since?: string) {
           break
         case 'constatacoes_manuais':
           await db.constatacoes_manuais.put(normalized)
+          break
+        case 'determinacoes':
+          await (db as any).determinacoes.put(normalized)
           break
         case 'prestadores':
           await db.prestadores.put(normalized)
@@ -1405,7 +1484,7 @@ async function pullEntity(entity: Entity, since?: string) {
       const fkMap = await db.id_map.where('server_id').equals(normalized.fiscalizacao_id as any).and((m) => m.entity === 'fiscalizacoes').first()
       if (fkMap?.local_id) normalized.fiscalizacao_id = fkMap.local_id
     }
-    if ((entity === 'respostas' || entity === 'constatacoes_manuais' || entity === 'recomendacoes') && normalized?.unidade_fiscalizada_id) {
+    if ((entity === 'respostas' || entity === 'constatacoes_manuais' || entity === 'recomendacoes' || entity === 'determinacoes') && normalized?.unidade_fiscalizada_id) {
       const fkMap = await db.id_map.where('server_id').equals(normalized.unidade_fiscalizada_id as any).and((m) => m.entity === 'unidades').first()
       if (fkMap?.local_id) normalized.unidade_fiscalizada_id = fkMap.local_id
     }
@@ -1458,6 +1537,9 @@ async function pullEntity(entity: Entity, since?: string) {
       case 'constatacoes_manuais':
         await db.constatacoes_manuais.put(normalized)
         break
+      case 'determinacoes':
+        await (db as any).determinacoes.put(normalized)
+        break
       case 'prestadores':
         await db.prestadores.put(normalized)
         break
@@ -1502,6 +1584,7 @@ export async function syncDown(onProgress?: (msg: string, isError?: boolean) => 
     pullEntity('unidades', since),
     pullEntity('respostas', since),
     pullEntity('constatacoes_manuais', since),
+    pullEntity('determinacoes', since),
     pullEntity('prestadores', since)
   ])
   // itens_checklist e recomendacoes: tabelas adicionais
@@ -1590,8 +1673,9 @@ async function hardResetLocalData(): Promise<void> {
     await db.respostas.clear()
     await db.constatacoes_manuais.clear()
   })
-  await db.transaction('rw', db.recomendacoes, db.fotos, db.fotos_local, db.id_map, async () => {
+  await db.transaction('rw', [db.recomendacoes, (db as any).determinacoes, db.fotos, db.fotos_local, db.id_map], async () => {
     await db.recomendacoes.clear()
+    await (db as any).determinacoes.clear()
     await db.fotos.clear()
     await db.fotos_local.clear()
     await db.id_map.clear()
