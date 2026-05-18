@@ -958,34 +958,18 @@ async function generatePdfForJob(adminClient: any, job: any) {
     yPos += rowHeight
     drawCell(`Localidade: ${municipioNome}`, margin, yPos, tableWidth, rowHeight, true)
     yPos += rowHeight
-    drawCell(`Endereço: ${unidade.endereco || '-'}`, margin, yPos, tableWidth, rowHeight, true)
-    yPos += rowHeight
+    const enderecoTxt = String((unidade as any).endereco || '').trim()
+    if (enderecoTxt) {
+      drawCell(`Endereço: ${enderecoTxt}`, margin, yPos, tableWidth, rowHeight, true)
+      yPos += rowHeight
+    }
 
     const firstCapture = await findFirstCaptureFromFotos(fotosRaw)
-
-    const coordsDms = (() => {
-      const latBase = firstCapture?.latitude
-      const lonBase = firstCapture?.longitude
-      const usingPhoto = Number.isFinite(Number(latBase)) && Number.isFinite(Number(lonBase))
-      const latNum = usingPhoto ? Number(latBase) : Number(unidade.latitude)
-      const lonNum = usingPhoto ? Number(lonBase) : Number(unidade.longitude)
-      if (!isFinite(latNum) || !isFinite(lonNum)) return '-'
-      const latAbs = Math.abs(latNum)
-      const lonAbs = Math.abs(lonNum)
-      const latDeg = Math.floor(latAbs)
-      const lonDeg = Math.floor(lonAbs)
-      const latMinFloat = (latAbs - latDeg) * 60
-      const lonMinFloat = (lonAbs - lonDeg) * 60
-      const latMin = Math.floor(latMinFloat)
-      const lonMin = Math.floor(lonMinFloat)
-      const latSec = (latMinFloat - latMin) * 60
-      const lonSec = (lonMinFloat - lonMin) * 60
-      const latHem = usingPhoto ? 'S' : latNum >= 0 ? 'N' : 'S'
-      const lonHem = usingPhoto ? 'W' : lonNum >= 0 ? 'E' : 'W'
-      return `${latDeg}° ${latMin}' ${latSec.toFixed(2)}" ${latHem}, ${lonDeg}° ${lonMin}' ${lonSec.toFixed(2)}" ${lonHem}`
-    })()
-    drawCell(`Coordenadas: ${coordsDms}`, margin, yPos, tableWidth, rowHeight, true)
-    yPos += rowHeight
+    const coordsTxt = String((unidade as any).coordenadas || '').trim()
+    if (coordsTxt) {
+      drawCell(`Coordenadas: ${coordsTxt}`, margin, yPos, tableWidth, rowHeight, true)
+      yPos += rowHeight
+    }
 
     const vistoriaAt = firstCapture?.takenAt
       ? formatDateTimeBR(firstCapture.takenAt)

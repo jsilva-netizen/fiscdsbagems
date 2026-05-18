@@ -77,6 +77,7 @@ export type Unidade = {
   ordem?: number
   status?: string
   endereco?: string
+  coordenadas?: string
   latitude?: number | null
   longitude?: number | null
   fotos_unidade?: Foto[]

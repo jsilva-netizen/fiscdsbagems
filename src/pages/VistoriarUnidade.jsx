@@ -67,6 +67,8 @@ export default function VistoriarUnidade() {
     const [novoCodigoUnidade, setNovoCodigoUnidade] = useState('');
     const [showEditarEnderecoUnidade, setShowEditarEnderecoUnidade] = useState(false);
     const [novoEnderecoUnidade, setNovoEnderecoUnidade] = useState('');
+    const [showEditarCoordenadasUnidade, setShowEditarCoordenadasUnidade] = useState(false);
+    const [novasCoordenadasUnidade, setNovasCoordenadasUnidade] = useState('');
     const [showEditarConstatacaoChecklist, setShowEditarConstatacaoChecklist] = useState(false);
     const [respostaChecklistParaEditar, setRespostaChecklistParaEditar] = useState(null);
     const [textoConstatacaoChecklist, setTextoConstatacaoChecklist] = useState('');
@@ -869,6 +871,21 @@ export default function VistoriarUnidade() {
         }
     });
 
+    const atualizarCoordenadasUnidadeMutation = useMutation({
+        mutationFn: async () => {
+            const trimmed = String(novasCoordenadasUnidade || '').trim();
+            await Repository.updateUnidadeCoordenadas(unidadeId, trimmed);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['unidade', unidadeId] });
+            queryClient.invalidateQueries({ queryKey: ['unidades-fiscalizacao'] });
+            setShowEditarCoordenadasUnidade(false);
+        },
+        onError: (err) => {
+            alert(err.message);
+        }
+    });
+
     const salvarAlteracoesMutation = useMutation({
         mutationFn: async () => {
             console.log('🔵 Iniciando salvamento de alterações da unidade:', unidadeId);
@@ -966,6 +983,7 @@ export default function VistoriarUnidade() {
     const progresso = totalItens > 0 ? Math.round((totalRespondidas / totalItens) * 100) : 0;
     const podeEditarCodigoUnidade = unidade?.status !== 'finalizada' || modoEdicao;
     const podeEditarEnderecoUnidade = unidade?.status !== 'finalizada' || modoEdicao;
+    const podeEditarCoordenadasUnidade = unidade?.status !== 'finalizada' || modoEdicao;
 
     return (
         <div className="min-h-screen bg-gray-100 pb-24">
@@ -1013,6 +1031,24 @@ export default function VistoriarUnidade() {
                                         onClick={() => {
                                             setNovoEnderecoUnidade(unidade?.endereco || '');
                                             setShowEditarEnderecoUnidade(true);
+                                        }}
+                                    >
+                                        <Pencil className="h-3 w-3 mr-1" />
+                                        Editar
+                                    </Button>
+                                )}
+                            </div>
+                            <div className="flex items-center gap-2 text-blue-200 text-xs mt-1">
+                                <span>Coordenadas:</span>
+                                <span className="text-white truncate">{unidade?.coordenadas || '-'}</span>
+                                {podeEditarCoordenadasUnidade && (
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-6 px-2 text-blue-200 hover:text-white hover:bg-white/10"
+                                        onClick={() => {
+                                            setNovasCoordenadasUnidade(unidade?.coordenadas || '');
+                                            setShowEditarCoordenadasUnidade(true);
                                         }}
                                     >
                                         <Pencil className="h-3 w-3 mr-1" />
@@ -1721,6 +1757,47 @@ export default function VistoriarUnidade() {
                                 disabled={atualizarEnderecoUnidadeMutation.isPending}
                             >
                                 {atualizarEnderecoUnidadeMutation.isPending ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    'Salvar'
+                                )}
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={showEditarCoordenadasUnidade} onOpenChange={setShowEditarCoordenadasUnidade}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Editar coordenadas da unidade</DialogTitle>
+                        <DialogDescription>
+                            Altera apenas as coordenadas desta unidade. Se ficar vazio, não aparece no relatório.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>Coordenadas</Label>
+                            <Input
+                                value={novasCoordenadasUnidade}
+                                onChange={(e) => setNovasCoordenadasUnidade(e.target.value)}
+                                placeholder="Ex: -23.1439325, -55.1814142"
+                                disabled={atualizarCoordenadasUnidadeMutation.isPending}
+                            />
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <Button
+                                variant="outline"
+                                onClick={() => setShowEditarCoordenadasUnidade(false)}
+                                disabled={atualizarCoordenadasUnidadeMutation.isPending}
+                            >
+                                Cancelar
+                            </Button>
+                            <Button
+                                onClick={() => atualizarCoordenadasUnidadeMutation.mutate()}
+                                disabled={atualizarCoordenadasUnidadeMutation.isPending}
+                            >
+                                {atualizarCoordenadasUnidadeMutation.isPending ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />
                                 ) : (
                                     'Salvar'

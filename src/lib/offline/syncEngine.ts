@@ -70,6 +70,7 @@ function serializePayload(entity: Entity, type: MutationType, payload: any): any
         'codigo_unidade',
         'nome_unidade',
         'endereco',
+        'coordenadas',
         'latitude',
         'longitude',
         'data_hora_vistoria',
@@ -1038,6 +1039,29 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
       const { data, error } = await supabase.from(table).upsert(attemptPayload, { onConflict: 'id' }).select()
       if (error) throw error
       return data || []
+    } else if (entity === 'unidades') {
+      const parseMissingColumn = (err: any): string | null => {
+        const m = String(err?.message || '')
+        const m1 = m.match(/column\s+"([^"]+)"\s+of\s+relation\s+"[^"]+"\s+does\s+not\s+exist/i)
+        if (m1?.[1]) return m1[1]
+        const m2 = m.match(/column\s+"([^"]+)"\s+does\s+not\s+exist/i)
+        if (m2?.[1]) return m2[1]
+        const m3 = m.match(/Could not find the '([^']+)' column of '[^']+' in the schema cache/i)
+        if (m3?.[1]) return m3[1]
+        return null
+      }
+
+      let attemptPayload: any = { ...(safe as any) }
+      for (let i = 0; i < 6; i++) {
+        const { data, error } = await supabase.from(table).upsert(attemptPayload, { onConflict: 'id' }).select()
+        if (!error) return data || []
+        const col = parseMissingColumn(error)
+        if (!col) throw error
+        delete attemptPayload[col]
+      }
+      const { data, error } = await supabase.from(table).upsert(attemptPayload, { onConflict: 'id' }).select()
+      if (error) throw error
+      return data || []
     } else if (entity === 'recomendacoes') {
       const parseMissingColumn = (err: any): string | null => {
         const m = String(err?.message || '')
@@ -1106,10 +1130,6 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
         if (error) throw error
         return data || []
       }
-    } else if (entity === 'unidades' && type === 'update') {
-      const { data, error } = await supabase.from(table).update(safe).eq('id', safe.id as any).select()
-      if (error) throw error
-      return data || []
     } else {
       const { data, error } = await supabase.from(table).upsert(safe, upsertOptions).select()
       if (error) throw error
@@ -1338,7 +1358,7 @@ function selectColsForPull(entity: Entity): string {
     case 'fiscalizacoes':
       return 'id,municipio_id,municipio_nome,prestador_servico_id,prestador_servico_nome,fiscal_nome,fiscal_email,data_inicio,data_fim,latitude_inicio,longitude_inicio,status,servicos,numero_termo,created_at,updated_at'
     case 'unidades':
-      return 'id,fiscalizacao_id,tipo_unidade_id,tipo_unidade_nome,nome_unidade,codigo_unidade,endereco,latitude,longitude,ordem,status,total_constatacoes,total_ncs,fotos_unidade,data_hora_vistoria,created_at,updated_at'
+      return 'id,fiscalizacao_id,tipo_unidade_id,tipo_unidade_nome,nome_unidade,codigo_unidade,endereco,coordenadas,latitude,longitude,ordem,status,total_constatacoes,total_ncs,fotos_unidade,data_hora_vistoria,created_at,updated_at'
     case 'respostas':
       return '*'
     case 'constatacoes_manuais':
