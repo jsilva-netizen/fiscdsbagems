@@ -568,8 +568,20 @@ async function generatePdfForJob(adminClient: any, job: any) {
   const servicoLabel = Array.isArray(fisc.servicos) && fisc.servicos.length > 1 ? 'Serviços' : 'Serviço'
   drawTextAt(`${servicoLabel}: ${Array.isArray(fisc.servicos) ? fisc.servicos.join(', ') : servicosList.join(', ')}`, margin + mm2pt(2), yPos, 10)
   yPos += mm2pt(6)
-  if (fisc.data_inicio) {
-    drawTextAt(`Data Início: ${formatDateTimeBR(fisc.data_inicio)}`, margin + mm2pt(2), yPos, 10)
+  const unidadeDataInicio = (() => {
+    let min = Number.POSITIVE_INFINITY
+    for (const u of unidades || []) {
+      const raw = (u as any)?.data_hora_vistoria
+      if (!raw) continue
+      const ms = new Date(raw).getTime()
+      if (!Number.isNaN(ms) && ms < min) min = ms
+    }
+    return Number.isFinite(min) ? new Date(min).toISOString() : ''
+  })()
+
+  const dataInicioRelatorio = unidadeDataInicio || String(fisc.data_inicio || '')
+  if (dataInicioRelatorio) {
+    drawTextAt(`Data Início: ${formatDateTimeBR(dataInicioRelatorio)}`, margin + mm2pt(2), yPos, 10)
     yPos += mm2pt(6)
   }
   if (fisc.data_fim) {
