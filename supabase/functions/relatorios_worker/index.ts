@@ -270,9 +270,17 @@ async function generatePdfForJob(adminClient: any, job: any) {
     return `${deg}° ${min}' ${secTxt}" ${ref}`
   }
 
+  const forceSouthWestDmsText = (text: string) => {
+    return String(text || '')
+      .replace(/"\s*[Nn](?=[,\s]|$)/g, `" S`)
+      .replace(/"\s*[Ee](?=[,\s]|$)/g, `" W`)
+      .replace(/\s+[Nn](?=[,\s]|$)/g, ' S')
+      .replace(/\s+[Ee](?=[,\s]|$)/g, ' W')
+  }
+
   const formatCoordsDms = (lat: number, lon: number) => {
-    const latTxt = decimalToDms(lat, 'N', 'S')
-    const lonTxt = decimalToDms(lon, 'E', 'W')
+    const latTxt = decimalToDms(-Math.abs(lat), 'N', 'S')
+    const lonTxt = decimalToDms(-Math.abs(lon), 'E', 'W')
     return `${latTxt}, ${lonTxt}`
   }
 
@@ -1008,7 +1016,7 @@ async function generatePdfForJob(adminClient: any, job: any) {
     const coordsFinal = (() => {
       if (coordsTxt) {
         const isLikelyDms = /[°º]/.test(coordsTxt) && /[NSEW]/i.test(coordsTxt)
-        if (isLikelyDms) return coordsTxt
+        if (isLikelyDms) return forceSouthWestDmsText(coordsTxt)
         const parsed = tryParseDecimalCoordsPair(coordsTxt)
         if (parsed) return formatCoordsDms(parsed.lat, parsed.lon)
         return coordsTxt
