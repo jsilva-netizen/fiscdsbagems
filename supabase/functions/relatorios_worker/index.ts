@@ -426,6 +426,7 @@ async function generatePdfForJob(adminClient: any, job: any) {
 
   const rgb255 = (r: number, g: number, b: number) => rgb(r / 255, g / 255, b / 255)
   const margin = mm2pt(10)
+  const firstPageTopPadding = mm2pt(25)
   const topMargin = mm2pt(35)
   const bottomMargin = mm2pt(25)
   const tableWidth = pageWidth - 2 * margin
@@ -496,10 +497,10 @@ async function generatePdfForJob(adminClient: any, job: any) {
     return `${dd}/${mm}/${yyyy} ${hh}:${mi}`
   }
 
-  drawRectTop(0, 0, pageWidth, mm2pt(40), rgb255(25, 75, 145), false)
+  drawRectTop(0, firstPageTopPadding, pageWidth, mm2pt(40), rgb255(25, 75, 145), false)
   const titulo = fisc.numero_termo ? `TERMO DE VISTORIA AGEMS/DSB Nº ${fisc.numero_termo}` : 'RELATÓRIO DE FISCALIZAÇÃO'
-  drawTextCenteredAt(titulo, pageWidth / 2, mm2pt(15), 20, { bold: true, color: rgb255(255, 255, 255) })
-  drawTextCenteredAt(municipioNome, pageWidth / 2, mm2pt(25), 11, { color: rgb255(255, 255, 255) })
+  drawTextCenteredAt(titulo, pageWidth / 2, firstPageTopPadding + mm2pt(15), 20, { bold: true, color: rgb255(255, 255, 255) })
+  drawTextCenteredAt(municipioNome, pageWidth / 2, firstPageTopPadding + mm2pt(25), 11, { color: rgb255(255, 255, 255) })
   const servicosList = Array.isArray(fisc.servicos)
     ? fisc.servicos
     : typeof fisc.servico === 'string'
@@ -508,9 +509,9 @@ async function generatePdfForJob(adminClient: any, job: any) {
           .map((s: string) => s.trim())
           .filter(Boolean)
       : []
-  if (servicosList.length > 0) drawTextCenteredAt(servicosList.join(', '), pageWidth / 2, mm2pt(33), 11, { color: rgb255(255, 255, 255) })
+  if (servicosList.length > 0) drawTextCenteredAt(servicosList.join(', '), pageWidth / 2, firstPageTopPadding + mm2pt(33), 11, { color: rgb255(255, 255, 255) })
 
-  yPos = mm2pt(45)
+  yPos = firstPageTopPadding + mm2pt(45)
   drawTextAt('INFORMAÇÕES DA FISCALIZAÇÃO', margin, yPos, 12, { bold: true })
   yPos += mm2pt(7)
   drawTextAt(`Município: ${municipioNome}`, margin + mm2pt(2), yPos, 10)
