@@ -1238,6 +1238,19 @@ async function generatePdfForJob(adminClient: any, job: any) {
     await updateJob(adminClient, job.id, { progress_unidades: idx + 1 })
   }
 
+  const pages = pdfDoc.getPages()
+  const totalPages = pages.length
+  const footerSize = 8
+  const footerPaddingY = mm2pt(6)
+  for (let i = 0; i < totalPages; i++) {
+    const page = pages[i]
+    const label = `Página ${i + 1} de ${totalPages}`
+    const textW = font.widthOfTextAtSize(label, footerSize)
+    const x = pageWidth - margin - textW
+    const y = footerPaddingY
+    page.drawText(label, { x, y, size: footerSize, font, color: rgb(0.35, 0.35, 0.35) })
+  }
+
   return await pdfDoc.save()
 }
 
