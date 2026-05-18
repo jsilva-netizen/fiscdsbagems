@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.97.0'
+import { createClient } from 'jsr:@supabase/supabase-js@2.97.0'
 import { PDFDocument, StandardFonts, rgb } from 'https://esm.sh/pdf-lib@1.17.1'
 
 const corsHeaders = {
@@ -246,6 +246,45 @@ async function generatePdfForJob(adminClient: any, job: any) {
   }
 
   const hasText = (v: unknown) => String(v ?? '').trim() !== ''
+
+  const decimalToDms = (value: number, positiveRef: string, negativeRef: string) => {
+    const ref = value >= 0 ? positiveRef : negativeRef
+    const abs = Math.abs(value)
+    let deg = Math.floor(abs)
+    let minFloat = (abs - deg) * 60
+    let min = Math.floor(minFloat)
+    let sec = (minFloat - min) * 60
+
+    sec = Math.round(sec * 100) / 100
+    if (sec >= 60) {
+      sec = 0
+      min += 1
+    }
+    if (min >= 60) {
+      min = 0
+      deg += 1
+    }
+
+    let secTxt = sec.toFixed(2)
+    if (sec < 10) secTxt = `0${secTxt}`
+    return `${deg}° ${min}' ${secTxt}" ${ref}`
+  }
+
+  const formatCoordsDms = (lat: number, lon: number) => {
+    const latTxt = decimalToDms(lat, 'N', 'S')
+    const lonTxt = decimalToDms(lon, 'E', 'W')
+    return `${latTxt}, ${lonTxt}`
+  }
+
+  const tryParseDecimalCoordsPair = (text: string): { lat: number; lon: number } | null => {
+    const nums = String(text || '').match(/-?\d+(?:\.\d+)?/g) || []
+    if (nums.length < 2) return null
+    const lat = Number(nums[0])
+    const lon = Number(nums[1])
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null
+    if (Math.abs(lat) > 90 || Math.abs(lon) > 180) return null
+    return { lat, lon }
+  }
 
   const normalizeResposta = (v: unknown) => {
     const s = String(v ?? '')
@@ -966,8 +1005,21 @@ async function generatePdfForJob(adminClient: any, job: any) {
 
     const firstCapture = await findFirstCaptureFromFotos(fotosRaw)
     const coordsTxt = String((unidade as any).coordenadas || '').trim()
-    if (coordsTxt) {
-      drawCell(`Coordenadas: ${coordsTxt}`, margin, yPos, tableWidth, rowHeight, true)
+    const coordsFinal = (() => {
+      if (coordsTxt) {
+        const isLikelyDms = /[°º]/.test(coordsTxt) && /[NSEW]/i.test(coordsTxt)
+        if (isLikelyDms) return coordsTxt
+        const parsed = tryParseDecimalCoordsPair(coordsTxt)
+        if (parsed) return formatCoordsDms(parsed.lat, parsed.lon)
+        return coordsTxt
+      }
+      if (firstCapture && Number.isFinite(firstCapture.latitude) && Number.isFinite(firstCapture.longitude)) {
+        return formatCoordsDms(Number(firstCapture.latitude), Number(firstCapture.longitude))
+      }
+      return ''
+    })()
+    if (coordsFinal) {
+      drawCell(`Coordenadas: ${coordsFinal}`, margin, yPos, tableWidth, rowHeight, true)
       yPos += rowHeight
     }
 
