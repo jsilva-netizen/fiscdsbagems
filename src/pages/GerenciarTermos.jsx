@@ -145,19 +145,55 @@ export default function GerenciarTermos() {
         if (showDialog && !termoForm.numero_termo_notificacao) {
             const ano = new Date().getFullYear();
             
-            // Buscar o maior número de TN do ano atual
+            const inferAnoFromRow = (row) => {
+                const base = row?.data_geracao || row?.created_at || row?.updated_at || null;
+                if (!base) return ano;
+                const d = new Date(base);
+                const y = d.getFullYear();
+                return Number.isFinite(y) ? y : ano;
+            };
+
+            const extractTNInfo = (v, row) => {
+                const raw = String(v || '').trim();
+                if (!raw) return null;
+                const m1 = raw.match(/TN\s*0*(\d+)\s*\/\s*(\d{4})/i);
+                if (m1?.[1] && m1?.[2]) {
+                    const n = parseInt(m1[1], 10);
+                    const y = parseInt(m1[2], 10);
+                    if (!Number.isFinite(n) || n <= 0) return null;
+                    if (!Number.isFinite(y) || y <= 2000) return null;
+                    return { numero: n, ano: y };
+                }
+                const m1b = raw.match(/^\s*0*(\d+)\s*\/\s*(\d{4})(?:\s*\/.*)?$/);
+                if (m1b?.[1] && m1b?.[2]) {
+                    const n = parseInt(m1b[1], 10);
+                    const y = parseInt(m1b[2], 10);
+                    if (!Number.isFinite(n) || n <= 0) return null;
+                    if (!Number.isFinite(y) || y <= 2000) return null;
+                    return { numero: n, ano: y };
+                }
+                const m2 = raw.match(/TN\s*0*(\d+)/i);
+                if (m2?.[1]) {
+                    const n = parseInt(m2[1], 10);
+                    if (!Number.isFinite(n) || n <= 0) return null;
+                    return { numero: n, ano: inferAnoFromRow(row) };
+                }
+                const m3 = raw.match(/^\s*0*(\d+)\s*$/);
+                if (m3?.[1]) {
+                    const n = parseInt(m3[1], 10);
+                    if (!Number.isFinite(n) || n <= 0) return null;
+                    return { numero: n, ano: inferAnoFromRow(row) };
+                }
+                return null;
+            };
+
             let maiorNumero = 0;
             termos.forEach(termo => {
                 const numeroTermo = termo.numero_termo_notificacao || termo.numero_termo || '';
-                // Extrair número do formato "TN XXX/YYYY/DSB/AGEMS"
-                const match = numeroTermo.match(/TN\s*(\d+)\/(\d{4})/i);
-                if (match) {
-                    const numero = parseInt(match[1], 10);
-                    const anoTermo = parseInt(match[2], 10);
-                    if (anoTermo === ano && numero > maiorNumero) {
-                        maiorNumero = numero;
-                    }
-                }
+                const info = extractTNInfo(numeroTermo, termo);
+                if (!info) return;
+                if (info.ano !== ano) return;
+                if (info.numero > maiorNumero) maiorNumero = info.numero;
             });
             
             const proximo = maiorNumero + 1;
