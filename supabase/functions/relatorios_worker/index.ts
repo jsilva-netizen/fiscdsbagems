@@ -510,6 +510,72 @@ async function generatePdfForJob(adminClient: any, job: any) {
     })
   }
 
+  const drawJustifiedLineAt = (t: string, x: number, yBaselineTop: number, maxWidth: number, size: number, opts?: { bold?: boolean; color?: any }) => {
+    const chosen = opts?.bold ? fontBold : font
+    const raw = String(t || '').replace(/\s+/g, ' ').trim()
+    if (!raw) return
+    const words = raw.split(' ').filter(Boolean)
+    if (words.length <= 1) {
+      drawTextAt(raw, x, yBaselineTop, size, opts)
+      return
+    }
+
+    const spaceW = chosen.widthOfTextAtSize(' ', size)
+    let wordsW = 0
+    for (const w of words) wordsW += chosen.widthOfTextAtSize(w, size)
+
+    const gaps = words.length - 1
+    const baseW = wordsW + gaps * spaceW
+    const extra = maxWidth - baseW
+
+    if (!(extra > 0)) {
+      drawTextAt(raw, x, yBaselineTop, size, opts)
+      return
+    }
+
+    const extraPerGap = extra / gaps
+    let curX = x
+    for (let i = 0; i < words.length; i++) {
+      const w = words[i]
+      page.drawText(w, {
+        x: curX,
+        y: pageHeight - yBaselineTop,
+        size,
+        font: chosen,
+        color: opts?.color || rgb255(0, 0, 0)
+      })
+      const wW = chosen.widthOfTextAtSize(w, size)
+      curX += wW
+      if (i < words.length - 1) curX += spaceW + extraPerGap
+    }
+  }
+
+  const drawLinesAt = (
+    lines: string[],
+    x: number,
+    yStartTop: number,
+    maxWidth: number,
+    size: number,
+    lineHeight: number,
+    opts?: { bold?: boolean; color?: any; justify?: boolean }
+  ) => {
+    const justify = !!opts?.justify
+    let y = yStartTop
+    for (let i = 0; i < lines.length; i++) {
+      const ln = String(lines[i] ?? '')
+      const trimmed = ln.trim()
+      const isBlank = trimmed.length === 0
+      const next = i + 1 < lines.length ? String(lines[i + 1] ?? '') : ''
+      const isLastInParagraph = i === lines.length - 1 || next.trim().length === 0
+
+      if (!isBlank) {
+        if (justify && !isLastInParagraph) drawJustifiedLineAt(ln, x, y, maxWidth, size, opts)
+        else drawTextAt(ln, x, y, size, opts)
+      }
+      y += lineHeight
+    }
+  }
+
   const drawTextCenteredAt = (t: string, xCenter: number, yBaselineTop: number, size: number, opts?: { bold?: boolean; color?: any }) => {
     const chosen = opts?.bold ? fontBold : font
     const w = chosen.widthOfTextAtSize(String(t || ''), size)
@@ -1077,11 +1143,7 @@ async function generatePdfForJob(adminClient: any, job: any) {
 
         drawRectTop(margin, yPos, tableWidth, cellHeight, undefined, true)
         drawTextAt(numConst, margin + mm2pt(2), yPos + mm2pt(5), 9, { bold: true })
-        let yLine = yPos + mm2pt(5)
-        for (const ln of lines) {
-          drawTextAt(ln, margin + mm2pt(12), yLine, 9)
-          yLine += mm2pt(5)
-        }
+        drawLinesAt(lines, margin + mm2pt(12), yPos + mm2pt(5), mm2pt(210 - 2 * 10 - 15), 9, mm2pt(5), { justify: true })
         yPos += cellHeight
       }
     } else {
@@ -1116,11 +1178,7 @@ async function generatePdfForJob(adminClient: any, job: any) {
 
         drawRectTop(margin, yPos, tableWidth, cellHeight, undefined, true)
         drawTextAt(novoNumNC, margin + mm2pt(2), yPos + mm2pt(5), 9, { bold: true })
-        let yLine = yPos + mm2pt(5)
-        for (const ln of lines) {
-          drawTextAt(ln, margin + mm2pt(12), yLine, 9)
-          yLine += mm2pt(5)
-        }
+        drawLinesAt(lines, margin + mm2pt(12), yPos + mm2pt(5), mm2pt(210 - 2 * 10 - 15), 9, mm2pt(5), { justify: true })
         yPos += cellHeight
       }
     } else {
@@ -1143,11 +1201,7 @@ async function generatePdfForJob(adminClient: any, job: any) {
         if (yPos + cellHeight > pageHeight - bottomMargin) addPage()
         drawRectTop(margin, yPos, tableWidth, cellHeight, undefined, true)
         drawTextAt(novoNumRec, margin + mm2pt(2), yPos + mm2pt(5), 9, { bold: true })
-        let yLine = yPos + mm2pt(5)
-        for (const ln of lines) {
-          drawTextAt(ln, margin + mm2pt(12), yLine, 9)
-          yLine += mm2pt(5)
-        }
+        drawLinesAt(lines, margin + mm2pt(12), yPos + mm2pt(5), mm2pt(210 - 2 * 10 - 15), 9, mm2pt(5), { justify: true })
         yPos += cellHeight
       }
     }
@@ -1177,11 +1231,7 @@ async function generatePdfForJob(adminClient: any, job: any) {
         if (yPos + cellHeight > pageHeight - bottomMargin) addPage()
         drawRectTop(margin, yPos, tableWidth, cellHeight, undefined, true)
         drawTextAt(novoNumDet, margin + mm2pt(2), yPos + mm2pt(5), 9, { bold: true })
-        let yLine = yPos + mm2pt(5)
-        for (const ln of lines) {
-          drawTextAt(ln, margin + mm2pt(12), yLine, 9)
-          yLine += mm2pt(5)
-        }
+        drawLinesAt(lines, margin + mm2pt(12), yPos + mm2pt(5), mm2pt(210 - 2 * 10 - 15), 9, mm2pt(5), { justify: true })
         yPos += cellHeight
       }
     } else {
