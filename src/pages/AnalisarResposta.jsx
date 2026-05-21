@@ -39,6 +39,20 @@ export default function AnalisarResposta() {
         return d.toLocaleDateString('pt-BR');
     };
 
+    const formatRelatorioTN = (t) => {
+        const tipo = String(t?.tipo_relatorio || 'RFP').trim().toUpperCase();
+        const raw = t?.numero_rfp || '';
+        if (!raw) return '';
+        const str = String(raw).trim();
+        if (/^(RFP|RFE|RAO)\//i.test(str) && str.includes('/')) return str;
+        const camara = t?.camara_tecnica ? String(t.camara_tecnica).trim() : '';
+        const anoBase = t?.data_geracao || t?.created_at || t?.updated_at || Date.now();
+        const ano = new Date(anoBase).getFullYear();
+        const num = String(parseInt(str.replace(/\D/g, '') || '0', 10)).padStart(3, '0');
+        if (!camara) return str;
+        return `${tipo}/DSB/${camara}/${num}/${ano}`;
+    };
+
     const openArquivo = async (arq) => {
         try {
             const signed = await Repository.getSignedUrlFromAny(arq);
@@ -485,7 +499,7 @@ export default function AnalisarResposta() {
                         <CardTitle>{termo.numero_termo_notificacao || termo.numero_termo}</CardTitle>
                         {termo.numero_rfp && (
                             <p className="text-sm text-blue-600 font-medium mt-1">
-                                RFP/DSB/{termo.camara_tecnica}/{String(termo.numero_rfp).padStart(3, '0')}/{new Date(termo.data_geracao || Date.now()).getFullYear()}
+                                {formatRelatorioTN(termo)}
                             </p>
                         )}
                     </CardHeader>

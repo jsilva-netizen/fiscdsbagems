@@ -168,17 +168,18 @@ export default function PortalPrestadorHome() {
     }
   };
 
-  const formatRfp = (termo) => {
+  const formatRelatorioTN = (termo) => {
+    const tipo = String(termo?.tipo_relatorio || 'RFP').trim().toUpperCase();
     const raw = termo?.numero_rfp;
     if (!raw) return '—';
     const str = String(raw).trim();
-    if (/^RFP\//i.test(str) && str.includes('/')) return str;
+    if (/^(RFP|RFE|RAO)\//i.test(str) && str.includes('/')) return str;
     const camara = termo?.camara_tecnica ? String(termo.camara_tecnica).trim() : '';
     const anoBase = termo?.data_geracao || termo?.created_at || termo?.updated_at || Date.now();
     const ano = new Date(anoBase).getFullYear();
     const num = String(parseInt(str.replace(/\D/g, '') || '0', 10)).padStart(3, '0');
     if (!camara) return str;
-    return `RFP/DSB/${camara}/${num}/${ano}`;
+    return `${tipo}/DSB/${camara}/${num}/${ano}`;
   };
 
   const { data: lotesAI = [] } = useQuery({
@@ -406,7 +407,8 @@ export default function PortalPrestadorHome() {
                       : 'Responder TN';
 
                 const municipioNome = municipioNomeById[termo?.municipio_id] || termo?.municipio_nome || '—';
-                const numeroRfp = formatRfp(termo);
+                const numeroRfp = formatRelatorioTN(termo);
+                const tipoRelatorio = String(termo?.tipo_relatorio || 'RFP').trim().toUpperCase();
                 const determinacoesCount = termo?.fiscalizacao_id ? (determinacoesCountByFiscalizacaoId[termo.fiscalizacao_id] || 0) : 0;
 
                 return (
@@ -420,7 +422,7 @@ export default function PortalPrestadorHome() {
                         </div>
                         <div className="mt-1 text-sm text-gray-600">
                           <span className="font-medium">Município:</span> {municipioNome} <span className="text-gray-400">•</span>{' '}
-                          <span className="font-medium">RFP:</span> {numeroRfp} <span className="text-gray-400">•</span>{' '}
+                          <span className="font-medium">{tipoRelatorio}:</span> {numeroRfp} <span className="text-gray-400">•</span>{' '}
                           <span className="font-medium">Determinações:</span> {determinacoesCount}
                         </div>
                         <div className="mt-1 text-sm text-gray-600 flex items-center gap-4">

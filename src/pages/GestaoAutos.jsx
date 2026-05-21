@@ -302,11 +302,15 @@ export default function GestaoAutos() {
      };
 
     const formatRfp = (termo) => {
-        if (!termo?.numero_rfp) return 'N/A';
+        const tipo = String(termo?.tipo_relatorio || 'RFP').trim().toUpperCase();
+        const raw = termo?.numero_rfp;
+        if (!raw) return 'N/A';
+        const str = String(raw).trim();
+        if (/^(RFP|RFE|RAO)\//i.test(str) && str.includes('/')) return str;
         const camara = termo?.camara_tecnica || 'CT';
-        const numero = String(termo.numero_rfp).padStart(3, '0');
+        const numero = String(parseInt(str.replace(/\D/g, '') || '0', 10)).padStart(3, '0');
         const year = termo?.data_geracao ? new Date(termo.data_geracao).getFullYear() : new Date().getFullYear();
-        return `RFP/DSB/${camara}/${numero}/${year}`;
+        return `${tipo}/DSB/${camara}/${numero}/${year}`;
     };
 
     const getIdsRelacionados = (auto) => {
@@ -423,7 +427,7 @@ export default function GestaoAutos() {
                 termo_id: termo.id,
                 fiscalizacao_id: grupo.fiscalizacaoId,
                 prestador_servico_id: grupo.prestadorId,
-                numero_rfp: termo.numero_rfp || null,
+                numero_rfp: formatRfp(termo) || termo.numero_rfp || null,
                 numero_tn: termo.numero_tn || null,
                 status: 'preparada',
                 criada_em: new Date().toISOString()
@@ -437,7 +441,7 @@ export default function GestaoAutos() {
             doc.setFontSize(14);
             doc.text('Remessa de Autos de Infração', 14, 18);
             doc.setFontSize(10);
-            doc.text(`RFP: ${termo.numero_rfp || '—'}`, 14, 28);
+            doc.text(`Relatório: ${formatRfp(termo) || '—'}`, 14, 28);
             doc.text(`TN: ${termo.numero_tn || '—'}`, 14, 34);
             doc.text(`Prestador: ${getPrestadorNome(grupo.prestadorId)}`, 14, 40);
             doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 46);

@@ -473,7 +473,7 @@ async function generatePdfForJob(adminClient: any, job: any) {
 
   const rgb255 = (r: number, g: number, b: number) => rgb(r / 255, g / 255, b / 255)
   const margin = mm2pt(10)
-  const firstPageTopPadding = mm2pt(25)
+  const firstPageTopPadding = mm2pt(20)
   const topMargin = mm2pt(35)
   const bottomMargin = mm2pt(25)
   const tableWidth = pageWidth - 2 * margin

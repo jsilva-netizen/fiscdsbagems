@@ -76,17 +76,18 @@ export default function ResponderTermo() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   };
 
-  const formatRfp = (t) => {
+  const formatRelatorioTN = (t) => {
+    const tipo = String(t?.tipo_relatorio || 'RFP').trim().toUpperCase();
     const raw = t?.numero_rfp || t?.numero_rfp_agems;
     if (!raw) return 'N/A';
     const str = String(raw).trim();
-    if (/^RFP\//i.test(str) && str.includes('/')) return str;
+    if (/^(RFP|RFE|RAO)\//i.test(str) && str.includes('/')) return str;
     const camara = t?.camara_tecnica ? String(t.camara_tecnica).trim() : '';
     const anoBase = t?.data_geracao || t?.created_at || t?.updated_at || Date.now();
     const ano = new Date(anoBase).getFullYear();
     const num = String(parseInt(str.replace(/\D/g, '') || '0', 10)).padStart(3, '0');
     if (!camara) return str;
-    return `RFP/DSB/${camara}/${num}/${ano}`;
+    return `${tipo}/DSB/${camara}/${num}/${ano}`;
   };
 
   const { data: termo } = useQuery({
@@ -547,7 +548,7 @@ export default function ResponderTermo() {
   const assinaturaTnOk = !!termo?.arquivo_tn_prestador_url && !!termo?.assinatura_prestador_valida;
 
   const municipioNome = municipio?.nome || termo?.municipio_nome || termo?.municipio || 'N/A';
-  const numeroRfp = formatRfp(termo);
+  const numeroRfp = formatRelatorioTN(termo);
   const prazoMaxText = termo?.data_maxima_resposta
     ? termo.data_maxima_resposta
     : termo?.prazo_resposta_dias
@@ -569,7 +570,7 @@ export default function ResponderTermo() {
     doc.text('TERMO DE ENVIO DE RESPOSTA AO TERMO DE NOTIFICAÇÃO', 14, 18);
     doc.setFontSize(11);
     doc.text(`TN: ${tn}`, 14, 30);
-    doc.text(`RFP: ${rfp}`, 14, 36);
+    doc.text(`Relatório: ${rfp}`, 14, 36);
     doc.text(`Município: ${municipioNome}`, 14, 42);
     if (prestador) doc.text(`Prestador: ${prestador}`, 14, 48);
 
@@ -608,7 +609,7 @@ export default function ResponderTermo() {
                 <span className="font-medium">Município:</span> {municipioNome}
               </div>
               <div>
-                <span className="font-medium">Nº RFP:</span> {numeroRfp}
+                <span className="font-medium">Nº Relatório:</span> {numeroRfp}
               </div>
               <div>
                 <span className="font-medium">Prazo máximo:</span>{' '}

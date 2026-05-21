@@ -36,6 +36,7 @@ export default function GerenciarTermos() {
     });
     const [termoForm, setTermoForm] = useState({
         numero_termo_notificacao: '',
+        tipo_relatorio: 'RFP',
         numero_rfp: '',
         municipio_id: '',
         numero_processo: '',
@@ -166,28 +167,6 @@ export default function GerenciarTermos() {
             }));
         }
     }, [showDialog, termos]);
-
-    // Atualizar RFP automaticamente quando câmara é mudada
-    useEffect(() => {
-        if (showDialog && termoForm.camara_tecnica) {
-            // Buscar o maior número de RFP para esta câmara no ano atual
-            let maiorRFP = 0;
-            termos.forEach(termo => {
-                if (termo.camara_tecnica === termoForm.camara_tecnica) {
-                    const rfpNum = parseInt(termo.numero_rfp || 0, 10);
-                    if (rfpNum > maiorRFP) {
-                        maiorRFP = rfpNum;
-                    }
-                }
-            });
-
-            const proximoRFP = maiorRFP + 1;
-            setTermoForm(prev => ({
-                ...prev,
-                numero_rfp: String(proximoRFP).padStart(3, '0')
-            }));
-        }
-    }, [showDialog, termoForm.camara_tecnica, termos]);
 
     // Calcular próximo número de AM
     const calcularNumeroAM = async () => {
@@ -439,6 +418,7 @@ export default function GerenciarTermos() {
             setSelectedFiscalizacao(null);
             setTermoForm({
                 numero_termo_notificacao: '',
+                tipo_relatorio: 'RFP',
                 numero_rfp: '',
                 municipio_id: '',
                 numero_processo: '',
@@ -451,10 +431,42 @@ export default function GerenciarTermos() {
             });
         },
         onError: (err) => {
+            const code = err?.code || err?.cause?.code;
             const msg = err?.message || 'Erro ao criar termo.';
+            if (String(code) === '23505' || /duplicate key/i.test(String(msg || ''))) {
+                alert('Numeração já utilizada para este tipo de relatório, câmara e ano.');
+                return;
+            }
             alert(msg);
         }
     });
+
+    const normalizeNumeroRelatorio = (v) => {
+        const raw = String(v ?? '').trim();
+        if (!raw) return '';
+        const m = raw.match(/\/(\d{1,6})\/(\d{4})\s*$/);
+        const digits = m?.[1] ? String(m[1]) : raw.replace(/\D/g, '');
+        const n = parseInt(digits || '0', 10);
+        if (!Number.isFinite(n) || n <= 0) return '';
+        return String(n).padStart(3, '0');
+    };
+
+    const getAnoRelatorio = (t) => {
+        const anoBase = t?.data_geracao || t?.created_at || t?.updated_at || Date.now();
+        const d = new Date(anoBase);
+        const y = d.getFullYear();
+        return Number.isFinite(y) ? y : new Date().getFullYear();
+    };
+
+    const formatRelatorioTN = (t) => {
+        const tipo = String(t?.tipo_relatorio || 'RFP').trim().toUpperCase();
+        const camara = t?.camara_tecnica ? String(t.camara_tecnica).trim() : '';
+        const num = normalizeNumeroRelatorio(t?.numero_rfp);
+        if (!num) return '';
+        const ano = getAnoRelatorio(t);
+        if (!camara) return `${tipo}/${num}/${ano}`;
+        return `${tipo}/DSB/${camara}/${num}/${ano}`;
+    };
 
     const handleCriarTermo = () => {
         if (criarTermoMutation.isPending) return;
@@ -474,8 +486,28 @@ export default function GerenciarTermos() {
             return;
         }
 
-        if (!termoForm.numero_rfp) {
-            alert('Informe o número do RFP');
+        const tipoRelatorio = String(termoForm.tipo_relatorio || '').trim().toUpperCase();
+        if (!tipoRelatorio) {
+            alert('Selecione o tipo de relatório (RFP, RFE ou RAO)');
+            return;
+        }
+
+        const numeroRelatorio = normalizeNumeroRelatorio(termoForm.numero_rfp);
+        if (!numeroRelatorio) {
+            alert(`Informe o número do ${tipoRelatorio}`);
+            return;
+        }
+
+        const ano = new Date().getFullYear();
+        const jaExiste = termos.some((t) => {
+            const tTipo = String(t?.tipo_relatorio || 'RFP').trim().toUpperCase();
+            const tCamara = String(t?.camara_tecnica || '').trim();
+            const tAno = getAnoRelatorio(t);
+            const tNumero = normalizeNumeroRelatorio(t?.numero_rfp);
+            return tTipo === tipoRelatorio && tCamara === String(termoForm.camara_tecnica || '').trim() && tAno === ano && tNumero === numeroRelatorio;
+        });
+        if (jaExiste) {
+            alert('Numeração já utilizada para este tipo de relatório, câmara e ano.');
             return;
         }
 
@@ -493,6 +525,8 @@ export default function GerenciarTermos() {
 
         criarTermoMutation.mutate({
             ...termoForm,
+            tipo_relatorio: tipoRelatorio,
+            numero_rfp: numeroRelatorio,
             fiscalizacao_id: selectedFiscalizacao.id,
             prestador_servico_id: prestadorId,
             municipio_id: municipioId
@@ -646,7 +680,7 @@ export default function GerenciarTermos() {
                             <DialogTitle>Criar Termo de Notificação</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4">
-                            <div className="grid grid-cols-3 gap-4">
+                            <div className="grid grid-cols-4 gap-4">
                                 <div>
                                     <Label>Número do TN *</Label>
                                     <Input
@@ -656,15 +690,34 @@ export default function GerenciarTermos() {
                                     />
                                 </div>
                                 <div>
-                                    <Label>Número do RFP *</Label>
+                                    <Label>Tipo *</Label>
+                                    <Select
+                                        value={termoForm.tipo_relatorio}
+                                        onValueChange={(v) => setTermoForm({ ...termoForm, tipo_relatorio: v })}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="RFP">RFP</SelectItem>
+                                            <SelectItem value="RFE">RFE</SelectItem>
+                                            <SelectItem value="RAO">RAO</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div>
+                                    <Label>Número *</Label>
                                     <Input
                                         value={termoForm.numero_rfp}
-                                        disabled
-                                        placeholder="Gerado automaticamente"
+                                        onChange={(e) => {
+                                            const digits = String(e.target.value || '').replace(/\D/g, '');
+                                            setTermoForm({ ...termoForm, numero_rfp: digits });
+                                        }}
+                                        placeholder="001"
                                     />
                                     {termoForm.numero_rfp && termoForm.camara_tecnica && (
                                         <p className="text-xs text-gray-500 mt-1">
-                                            RFP/DSB/{termoForm.camara_tecnica}/{termoForm.numero_rfp}/{new Date().getFullYear()}
+                                            {String(termoForm.tipo_relatorio || 'RFP').toUpperCase()}/DSB/{termoForm.camara_tecnica}/{normalizeNumeroRelatorio(termoForm.numero_rfp) || termoForm.numero_rfp}/{new Date().getFullYear()}
                                         </p>
                                     )}
                                 </div>
@@ -769,7 +822,7 @@ export default function GerenciarTermos() {
                                 <Button
                                     onClick={handleCriarTermo}
                                     className="flex-1 bg-blue-600 hover:bg-blue-700"
-                                    disabled={criarTermoMutation.isPending || !termoForm.numero_processo || !termoForm.numero_rfp}
+                                    disabled={criarTermoMutation.isPending || !termoForm.numero_processo || !termoForm.tipo_relatorio || !termoForm.numero_rfp}
                                 >
                                     {criarTermoMutation.isPending ? 'Criando...' : 'Criar Termo'}
                                 </Button>
@@ -1518,7 +1571,7 @@ export default function GerenciarTermos() {
                                              <h3 className="font-semibold text-lg">{termo.numero_termo_notificacao || termo.numero_termo}</h3>
                                              {termo.numero_rfp && (
                                                  <p className="text-sm text-blue-600 font-medium">
-                                                     RFP/DSB/{termo.camara_tecnica}/{String(termo.numero_rfp).padStart(3, '0')}/{new Date(termo.data_geracao || Date.now()).getFullYear()}
+                                                     {formatRelatorioTN(termo)}
                                                  </p>
                                              )}
                                              <div className="grid grid-cols-2 gap-2 mt-2 text-xs text-gray-600">

@@ -133,16 +133,17 @@ export default function AnaliseManifestacao() {
     };
 
     const formatRfp = (termo) => {
+        const tipo = String(termo?.tipo_relatorio || 'RFP').trim().toUpperCase();
         const raw = termo?.numero_rfp;
         if (!raw) return 'N/A';
         const str = String(raw).trim();
-        if (/^RFP\//i.test(str) && str.includes('/')) return str;
+        if (/^(RFP|RFE|RAO)\//i.test(str) && str.includes('/')) return str;
         const camara = termo?.camara_tecnica ? String(termo.camara_tecnica).trim() : '';
         const anoBase = termo?.data_geracao || termo?.created_at || termo?.updated_at || Date.now();
         const ano = new Date(anoBase).getFullYear();
         const num = String(parseInt(str.replace(/\D/g, '') || '0', 10)).padStart(3, '0');
         if (!camara) return str;
-        return `RFP/DSB/${camara}/${num}/${ano}`;
+        return `${tipo}/DSB/${camara}/${num}/${ano}`;
     };
 
     const getDeterminacoesPorTermo = (termo) => {

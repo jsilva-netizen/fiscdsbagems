@@ -210,6 +210,20 @@ export default function AcompanhamentoDeterminacoes() {
         return unidades.filter(u => u.fiscalizacao_id === fiscId).length;
     };
 
+    const formatRelatorioTN = (termo) => {
+        const tipo = String(termo?.tipo_relatorio || 'RFP').trim().toUpperCase();
+        const raw = termo?.numero_rfp;
+        if (!raw) return '';
+        const str = String(raw).trim();
+        if (/^(RFP|RFE|RAO)\//i.test(str) && str.includes('/')) return str;
+        const camara = termo?.camara_tecnica ? String(termo.camara_tecnica).trim() : '';
+        const anoBase = termo?.data_geracao || termo?.created_at || termo?.updated_at || Date.now();
+        const ano = new Date(anoBase).getFullYear();
+        const num = String(parseInt(str.replace(/\D/g, '') || '0', 10)).padStart(3, '0');
+        if (!camara) return str;
+        return `${tipo}/DSB/${camara}/${num}/${ano}`;
+    };
+
     const getStatusBadge = (status) => {
         const statusMap = {
             pendente: { label: 'Pendente', variant: 'outline', color: 'text-orange-600' },
@@ -341,7 +355,7 @@ export default function AcompanhamentoDeterminacoes() {
                                                                     if (termo?.numero_rfp) {
                                                                         return (
                                                                             <p className="text-sm text-blue-600 font-medium">
-                                                                                RFP/DSB/{termo.camara_tecnica}/{String(termo.numero_rfp).padStart(3, '0')}/{new Date(termo.data_geracao || Date.now()).getFullYear()}
+                                                                                {formatRelatorioTN(termo)}
                                                                             </p>
                                                                         );
                                                                     }
@@ -453,7 +467,7 @@ export default function AcompanhamentoDeterminacoes() {
                                                                     if (termo?.numero_rfp) {
                                                                         return (
                                                                             <p className="text-sm text-blue-600 font-medium">
-                                                                                RFP/DSB/{termo.camara_tecnica}/{String(termo.numero_rfp).padStart(3, '0')}/{new Date(termo.data_geracao || Date.now()).getFullYear()}
+                                                                                {formatRelatorioTN(termo)}
                                                                             </p>
                                                                         );
                                                                     }
@@ -531,7 +545,7 @@ export default function AcompanhamentoDeterminacoes() {
                                                                     if (termo?.numero_rfp) {
                                                                         return (
                                                                             <p className="text-sm text-blue-600 font-medium">
-                                                                                RFP/DSB/{termo.camara_tecnica}/{String(termo.numero_rfp).padStart(3, '0')}/{new Date(termo.data_geracao || Date.now()).getFullYear()}
+                                                                                {formatRelatorioTN(termo)}
                                                                             </p>
                                                                         );
                                                                     }
