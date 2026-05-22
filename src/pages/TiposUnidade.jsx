@@ -35,7 +35,6 @@ export default function TiposUnidade() {
             const { data, error } = await supabase
                 .from('tipos_unidade')
                 .select('id, nome, codigo, servicos_aplicaveis, ativo, created_at')
-                .neq('ativo', false)
                 .order('nome', { ascending: true });
             if (error) throw error;
             return data || [];
@@ -81,6 +80,20 @@ export default function TiposUnidade() {
         },
         onError: (err) => {
             alert(err?.message || 'Erro ao excluir tipo de unidade.');
+        },
+    });
+
+    const reactivateMutation = useMutation({
+        mutationFn: async (id) => {
+            if (!online) throw new Error('Operação disponível somente online.');
+            const { error } = await supabase.from('tipos_unidade').update({ ativo: true }).eq('id', id);
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['tipos-unidade'] });
+        },
+        onError: (err) => {
+            alert(err?.message || 'Erro ao reativar tipo de unidade.');
         },
     });
 
@@ -215,6 +228,11 @@ export default function TiposUnidade() {
                                                 {tipo.codigo && (
                                                     <p className="text-sm text-gray-600 mt-1 font-mono">Código: <span className="font-bold">{tipo.codigo}</span></p>
                                                 )}
+                                                {tipo.ativo === false && (
+                                                    <div className="mt-2">
+                                                        <Badge variant="destructive" className="text-xs">Inativo</Badge>
+                                                    </div>
+                                                )}
                                                 <div className="flex flex-wrap gap-1 mt-2">
                                                     {tipo.servicos_aplicaveis?.map(s => (
                                                         <Badge key={s} variant="secondary" className="text-xs">
@@ -230,9 +248,20 @@ export default function TiposUnidade() {
                                                     <ClipboardCheck className="h-4 w-4 text-blue-600" />
                                                 </Button>
                                             </Link>
-                                            <Button variant="ghost" size="icon" onClick={() => handleEdit(tipo)}>
-                                                <Edit className="h-4 w-4" />
-                                            </Button>
+                                            {tipo.ativo === false ? (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => reactivateMutation.mutate(tipo.id)}
+                                                    disabled={reactivateMutation.isPending}
+                                                >
+                                                    Reativar
+                                                </Button>
+                                            ) : (
+                                                <Button variant="ghost" size="icon" onClick={() => handleEdit(tipo)}>
+                                                    <Edit className="h-4 w-4" />
+                                                </Button>
+                                            )}
                                             <AlertDialog 
                                                 open={deleteConfirmation.open && deleteConfirmation.tipoId === tipo.id}
                                                 onOpenChange={(open) => {
@@ -245,6 +274,7 @@ export default function TiposUnidade() {
                                                     <Button 
                                                         variant="ghost" 
                                                         size="icon"
+                                                        disabled={tipo.ativo === false}
                                                         onClick={() => setDeleteConfirmation({ open: true, tipoId: tipo.id, step: 1, inputValue: '' })}
                                                     >
                                                         <Trash2 className="h-4 w-4 text-red-500" />

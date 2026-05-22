@@ -157,9 +157,27 @@ export default function ExecutarFiscalizacao() {
         );
     }
 
-    const tiposFiltrados = tipos.filter(t => 
-        t.ativo !== false && t.servicos_aplicaveis?.includes(fiscalizacao.servico)
-    );
+    const servicosSelecionados = Array.isArray(fiscalizacao?.servicos)
+        ? fiscalizacao.servicos
+        : typeof fiscalizacao?.servico === 'string'
+            ? fiscalizacao.servico.split(',').map(s => s.trim()).filter(Boolean)
+            : fiscalizacao?.servico
+                ? [String(fiscalizacao.servico)]
+                : [];
+    const normServico = (s) =>
+        String(s || '')
+            .trim()
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '');
+    const servicosNorm = new Set(servicosSelecionados.map(normServico).filter(Boolean));
+    const tiposFiltrados = tipos.filter(t => {
+        if (t.ativo === false) return false;
+        if (servicosNorm.size === 0) return true;
+        const lista = Array.isArray(t.servicos_aplicaveis) ? t.servicos_aplicaveis : [];
+        if (lista.length === 0) return true;
+        return lista.map(normServico).some(s => servicosNorm.has(s));
+    });
 
     return (
         <div className="min-h-screen bg-gray-100">

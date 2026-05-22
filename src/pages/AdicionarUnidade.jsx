@@ -116,11 +116,20 @@ export default function AdicionarUnidade() {
         : typeof fiscalizacao?.servico === 'string'
             ? fiscalizacao.servico.split(',').map(s => s.trim()).filter(Boolean)
             : [];
-    const tiposFiltrados = tipos.filter(t => 
-        t.ativo !== false &&
-        Array.isArray(t.servicos_aplicaveis) && servicosSelecionados.length > 0 && 
-        t.servicos_aplicaveis.some(s => servicosSelecionados.includes(s))
-    );
+    const normServico = (s) =>
+        String(s || '')
+            .trim()
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '');
+    const servicosNorm = new Set(servicosSelecionados.map(normServico).filter(Boolean));
+    const tiposFiltrados = tipos.filter(t => {
+        if (t.ativo === false) return false;
+        if (servicosNorm.size === 0) return true;
+        const lista = Array.isArray(t.servicos_aplicaveis) ? t.servicos_aplicaveis : [];
+        if (lista.length === 0) return true;
+        return lista.map(normServico).some(s => servicosNorm.has(s));
+    });
 
     // Gerar código automático quando seleciona tipo
     const handleTipoChange = (tipoId) => {
