@@ -240,6 +240,12 @@ async function generatePdfForJob(adminClient: any, job: any) {
   const todasDeterminacoes: any[] = Array.isArray(detRes.data) ? detRes.data : []
   const todasRecomendacoes: any[] = Array.isArray(recRes.data) ? recRes.data : []
 
+  const respostasById = new Map<string, any>()
+  for (const r of todasRespostas || []) {
+    const id = String((r as any)?.id || '').trim()
+    if (id) respostasById.set(id, r)
+  }
+
   const parseNumeroConstatacao = (valor: unknown) => {
     const n = parseInt(String(valor || '').replace(/[^\d]/g, ''), 10)
     return Number.isFinite(n) ? n : 9999
@@ -420,7 +426,7 @@ async function generatePdfForJob(adminClient: any, job: any) {
       try {
         let origemNc: string | null = null
         if (nc.resposta_checklist_id) {
-          const resp = respostas.find((r) => r.id === nc.resposta_checklist_id)
+          const resp = respostasById.get(String(nc.resposta_checklist_id)) || respostas.find((r) => r.id === nc.resposta_checklist_id)
           if (resp?.item_checklist_id) origemNc = `checklist:${String(resp.item_checklist_id)}`
         } else {
           const manual = manuais.find((cm) => nc.descricao && cm.numero_constatacao && String(nc.descricao).includes(String(cm.numero_constatacao)))
@@ -431,10 +437,16 @@ async function generatePdfForJob(adminClient: any, job: any) {
     }
 
     const detsOrd = [...determinacoes].sort((a, b) => {
+      const ncA = String((a as any)?.nao_conformidade_id || '').trim()
+      const ncB = String((b as any)?.nao_conformidade_id || '').trim()
       const origA = String((a as any)?.origem || '').trim()
       const origB = String((b as any)?.origem || '').trim()
-      const ordA = (mapeamentoUnidade as any)?.ncNumeroByOrigem?.[origA] ?? 9999
-      const ordB = (mapeamentoUnidade as any)?.ncNumeroByOrigem?.[origB] ?? 9999
+      const ordA =
+        (ncA && (mapeamentoUnidade as any)?.ncs?.[ncA] !== undefined ? (mapeamentoUnidade as any).ncs[ncA] : undefined) ??
+        ((mapeamentoUnidade as any)?.ncNumeroByOrigem?.[origA] ?? 9999)
+      const ordB =
+        (ncB && (mapeamentoUnidade as any)?.ncs?.[ncB] !== undefined ? (mapeamentoUnidade as any).ncs[ncB] : undefined) ??
+        ((mapeamentoUnidade as any)?.ncNumeroByOrigem?.[origB] ?? 9999)
       if (ordA !== ordB) return ordA - ordB
       const numA = parseInt(canonicalNumeroDeterminacao(a?.numero_determinacao).replace('D', '') || '999', 10)
       const numB = parseInt(canonicalNumeroDeterminacao(b?.numero_determinacao).replace('D', '') || '999', 10)
@@ -1216,11 +1228,21 @@ async function generatePdfForJob(adminClient: any, job: any) {
       for (const det of detsSorted) {
         const novoNumDet = `D${mapeamento.determinacoes[det.id]}.`
         let texto = String(det.descricao || '')
+        const ncId = String((det as any)?.nao_conformidade_id || '').trim()
         const origem = String((det as any)?.origem || '').trim()
-        const ncNum = origem && mapeamento?.ncNumeroByOrigem ? (mapeamento.ncNumeroByOrigem[origem] as any) : null
+        const ncNum =
+          (ncId && (mapeamento as any)?.ncs?.[ncId] !== undefined ? (mapeamento as any).ncs[ncId] : null) ??
+          (origem && mapeamento?.ncNumeroByOrigem ? (mapeamento.ncNumeroByOrigem[origem] as any) : null)
         if (ncNum) {
           const novoNumNC = `NC${ncNum}`
           texto = texto.replace(/NC\?/g, novoNumNC).replace(/NC\d+/g, novoNumNC)
+          if (!texto.includes(novoNumNC)) {
+            const cleaned = texto
+              .trim()
+              .replace(/^(para\s+sanar\s+a|sanar\s+a)\s+(nc\?|\s*nc\d+)?\s*(e\s+)?/i, '')
+              .trim()
+            texto = cleaned ? `Sanar a ${novoNumNC} e ${cleaned}` : `Sanar a ${novoNumNC}`
+          }
         }
         if (!texto.trim().endsWith('.')) texto = `${texto.trim()}.`
         const prazoDias = Number((det as any)?.prazo_dias)
