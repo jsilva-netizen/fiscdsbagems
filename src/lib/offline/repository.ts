@@ -718,7 +718,9 @@ export const Repository = {
     const list = await db.determinacoes.where('unidade_fiscalizada_id').equals(unidadeId).toArray()
     const existing = (list || []).find((x: any) => String(x?.origem || '').trim() === origemFinal)
     const descRaw = String(descricao || '').trim()
-    const desc = descRaw && !descRaw.toLowerCase().startsWith('para sanar') ? `Para sanar a NC? ${descRaw}` : descRaw
+    const lowerDesc = descRaw.toLowerCase()
+    const alreadyPrefixed = lowerDesc.startsWith('para sanar') || lowerDesc.startsWith('sanar')
+    const desc = descRaw && !alreadyPrefixed ? `Sanar a NC? e ${descRaw}` : descRaw
     const prazo = prazoDias !== undefined && prazoDias !== null ? Number(prazoDias) : null
     const prazoOk = Number.isFinite(prazo as any) && (prazo as any) > 0 ? (prazo as any) : null
     const dataLimite = prazoOk ? new Date(Date.now() + prazoOk * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) : null
@@ -928,7 +930,8 @@ export const Repository = {
       if (r !== 'NAO' && r !== 'NÃO') return { ok: false }
       if (!geraNc) return { ok: false }
       if (!detTxt) return { ok: false }
-      const desc = detTxt.toLowerCase().startsWith('para sanar') ? detTxt : `Para sanar a NC? ${detTxt}`
+      const lower = detTxt.toLowerCase()
+      const desc = lower.startsWith('para sanar') || lower.startsWith('sanar') ? detTxt : `Sanar a NC? e ${detTxt}`
       return { ok: true, desc, prazo: Number.isFinite(prazo as any) ? (prazo as any) : null }
     }
     const adds: any[] = []
@@ -990,7 +993,8 @@ export const Repository = {
       if (!existing) {
         const id = uid()
         const prazoDias = Number.isFinite(prazo as any) ? (prazo as any) : null
-        const desc = detTxt.toLowerCase().startsWith('para sanar') ? detTxt : `Para sanar a NC? ${detTxt}`
+        const lower = detTxt.toLowerCase()
+        const desc = lower.startsWith('para sanar') || lower.startsWith('sanar') ? detTxt : `Sanar a NC? e ${detTxt}`
         const row = {
           id,
           unidade_fiscalizada_id: unidadeId,

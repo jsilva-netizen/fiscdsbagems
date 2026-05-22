@@ -46,10 +46,13 @@ export default function EditarNCModal({
                 setGeraDeterminacao(true);
                 // Extrair o texto removendo o prefixo e sufixo padrão
                 let textoLimpo = determinacaoExistente.descricao || '';
-                const prefixo = `Para sanar a ${numeroNC} `;
+                const prefixoNovo = `Sanar a ${numeroNC} e `;
+                const prefixoAntigo = `Para sanar a ${numeroNC} `;
                 const sufixo = '. Prazo: 30 dias.';
-                if (textoLimpo.startsWith(prefixo)) {
-                    textoLimpo = textoLimpo.substring(prefixo.length);
+                if (textoLimpo.startsWith(prefixoNovo)) {
+                    textoLimpo = textoLimpo.substring(prefixoNovo.length);
+                } else if (textoLimpo.startsWith(prefixoAntigo)) {
+                    textoLimpo = textoLimpo.substring(prefixoAntigo.length);
                 }
                 if (textoLimpo.endsWith(sufixo)) {
                     textoLimpo = textoLimpo.substring(0, textoLimpo.length - sufixo.length);
@@ -175,7 +178,7 @@ export default function EditarNCModal({
                                     className="mt-1"
                                 />
                                 <p className="text-xs text-gray-500 mt-1">
-                                    Será formatada como: "Para sanar a {numeroNC} [seu texto aqui]. Prazo: 30 dias."
+                                    Será formatada como: "Sanar a {numeroNC} e [seu texto aqui]. Prazo: 30 dias."
                                 </p>
                             </div>
                         )}
