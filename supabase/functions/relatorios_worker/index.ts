@@ -1291,11 +1291,17 @@ async function generatePdfForJob(adminClient: any, job: any) {
           try {
             const embedded = await embedAnyImage(fotosOk[i].bytes)
             if (!embedded) throw new Error('Formato de imagem não suportado')
+            const pad = mm2pt(2)
+            const iw = (embedded as any).width
+            const ih = (embedded as any).height
+            const scale = Math.min(imgWidth / iw, imgHeight / ih)
+            const drawW = iw * scale
+            const drawH = ih * scale
             page.drawImage(embedded, {
-              x: leftX + mm2pt(2),
-              y: pageHeight - (yPos + mm2pt(2) + imgHeight),
-              width: imgWidth,
-              height: imgHeight
+              x: leftX + pad + (imgWidth - drawW) / 2,
+              y: pageHeight - (yPos + pad + (imgHeight - drawH) / 2 + drawH),
+              width: drawW,
+              height: drawH
             })
             const numFigura = offsetGlobalFiguras + i + 1
             const fallbackNome = unidade.nome_unidade || unidade.tipo_unidade_nome || 'Unidade'
@@ -1315,11 +1321,17 @@ async function generatePdfForJob(adminClient: any, job: any) {
           try {
             const embedded = await embedAnyImage(fotosOk[i + 1].bytes)
             if (!embedded) throw new Error('Formato de imagem não suportado')
+            const pad = mm2pt(2)
+            const iw = (embedded as any).width
+            const ih = (embedded as any).height
+            const scale = Math.min(imgWidth / iw, imgHeight / ih)
+            const drawW = iw * scale
+            const drawH = ih * scale
             page.drawImage(embedded, {
-              x: rightX + mm2pt(2),
-              y: pageHeight - (yPos + mm2pt(2) + imgHeight),
-              width: imgWidth,
-              height: imgHeight
+              x: rightX + pad + (imgWidth - drawW) / 2,
+              y: pageHeight - (yPos + pad + (imgHeight - drawH) / 2 + drawH),
+              width: drawW,
+              height: drawH
             })
             const numFigura = offsetGlobalFiguras + i + 2
             const fallbackNome = unidade.nome_unidade || unidade.tipo_unidade_nome || 'Unidade'
@@ -1397,6 +1409,32 @@ serve(async (req) => {
   const job_id = payload?.job_id ? String(payload.job_id) : undefined
 
   const adminClient = createClient(supabaseUrl, serviceKey)
+  const pruneRelatoriosStorageForFiscalizacao = async (fiscalizacaoId: string) => {
+    const bucket = 'relatorios_fiscalizacao'
+    const basePath = `fiscalizacoes/${fiscalizacaoId}`
+    const keepName = 'latest.pdf'
+    try {
+      let offset = 0
+      for (let pageIdx = 0; pageIdx < 20; pageIdx++) {
+        const { data, error } = await adminClient.storage.from(bucket).list(basePath, {
+          limit: 100,
+          offset
+        })
+        if (error) return
+        const items = Array.isArray(data) ? data : []
+        if (items.length === 0) return
+        const toDelete = items
+          .filter((it: any) => it && it.name && String(it.name) !== keepName)
+          .map((it: any) => `${basePath}/${String(it.name)}`)
+        if (toDelete.length > 0) {
+          await adminClient.storage.from(bucket).remove(toDelete)
+        }
+        offset += items.length
+        if (items.length < 100) return
+      }
+    } catch {}
+  }
+
   const claimed = await claimJobs(adminClient, Math.max(1, Math.min(limit, 10)), job_id)
   if (!claimed.length) return jsonResponse({ processed: 0 })
 
@@ -1406,7 +1444,8 @@ serve(async (req) => {
       await updateJob(adminClient, job.id, { status: 'processing', error_message: null })
       const pdfBytes = await generatePdfForJob(adminClient, job)
 
-      const storage_path = `fiscalizacoes/${job.fiscalizacao_id}/${job.id}.pdf`
+      await pruneRelatoriosStorageForFiscalizacao(String(job.fiscalizacao_id))
+      const storage_path = `fiscalizacoes/${job.fiscalizacao_id}/latest.pdf`
       const { error: upErr } = await adminClient.storage.from('relatorios_fiscalizacao').upload(storage_path, pdfBytes, {
         contentType: 'application/pdf',
         upsert: true
@@ -1414,6 +1453,9 @@ serve(async (req) => {
       if (upErr) throw new Error(upErr.message)
 
       await updateJob(adminClient, job.id, { status: 'done', storage_path })
+      try {
+        await adminClient.from('relatorios_jobs').delete().eq('fiscalizacao_id', job.fiscalizacao_id).neq('id', job.id)
+      } catch {}
       processed++
     } catch (err: any) {
       try {
