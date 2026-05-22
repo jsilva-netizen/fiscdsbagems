@@ -163,6 +163,38 @@ export default function VistoriarUnidade() {
         return Number.isFinite(n) ? n : 999999;
     };
 
+    const parseDeterminacaoTexto = (input) => {
+        const raw = String(input || '');
+        let txt = raw.trim();
+        if (!txt) return { prefix: '', body: '', suffix: '' };
+
+        let suffix = '';
+        const prazoMatch = txt.match(/(\.?\s*Prazo:\s*\d+\s*dias\.\s*)$/i);
+        if (prazoMatch) {
+            suffix = prazoMatch[1];
+            txt = txt.slice(0, txt.length - suffix.length).trim();
+        }
+
+        const m =
+            txt.match(/^(Sanar\s+NC(?:\?|\d+)\.\s*)/i) ||
+            txt.match(/^(Sanar\s+a\s+NC(?:\?|\d+)\s+e\s+)/i) ||
+            txt.match(/^(Para\s+sanar\s+a\s+NC(?:\?|\d+)\s+)/i) ||
+            txt.match(/^(Para\s+sanar\s+NC(?:\?|\d+)\s+)/i);
+        const prefix = m ? m[1] : '';
+        const body = prefix ? txt.slice(prefix.length).trim() : txt;
+        return { prefix, body, suffix };
+    };
+
+    const buildDeterminacaoDescricao = (existingDet, bodyText) => {
+        const parsed = parseDeterminacaoTexto(existingDet?.descricao);
+        const cleanedBody = parseDeterminacaoTexto(bodyText).body.trim();
+        const shouldPrefix = !!existingDet?.nao_conformidade_id;
+        const prefix = shouldPrefix ? 'Sanar NC?. ' : (parsed.prefix || '');
+        const suffix = parsed.suffix || '';
+        const out = `${prefix}${cleanedBody}`.trim();
+        return (out ? `${out}${suffix}` : out).trim();
+    };
+
     const computedConstatacoes = useMemo(() => {
         const constChecklist = (respostasExistentes || [])
             .filter(r => (r.resposta === 'SIM' || r.resposta === 'NAO') && r.pergunta && r.pergunta.trim())
@@ -587,11 +619,11 @@ export default function VistoriarUnidade() {
     });
 
     const editarDeterminacaoMutation = useMutation({
-        mutationFn: async ({ id, texto }) => {
+        mutationFn: async ({ id, texto, existingDet }) => {
             if (unidade?.status === 'finalizada' && !modoEdicao) {
                 throw new Error('Não é possível modificar uma unidade finalizada');
             }
-            const desc = String(texto || '').trim();
+            const desc = buildDeterminacaoDescricao(existingDet, texto);
             if (!desc) throw new Error('A determinação não pode ficar vazia');
             await Repository.updateDeterminacao(id, { descricao: desc });
         },
@@ -1342,7 +1374,7 @@ export default function VistoriarUnidade() {
                                                             variant="ghost"
                                                             onClick={() => {
                                                                 setDeterminacaoParaEditar(det);
-                                                                setTextoDeterminacaoEdicao(det.descricao || '');
+                                                                setTextoDeterminacaoEdicao(parseDeterminacaoTexto(det.descricao || '').body);
                                                                 setShowEditarDeterminacao(true);
                                                             }}
                                                             title="Editar determinação"
@@ -1590,7 +1622,8 @@ export default function VistoriarUnidade() {
                                 onClick={() =>
                                     editarDeterminacaoMutation.mutate({
                                         id: determinacaoParaEditar?.id,
-                                        texto: textoDeterminacaoEdicao
+                                        texto: textoDeterminacaoEdicao,
+                                        existingDet: determinacaoParaEditar
                                     })
                                 }
                                 disabled={!textoDeterminacaoEdicao.trim() || editarDeterminacaoMutation.isPending || !determinacaoParaEditar?.id}

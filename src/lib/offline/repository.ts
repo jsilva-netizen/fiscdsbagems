@@ -774,10 +774,34 @@ export const Repository = {
       const n = parseInt(String(v || '').replace(/[^\d]/g, ''), 10)
       return Number.isFinite(n) ? n : 999999
     }
-    return (list || [])
-      .filter((d: any) => String(d?.descricao || '').trim() !== '')
-      .slice()
-      .sort((a: any, b: any) => parseD(a?.numero_determinacao) - parseD(b?.numero_determinacao) || String(a?.id || '').localeCompare(String(b?.id || '')))
+    const timeOf = (x: any) => {
+      const iso = String(x?.updated_at || x?.created_at || '')
+      const t = Date.parse(iso)
+      return Number.isFinite(t) ? t : 0
+    }
+    const keyOf = (d: any) => {
+      const nc = String((d as any)?.nao_conformidade_id || '').trim()
+      if (nc) return `nc:${nc}`
+      const orig = String((d as any)?.origem || '').trim()
+      if (orig) return `orig:${orig}`
+      return `id:${String((d as any)?.id || '')}`
+    }
+    const chosen = new Map<string, any>()
+    for (const d of list || []) {
+      if (String(d?.descricao || '').trim() === '') continue
+      const k = keyOf(d)
+      const prev = chosen.get(k)
+      if (!prev) {
+        chosen.set(k, d)
+      } else {
+        const a = timeOf(prev)
+        const b = timeOf(d)
+        if (b > a) chosen.set(k, d)
+      }
+    }
+    return Array.from(chosen.values()).sort(
+      (a: any, b: any) => parseD(a?.numero_determinacao) - parseD(b?.numero_determinacao) || timeOf(b) - timeOf(a) || String(a?.id || '').localeCompare(String(b?.id || ''))
+    )
   },
 
   async addDeterminacao(unidadeId: string, descricao: string, origem: string = 'manual'): Promise<void> {

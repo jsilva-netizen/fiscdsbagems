@@ -193,32 +193,6 @@ async function generatePdfForJob(adminClient: any, job: any) {
     throw new Error('Nenhuma unidade encontrada para esta fiscalização. Sincronize todas as unidades e tente novamente.')
   }
 
-  // Garantia de consistência: recalcula NC/D/R e totais por unidade antes de gerar o PDF.
-  // Isso evita relatório "antigo" quando houve edição/reabertura e apenas os dados base (respostas/constatações manuais)
-  // foram sincronizados.
-  let recalculoErr: string | null = null
-  for (let i = 0; i < unidades.length; i++) {
-    const u: any = unidades[i]
-    try {
-      await adminClient.rpc('gerar_ncs_unidade', {
-        unidade_fiscalizada_id: u.id,
-        p_fotos: (u as any).fotos_unidade ?? null,
-        p_finalizar: false
-      })
-    } catch (err: any) {
-      if (!recalculoErr) recalculoErr = String(err?.message || err || 'Falha ao recalcular NC/D/R')
-    }
-    try {
-      await adminClient
-        .from('relatorios_jobs')
-        .update({ progress_unidades: i + 1 })
-        .eq('id', job.id)
-    } catch {}
-  }
-  if (recalculoErr) {
-    throw new Error(`Falha ao recalcular NC/D/R antes do relatório: ${recalculoErr}`)
-  }
-
   const unidadeIds = (unidades || []).map((u: any) => u.id)
   const [respsRes, manRes, ncsRes, detRes, recRes] = await Promise.all([
     unidadeIds.length
@@ -1235,11 +1209,14 @@ async function generatePdfForJob(adminClient: any, job: any) {
           (origem && mapeamento?.ncNumeroByOrigem ? (mapeamento.ncNumeroByOrigem[origem] as any) : null)
         if (ncNum) {
           const novoNumNC = `NC${ncNum}`
-          const cleaned = texto
-            .trim()
-            .replace(/^(para\s+sanar|sanar)\s+(a\s+)?(nc\?|\s*nc\d+)\s*([.:;-]\s*|e\s+)?/i, '')
-            .trim()
-          texto = cleaned ? `Sanar ${novoNumNC}. ${cleaned}` : `Sanar ${novoNumNC}.`
+          const hasToken = /NC\?|\bNC\d+\b/i.test(texto)
+          if (hasToken) {
+            texto = texto.replace(/NC\?/gi, novoNumNC).replace(/\bNC\d+\b/gi, novoNumNC)
+          }
+          if (!texto.includes(novoNumNC)) {
+            const base = String(texto || '').trim()
+            texto = base ? `Sanar ${novoNumNC}. ${base}` : `Sanar ${novoNumNC}.`
+          }
         }
         if (!texto.trim().endsWith('.')) texto = `${texto.trim()}.`
         const prazoDias = Number((det as any)?.prazo_dias)

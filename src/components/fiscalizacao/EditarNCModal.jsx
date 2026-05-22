@@ -62,6 +62,10 @@ export default function EditarNCModal({
                     textoLimpo = textoLimpo.substring(prefixoAntigoSemA.length);
                 } else if (textoLimpo.startsWith(prefixoAntigoSanarA)) {
                     textoLimpo = textoLimpo.substring(prefixoAntigoSanarA.length);
+                } else {
+                    textoLimpo = String(textoLimpo || '')
+                        .replace(/^(Sanar|Para sanar)\s+(a\s+)?NC(?:\?|\d+)\s*(\.\s*|e\s+)?/i, '')
+                        .trim();
                 }
                 if (textoLimpo.endsWith(sufixo)) {
                     textoLimpo = textoLimpo.substring(0, textoLimpo.length - sufixo.length);
