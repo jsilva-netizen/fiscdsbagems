@@ -24,6 +24,14 @@ export default function AcompanhamentoDeterminacoes() {
         dataFim: ''
     });
 
+    const stripDeterminacaoPrefix = (input) => {
+        const raw = String(input || '');
+        let txt = raw.trim();
+        if (!txt) return '';
+        txt = txt.replace(/^(Sanar|Para sanar)\s+(a\s+)?NC(?:\?|\d+)\s*(\.\s*|e\s+)?/i, '').trim();
+        return txt;
+    };
+
     const { data: determinacoes = [] } = useQuery({
         queryKey: ['determinacoes'],
         queryFn: async () => {
@@ -398,7 +406,9 @@ export default function AcompanhamentoDeterminacoes() {
                                                                 <div className="flex justify-between items-start">
                                                                     <div className="flex-1">
                                                                         <h4 className="font-semibold mb-2">{det.numero_determinacao}</h4>
-                                                                        <p className="text-sm text-gray-600 mb-2">{det.descricao}</p>
+                                                                        <p className="text-sm text-gray-600 mb-2">
+                                                                            {stripDeterminacaoPrefix(det.descricao) || det.descricao}
+                                                                        </p>
                                                                         <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
                                                                             <p>Unidade: {det.unidade.nome_unidade || 'N/A'}</p>
                                                                             <p>Município: {getMunicipio(fiscalizacao.municipio_id)}</p>

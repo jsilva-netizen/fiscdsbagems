@@ -1366,7 +1366,14 @@ export default function VistoriarUnidade() {
                                         <CardContent className="p-4">
                                             <div className="flex items-start gap-3">
                                                 <Badge variant="secondary">{det.numero_determinacao}</Badge>
-                                                <p className="text-sm flex-1">{det.descricao}</p>
+                                                <p className="text-sm flex-1">
+                                                    {(() => {
+                                                        const parsed = parseDeterminacaoTexto(det.descricao || '');
+                                                        const body = String(parsed.body || '').trim();
+                                                        const suffix = String(parsed.suffix || '').trim();
+                                                        return [body, suffix].filter(Boolean).join(' ').trim() || String(det.descricao || '');
+                                                    })()}
+                                                </p>
                                                 {(unidade?.status !== 'finalizada' || modoEdicao) && (
                                                     <div className="flex gap-2">
                                                         <Button

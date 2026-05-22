@@ -15,6 +15,14 @@ export default function HistoricoDeterminacoes({ determinacoes, respostas }) {
         return respostas?.find(r => r.determinacao_id === detId);
     };
 
+    const stripDeterminacaoPrefix = (input) => {
+        const raw = String(input || '');
+        let txt = raw.trim();
+        if (!txt) return '';
+        txt = txt.replace(/^(Sanar|Para sanar)\s+(a\s+)?NC(?:\?|\d+)\s*(\.\s*|e\s+)?/i, '').trim();
+        return txt;
+    };
+
     return (
         <div className="space-y-3">
             {determinacoes.map(det => {
@@ -32,7 +40,9 @@ export default function HistoricoDeterminacoes({ determinacoes, respostas }) {
                             <div className="flex justify-between items-start mb-2">
                                 <div className="flex-1">
                                     <p className="font-semibold text-sm mb-1">{det.numero_determinacao}</p>
-                                    <p className="text-xs text-gray-600 mb-2 line-clamp-2">{det.descricao}</p>
+                                    <p className="text-xs text-gray-600 mb-2 line-clamp-2">
+                                        {stripDeterminacaoPrefix(det.descricao) || det.descricao}
+                                    </p>
                                     <p className="text-xs text-gray-500">
                                         Vencimento: {new Date(det.data_limite).toLocaleDateString('pt-BR')}
                                     </p>
