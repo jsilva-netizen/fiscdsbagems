@@ -46,13 +46,22 @@ export default function EditarNCModal({
                 setGeraDeterminacao(true);
                 // Extrair o texto removendo o prefixo e sufixo padrão
                 let textoLimpo = determinacaoExistente.descricao || '';
-                const prefixoNovo = `Sanar a ${numeroNC} e `;
+                const prefixoNovo = `Sanar ${numeroNC}. `;
+                const prefixoNovoSemPonto = `Sanar ${numeroNC} `;
                 const prefixoAntigo = `Para sanar a ${numeroNC} `;
+                const prefixoAntigoSemA = `Para sanar ${numeroNC} `;
+                const prefixoAntigoSanarA = `Sanar a ${numeroNC} e `;
                 const sufixo = '. Prazo: 30 dias.';
                 if (textoLimpo.startsWith(prefixoNovo)) {
                     textoLimpo = textoLimpo.substring(prefixoNovo.length);
+                } else if (textoLimpo.startsWith(prefixoNovoSemPonto)) {
+                    textoLimpo = textoLimpo.substring(prefixoNovoSemPonto.length);
                 } else if (textoLimpo.startsWith(prefixoAntigo)) {
                     textoLimpo = textoLimpo.substring(prefixoAntigo.length);
+                } else if (textoLimpo.startsWith(prefixoAntigoSemA)) {
+                    textoLimpo = textoLimpo.substring(prefixoAntigoSemA.length);
+                } else if (textoLimpo.startsWith(prefixoAntigoSanarA)) {
+                    textoLimpo = textoLimpo.substring(prefixoAntigoSanarA.length);
                 }
                 if (textoLimpo.endsWith(sufixo)) {
                     textoLimpo = textoLimpo.substring(0, textoLimpo.length - sufixo.length);
@@ -178,7 +187,7 @@ export default function EditarNCModal({
                                     className="mt-1"
                                 />
                                 <p className="text-xs text-gray-500 mt-1">
-                                    Será formatada como: "Sanar a {numeroNC} e [seu texto aqui]. Prazo: 30 dias."
+                                    Será formatada como: "Sanar {numeroNC}. [seu texto aqui]. Prazo: 30 dias."
                                 </p>
                             </div>
                         )}

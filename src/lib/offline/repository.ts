@@ -720,7 +720,7 @@ export const Repository = {
     const descRaw = String(descricao || '').trim()
     const lowerDesc = descRaw.toLowerCase()
     const alreadyPrefixed = lowerDesc.startsWith('para sanar') || lowerDesc.startsWith('sanar')
-    const desc = descRaw && !alreadyPrefixed ? `Sanar a NC? e ${descRaw}` : descRaw
+    const desc = descRaw && !alreadyPrefixed ? `Sanar NC?. ${descRaw}` : descRaw
     const prazo = prazoDias !== undefined && prazoDias !== null ? Number(prazoDias) : null
     const prazoOk = Number.isFinite(prazo as any) && (prazo as any) > 0 ? (prazo as any) : null
     const dataLimite = prazoOk ? new Date(Date.now() + prazoOk * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) : null
@@ -931,7 +931,7 @@ export const Repository = {
       if (!geraNc) return { ok: false }
       if (!detTxt) return { ok: false }
       const lower = detTxt.toLowerCase()
-      const desc = lower.startsWith('para sanar') || lower.startsWith('sanar') ? detTxt : `Sanar a NC? e ${detTxt}`
+      const desc = lower.startsWith('para sanar') || lower.startsWith('sanar') ? detTxt : `Sanar NC?. ${detTxt}`
       return { ok: true, desc, prazo: Number.isFinite(prazo as any) ? (prazo as any) : null }
     }
     const adds: any[] = []
@@ -994,7 +994,7 @@ export const Repository = {
         const id = uid()
         const prazoDias = Number.isFinite(prazo as any) ? (prazo as any) : null
         const lower = detTxt.toLowerCase()
-        const desc = lower.startsWith('para sanar') || lower.startsWith('sanar') ? detTxt : `Sanar a NC? e ${detTxt}`
+        const desc = lower.startsWith('para sanar') || lower.startsWith('sanar') ? detTxt : `Sanar NC?. ${detTxt}`
         const row = {
           id,
           unidade_fiscalizada_id: unidadeId,

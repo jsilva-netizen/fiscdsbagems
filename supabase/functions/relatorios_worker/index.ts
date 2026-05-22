@@ -1235,14 +1235,11 @@ async function generatePdfForJob(adminClient: any, job: any) {
           (origem && mapeamento?.ncNumeroByOrigem ? (mapeamento.ncNumeroByOrigem[origem] as any) : null)
         if (ncNum) {
           const novoNumNC = `NC${ncNum}`
-          texto = texto.replace(/NC\?/g, novoNumNC).replace(/NC\d+/g, novoNumNC)
-          if (!texto.includes(novoNumNC)) {
-            const cleaned = texto
-              .trim()
-              .replace(/^(para\s+sanar\s+a|sanar\s+a)\s+(nc\?|\s*nc\d+)?\s*(e\s+)?/i, '')
-              .trim()
-            texto = cleaned ? `Sanar a ${novoNumNC} e ${cleaned}` : `Sanar a ${novoNumNC}`
-          }
+          const cleaned = texto
+            .trim()
+            .replace(/^(para\s+sanar|sanar)\s+(a\s+)?(nc\?|\s*nc\d+)\s*([.:;-]\s*|e\s+)?/i, '')
+            .trim()
+          texto = cleaned ? `Sanar ${novoNumNC}. ${cleaned}` : `Sanar ${novoNumNC}.`
         }
         if (!texto.trim().endsWith('.')) texto = `${texto.trim()}.`
         const prazoDias = Number((det as any)?.prazo_dias)

@@ -112,7 +112,7 @@ BEGIN
           p_unidade_id,
           v_nc_id,
           'D'||contD,
-          'Sanar a NC'||contNC||' e '||r_resp.texto_determinacao,
+          'Sanar a NC'||contNC||'. '||r_resp.texto_determinacao,
           coalesce(r_resp.prazo_dias, 30),
           (now()::date + coalesce(r_resp.prazo_dias, 30)),
           'pendente'
@@ -173,7 +173,7 @@ BEGIN
           'D'||contD,
           CASE
             WHEN r_man.texto_determinacao ILIKE 'Para sanar%' OR r_man.texto_determinacao ILIKE 'Sanar%' THEN r_man.texto_determinacao
-            ELSE 'Sanar a NC'||contNC||' e '||r_man.texto_determinacao||'. Prazo: 30 dias.'
+            ELSE 'Sanar NC'||contNC||'. '||r_man.texto_determinacao||'. Prazo: 30 dias.'
           END,
           30,
           (now()::date + 30),
@@ -219,22 +219,19 @@ BEGIN
   UPDATE public.unidades_fiscalizadas uf
   SET total_constatacoes = v_total_constatacoes,
       total_ncs = v_total_ncs,
-      total_determinacoes = v_total_dets,
-      total_recomendacoes = v_total_recs,
       fotos_unidade = coalesce(p_fotos, uf.fotos_unidade),
       status = CASE WHEN p_finalizar THEN 'finalizada' ELSE uf.status END,
       updated_at = now()
-  WHERE uf.id = p_unidade_id;
+  WHERE uf.id = p_unidade_id
+  RETURNING uf.status INTO v_status_final;
 
-  v_status_final := CASE WHEN p_finalizar THEN 'finalizada' ELSE 'em_andamento' END;
   RETURN jsonb_build_object(
     'success', true,
-    'status', v_status_final,
     'total_constatacoes', v_total_constatacoes,
     'total_ncs', v_total_ncs,
     'total_determinacoes', v_total_dets,
-    'total_recomendacoes', v_total_recs
+    'total_recomendacoes', v_total_recs,
+    'status_final', v_status_final
   );
 END;
 $$;
-
