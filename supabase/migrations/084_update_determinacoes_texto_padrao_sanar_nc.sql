@@ -1,5 +1,5 @@
 CREATE OR REPLACE FUNCTION public.gerar_ncs_unidade(
-  unidade_fiscalizada_id uuid,
+  p_unidade_fiscalizada_id uuid,
   p_fotos jsonb default null,
   p_finalizar boolean default false
 )
@@ -9,7 +9,7 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  p_unidade_id uuid := unidade_fiscalizada_id;
+  p_unidade_id uuid := p_unidade_fiscalizada_id;
   v_fiscalizacao uuid;
   v_created timestamptz;
   ids_anteriores uuid[];
@@ -106,16 +106,20 @@ BEGIN
       IF r_resp.texto_determinacao IS NOT NULL AND btrim(r_resp.texto_determinacao) <> '' THEN
         contD := contD + 1;
         INSERT INTO public.determinacoes (
-          unidade_fiscalizada_id, nao_conformidade_id, numero_determinacao, descricao, prazo_dias, data_limite, status
+          unidade_fiscalizada_id, nao_conformidade_id, numero_determinacao, descricao, prazo_dias, data_limite, status, origem
         )
         VALUES (
           p_unidade_id,
           v_nc_id,
           'D'||contD,
-          'Sanar a NC'||contNC||'. '||r_resp.texto_determinacao,
+          'Sanar NC'||contNC||'. '||r_resp.texto_determinacao,
           coalesce(r_resp.prazo_dias, 30),
           (now()::date + coalesce(r_resp.prazo_dias, 30)),
-          'pendente'
+          'pendente',
+          CASE
+            WHEN r_resp.item_checklist_id IS NOT NULL THEN 'checklist:'||r_resp.item_checklist_id::text
+            ELSE 'legacy:'||r_resp.id::text
+          END
         );
       ELSIF r_resp.texto_recomendacao IS NOT NULL AND btrim(r_resp.texto_recomendacao) <> '' THEN
         contR := contR + 1;
@@ -165,7 +169,7 @@ BEGIN
       IF r_man.texto_determinacao IS NOT NULL AND btrim(r_man.texto_determinacao) <> '' THEN
         contD := contD + 1;
         INSERT INTO public.determinacoes (
-          unidade_fiscalizada_id, nao_conformidade_id, numero_determinacao, descricao, prazo_dias, data_limite, status
+          unidade_fiscalizada_id, nao_conformidade_id, numero_determinacao, descricao, prazo_dias, data_limite, status, origem
         )
         VALUES (
           p_unidade_id,
@@ -173,11 +177,12 @@ BEGIN
           'D'||contD,
           CASE
             WHEN r_man.texto_determinacao ILIKE 'Para sanar%' OR r_man.texto_determinacao ILIKE 'Sanar%' THEN r_man.texto_determinacao
-            ELSE 'Sanar NC'||contNC||'. '||r_man.texto_determinacao||'. Prazo: 30 dias.'
+            ELSE 'Sanar NC'||contNC||'. '||r_man.texto_determinacao
           END,
           30,
           (now()::date + 30),
-          'pendente'
+          'pendente',
+          'manual_constatacao:'||r_man.id::text
         );
       ELSIF r_man.texto_recomendacao IS NOT NULL AND btrim(r_man.texto_recomendacao) <> '' THEN
         contR := contR + 1;
