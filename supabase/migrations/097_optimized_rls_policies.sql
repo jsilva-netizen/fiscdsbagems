@@ -911,7 +911,10 @@ BEGIN
   DELETE FROM public.nao_conformidades nc WHERE nc.unidade_fiscalizada_id = p_unidade_id;
   DELETE FROM public.recomendacoes r
   WHERE r.unidade_fiscalizada_id = p_unidade_id
-    AND coalesce(nullif(btrim(r.origem), ''), 'manual') IN ('checklist', 'manual_constatacao');
+    AND (
+      r.origem ILIKE 'checklist%'
+      OR coalesce(nullif(btrim(r.origem), ''), 'manual') IN ('checklist', 'manual_constatacao')
+    );
 
   FOR r_resp IN
     WITH ranked AS (
@@ -976,7 +979,10 @@ BEGIN
         VALUES (p_unidade_id, 'R'||contR, r_resp.texto_recomendacao, 'checklist', now(), now())
         ON CONFLICT (unidade_fiscalizada_id, numero_recomendacao)
         DO UPDATE SET descricao = EXCLUDED.descricao, origem = EXCLUDED.origem, updated_at = now()
-        WHERE coalesce(nullif(btrim(public.recomendacoes.origem), ''), 'manual') IN ('checklist', 'manual_constatacao');
+        WHERE (
+          public.recomendacoes.origem ILIKE 'checklist%'
+          OR coalesce(nullif(btrim(public.recomendacoes.origem), ''), 'manual') IN ('checklist', 'manual_constatacao')
+        );
       END IF;
     END IF;
   END LOOP;
@@ -1039,7 +1045,10 @@ BEGIN
         VALUES (p_unidade_id, 'R'||contR, r_man.texto_recomendacao, 'manual_constatacao', now(), now())
         ON CONFLICT (unidade_fiscalizada_id, numero_recomendacao)
         DO UPDATE SET descricao = EXCLUDED.descricao, origem = EXCLUDED.origem, updated_at = now()
-        WHERE coalesce(nullif(btrim(public.recomendacoes.origem), ''), 'manual') IN ('checklist', 'manual_constatacao');
+        WHERE (
+          public.recomendacoes.origem ILIKE 'checklist%'
+          OR coalesce(nullif(btrim(public.recomendacoes.origem), ''), 'manual') IN ('checklist', 'manual_constatacao')
+        );
       END IF;
     END IF;
   END LOOP;
