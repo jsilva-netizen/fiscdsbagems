@@ -1663,7 +1663,15 @@ export async function syncDown(onProgress?: (msg: string, isError?: boolean) => 
           const server_id = (row as any).id as UUID
           const map = await db.id_map.where('server_id').equals(server_id).first()
           const local_id = map?.local_id || server_id
-          await db.recomendacoes.put({ ...(row as any), id: local_id })
+          
+          const normalized: any = { ...row, id: local_id }
+          if (normalized.unidade_fiscalizada_id) {
+            const fkMap = await db.id_map.where('server_id').equals(normalized.unidade_fiscalizada_id as any).and((m) => m.entity === 'unidades').first()
+            if (fkMap?.local_id) {
+              normalized.unidade_fiscalizada_id = fkMap.local_id
+            }
+          }
+          await db.recomendacoes.put(normalized)
         }
       }
     } catch (error: any) {
