@@ -16,6 +16,7 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@
 import { ArrowLeft, Search, Filter, Trash2, AlertTriangle, MapPin, ChevronRight, Calendar, CheckCircle2, Clock, Plus, RotateCcw } from 'lucide-react';
 import ExportarPDFConsolidado from '@/components/fiscalizacao/ExportarPDFConsolidado';
 import RelatorioFiscalizacao from '@/components/fiscalizacao/RelatorioFiscalizacao';
+import HistoricoFiscalizacao from '@/components/fiscalizacao/HistoricoFiscalizacao';
 import { useSyncStatus } from '@/lib/SyncStatusContext.jsx';
 
 export default function Fiscalizacoes() {
@@ -309,6 +310,9 @@ export default function Fiscalizacoes() {
                                         </Link>
 
                                          <div className="mt-3 pt-3 border-t flex gap-2">
+                                              {/* Botão de histórico discreto — sempre visível */}
+                                              <HistoricoFiscalizacao fiscalizacao={fisc} />
+
                                               {fisc.status === 'finalizada' && (
                                                   <div className="flex-1 flex gap-2 items-end">
                                                       <RelatorioFiscalizacao fiscalizacao={fisc} />
