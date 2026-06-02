@@ -1939,6 +1939,14 @@ export const Repository = {
     await enqueueMutation({ id: unidadeId, codigo_unidade, updated_at: now() }, 'update', 'unidades')
   },
 
+  async updateUnidadeNome(unidadeId: string, nome_unidade: string): Promise<void> {
+    const u = await db.unidades.get(unidadeId)
+    if (u) {
+      await db.unidades.update(unidadeId, { ...u, nome_unidade, updated_at: now() })
+    }
+    await enqueueMutation({ id: unidadeId, nome_unidade, updated_at: now() }, 'update', 'unidades')
+  },
+
   async updateUnidadeEndereco(unidadeId: string, endereco: string): Promise<void> {
     const u = await db.unidades.get(unidadeId)
     if (u) {

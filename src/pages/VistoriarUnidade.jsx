@@ -65,6 +65,8 @@ export default function VistoriarUnidade() {
     const [filaRespostas, setFilaRespostas] = useState([]);
     const [showEditarCodigoUnidade, setShowEditarCodigoUnidade] = useState(false);
     const [novoCodigoUnidade, setNovoCodigoUnidade] = useState('');
+    const [showEditarNomeUnidade, setShowEditarNomeUnidade] = useState(false);
+    const [novoNomeUnidade, setNovoNomeUnidade] = useState('');
     const [showEditarEnderecoUnidade, setShowEditarEnderecoUnidade] = useState(false);
     const [novoEnderecoUnidade, setNovoEnderecoUnidade] = useState('');
     const [showEditarCoordenadasUnidade, setShowEditarCoordenadasUnidade] = useState(false);
@@ -888,6 +890,21 @@ export default function VistoriarUnidade() {
         }
     });
 
+    const atualizarNomeUnidadeMutation = useMutation({
+        mutationFn: async () => {
+            const trimmed = String(novoNomeUnidade || '').trim();
+            await Repository.updateUnidadeNome(unidadeId, trimmed);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['unidade', unidadeId] });
+            queryClient.invalidateQueries({ queryKey: ['unidades-fiscalizacao'] });
+            setShowEditarNomeUnidade(false);
+        },
+        onError: (err) => {
+            alert(err.message);
+        }
+    });
+
     const atualizarEnderecoUnidadeMutation = useMutation({
         mutationFn: async () => {
             const trimmed = String(novoEnderecoUnidade || '').trim();
@@ -1014,6 +1031,7 @@ export default function VistoriarUnidade() {
     const totalItens = Array.isArray(itensChecklist) ? itensChecklist.length : 0;
     const progresso = totalItens > 0 ? Math.round((totalRespondidas / totalItens) * 100) : 0;
     const podeEditarCodigoUnidade = unidade?.status !== 'finalizada' || modoEdicao;
+    const podeEditarNomeUnidade = unidade?.status !== 'finalizada' || modoEdicao;
     const podeEditarEnderecoUnidade = unidade?.status !== 'finalizada' || modoEdicao;
     const podeEditarCoordenadasUnidade = unidade?.status !== 'finalizada' || modoEdicao;
 
@@ -1045,6 +1063,24 @@ export default function VistoriarUnidade() {
                                         onClick={() => {
                                             setNovoCodigoUnidade(unidade?.codigo_unidade || '');
                                             setShowEditarCodigoUnidade(true);
+                                        }}
+                                    >
+                                        <Pencil className="h-3 w-3 mr-1" />
+                                        Editar
+                                    </Button>
+                                )}
+                            </div>
+                            <div className="flex items-center gap-2 text-blue-200 text-xs mt-1">
+                                <span>Nome:</span>
+                                <span className="text-white">{unidade?.nome_unidade || '-'}</span>
+                                {podeEditarNomeUnidade && (
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-6 px-2 text-blue-200 hover:text-white hover:bg-white/10"
+                                        onClick={() => {
+                                            setNovoNomeUnidade(unidade?.nome_unidade || '');
+                                            setShowEditarNomeUnidade(true);
                                         }}
                                     >
                                         <Pencil className="h-3 w-3 mr-1" />
@@ -1756,6 +1792,47 @@ export default function VistoriarUnidade() {
                                 disabled={atualizarCodigoUnidadeMutation.isPending}
                             >
                                 {atualizarCodigoUnidadeMutation.isPending ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    'Salvar'
+                                )}
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={showEditarNomeUnidade} onOpenChange={setShowEditarNomeUnidade}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Editar nome da unidade</DialogTitle>
+                        <DialogDescription>
+                            Altera o nome/descrição desta unidade.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>Novo nome</Label>
+                            <Input
+                                value={novoNomeUnidade}
+                                onChange={(e) => setNovoNomeUnidade(e.target.value)}
+                                placeholder="Ex: ETA Central"
+                                disabled={atualizarNomeUnidadeMutation.isPending}
+                            />
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <Button
+                                variant="outline"
+                                onClick={() => setShowEditarNomeUnidade(false)}
+                                disabled={atualizarNomeUnidadeMutation.isPending}
+                            >
+                                Cancelar
+                            </Button>
+                            <Button
+                                onClick={() => atualizarNomeUnidadeMutation.mutate()}
+                                disabled={atualizarNomeUnidadeMutation.isPending}
+                            >
+                                {atualizarNomeUnidadeMutation.isPending ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />
                                 ) : (
                                     'Salvar'
