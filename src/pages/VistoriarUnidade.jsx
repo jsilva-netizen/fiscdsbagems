@@ -1384,12 +1384,6 @@ export default function VistoriarUnidade() {
 
                     {/* Determinações Tab */}
                     <TabsContent value="determinacoes" className="mt-4 space-y-4">
-                        {(unidade?.status !== 'finalizada' || modoEdicao) && (
-                            <Button onClick={() => setShowAddDeterminacao(true)} className="w-full">
-                                <Plus className="h-4 w-4 mr-2" />
-                                Adicionar Determinação
-                            </Button>
-                        )}
 
                         {determinacoesOrdenadas.length === 0 ? (
                             <p className="text-center text-gray-500 text-sm py-4">
@@ -1450,12 +1444,6 @@ export default function VistoriarUnidade() {
 
                     {/* Recomendações Tab */}
                     <TabsContent value="recomendacoes" className="mt-4 space-y-4">
-                        {(unidade?.status !== 'finalizada' || modoEdicao) && (
-                            <Button onClick={() => setShowAddRecomendacao(true)} className="w-full">
-                                <Plus className="h-4 w-4 mr-2" />
-                                Adicionar Recomendação
-                            </Button>
-                        )}
 
                         {recomendacoesOrdenadas.length === 0 ? (
                             <p className="text-center text-gray-500 text-sm py-4">
