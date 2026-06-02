@@ -32,6 +32,7 @@ export default function VistoriarUnidade() {
     const isMountedRef = useRef(true);
     const filaRespostasRef = useRef([]);
     const itensChecklistRef = useRef([]);
+    const scrollYRef = useRef(0); // Preserva posição de scroll ao salvar respostas
 
     const [activeTab, setActiveTab] = useState('checklist');
     const [respostas, setRespostas] = useState({});
@@ -402,10 +403,14 @@ export default function VistoriarUnidade() {
             const respostasAtualizadas = await Repository.listRespostasByUnidade(unidade);
             await Repository.syncRecomendacoesFromChecklist(unidade, itens, respostasAtualizadas);
             await Repository.syncDeterminacoesFromChecklist(unidade, itens, respostasAtualizadas);
+            // Salva posição de scroll antes de invalidar queries (evita reset ao topo)
+            const savedScrollY = window.scrollY;
             await queryClient.invalidateQueries({ queryKey: ['respostas', unidade] });
             await queryClient.invalidateQueries({ queryKey: ['constatacoes-manuais', unidade] });
             await queryClient.invalidateQueries({ queryKey: ['recomendacoes', unidade] });
             await queryClient.invalidateQueries({ queryKey: ['determinacoes', unidade] });
+            // Restaura posição de scroll após re-render
+            requestAnimationFrame(() => window.scrollTo({ top: savedScrollY, behavior: 'instant' }));
         } catch (err) {
             if (!silent) {
                 console.error('Erro ao processar batch:', err);
@@ -482,10 +487,14 @@ export default function VistoriarUnidade() {
                 const item = itens.find((x) => x && x.id === itemId);
                 if (item && unidadeId) {
                     Repository.syncRecomendacaoFromChecklistItem(unidadeId, item, { resposta: data.resposta }).then(() => {
+                        const sy = window.scrollY;
                         queryClient.invalidateQueries({ queryKey: ['recomendacoes', unidadeId] });
+                        requestAnimationFrame(() => window.scrollTo({ top: sy, behavior: 'instant' }));
                     }).catch(() => {});
                     Repository.syncDeterminacaoFromChecklistItem(unidadeId, item, { resposta: data.resposta }).then(() => {
+                        const sy = window.scrollY;
                         queryClient.invalidateQueries({ queryKey: ['determinacoes', unidadeId] });
+                        requestAnimationFrame(() => window.scrollTo({ top: sy, behavior: 'instant' }));
                     }).catch(() => {});
                 }
             } catch {}
