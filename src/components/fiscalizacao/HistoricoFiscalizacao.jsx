@@ -7,7 +7,7 @@ import { History, User, Clock, FileEdit, Plus, Trash2, RefreshCw } from 'lucide-
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Constantes ───────────────────────────────────────────────────────────────
 
 const ACTION_LABELS = {
   INSERT: { color: 'bg-green-100 text-green-700', icon: Plus },
@@ -24,7 +24,63 @@ const STATUS_PT = {
   erro:         'Erro',
 };
 
-function trunc(str, max = 90) {
+// Campos a ignorar completamente em qualquer tabela
+const GLOBAL_NOISE = new Set([
+  'id', 'created_at', 'updated_at', 'last_modified_at',
+  'fiscalizacao_id', 'unidade_fiscalizada_id', 'tipo_unidade_id',
+  'item_checklist_id', 'nao_conformidade_id', 'requested_by',
+  'pdf_url', 'municipio_id', 'prestador_servico_id',
+]);
+
+// Campos a ignorar por tabela (além dos globais)
+const TABLE_NOISE = {
+  unidades_fiscalizadas: new Set(['total_constatacoes', 'total_ncs', 'data_hora_vistoria']),
+  fiscalizacoes:         new Set(['last_modified_by', 'total_conformidades', 'total_nao_conformidades', 'municipio_nome', 'prestador_servico_nome']),
+  respostas_checklist:   new Set([]),
+  determinacoes:         new Set(['origem']),
+  recomendacoes:         new Set(['origem']),
+};
+
+// Rótulos legíveis por campo
+const FIELD_LABELS = {
+  // Unidades
+  nome_unidade:          'Nome',
+  tipo_unidade_nome:     'Tipo',
+  codigo_unidade:        'Código',
+  endereco:              'Endereço',
+  ordem:                 'Posição',
+  status:                'Status',
+  latitude:              'Latitude',
+  longitude:             'Longitude',
+  // Fiscalização
+  fiscal_nome:           'Fiscal',
+  numero_termo:          'Nº do termo',
+  data_inicio:           'Data de início',
+  data_fim:              'Data de encerramento',
+  servicos:              'Serviços',
+  // Checklist
+  resposta:              'Resposta',
+  pergunta:              'Texto da constatação',
+  observacao:            'Observação',
+  numero_constatacao:    'Nº constatação',
+  gera_nc:               'Gera NC',
+  // Determinações / Recomendações / Constatações
+  descricao:             'Texto',
+  texto:                 'Texto',
+  numero_determinacao:   'Nº determinação',
+  numero_recomendacao:   'Nº recomendacao',
+  prazo_dias:            'Prazo (dias)',
+  prazo:                 'Prazo',
+  artigo_portaria:       'Artigo da portaria',
+  texto_determinacao:    'Texto da determinação',
+  texto_recomendacao:    'Texto da recomendação',
+  // Relatórios
+  'status':              'Status',
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function trunc(str, max = 80) {
   if (!str) return '';
   const s = String(str).trim();
   return s.length > max ? s.slice(0, max) + '…' : s;
@@ -33,90 +89,194 @@ function trunc(str, max = 90) {
 function fmtVal(v) {
   if (v === null || v === undefined) return '—';
   if (typeof v === 'boolean') return v ? 'Sim' : 'Não';
+  if (Array.isArray(v)) return v.join(', ') || '—';
   const s = String(v).trim();
   if (!s) return '—';
   return STATUS_PT[s] ?? s;
 }
 
-// Nome da unidade buscando nos campos corretos da tabela
-function unidadeNome(data) {
-  if (!data) return null;
-  return data.nome_unidade || data.tipo_unidade_nome || null;
+function isNoise(field, tableName) {
+  if (GLOBAL_NOISE.has(field)) return true;
+  return TABLE_NOISE[tableName]?.has(field) ?? false;
 }
 
-// Verifica se apenas campos de timestamp/ruído mudaram
-function onlyTimestampChanged(o, n) {
-  if (!o || !n) return false;
-  const noiseFields = new Set(['updated_at', 'created_at', 'last_modified_at', 'last_modified_by']);
-  const keys = new Set([...Object.keys(o), ...Object.keys(n)]);
+/**
+ * Calcula quais campos mudaram de forma semanticamente relevante.
+ * Retorna array de { field, label, before, after }.
+ */
+function getMeaningfulDiffs(o, n, tableName) {
+  if (!o && !n) return [];
+  const source = o || n;
+  const keys = new Set(Object.keys(source));
+  if (n) Object.keys(n).forEach(k => keys.add(k));
+
+  const diffs = [];
   for (const k of keys) {
-    if (noiseFields.has(k)) continue;
-    if (JSON.stringify(o[k]) !== JSON.stringify(n[k])) return false;
+    if (isNoise(k, tableName)) continue;
+    const bv = o?.[k];
+    const av = n?.[k];
+    const bStr = JSON.stringify(bv ?? null);
+    const aStr = JSON.stringify(av ?? null);
+    if (bStr === aStr) continue;
+    // Ignorar mudanças de vazio para vazio
+    const bEmpty = bv === null || bv === undefined || bv === '';
+    const aEmpty = av === null || av === undefined || av === '';
+    if (bEmpty && aEmpty) continue;
+    diffs.push({
+      field: k,
+      label: FIELD_LABELS[k] || k,
+      before: fmtVal(bv),
+      after:  fmtVal(av),
+    });
   }
-  return true;
+  return diffs;
 }
 
-// ─── Gerador de descrição em linguagem natural ────────────────────────────────
+// ─── Gerador de descrição ─────────────────────────────────────────────────────
 
-function describeLog(log) {
+function describeLog(log, unidades = []) {
   const { table_name: t, action: a, old_data: o, new_data: n } = log;
+
+  const getUnidadeNome = (id) => {
+    const u = unidades.find(x => x.id === id);
+    if (!u) return 'Unidade';
+    return u.nome_unidade || u.tipo_unidade_nome || `Unidade #${u.ordem || ''}`;
+  };
 
   // ── Unidades ──────────────────────────────────────────────────────────────
   if (t === 'unidades_fiscalizadas') {
-    const nomeNovo = unidadeNome(n);
-    const nomeVelho = unidadeNome(o);
-    const nome = nomeNovo || nomeVelho;
+    const nomeNovo = n?.nome_unidade || n?.tipo_unidade_nome;
+    const nomeVelho = o?.nome_unidade || o?.tipo_unidade_nome;
+    const nome = nomeNovo || nomeVelho || getUnidadeNome(log.record_id);
 
     if (a === 'INSERT') {
       const tipo = n?.tipo_unidade_nome ? ` (${n.tipo_unidade_nome})` : '';
-      return nome
-        ? `Unidade "${nome}"${tipo} adicionada.`
+      return nome && nome !== 'Unidade'
+        ? `Unidade "${nome}" adicionada.`
         : `Nova unidade adicionada${tipo}.`;
     }
 
     if (a === 'DELETE') {
-      return nome ? `Unidade "${nome}" removida.` : `Unidade removida.`;
+      return nome && nome !== 'Unidade' ? `Unidade "${nome}" removida.` : `Unidade removida.`;
     }
 
     if (a === 'UPDATE') {
-      // Ignorar se só mudou timestamp
-      if (onlyTimestampChanged(o, n)) return null;
+      const diffs = getMeaningfulDiffs(o, n, t);
+      if (diffs.length === 0) return null;
 
       const lines = [];
 
-      // Reordenação
-      if (o?.ordem !== undefined && n?.ordem !== undefined && o.ordem !== n.ordem) {
-        const ref = nomeNovo || nomeVelho;
-        lines.push(ref
-          ? `Unidade "${ref}" reordenada (posição ${o.ordem} → ${n.ordem}).`
-          : `Unidade reordenada (posição ${o.ordem} → ${n.ordem}).`);
+      // Reordenação — exibe de forma especial
+      const ordemDiff = diffs.find(d => d.field === 'ordem');
+      if (ordemDiff) {
+        lines.push(`Unidade "${nome}" reordenada (posição ${ordemDiff.before} → ${ordemDiff.after}).`);
       }
 
       // Renomeação
-      if (nomeVelho && nomeNovo && nomeVelho !== nomeNovo) {
+      const nomeDiff = diffs.find(d => d.field === 'nome_unidade');
+      if (nomeDiff && nomeVelho && nomeNovo && nomeVelho !== nomeNovo) {
         lines.push(`Nome da unidade alterado de "${nomeVelho}" para "${nomeNovo}".`);
       }
 
-      // Código
-      if (o?.codigo_unidade !== n?.codigo_unidade && (o?.codigo_unidade || n?.codigo_unidade)) {
-        lines.push(`Código: "${fmtVal(o?.codigo_unidade)}" → "${fmtVal(n?.codigo_unidade)}".`);
+      // Restante dos campos com mudança
+      for (const d of diffs) {
+        if (d.field === 'ordem' || d.field === 'nome_unidade') continue;
+        lines.push(`Unidade "${nome}" — ${d.label}: "${trunc(d.before, 60)}" → "${trunc(d.after, 60)}".`);
       }
 
-      // Endereço
-      if (o?.endereco !== n?.endereco && (o?.endereco || n?.endereco)) {
-        lines.push(`Endereço: "${trunc(o?.endereco, 60)}" → "${trunc(n?.endereco, 60)}".`);
+      return lines.length ? lines : null;
+    }
+  }
+
+  // ── Respostas de checklist ────────────────────────────────────────────────
+  if (t === 'respostas_checklist') {
+    const diffs = getMeaningfulDiffs(o, n, t);
+    if (a !== 'INSERT' && a !== 'DELETE' && diffs.length === 0) return null;
+
+    const unitId = n?.unidade_fiscalizada_id || o?.unidade_fiscalizada_id;
+    const uNome = getUnidadeNome(unitId);
+
+    if (a === 'INSERT') {
+      const resp = n?.resposta;
+      const constatacao = trunc(n?.pergunta, 70);
+      if (resp && constatacao) return `Resposta "${fmtVal(resp)}" registrada na unidade "${uNome}" — "${constatacao}"`;
+      if (resp) return `Resposta "${fmtVal(resp)}" registrada na unidade "${uNome}".`;
+      return null;
+    }
+
+    if (a === 'DELETE') {
+      const constatacao = trunc(o?.pergunta, 70);
+      return constatacao
+        ? `Constatação de checklist removida na unidade "${uNome}": "${constatacao}".`
+        : `Resposta de checklist removida na unidade "${uNome}".`;
+    }
+
+    if (a === 'UPDATE') {
+      const lines = [];
+
+      const respostaDiff = diffs.find(d => d.field === 'resposta');
+      if (respostaDiff) {
+        const constatacao = trunc(n?.pergunta || o?.pergunta, 60);
+        lines.push(constatacao
+          ? `Resposta "${respostaDiff.before}" → "${respostaDiff.after}" na unidade "${uNome}" — "${constatacao}"`
+          : `Resposta alterada na unidade "${uNome}": "${respostaDiff.before}" → "${respostaDiff.after}".`
+        );
       }
 
-      // Status
-      if (o?.status !== n?.status) {
-        lines.push(`Status: ${fmtVal(o?.status)} → ${fmtVal(n?.status)}.`);
+      for (const d of diffs) {
+        if (d.field === 'resposta') continue;
+        lines.push(`Checklist (unidade "${uNome}") — ${d.label}: "${trunc(d.before, 60)}" → "${trunc(d.after, 60)}".`);
       }
 
-      if (lines.length === 0) {
-        const ref = nomeNovo || nomeVelho;
-        return ref ? `Unidade "${ref}" atualizada.` : null;
-      }
-      return lines;
+      return lines.length ? lines : null;
+    }
+  }
+
+  // ── Constatações manuais ──────────────────────────────────────────────────
+  if (t === 'constatacoes_manuais') {
+    const diffs = getMeaningfulDiffs(o, n, t);
+    const unitId = n?.unidade_fiscalizada_id || o?.unidade_fiscalizada_id;
+    const uNome = getUnidadeNome(unitId);
+    const textoNovo = trunc(n?.descricao || n?.texto, 80);
+    const textoVelho = trunc(o?.descricao || o?.texto, 80);
+
+    if (a === 'INSERT') return textoNovo ? `Constatação manual adicionada na unidade "${uNome}": "${textoNovo}".` : `Constatação manual adicionada na unidade "${uNome}".`;
+    if (a === 'DELETE') return textoVelho ? `Constatação manual removida na unidade "${uNome}": "${textoVelho}".` : `Constatação manual removida na unidade "${uNome}".`;
+    if (a === 'UPDATE') {
+      if (diffs.length === 0) return null;
+      return diffs.map(d => `Constatação (unidade "${uNome}") — ${d.label}: "${trunc(d.before, 65)}" → "${trunc(d.after, 65)}".`);
+    }
+  }
+
+  // ── Determinações ─────────────────────────────────────────────────────────
+  if (t === 'determinacoes') {
+    const diffs = getMeaningfulDiffs(o, n, t);
+    const unitId = n?.unidade_fiscalizada_id || o?.unidade_fiscalizada_id;
+    const uNome = getUnidadeNome(unitId);
+    const textoNovo = trunc(n?.descricao, 80);
+    const textoVelho = trunc(o?.descricao, 80);
+
+    if (a === 'INSERT') return textoNovo ? `Determinação adicionada na unidade "${uNome}": "${textoNovo}".` : `Determinação adicionada na unidade "${uNome}".`;
+    if (a === 'DELETE') return textoVelho ? `Determinação removida na unidade "${uNome}": "${textoVelho}".` : `Determinação removida na unidade "${uNome}".`;
+    if (a === 'UPDATE') {
+      if (diffs.length === 0) return null;
+      return diffs.map(d => `Determinação (unidade "${uNome}") — ${d.label}: "${trunc(d.before, 65)}" → "${trunc(d.after, 65)}".`);
+    }
+  }
+
+  // ── Recomendações ─────────────────────────────────────────────────────────
+  if (t === 'recomendacoes') {
+    const diffs = getMeaningfulDiffs(o, n, t);
+    const unitId = n?.unidade_fiscalizada_id || o?.unidade_fiscalizada_id;
+    const uNome = getUnidadeNome(unitId);
+    const textoNovo = trunc(n?.descricao, 80);
+    const textoVelho = trunc(o?.descricao, 80);
+
+    if (a === 'INSERT') return textoNovo ? `Recomendação adicionada na unidade "${uNome}": "${textoNovo}".` : `Recomendação adicionada na unidade "${uNome}".`;
+    if (a === 'DELETE') return textoVelho ? `Recomendação removida na unidade "${uNome}": "${textoVelho}".` : `Recomendação removida na unidade "${uNome}".`;
+    if (a === 'UPDATE') {
+      if (diffs.length === 0) return null;
+      return diffs.map(d => `Recomendação (unidade "${uNome}") — ${d.label}: "${trunc(d.before, 65)}" → "${trunc(d.after, 65)}".`);
     }
   }
 
@@ -125,125 +285,25 @@ function describeLog(log) {
     if (a === 'INSERT') return `Fiscalização criada.`;
     if (a === 'DELETE') return `Fiscalização excluída.`;
     if (a === 'UPDATE') {
-      // Ignorar se só mudou updated_at (propagação de filhos)
-      if (onlyTimestampChanged(o, n)) return null;
+      const diffs = getMeaningfulDiffs(o, n, t);
+      if (diffs.length === 0) return null;
 
       const lines = [];
 
-      if (o?.status !== n?.status) {
-        lines.push(`Status alterado: ${fmtVal(o?.status)} → ${fmtVal(n?.status)}.`);
-      }
-      if (o?.fiscal_nome !== n?.fiscal_nome) {
-        lines.push(`Fiscal: "${fmtVal(o?.fiscal_nome)}" → "${fmtVal(n?.fiscal_nome)}".`);
-      }
-      if (o?.numero_termo !== n?.numero_termo) {
-        lines.push(`Número do termo: "${fmtVal(o?.numero_termo)}" → "${fmtVal(n?.numero_termo)}".`);
-      }
-      if (o?.data_fim !== n?.data_fim) {
-        lines.push(n?.data_fim ? `Fiscalização encerrada.` : `Reabertura da fiscalização.`);
-      }
-      if (o?.prestador_servico_nome !== n?.prestador_servico_nome && (o?.prestador_servico_nome || n?.prestador_servico_nome)) {
-        lines.push(`Prestador: "${fmtVal(o?.prestador_servico_nome)}" → "${fmtVal(n?.prestador_servico_nome)}".`);
+      // Status
+      const statusDiff = diffs.find(d => d.field === 'status');
+      if (statusDiff) {
+        if (n?.status === 'finalizada') lines.push(`Fiscalização finalizada.`);
+        else if (o?.status === 'finalizada') lines.push(`Fiscalização reaberta para edição.`);
+        else lines.push(`Status: ${statusDiff.before} → ${statusDiff.after}.`);
       }
 
-      return lines.length ? lines : null; // null = ignorar esse log
-    }
-  }
+      // Outros campos
+      for (const d of diffs) {
+        if (d.field === 'status') continue;
+        lines.push(`${d.label}: "${trunc(d.before, 60)}" → "${trunc(d.after, 60)}".`);
+      }
 
-  // ── Respostas de checklist ────────────────────────────────────────────────
-  if (t === 'respostas_checklist') {
-    if (a === 'INSERT') {
-      const resp = n?.resposta;
-      const constatacao = trunc(n?.pergunta, 80);
-      if (resp && constatacao) return `Resposta "${fmtVal(resp)}" — constatação: "${constatacao}"`;
-      if (resp) return `Resposta "${fmtVal(resp)}" registrada no checklist.`;
-      return `Resposta adicionada ao checklist.`;
-    }
-    if (a === 'DELETE') {
-      const constatacao = trunc(o?.pergunta, 80);
-      return constatacao ? `Constatação de checklist removida: "${constatacao}"` : `Resposta de checklist removida.`;
-    }
-    if (a === 'UPDATE') {
-      if (onlyTimestampChanged(o, n)) return null;
-      const lines = [];
-      if (o?.resposta !== n?.resposta) {
-        const constatacao = trunc(n?.pergunta || o?.pergunta, 60);
-        lines.push(constatacao
-          ? `Resposta "${fmtVal(o?.resposta)}" → "${fmtVal(n?.resposta)}" — "${constatacao}"`
-          : `Resposta alterada: "${fmtVal(o?.resposta)}" → "${fmtVal(n?.resposta)}".`
-        );
-      }
-      if (o?.observacao !== n?.observacao && (o?.observacao || n?.observacao)) {
-        lines.push(`Observação: "${trunc(o?.observacao, 60)}" → "${trunc(n?.observacao, 60)}".`);
-      }
-      if (o?.pergunta !== n?.pergunta && (o?.pergunta || n?.pergunta)) {
-        lines.push(`Texto da constatação alterado: "${trunc(o?.pergunta, 70)}" → "${trunc(n?.pergunta, 70)}".`);
-      }
-      if (o?.numero_constatacao !== n?.numero_constatacao) {
-        lines.push(`Nº constatação: ${fmtVal(o?.numero_constatacao)} → ${fmtVal(n?.numero_constatacao)}.`);
-      }
-      return lines.length ? lines : null;
-    }
-  }
-
-  // ── Constatações manuais ──────────────────────────────────────────────────
-  if (t === 'constatacoes_manuais') {
-    const textoNovo = trunc(n?.descricao || n?.texto, 80);
-    const textoVelho = trunc(o?.descricao || o?.texto, 80);
-    if (a === 'INSERT') return textoNovo ? `Constatação manual adicionada: "${textoNovo}".` : `Constatação manual adicionada.`;
-    if (a === 'DELETE') return textoVelho ? `Constatação manual removida: "${textoVelho}".` : `Constatação manual removida.`;
-    if (a === 'UPDATE') {
-      if (onlyTimestampChanged(o, n)) return null;
-      const lines = [];
-      const descOld = o?.descricao || o?.texto;
-      const descNew = n?.descricao || n?.texto;
-      if (descOld !== descNew) {
-        lines.push(`Texto alterado: "${trunc(descOld, 70)}" → "${trunc(descNew, 70)}".`);
-      }
-      if (o?.numero_constatacao !== n?.numero_constatacao) {
-        lines.push(`Nº constatação: ${fmtVal(o?.numero_constatacao)} → ${fmtVal(n?.numero_constatacao)}.`);
-      }
-      return lines.length ? lines : null;
-    }
-  }
-
-  // ── Determinações ─────────────────────────────────────────────────────────
-  if (t === 'determinacoes') {
-    const textoNovo = trunc(n?.descricao, 80);
-    const textoVelho = trunc(o?.descricao, 80);
-    if (a === 'INSERT') return textoNovo ? `Determinação adicionada: "${textoNovo}".` : `Determinação adicionada.`;
-    if (a === 'DELETE') return textoVelho ? `Determinação removida: "${textoVelho}".` : `Determinação removida.`;
-    if (a === 'UPDATE') {
-      if (onlyTimestampChanged(o, n)) return null;
-      const lines = [];
-      if (o?.descricao !== n?.descricao) {
-        lines.push(`Texto: "${trunc(o?.descricao, 70)}" → "${trunc(n?.descricao, 70)}".`);
-      }
-      if (o?.prazo_dias !== n?.prazo_dias && (o?.prazo_dias || n?.prazo_dias)) {
-        lines.push(`Prazo: ${fmtVal(o?.prazo_dias)} → ${fmtVal(n?.prazo_dias)} dias.`);
-      }
-      if (o?.numero_determinacao !== n?.numero_determinacao) {
-        lines.push(`Nº determinação: ${fmtVal(o?.numero_determinacao)} → ${fmtVal(n?.numero_determinacao)}.`);
-      }
-      return lines.length ? lines : null;
-    }
-  }
-
-  // ── Recomendações ─────────────────────────────────────────────────────────
-  if (t === 'recomendacoes') {
-    const textoNovo = trunc(n?.descricao, 80);
-    const textoVelho = trunc(o?.descricao, 80);
-    if (a === 'INSERT') return textoNovo ? `Recomendação adicionada: "${textoNovo}".` : `Recomendação adicionada.`;
-    if (a === 'DELETE') return textoVelho ? `Recomendação removida: "${textoVelho}".` : `Recomendação removida.`;
-    if (a === 'UPDATE') {
-      if (onlyTimestampChanged(o, n)) return null;
-      const lines = [];
-      if (o?.descricao !== n?.descricao) {
-        lines.push(`Texto: "${trunc(o?.descricao, 70)}" → "${trunc(n?.descricao, 70)}".`);
-      }
-      if (o?.numero_recomendacao !== n?.numero_recomendacao) {
-        lines.push(`Nº recomendação: ${fmtVal(o?.numero_recomendacao)} → ${fmtVal(n?.numero_recomendacao)}.`);
-      }
       return lines.length ? lines : null;
     }
   }
@@ -253,34 +313,34 @@ function describeLog(log) {
     if (a === 'INSERT') return `Relatório gerado.`;
     if (a === 'DELETE') return `Job de relatório removido.`;
     if (a === 'UPDATE') {
-      if (o?.status !== n?.status) return `Status do relatório: ${fmtVal(o?.status)} → ${fmtVal(n?.status)}.`;
-      return null;
+      const diffs = getMeaningfulDiffs(o, n, t);
+      if (diffs.length === 0) return null;
+      return diffs.map(d => `${d.label}: "${d.before}" → "${d.after}".`);
     }
   }
 
-  return null; // null = ignorar
+  return null;
 }
 
 // ─── Componente de item de log ────────────────────────────────────────────────
 
-function LogItem({ log }) {
+const TABLE_LABELS = {
+  fiscalizacoes:         'Fiscalização',
+  unidades_fiscalizadas: 'Unidade',
+  respostas_checklist:   'Checklist',
+  constatacoes_manuais:  'Constatação manual',
+  recomendacoes:         'Recomendação',
+  determinacoes:         'Determinação',
+  relatorios_jobs:       'Relatório',
+};
+
+function LogItem({ log, unidades }) {
   const action = ACTION_LABELS[log.action] || { color: 'bg-gray-100 text-gray-700', icon: RefreshCw };
   const ActionIcon = action.icon;
+  const tableLabel = TABLE_LABELS[log.table_name] || log.table_name;
 
-  const tableLabels = {
-    fiscalizacoes:         'Fiscalização',
-    unidades_fiscalizadas: 'Unidade',
-    respostas_checklist:   'Checklist',
-    constatacoes_manuais:  'Constatação manual',
-    recomendacoes:         'Recomendação',
-    determinacoes:         'Determinação',
-    relatorios_jobs:       'Relatório',
-  };
-  const tableLabel = tableLabels[log.table_name] || log.table_name;
-
-  const raw = describeLog(log);
-  if (!raw) return null; // evento de ruído — não exibir
-
+  const raw = describeLog(log, unidades);
+  if (!raw) return null;
   const lines = Array.isArray(raw) ? raw : [raw];
 
   return (
@@ -317,51 +377,61 @@ function LogItem({ log }) {
 export default function HistoricoFiscalizacao({ fiscalizacao }) {
   const [open, setOpen] = useState(false);
 
-  const { data: logs = [], isLoading } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['audit-logs', fiscalizacao.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // 1. Buscar todas as unidades da fiscalização
+      const { data: unidades, error: uErr } = await supabase
+        .from('unidades_fiscalizadas')
+        .select('id, nome_unidade, tipo_unidade_nome, ordem')
+        .eq('fiscalizacao_id', fiscalizacao.id);
+      if (uErr) throw uErr;
+
+      const unidadeIds = (unidades || []).map(u => u.id);
+
+      // 2. Construir o filtro or do PostgREST
+      let orFilter = '';
+      if (unidadeIds.length > 0) {
+        const idsStr = unidadeIds.map(id => `"${id}"`).join(',');
+        orFilter = [
+          `and(table_name.eq.fiscalizacoes,record_id.eq.${fiscalizacao.id})`,
+          `and(table_name.eq.relatorios_jobs,new_data->>fiscalizacao_id.eq.${fiscalizacao.id})`,
+          `and(table_name.eq.relatorios_jobs,old_data->>fiscalizacao_id.eq.${fiscalizacao.id})`,
+          `and(table_name.eq.unidades_fiscalizadas,record_id.in.(${idsStr}))`,
+          `new_data->>unidade_fiscalizada_id.in.(${idsStr})`,
+          `old_data->>unidade_fiscalizada_id.in.(${idsStr})`
+        ].join(',');
+      } else {
+        orFilter = [
+          `and(table_name.eq.fiscalizacoes,record_id.eq.${fiscalizacao.id})`,
+          `and(table_name.eq.relatorios_jobs,new_data->>fiscalizacao_id.eq.${fiscalizacao.id})`,
+          `and(table_name.eq.relatorios_jobs,old_data->>fiscalizacao_id.eq.${fiscalizacao.id})`
+        ].join(',');
+      }
+
+      // 3. Buscar logs de auditoria correspondentes
+      const { data: logs, error: lErr } = await supabase
         .from('audit_logs')
         .select('*')
-        .or(`and(table_name.eq.fiscalizacoes,record_id.eq.${fiscalizacao.id}),and(table_name.eq.relatorios_jobs,record_id.neq.00000000-0000-0000-0000-000000000000)`)
+        .or(orFilter)
         .order('created_at', { ascending: false })
-        .limit(100);
-      if (error) throw error;
+        .limit(300);
 
-      const { data: childData, error: cErr } = await supabase
-        .from('audit_logs')
-        .select('*')
-        .neq('table_name', 'fiscalizacoes')
-        .order('created_at', { ascending: false })
-        .limit(400);
-      if (cErr) throw cErr;
+      if (lErr) throw lErr;
 
-      const directLogs = (data || []).filter(
-        l => l.table_name === 'fiscalizacoes' && l.record_id === fiscalizacao.id
-      );
-      const relatorioLogs = (data || []).filter(
-        l => l.table_name === 'relatorios_jobs' &&
-          ((l.new_data?.fiscalizacao_id === fiscalizacao.id) ||
-           (l.old_data?.fiscalizacao_id === fiscalizacao.id))
-      );
-      const childLogs = (childData || []).filter(l => {
-        const d = l.new_data || l.old_data;
-        return d?.fiscalizacao_id === fiscalizacao.id;
-      });
-
-      const all = [...directLogs, ...relatorioLogs, ...childLogs];
-      all.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-      return all.slice(0, 200);
+      return {
+        logs: logs || [],
+        unidades: unidades || [],
+      };
     },
     enabled: open,
     staleTime: 30000,
   });
 
-  // Filtra logs que não geram descrição visível (ruído)
-  const logsVisiveis = logs.filter(l => {
-    const raw = describeLog(l);
-    return raw !== null;
-  });
+  const logs = data?.logs || [];
+  const unidades = data?.unidades || [];
+
+  const logsVisiveis = logs.filter(l => describeLog(l, unidades) !== null);
 
   return (
     <>
@@ -402,7 +472,7 @@ export default function HistoricoFiscalizacao({ fiscalizacao }) {
               </div>
             ) : (
               <div>
-                {logsVisiveis.map(log => <LogItem key={log.id} log={log} />)}
+                {logsVisiveis.map(log => <LogItem key={log.id} log={log} unidades={unidades} />)}
               </div>
             )}
           </div>
