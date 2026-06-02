@@ -434,6 +434,14 @@ export async function getLastSync(): Promise<{ lastSyncAt?: string }> {
 async function compactOutbox(): Promise<number> {
   const pending = await db.fila_mutacoes.where('status').equals('pending').toArray()
   if (!Array.isArray(pending) || pending.length < 2) return 0
+  
+  // Sort chronologically by created_at to preserve order of operations
+  pending.sort((a: any, b: any) => {
+    const at = a.created_at || ''
+    const bt = b.created_at || ''
+    return at.localeCompare(bt)
+  })
+
   const mergeable = new Set<string>([
     'respostas',
     'constatacoes_manuais',
@@ -470,7 +478,8 @@ async function compactOutbox(): Promise<number> {
         mergeable.has(entity) && prev?.payload && (m as any)?.payload
           ? mergePayloadDefined(prev.payload, (m as any).payload)
           : (m as any).payload
-      keepByKey.set(key, { id: (m as any).id as UUID, ts, payload: nextPayload, entity, tipo: String((m as any)?.tipo || '') })
+      const nextTipo = (prev.tipo === 'insert' || String((m as any)?.tipo || '') === 'insert') ? 'insert' : String((m as any)?.tipo || '')
+      keepByKey.set(key, { id: (m as any).id as UUID, ts, payload: nextPayload, entity, tipo: nextTipo })
     } else {
       deletables.push((m as any).id as UUID)
     }
@@ -484,8 +493,20 @@ async function compactOutbox(): Promise<number> {
       if (row && mergeable.has(k.entity)) {
         const currentPayload = (row as any).payload
         const desiredPayload = k.payload
+        const currentTipo = (row as any).tipo
+        const desiredTipo = k.tipo
+        const updates: any = {}
+        let needsUpdate = false
         if (desiredPayload && currentPayload && JSON.stringify(desiredPayload) !== JSON.stringify(currentPayload)) {
-          await db.fila_mutacoes.update(k.id as any, { payload: desiredPayload })
+          updates.payload = desiredPayload
+          needsUpdate = true
+        }
+        if (desiredTipo && currentTipo && desiredTipo !== currentTipo) {
+          updates.tipo = desiredTipo
+          needsUpdate = true
+        }
+        if (needsUpdate) {
+          await db.fila_mutacoes.update(k.id as any, updates)
         }
       }
     } catch {}
@@ -708,7 +729,7 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
         throw new Error(String((result as any).error || 'Falha ao finalizar fiscalização'))
       }
       // Atualiza localmente status para finalizada; numero_termo virá pelo syncDown
-      const map = await db.id_map.where('server_id').equals(fiscalizacaoId as UUID).and((m) => m.entity === 'fiscalizacoes').first()
+      const map = await db.id_map.filter((m) => m.server_id === fiscalizacaoId && m.entity === 'fiscalizacoes').first()
       const localId = map?.local_id || fiscalizacaoLocalId
       const local = await db.fiscalizacoes.get(localId as UUID)
       if (local) {
@@ -725,7 +746,7 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
         throw new Error(String((result as any).error || 'Falha ao reabrir fiscalização'))
       }
       // Atualiza localmente status para em_andamento
-      const map = await db.id_map.where('server_id').equals(fiscalizacaoId as UUID).and((m) => m.entity === 'fiscalizacoes').first()
+      const map = await db.id_map.filter((m) => m.server_id === fiscalizacaoId && m.entity === 'fiscalizacoes').first()
       const localId = map?.local_id || fiscalizacaoLocalId
       const local = await db.fiscalizacoes.get(localId as UUID)
       if (local) {
@@ -958,7 +979,7 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
         }
       } catch {}
     }
-    if (!mapped?.id) mapped.id = await resolveId(entity, payload?.id)
+    mapped.id = await resolveId(entity, payload?.id)
     const safe = serializePayload(entity, type, mapped)
     if (entity === 'constatacoes_manuais') {
       const parseMissingColumn = (err: any): string | null => {
@@ -1052,14 +1073,21 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
       }
 
       let attemptPayload: any = { ...(safe as any) }
+      const isUpdate = type === 'update'
       for (let i = 0; i < 6; i++) {
-        const { data, error } = await supabase.from(table).upsert(attemptPayload, { onConflict: 'id' }).select()
+        const query = isUpdate
+          ? supabase.from(table).update(attemptPayload).eq('id', attemptPayload.id).select()
+          : supabase.from(table).upsert(attemptPayload, { onConflict: 'id' }).select()
+        const { data, error } = await query
         if (!error) return data || []
         const col = parseMissingColumn(error)
         if (!col) throw error
         delete attemptPayload[col]
       }
-      const { data, error } = await supabase.from(table).upsert(attemptPayload, { onConflict: 'id' }).select()
+      const query = isUpdate
+        ? supabase.from(table).update(attemptPayload).eq('id', attemptPayload.id).select()
+        : supabase.from(table).upsert(attemptPayload, { onConflict: 'id' }).select()
+      const { data, error } = await query
       if (error) throw error
       return data || []
     } else if (entity === 'recomendacoes') {
@@ -1385,15 +1413,15 @@ async function pullEntity(entity: Entity, since?: string) {
     const rows = await withBackoff(() => withTimeout(() => safeSelect(table, prefer), 15000))
     for (const row of rows) {
       const server_id = row.id as UUID
-      const map = await db.id_map.where('server_id').equals(server_id).and((m) => m.entity === entity).first()
+      const map = await db.id_map.filter((m) => m.server_id === server_id && m.entity === entity).first()
       const local_id = map?.local_id || server_id
       const normalized: any = { ...row, id: local_id }
       if (entity === 'unidades' && normalized?.fiscalizacao_id) {
-        const fkMap = await db.id_map.where('server_id').equals(normalized.fiscalizacao_id as any).and((m) => m.entity === 'fiscalizacoes').first()
+        const fkMap = await db.id_map.filter((m) => m.server_id === normalized.fiscalizacao_id && m.entity === 'fiscalizacoes').first()
         if (fkMap?.local_id) normalized.fiscalizacao_id = fkMap.local_id
       }
       if ((entity === 'respostas' || entity === 'constatacoes_manuais' || entity === 'recomendacoes' || entity === 'determinacoes') && normalized?.unidade_fiscalizada_id) {
-        const fkMap = await db.id_map.where('server_id').equals(normalized.unidade_fiscalizada_id as any).and((m) => m.entity === 'unidades').first()
+        const fkMap = await db.id_map.filter((m) => m.server_id === normalized.unidade_fiscalizada_id && m.entity === 'unidades').first()
         if (fkMap?.local_id) normalized.unidade_fiscalizada_id = fkMap.local_id
       }
       switch (entity) {
@@ -1497,15 +1525,15 @@ async function pullEntity(entity: Entity, since?: string) {
   // aplica dedup por id_map
   for (const row of rows) {
     const server_id = row.id as UUID
-    const map = await db.id_map.where('server_id').equals(server_id).and((m) => m.entity === entity).first()
+    const map = await db.id_map.filter((m) => m.server_id === server_id && m.entity === entity).first()
     const local_id = map?.local_id || server_id
     const normalized: any = { ...row, id: local_id }
     if (entity === 'unidades' && normalized?.fiscalizacao_id) {
-      const fkMap = await db.id_map.where('server_id').equals(normalized.fiscalizacao_id as any).and((m) => m.entity === 'fiscalizacoes').first()
+      const fkMap = await db.id_map.filter((m) => m.server_id === normalized.fiscalizacao_id && m.entity === 'fiscalizacoes').first()
       if (fkMap?.local_id) normalized.fiscalizacao_id = fkMap.local_id
     }
     if ((entity === 'respostas' || entity === 'constatacoes_manuais' || entity === 'recomendacoes' || entity === 'determinacoes') && normalized?.unidade_fiscalizada_id) {
-      const fkMap = await db.id_map.where('server_id').equals(normalized.unidade_fiscalizada_id as any).and((m) => m.entity === 'unidades').first()
+      const fkMap = await db.id_map.filter((m) => m.server_id === normalized.unidade_fiscalizada_id && m.entity === 'unidades').first()
       if (fkMap?.local_id) normalized.unidade_fiscalizada_id = fkMap.local_id
     }
     switch (entity) {
@@ -1661,12 +1689,12 @@ export async function syncDown(onProgress?: (msg: string, isError?: boolean) => 
       if (Array.isArray(data)) {
         for (const row of data) {
           const server_id = (row as any).id as UUID
-          const map = await db.id_map.where('server_id').equals(server_id).first()
+          const map = await db.id_map.filter((m) => m.server_id === server_id).first()
           const local_id = map?.local_id || server_id
           
           const normalized: any = { ...row, id: local_id }
           if (normalized.unidade_fiscalizada_id) {
-            const fkMap = await db.id_map.where('server_id').equals(normalized.unidade_fiscalizada_id as any).and((m) => m.entity === 'unidades').first()
+            const fkMap = await db.id_map.filter((m) => m.server_id === normalized.unidade_fiscalizada_id && m.entity === 'unidades').first()
             if (fkMap?.local_id) {
               normalized.unidade_fiscalizada_id = fkMap.local_id
             }
