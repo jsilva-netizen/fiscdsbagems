@@ -63,6 +63,8 @@ export type Fiscalizacao = {
   data_fim?: string
   numero_termo?: string
   fiscal_email?: string
+  last_modified_by?: string
+  last_modified_at?: string
   created_at?: string
   updated_at?: string
 }

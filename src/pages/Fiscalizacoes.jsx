@@ -235,8 +235,8 @@ export default function Fiscalizacoes() {
                 ) : (
                     <div className="space-y-3">
                         {filtered.map((fisc) => {
-                            const isAdmin = user?.role === 'admin' || user?.user_metadata?.role === 'admin' || (Array.isArray(user?.app_metadata?.roles) && user.app_metadata.roles.includes('admin'));
-                            const podeDeleter = isAdmin || user?.email === fisc.fiscal_email;
+                            const isFiscalOrAdmin = user && ['admin', 'coordenador', 'fiscal'].includes(user.role);
+                            const podeDeleter = isFiscalOrAdmin;
                             
                             return (
                                 <Card key={fisc.id} className="hover:shadow-md transition-shadow">
@@ -283,6 +283,11 @@ export default function Fiscalizacoes() {
                                                                 Fiscal: {fisc.fiscal_nome}
                                                             </p>
                                                         )}
+                                                         {fisc.last_modified_by && (
+                                                             <p className="text-xs text-gray-400 mt-0.5">
+                                                                 Última alt.: {fisc.last_modified_by} {fisc.last_modified_at ? `em ${format(new Date(fisc.last_modified_at), "dd/MM HH:mm", { locale: ptBR })}` : ''}
+                                                             </p>
+                                                         )}
                                                     </div>
                                                 </div>
                                                 <ChevronRight className="h-5 w-5 text-gray-400" />

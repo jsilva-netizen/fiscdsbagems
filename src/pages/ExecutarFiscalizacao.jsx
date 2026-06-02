@@ -117,9 +117,8 @@ export default function ExecutarFiscalizacao() {
     const podeEditarOuExcluir = () => {
         if (!user) return false;
         if (fiscalizacao?.status === 'finalizada') return false;
-        const isAdmin = user.role === 'admin';
-        const isFiscalCriador = fiscalizacao?.fiscal_email === user.email;
-        return isAdmin || isFiscalCriador;
+        const isFiscalOrAdmin = ['admin', 'coordenador', 'fiscal'].includes(user.role);
+        return isFiscalOrAdmin;
     };
 
     const podeReordenar = useMemo(() => {

@@ -88,7 +88,10 @@ serve(async (req) => {
   const fiscalEmail = String(fiscRow.fiscal_email || '').trim().toLowerCase()
   const isOwnerById = fiscRow.created_by === user.id
   const isOwnerByEmail = !!userEmail && !!fiscalEmail && userEmail === fiscalEmail
-  if (!isAdmin && !isOwnerById && !isOwnerByEmail) return jsonResponse({ error: 'forbidden' }, 403)
+  const isFiscal = isActive && profile?.role === 'fiscal'
+  const isCoordenador = isActive && profile?.role === 'coordenador'
+  const hasAccess = isAdmin || isFiscal || isCoordenador || isOwnerById || isOwnerByEmail
+  if (!hasAccess) return jsonResponse({ error: 'forbidden' }, 403)
 
   // Garante que todas as NCs, Determinações e totais estejam atualizados antes de gerar o relatório.
   // Isso é essencial se o usuário editou a fiscalização após reabri-la.
