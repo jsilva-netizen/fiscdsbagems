@@ -23,8 +23,13 @@ const SERVICO_COLORS = {
     'Drenagem': '#06b6d4'
 };
 
+const TODOS_SERVICOS = ['Abastecimento de Água', 'Esgotamento Sanitário', 'Manejo de Resíduos Sólidos', 'Limpeza Urbana', 'Drenagem'];
+
 export default function Relatorios() {
     const [anoFiltro, setAnoFiltro] = useState(new Date().getFullYear().toString());
+    const [servicoFiltro, setServicoFiltro] = useState('todos');
+    const [municipioFiltro, setMunicipioFiltro] = useState('todos');
+    const [prestadorFiltro, setPrestadorFiltro] = useState('todos');
 
     const { data: fiscalizacoes = [] } = useQuery({
         queryKey: ['fiscalizacoes'],
@@ -38,7 +43,29 @@ export default function Relatorios() {
         }
     });
 
-    // removido: consulta de municípios não utilizada
+    const { data: todosMunicipios = [] } = useQuery({
+        queryKey: ['todos-municipios'],
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from('municipios')
+                .select('id, nome')
+                .order('nome');
+            if (error) throw error;
+            return data;
+        }
+    });
+
+    const { data: todosPrestadores = [] } = useQuery({
+        queryKey: ['todos-prestadores'],
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from('prestadores_servico')
+                .select('id, nome')
+                .order('nome');
+            if (error) throw error;
+            return data;
+        }
+    });
 
     const { data: ncs = [] } = useQuery({
         queryKey: ['todas-ncs'],
@@ -100,10 +127,19 @@ export default function Relatorios() {
         }
     });
 
-    // Filtrar por ano
-    const fiscalizacoesAno = fiscalizacoes.filter(f => 
-        new Date(f.created_at).getFullYear().toString() === anoFiltro
-    );
+    // Filtrar por ano e outros critérios em cascata
+    const fiscalizacoesAno = fiscalizacoes.filter(f => {
+        const matchAno = new Date(f.created_at).getFullYear().toString() === anoFiltro;
+        
+        const matchServico = servicoFiltro === 'todos' || 
+            (Array.isArray(f.servicos) ? f.servicos.includes(servicoFiltro) : f.servico === servicoFiltro);
+            
+        const matchMunicipio = municipioFiltro === 'todos' || f.municipio_id === municipioFiltro;
+        
+        const matchPrestador = prestadorFiltro === 'todos' || f.prestador_servico_id === prestadorFiltro;
+        
+        return matchAno && matchServico && matchMunicipio && matchPrestador;
+    });
 
     // Estatísticas gerais
     const totalFiscalizacoes = fiscalizacoesAno.length;
@@ -250,16 +286,6 @@ export default function Relatorios() {
                             </div>
                         </div>
                         <div className="flex gap-2">
-                            <Select value={anoFiltro} onValueChange={setAnoFiltro}>
-                                <SelectTrigger className="w-32 bg-white/10 border-white/20 text-white">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {anos.map(ano => (
-                                        <SelectItem key={ano} value={ano}>{ano}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
                             <Button onClick={exportarPDF} size="sm" className="bg-white/20 hover:bg-white/30 text-white gap-1">
                                 <Download className="h-4 w-4" />
                                 PDF
@@ -273,8 +299,74 @@ export default function Relatorios() {
                 </div>
             </div>
 
+            {/* Barra de Filtros */}
+            <div className="max-w-6xl mx-auto px-4 mt-6 print:hidden">
+                <Card className="bg-white border border-gray-200 shadow-sm">
+                    <CardContent className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="space-y-1">
+                            <label className="text-xs font-semibold text-gray-500 block">Ano</label>
+                            <Select value={anoFiltro} onValueChange={setAnoFiltro}>
+                                <SelectTrigger className="w-full bg-white border-gray-200">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {anos.map(ano => (
+                                        <SelectItem key={ano} value={ano}>{ano}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-1">
+                            <label className="text-xs font-semibold text-gray-500 block">Serviço</label>
+                            <Select value={servicoFiltro} onValueChange={setServicoFiltro}>
+                                <SelectTrigger className="w-full bg-white border-gray-200">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="todos">Todos os Serviços</SelectItem>
+                                    {TODOS_SERVICOS.map(s => (
+                                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-1">
+                            <label className="text-xs font-semibold text-gray-500 block">Município</label>
+                            <Select value={municipioFiltro} onValueChange={setMunicipioFiltro}>
+                                <SelectTrigger className="w-full bg-white border-gray-200">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="todos">Todos os Municípios</SelectItem>
+                                    {todosMunicipios.map(m => (
+                                        <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-1">
+                            <label className="text-xs font-semibold text-gray-500 block">Prestador</label>
+                            <Select value={prestadorFiltro} onValueChange={setPrestadorFiltro}>
+                                <SelectTrigger className="w-full bg-white border-gray-200">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="todos">Todos os Prestadores</SelectItem>
+                                    {todosPrestadores.map(p => (
+                                        <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
             {/* Content */}
-            <div id="relatorio-completo" className="max-w-6xl mx-auto px-4 py-6 bg-white">
+            <div id="relatorio-completo" className="max-w-6xl mx-auto px-4 py-6 bg-white mt-6">
             {/* Stats Cards */}
             <div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">

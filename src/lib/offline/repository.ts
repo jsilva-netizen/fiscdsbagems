@@ -244,15 +244,20 @@ export const Repository = {
   
   async createFiscalizacao(data: Partial<Fiscalizacao> & { municipio_id: string; prestador_servico_id?: string; servicos?: string[]; fiscal_email?: string; fiscal_nome?: string; latitude_inicio?: number; longitude_inicio?: number }): Promise<Fiscalizacao> {
     const id = uid()
+    const muni = await db.municipios.get(data.municipio_id as any)
+    const prest = data.prestador_servico_id ? await db.prestadores.get(data.prestador_servico_id as any) : null
+    
     const item: Fiscalizacao = {
       id,
       municipio_id: data.municipio_id,
-      municipio_nome: undefined,
+      municipio_nome: muni?.nome || undefined,
       prestador_servico_id: data.prestador_servico_id,
+      prestador_servico_nome: prest?.nome || undefined,
       servico: Array.isArray(data.servicos) ? data.servicos.join(', ') : data.servico,
       status: data.status || 'em_andamento',
       data_inicio: now(),
       fiscal_email: data.fiscal_email,
+      fiscal_nome: data.fiscal_nome,
       created_at: now(),
       updated_at: now(),
       numero_termo: ''

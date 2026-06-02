@@ -49,7 +49,10 @@ function serializePayload(entity: Entity, type: MutationType, payload: any): any
       return pick(payload, [
         'id',
         'municipio_id',
+        'municipio_nome',
         'prestador_servico_id',
+        'prestador_servico_nome',
+        'fiscal_nome',
         'servicos',
         'status',
         'data_inicio',

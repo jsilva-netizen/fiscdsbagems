@@ -221,6 +221,31 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- 13.5. Buscar e preencher automaticamente campos de cache na tabela fiscalizacoes
+CREATE OR REPLACE FUNCTION public.set_fiscalizacao_cache_fields()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.municipio_id IS NOT NULL THEN
+    SELECT nome INTO NEW.municipio_nome FROM public.municipios WHERE id = NEW.municipio_id;
+  END IF;
+  
+  IF NEW.prestador_servico_id IS NOT NULL THEN
+    SELECT nome INTO NEW.prestador_servico_nome FROM public.prestadores_servico WHERE id = NEW.prestador_servico_id;
+  END IF;
+
+  IF NEW.fiscal_nome IS NULL AND auth.uid() IS NOT NULL THEN
+    SELECT full_name INTO NEW.fiscal_nome FROM public.profiles WHERE id = auth.uid();
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_set_fiscalizacao_cache_fields ON public.fiscalizacoes;
+CREATE TRIGGER trg_set_fiscalizacao_cache_fields
+  BEFORE INSERT OR UPDATE ON public.fiscalizacoes
+  FOR EACH ROW EXECUTE FUNCTION public.set_fiscalizacao_cache_fields();
+
 -- 14. Recarregar o cache do PostgREST
 NOTIFY pgrst, 'reload schema';
 

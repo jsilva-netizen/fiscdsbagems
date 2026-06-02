@@ -57,6 +57,8 @@ export type Fiscalizacao = {
   municipio_id?: UUID
   municipio_nome?: string
   prestador_servico_id?: UUID
+  prestador_servico_nome?: string
+  fiscal_nome?: string
   servico?: string
   status?: string
   data_inicio?: string
