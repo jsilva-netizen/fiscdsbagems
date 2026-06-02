@@ -3,16 +3,16 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { History, User, Clock, FileEdit, Plus, Trash2, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import { History, User, Clock, FileEdit, Plus, Trash2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const ACTION_LABELS = {
-  INSERT: { label: 'Adição',    color: 'bg-green-100 text-green-700', icon: Plus },
-  UPDATE: { label: 'Alteração', color: 'bg-blue-100 text-blue-700',   icon: FileEdit },
-  DELETE: { label: 'Remoção',   color: 'bg-red-100 text-red-700',     icon: Trash2 },
+  INSERT: { color: 'bg-green-100 text-green-700', icon: Plus },
+  UPDATE: { color: 'bg-blue-100 text-blue-700',   icon: FileEdit },
+  DELETE: { color: 'bg-red-100 text-red-700',     icon: Trash2 },
 };
 
 const STATUS_PT = {
@@ -24,7 +24,7 @@ const STATUS_PT = {
   erro:         'Erro',
 };
 
-function trunc(str, max = 80) {
+function trunc(str, max = 90) {
   if (!str) return '';
   const s = String(str).trim();
   return s.length > max ? s.slice(0, max) + '…' : s;
@@ -35,150 +35,216 @@ function fmtVal(v) {
   if (typeof v === 'boolean') return v ? 'Sim' : 'Não';
   const s = String(v).trim();
   if (!s) return '—';
-  if (STATUS_PT[s]) return STATUS_PT[s];
-  return s;
+  return STATUS_PT[s] ?? s;
 }
 
-// ─── Gerador de descrição legível por humanos ─────────────────────────────────
+// Nome da unidade buscando nos campos corretos da tabela
+function unidadeNome(data) {
+  if (!data) return null;
+  return data.nome_unidade || data.tipo_unidade_nome || null;
+}
+
+// Verifica se apenas campos de timestamp/ruído mudaram
+function onlyTimestampChanged(o, n) {
+  if (!o || !n) return false;
+  const noiseFields = new Set(['updated_at', 'created_at', 'last_modified_at', 'last_modified_by']);
+  const keys = new Set([...Object.keys(o), ...Object.keys(n)]);
+  for (const k of keys) {
+    if (noiseFields.has(k)) continue;
+    if (JSON.stringify(o[k]) !== JSON.stringify(n[k])) return false;
+  }
+  return true;
+}
+
+// ─── Gerador de descrição em linguagem natural ────────────────────────────────
 
 function describeLog(log) {
   const { table_name: t, action: a, old_data: o, new_data: n } = log;
-  const d = n || o; // dados disponíveis
 
   // ── Unidades ──────────────────────────────────────────────────────────────
   if (t === 'unidades_fiscalizadas') {
-    const nome = d?.nome || d?.tipo_unidade || 'Unidade sem nome';
-    if (a === 'INSERT') return `Unidade "${nome}" adicionada.`;
-    if (a === 'DELETE') return `Unidade "${nome}" removida.`;
+    const nomeNovo = unidadeNome(n);
+    const nomeVelho = unidadeNome(o);
+    const nome = nomeNovo || nomeVelho;
+
+    if (a === 'INSERT') {
+      const tipo = n?.tipo_unidade_nome ? ` (${n.tipo_unidade_nome})` : '';
+      return nome
+        ? `Unidade "${nome}"${tipo} adicionada.`
+        : `Nova unidade adicionada${tipo}.`;
+    }
+
+    if (a === 'DELETE') {
+      return nome ? `Unidade "${nome}" removida.` : `Unidade removida.`;
+    }
+
     if (a === 'UPDATE') {
+      // Ignorar se só mudou timestamp
+      if (onlyTimestampChanged(o, n)) return null;
+
       const lines = [];
+
       // Reordenação
       if (o?.ordem !== undefined && n?.ordem !== undefined && o.ordem !== n.ordem) {
-        lines.push(`Unidade "${n?.nome || nome}" reordenada (posição ${o.ordem} → ${n.ordem}).`);
+        const ref = nomeNovo || nomeVelho;
+        lines.push(ref
+          ? `Unidade "${ref}" reordenada (posição ${o.ordem} → ${n.ordem}).`
+          : `Unidade reordenada (posição ${o.ordem} → ${n.ordem}).`);
       }
+
       // Renomeação
-      if (o?.nome && n?.nome && o.nome !== n.nome) {
-        lines.push(`Nome alterado de "${o.nome}" para "${n.nome}".`);
+      if (nomeVelho && nomeNovo && nomeVelho !== nomeNovo) {
+        lines.push(`Nome da unidade alterado de "${nomeVelho}" para "${nomeNovo}".`);
       }
+
       // Código
-      if (o?.codigo !== n?.codigo && (o?.codigo || n?.codigo)) {
-        lines.push(`Código alterado de "${fmtVal(o?.codigo)}" para "${fmtVal(n?.codigo)}".`);
+      if (o?.codigo_unidade !== n?.codigo_unidade && (o?.codigo_unidade || n?.codigo_unidade)) {
+        lines.push(`Código: "${fmtVal(o?.codigo_unidade)}" → "${fmtVal(n?.codigo_unidade)}".`);
       }
+
       // Endereço
       if (o?.endereco !== n?.endereco && (o?.endereco || n?.endereco)) {
-        lines.push(`Endereço alterado de "${fmtVal(o?.endereco)}" para "${fmtVal(n?.endereco)}".`);
+        lines.push(`Endereço: "${trunc(o?.endereco, 60)}" → "${trunc(n?.endereco, 60)}".`);
       }
+
       // Status
+      if (o?.status !== n?.status) {
+        lines.push(`Status: ${fmtVal(o?.status)} → ${fmtVal(n?.status)}.`);
+      }
+
+      if (lines.length === 0) {
+        const ref = nomeNovo || nomeVelho;
+        return ref ? `Unidade "${ref}" atualizada.` : null;
+      }
+      return lines;
+    }
+  }
+
+  // ── Fiscalização ──────────────────────────────────────────────────────────
+  if (t === 'fiscalizacoes') {
+    if (a === 'INSERT') return `Fiscalização criada.`;
+    if (a === 'DELETE') return `Fiscalização excluída.`;
+    if (a === 'UPDATE') {
+      // Ignorar se só mudou updated_at (propagação de filhos)
+      if (onlyTimestampChanged(o, n)) return null;
+
+      const lines = [];
+
       if (o?.status !== n?.status) {
         lines.push(`Status alterado: ${fmtVal(o?.status)} → ${fmtVal(n?.status)}.`);
       }
-      return lines.length ? lines : [`Unidade "${nome}" atualizada.`];
+      if (o?.fiscal_nome !== n?.fiscal_nome) {
+        lines.push(`Fiscal: "${fmtVal(o?.fiscal_nome)}" → "${fmtVal(n?.fiscal_nome)}".`);
+      }
+      if (o?.numero_termo !== n?.numero_termo) {
+        lines.push(`Número do termo: "${fmtVal(o?.numero_termo)}" → "${fmtVal(n?.numero_termo)}".`);
+      }
+      if (o?.data_fim !== n?.data_fim) {
+        lines.push(n?.data_fim ? `Fiscalização encerrada.` : `Reabertura da fiscalização.`);
+      }
+      if (o?.prestador_servico_nome !== n?.prestador_servico_nome && (o?.prestador_servico_nome || n?.prestador_servico_nome)) {
+        lines.push(`Prestador: "${fmtVal(o?.prestador_servico_nome)}" → "${fmtVal(n?.prestador_servico_nome)}".`);
+      }
+
+      return lines.length ? lines : null; // null = ignorar esse log
     }
   }
 
   // ── Respostas de checklist ────────────────────────────────────────────────
   if (t === 'respostas_checklist') {
-    const pergunta = trunc(n?.pergunta || o?.pergunta || 'item do checklist', 70);
     if (a === 'INSERT') {
       const resp = n?.resposta;
-      if (resp) return `Resposta "${fmtVal(resp)}" registrada para: ${pergunta}`;
+      const constatacao = trunc(n?.pergunta, 80);
+      if (resp && constatacao) return `Resposta "${fmtVal(resp)}" — constatação: "${constatacao}"`;
+      if (resp) return `Resposta "${fmtVal(resp)}" registrada no checklist.`;
       return `Resposta adicionada ao checklist.`;
     }
-    if (a === 'DELETE') return `Resposta do checklist removida: ${pergunta}`;
+    if (a === 'DELETE') {
+      const constatacao = trunc(o?.pergunta, 80);
+      return constatacao ? `Constatação de checklist removida: "${constatacao}"` : `Resposta de checklist removida.`;
+    }
     if (a === 'UPDATE') {
+      if (onlyTimestampChanged(o, n)) return null;
       const lines = [];
       if (o?.resposta !== n?.resposta) {
-        lines.push(`Resposta alterada de "${fmtVal(o?.resposta)}" para "${fmtVal(n?.resposta)}" — ${pergunta}`);
+        const constatacao = trunc(n?.pergunta || o?.pergunta, 60);
+        lines.push(constatacao
+          ? `Resposta "${fmtVal(o?.resposta)}" → "${fmtVal(n?.resposta)}" — "${constatacao}"`
+          : `Resposta alterada: "${fmtVal(o?.resposta)}" → "${fmtVal(n?.resposta)}".`
+        );
       }
-      if (o?.observacao !== n?.observacao) {
-        lines.push(`Observação alterada: "${trunc(o?.observacao)}" → "${trunc(n?.observacao)}"`);
+      if (o?.observacao !== n?.observacao && (o?.observacao || n?.observacao)) {
+        lines.push(`Observação: "${trunc(o?.observacao, 60)}" → "${trunc(n?.observacao, 60)}".`);
       }
-      if (o?.pergunta !== n?.pergunta && n?.pergunta) {
-        lines.push(`Texto da constatação alterado: "${trunc(o?.pergunta)}" → "${trunc(n?.pergunta)}"`);
+      if (o?.pergunta !== n?.pergunta && (o?.pergunta || n?.pergunta)) {
+        lines.push(`Texto da constatação alterado: "${trunc(o?.pergunta, 70)}" → "${trunc(n?.pergunta, 70)}".`);
       }
       if (o?.numero_constatacao !== n?.numero_constatacao) {
-        lines.push(`Nº constatação: ${fmtVal(o?.numero_constatacao)} → ${fmtVal(n?.numero_constatacao)}`);
+        lines.push(`Nº constatação: ${fmtVal(o?.numero_constatacao)} → ${fmtVal(n?.numero_constatacao)}.`);
       }
-      return lines.length ? lines : [`Resposta de checklist atualizada.`];
+      return lines.length ? lines : null;
     }
   }
 
   // ── Constatações manuais ──────────────────────────────────────────────────
   if (t === 'constatacoes_manuais') {
-    const texto = trunc(d?.descricao || d?.texto, 80);
-    if (a === 'INSERT') return `Constatação manual adicionada: "${texto}"`;
-    if (a === 'DELETE') return `Constatação manual removida: "${texto}"`;
+    const textoNovo = trunc(n?.descricao || n?.texto, 80);
+    const textoVelho = trunc(o?.descricao || o?.texto, 80);
+    if (a === 'INSERT') return textoNovo ? `Constatação manual adicionada: "${textoNovo}".` : `Constatação manual adicionada.`;
+    if (a === 'DELETE') return textoVelho ? `Constatação manual removida: "${textoVelho}".` : `Constatação manual removida.`;
     if (a === 'UPDATE') {
+      if (onlyTimestampChanged(o, n)) return null;
       const lines = [];
-      if (o?.descricao !== n?.descricao) {
-        lines.push(`Texto alterado de "${trunc(o?.descricao)}" para "${trunc(n?.descricao)}".`);
+      const descOld = o?.descricao || o?.texto;
+      const descNew = n?.descricao || n?.texto;
+      if (descOld !== descNew) {
+        lines.push(`Texto alterado: "${trunc(descOld, 70)}" → "${trunc(descNew, 70)}".`);
       }
       if (o?.numero_constatacao !== n?.numero_constatacao) {
         lines.push(`Nº constatação: ${fmtVal(o?.numero_constatacao)} → ${fmtVal(n?.numero_constatacao)}.`);
       }
-      return lines.length ? lines : [`Constatação manual atualizada.`];
+      return lines.length ? lines : null;
     }
   }
 
   // ── Determinações ─────────────────────────────────────────────────────────
   if (t === 'determinacoes') {
-    const texto = trunc(d?.descricao, 80);
-    if (a === 'INSERT') return `Determinação adicionada: "${texto}"`;
-    if (a === 'DELETE') return `Determinação removida: "${texto}"`;
+    const textoNovo = trunc(n?.descricao, 80);
+    const textoVelho = trunc(o?.descricao, 80);
+    if (a === 'INSERT') return textoNovo ? `Determinação adicionada: "${textoNovo}".` : `Determinação adicionada.`;
+    if (a === 'DELETE') return textoVelho ? `Determinação removida: "${textoVelho}".` : `Determinação removida.`;
     if (a === 'UPDATE') {
+      if (onlyTimestampChanged(o, n)) return null;
       const lines = [];
       if (o?.descricao !== n?.descricao) {
-        lines.push(`Texto alterado de "${trunc(o?.descricao)}" para "${trunc(n?.descricao)}".`);
+        lines.push(`Texto: "${trunc(o?.descricao, 70)}" → "${trunc(n?.descricao, 70)}".`);
       }
-      if (o?.prazo_dias !== n?.prazo_dias) {
-        lines.push(`Prazo alterado: ${fmtVal(o?.prazo_dias)} → ${fmtVal(n?.prazo_dias)} dias.`);
+      if (o?.prazo_dias !== n?.prazo_dias && (o?.prazo_dias || n?.prazo_dias)) {
+        lines.push(`Prazo: ${fmtVal(o?.prazo_dias)} → ${fmtVal(n?.prazo_dias)} dias.`);
       }
       if (o?.numero_determinacao !== n?.numero_determinacao) {
         lines.push(`Nº determinação: ${fmtVal(o?.numero_determinacao)} → ${fmtVal(n?.numero_determinacao)}.`);
       }
-      return lines.length ? lines : [`Determinação atualizada.`];
+      return lines.length ? lines : null;
     }
   }
 
   // ── Recomendações ─────────────────────────────────────────────────────────
   if (t === 'recomendacoes') {
-    const texto = trunc(d?.descricao, 80);
-    if (a === 'INSERT') return `Recomendação adicionada: "${texto}"`;
-    if (a === 'DELETE') return `Recomendação removida: "${texto}"`;
+    const textoNovo = trunc(n?.descricao, 80);
+    const textoVelho = trunc(o?.descricao, 80);
+    if (a === 'INSERT') return textoNovo ? `Recomendação adicionada: "${textoNovo}".` : `Recomendação adicionada.`;
+    if (a === 'DELETE') return textoVelho ? `Recomendação removida: "${textoVelho}".` : `Recomendação removida.`;
     if (a === 'UPDATE') {
+      if (onlyTimestampChanged(o, n)) return null;
       const lines = [];
       if (o?.descricao !== n?.descricao) {
-        lines.push(`Texto alterado de "${trunc(o?.descricao)}" para "${trunc(n?.descricao)}".`);
+        lines.push(`Texto: "${trunc(o?.descricao, 70)}" → "${trunc(n?.descricao, 70)}".`);
       }
       if (o?.numero_recomendacao !== n?.numero_recomendacao) {
         lines.push(`Nº recomendação: ${fmtVal(o?.numero_recomendacao)} → ${fmtVal(n?.numero_recomendacao)}.`);
       }
-      return lines.length ? lines : [`Recomendação atualizada.`];
-    }
-  }
-
-  // ── Fiscalização (tabela pai) ─────────────────────────────────────────────
-  if (t === 'fiscalizacoes') {
-    if (a === 'INSERT') return `Fiscalização criada.`;
-    if (a === 'DELETE') return `Fiscalização excluída.`;
-    if (a === 'UPDATE') {
-      const lines = [];
-      if (o?.status !== n?.status) {
-        lines.push(`Status alterado: ${fmtVal(o?.status)} → ${fmtVal(n?.status)}.`);
-      }
-      if (o?.fiscal_nome !== n?.fiscal_nome) {
-        lines.push(`Fiscal alterado de "${fmtVal(o?.fiscal_nome)}" para "${fmtVal(n?.fiscal_nome)}".`);
-      }
-      if (o?.numero_termo !== n?.numero_termo) {
-        lines.push(`Número do termo alterado: "${fmtVal(o?.numero_termo)}" → "${fmtVal(n?.numero_termo)}".`);
-      }
-      if (o?.data_inicio !== n?.data_inicio) {
-        lines.push(`Data de início alterada.`);
-      }
-      if (o?.data_fim !== n?.data_fim) {
-        lines.push(n?.data_fim ? `Fiscalização encerrada.` : `Data de encerramento removida.`);
-      }
-      return lines.length ? lines : [`Fiscalização atualizada.`];
+      return lines.length ? lines : null;
     }
   }
 
@@ -188,63 +254,48 @@ function describeLog(log) {
     if (a === 'DELETE') return `Job de relatório removido.`;
     if (a === 'UPDATE') {
       if (o?.status !== n?.status) return `Status do relatório: ${fmtVal(o?.status)} → ${fmtVal(n?.status)}.`;
-      return `Relatório atualizado.`;
+      return null;
     }
   }
 
-  // Fallback
-  const fallback = {
-    INSERT: 'Registro criado.',
-    UPDATE: 'Registro atualizado.',
-    DELETE: 'Registro removido.',
-  };
-  return fallback[a] || 'Evento registrado.';
+  return null; // null = ignorar
 }
 
 // ─── Componente de item de log ────────────────────────────────────────────────
 
 function LogItem({ log }) {
-  const [expanded, setExpanded] = useState(false);
-  const action = ACTION_LABELS[log.action] || { label: log.action, color: 'bg-gray-100 text-gray-700', icon: RefreshCw };
+  const action = ACTION_LABELS[log.action] || { color: 'bg-gray-100 text-gray-700', icon: RefreshCw };
   const ActionIcon = action.icon;
 
   const tableLabels = {
-    fiscalizacoes:        'Fiscalização',
-    unidades_fiscalizadas:'Unidade',
-    respostas_checklist:  'Checklist',
-    constatacoes_manuais: 'Constatação manual',
-    recomendacoes:        'Recomendação',
-    determinacoes:        'Determinação',
-    relatorios_jobs:      'Relatório',
+    fiscalizacoes:         'Fiscalização',
+    unidades_fiscalizadas: 'Unidade',
+    respostas_checklist:   'Checklist',
+    constatacoes_manuais:  'Constatação manual',
+    recomendacoes:         'Recomendação',
+    determinacoes:         'Determinação',
+    relatorios_jobs:       'Relatório',
   };
   const tableLabel = tableLabels[log.table_name] || log.table_name;
 
   const raw = describeLog(log);
-  // describeLog pode retornar string ou array de strings
+  if (!raw) return null; // evento de ruído — não exibir
+
   const lines = Array.isArray(raw) ? raw : [raw];
 
   return (
     <div className="py-3 border-b last:border-b-0">
       <div className="flex items-start gap-3">
-        {/* Ícone da ação */}
         <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${action.color}`}>
           <ActionIcon className="h-3.5 w-3.5" />
         </div>
-
         <div className="flex-1 min-w-0">
-          {/* Badge de contexto */}
-          <div className="flex items-center gap-2 flex-wrap mb-1">
-            <span className="text-xs text-gray-400">{tableLabel}</span>
-          </div>
-
-          {/* Descrição em linguagem natural */}
-          <div className="space-y-0.5">
+          <span className="text-xs text-gray-400 font-medium">{tableLabel}</span>
+          <div className="mt-0.5 space-y-0.5">
             {lines.map((line, i) => (
               <p key={i} className="text-sm text-gray-800 leading-snug">{line}</p>
             ))}
           </div>
-
-          {/* Usuário e horário */}
           <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-400">
             <span className="flex items-center gap-1">
               <User className="h-3 w-3" />
@@ -300,10 +351,16 @@ export default function HistoricoFiscalizacao({ fiscalizacao }) {
 
       const all = [...directLogs, ...relatorioLogs, ...childLogs];
       all.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-      return all.slice(0, 150);
+      return all.slice(0, 200);
     },
     enabled: open,
     staleTime: 30000,
+  });
+
+  // Filtra logs que não geram descrição visível (ruído)
+  const logsVisiveis = logs.filter(l => {
+    const raw = describeLog(l);
+    return raw !== null;
   });
 
   return (
@@ -337,7 +394,7 @@ export default function HistoricoFiscalizacao({ fiscalizacao }) {
                 <RefreshCw className="h-5 w-5 animate-spin mr-2" />
                 Carregando histórico...
               </div>
-            ) : logs.length === 0 ? (
+            ) : logsVisiveis.length === 0 ? (
               <div className="text-center py-8 text-gray-400">
                 <History className="h-10 w-10 mx-auto mb-3 opacity-30" />
                 <p className="text-sm">Nenhuma alteração registrada ainda.</p>
@@ -345,14 +402,14 @@ export default function HistoricoFiscalizacao({ fiscalizacao }) {
               </div>
             ) : (
               <div>
-                {logs.map(log => <LogItem key={log.id} log={log} />)}
+                {logsVisiveis.map(log => <LogItem key={log.id} log={log} />)}
               </div>
             )}
           </div>
 
           <div className="flex-shrink-0 pt-3 border-t flex items-center justify-between">
             <span className="text-xs text-gray-400">
-              {logs.length > 0 ? `${logs.length} registro${logs.length !== 1 ? 's' : ''}` : ''}
+              {logsVisiveis.length > 0 ? `${logsVisiveis.length} evento${logsVisiveis.length !== 1 ? 's' : ''}` : ''}
             </span>
             <Button variant="outline" size="sm" onClick={() => setOpen(false)}>
               Fechar
