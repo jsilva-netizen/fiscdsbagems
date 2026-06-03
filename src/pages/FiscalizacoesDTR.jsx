@@ -261,7 +261,7 @@ export default function FiscalizacoesDTR() {
                                             <div className="flex items-center justify-between border-t border-slate-750/60 pt-2.5 mt-1">
                                                 {isFinalized ? (
                                                     <div className="flex gap-2">
-                                                        <RelatorioFiscalizacao fiscalizacaoId={f.id} customLabel="Laudo PDF" className="bg-slate-700 hover:bg-slate-655 text-xs text-slate-200 rounded-lg px-3 py-1.5 h-auto" />
+                                                        <RelatorioFiscalizacao fiscalizacao={f} />
                                                     </div>
                                                 ) : (
                                                     <span className="text-xs font-semibold text-sky-400 hover:text-sky-350">
