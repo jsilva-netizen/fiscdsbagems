@@ -9,11 +9,11 @@ import { useAuth } from '@/lib/AuthContext';
  * Admins têm acesso irrestrito a todos os módulos.
  */
 
-// Nomes oficiais completos das Diretorias
+// Nomes das Diretorias sem prefixo "Diretoria de Regulação e Fiscalização" para a UI
 const DIRETORIA_NOMES = {
-  dsb: 'Diretoria de Regulação e Fiscalização - Saneamento Básico e Resíduos Sólidos',
-  dtr: 'Diretoria de Regulação e Fiscalização - Transportes, Rodovias, Ferrovias, Portos e Aeroportos',
-  dge: 'Diretoria de Regulação e Fiscalização - Gás Canalizado, Energia e Mineração',
+  dsb: 'DSB - Saneamento Básico e Resíduos Sólidos',
+  dtr: 'DTR - Transportes, Rodovias, Ferrovias, Portos e Aeroportos',
+  dge: 'DGE - Gás Canalizado, Energia e Mineração',
 };
 
 // Siglas curtas para badges e headers compactos
