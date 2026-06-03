@@ -99,7 +99,7 @@ export const AuthProvider = ({ children }) => {
         const profileRes = await Promise.race([
           supabase
             .from('profiles')
-            .select('ativo, role')
+            .select('ativo, role, diretoria_id, camara_tecnica_id')
             .eq('id', session.user.id)
             .maybeSingle(),
           new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), PROFILE_FETCH_TIMEOUT_MS)),

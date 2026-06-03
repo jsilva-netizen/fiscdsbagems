@@ -43,6 +43,30 @@ export default function GerenciarUsuarios() {
         }
     });
 
+    const { data: diretorias = [] } = useQuery({
+        queryKey: ['diretorias-admin'],
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from('diretorias')
+                .select('id, nome')
+                .order('nome');
+            if (error) throw error;
+            return data || [];
+        }
+    });
+
+    const { data: camaras = [] } = useQuery({
+        queryKey: ['camaras-tecnicas-admin'],
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from('camaras_tecnicas')
+                .select('id, diretoria_id, nome')
+                .order('nome');
+            if (error) throw error;
+            return data || [];
+        }
+    });
+
     const { data: _me } = useQuery({
         queryKey: ['current-user'],
         queryFn: async () => {
@@ -69,6 +93,22 @@ export default function GerenciarUsuarios() {
             const { error } = await supabase
                 .from('profiles')
                 .update({ role })
+                .eq('id', userId);
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['usuarios-admin'] });
+        }
+    });
+
+    const atualizarDiretoriaMutation = useMutation({
+        mutationFn: async ({ userId, diretoria_id, camara_tecnica_id }) => {
+            const { error } = await supabase
+                .from('profiles')
+                .update({
+                    diretoria_id,
+                    camara_tecnica_id: camara_tecnica_id || null,
+                })
                 .eq('id', userId);
             if (error) throw error;
         },
@@ -214,6 +254,10 @@ export default function GerenciarUsuarios() {
 
     const isAdmin = currentUser?.role === 'admin';
     const getPrestadorNome = (id) => prestadores.find((p) => p.id === id)?.nome || 'N/A';
+    const getDiretoriaNome = (id) => diretorias.find((d) => d.id === id)?.nome || id || 'DSB';
+    const getCamaraNome = (id) => camaras.find((c) => c.id === id)?.nome || null;
+    // Câmaras filtradas pela diretoria selecionada
+    const getCamarasDiretoria = (diretoriaId) => camaras.filter((c) => c.diretoria_id === diretoriaId);
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -329,6 +373,22 @@ export default function GerenciarUsuarios() {
                                                             )}
                                                         </div>
                                                     )}
+                                                    {usuario.role !== 'prestador' && (
+                                                        <div className="text-sm text-gray-600 mb-2 flex items-center gap-2 flex-wrap">
+                                                            <span className="font-medium text-gray-700">Diretoria:</span>
+                                                            <span className="bg-blue-50 text-blue-800 px-2 py-0.5 rounded text-xs font-medium">
+                                                                {getDiretoriaNome(usuario.diretoria_id)}
+                                                            </span>
+                                                            {usuario.camara_tecnica_id && (
+                                                                <>
+                                                                    <span className="text-gray-400">·</span>
+                                                                    <span className="bg-indigo-50 text-indigo-800 px-2 py-0.5 rounded text-xs font-medium">
+                                                                        {getCamaraNome(usuario.camara_tecnica_id) || usuario.camara_tecnica_id}
+                                                                    </span>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                     <p className="text-xs text-gray-500">
                                                         Criado em {(usuario.created_at || usuario.created_date) ? new Date(usuario.created_at || usuario.created_date).toLocaleDateString('pt-BR') : '-'}
                                                     </p>
@@ -350,6 +410,53 @@ export default function GerenciarUsuarios() {
                                                                     <SelectItem value="admin">Admin</SelectItem>
                                                                 </SelectContent>
                                                             </Select>
+                                                            {/* Seletor de Diretoria (visível para não-prestador) */}
+                                                            {usuario.role !== 'prestador' && (
+                                                                <Select
+                                                                    value={usuario.diretoria_id || 'dsb'}
+                                                                    onValueChange={(newDir) => {
+                                                                        if (confirm(`Alterar diretoria de ${usuario.full_name} para ${getDiretoriaNome(newDir)}?`)) {
+                                                                            atualizarDiretoriaMutation.mutate({
+                                                                                userId: usuario.id,
+                                                                                diretoria_id: newDir,
+                                                                                camara_tecnica_id: null,
+                                                                            });
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    <SelectTrigger className="w-36">
+                                                                        <SelectValue />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent>
+                                                                        {diretorias.map((d) => (
+                                                                            <SelectItem key={d.id} value={d.id}>{d.nome.replace('Diretoria de ', '')}</SelectItem>
+                                                                        ))}
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            )}
+                                                            {/* Seletor de Câmara Técnica (visível quando diretoria tem câmaras) */}
+                                                            {usuario.role !== 'prestador' && getCamarasDiretoria(usuario.diretoria_id || 'dsb').length > 0 && (
+                                                                <Select
+                                                                    value={usuario.camara_tecnica_id || '__none__'}
+                                                                    onValueChange={(val) => {
+                                                                        atualizarDiretoriaMutation.mutate({
+                                                                            userId: usuario.id,
+                                                                            diretoria_id: usuario.diretoria_id || 'dsb',
+                                                                            camara_tecnica_id: val === '__none__' ? null : val,
+                                                                        });
+                                                                    }}
+                                                                >
+                                                                    <SelectTrigger className="w-44">
+                                                                        <SelectValue placeholder="Câmara técnica" />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent>
+                                                                        <SelectItem value="__none__">Sem câmara</SelectItem>
+                                                                        {getCamarasDiretoria(usuario.diretoria_id || 'dsb').map((c) => (
+                                                                            <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                                                                        ))}
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            )}
                                                             {usuario.role === 'prestador' && (
                                                                 <Button
                                                                     size="sm"

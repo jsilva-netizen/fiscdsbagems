@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPageUrl } from '@/utils';
 import { useAuth } from '@/lib/AuthContext';
+import { useModulo } from '@/hooks/useModulo';
 import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,7 @@ import {
 
 export default function Home() {
     const { user, logout } = useAuth();
+    const { isDSB, isDTR, isDGE, isAdmin, diretoriaNome } = useModulo();
     const [isMobile, setIsMobile] = useState(false);
     const { online, lastSyncAt, refetchSyncStatus } = useSyncStatus?.() || { online: true, lastSyncAt: undefined, refetchSyncStatus: () => {} };
     const [syncing, setSyncing] = useState(false);
@@ -27,7 +29,6 @@ export default function Home() {
     const lastSyncToastDismissRef = useRef(null);
     
     // O role vem do profile (tabela public.profiles), que é mergeado no user pelo AuthContext
-    const isAdmin = user?.role === 'admin';
     const isPrestador = user?.role === 'prestador';
 
     const handleLogout = async () => {
@@ -66,7 +67,7 @@ export default function Home() {
                         </div>
                         <div className="text-white">
                             <h1 className="text-2xl font-bold">Fiscalização AGEMS</h1>
-                            <p className="text-blue-200 text-sm">Sistema de Fiscalização de Saneamento</p>
+                            <p className="text-blue-200 text-sm">{diretoriaNome}</p>
                         </div>
                     </div>
                     <Button 
@@ -82,7 +83,8 @@ export default function Home() {
 
             {/* Main Content */}
             <div className="max-w-6xl mx-auto px-4 py-8">
-                {/* Quick Actions */}
+                {/* Quick Actions — módulos DSB */}
+                {isDSB && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                     <Link to={createPageUrl('NovaFiscalizacao')}>
                         <Card className="bg-green-500 hover:bg-green-600 transition-all cursor-pointer border-none h-full">
@@ -112,12 +114,17 @@ export default function Home() {
                         </Card>
                     </Link>
                 </div>
+                )}
 
                 {/* Menu Grid */}
                 {!isMobile && (
                 <>
                 <h2 className="text-white text-lg font-semibold mb-4">Menu Principal</h2>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+
+                    {/* === Módulo DSB: Saneamento Básico === */}
+                    {isDSB && (
+                    <>
                     <Link to={createPageUrl('TiposUnidade')}>
                         <Card className="bg-white/10 hover:bg-white/20 transition-all cursor-pointer border-white/20 h-full">
                             <CardContent className="p-4 text-center">
@@ -223,7 +230,36 @@ export default function Home() {
                             </Card>
                         </Link>
                     )}
+                    </>
+                    )}
 
+                    {/* === Módulo DTR: Transportes — espaço reservado para módulos futuros === */}
+                    {isDTR && !isDSB && (
+                        <div className="col-span-2 md:col-span-4">
+                            <Card className="bg-white/5 border-white/20">
+                                <CardContent className="p-6 text-center text-white/60">
+                                    <FileText className="h-10 w-10 mx-auto mb-2 opacity-40" />
+                                    <p className="font-medium">Módulo de Transportes</p>
+                                    <p className="text-xs mt-1">Em implementação — em breve disponível aqui.</p>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    )}
+
+                    {/* === Módulo DGE: Gás e Energia — espaço reservado === */}
+                    {isDGE && !isDSB && (
+                        <div className="col-span-2 md:col-span-4">
+                            <Card className="bg-white/5 border-white/20">
+                                <CardContent className="p-6 text-center text-white/60">
+                                    <FileText className="h-10 w-10 mx-auto mb-2 opacity-40" />
+                                    <p className="font-medium">Módulo de Gás e Energia</p>
+                                    <p className="text-xs mt-1">Em implementação — em breve disponível aqui.</p>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    )}
+
+                    {/* === Itens comuns a todas as diretorias (admin) === */}
                     {isAdmin && (
                         <Link to={createPageUrl('GerenciarUsuarios')}>
                             <Card className="bg-white/10 hover:bg-white/20 transition-all cursor-pointer border-white/20 h-full">
