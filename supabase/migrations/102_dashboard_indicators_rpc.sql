@@ -66,23 +66,16 @@ BEGIN
     FROM public.recomendacoes r
     WHERE r.unidade_fiscalizada_id IN (SELECT id FROM temp_unidades);
 
-    SELECT count(*) INTO v_total_conformidades 
-    FROM public.respostas_checklist rc
-    WHERE rc.unidade_fiscalizada_id IN (SELECT id FROM temp_unidades)
-      AND rc.resposta = 'SIM';
+    -- Constatações Totais obtidas diretamente das unidades já consolidadas/reconstruídas
+    SELECT coalesce(sum(uf.total_constatacoes), 0) INTO v_total_constatacoes
+    FROM public.unidades_fiscalizadas uf
+    WHERE uf.id IN (SELECT id FROM temp_unidades);
 
-    SELECT coalesce(sum(t.cte), 0) INTO v_total_constatacoes
-    FROM (
-      SELECT count(*) as cte
-      FROM public.respostas_checklist rc
-      WHERE rc.unidade_fiscalizada_id IN (SELECT id FROM temp_unidades)
-        AND upper(coalesce(rc.resposta, '')) IN ('SIM','NAO','NÃO')
-        AND rc.pergunta IS NOT NULL AND btrim(rc.pergunta) <> ''
-      UNION ALL
-      SELECT count(*) as cte
-      FROM public.constatacoes_manuais cm
-      WHERE cm.unidade_fiscalizada_id IN (SELECT id FROM temp_unidades)
-    ) t;
+    -- Conformidades = Constatações - Não Conformidades (Garante consistência matemática direta)
+    v_total_conformidades := v_total_constatacoes - v_total_ncs;
+    IF v_total_conformidades < 0 THEN
+      v_total_conformidades := 0;
+    END IF;
 
     -- Ranking de determinações por município apenas das finalizadas (Top 10)
     SELECT coalesce(jsonb_agg(jsonb_build_object('municipio', rk.muni_nome, 'determinacoes', rk.qty)), '[]'::jsonb)
