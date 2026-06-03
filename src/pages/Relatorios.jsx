@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, ArrowLeft, Download, FileJson, FileText, CheckCircle2, AlertTriangle, ChevronDown, Check, Search } from 'lucide-react';
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Legend, Cell } from 'recharts';
+import { Switch } from '@/components/ui/switch';
 
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -153,6 +154,7 @@ export default function Relatorios() {
     const [servicoFiltro, setServicoFiltro] = useState([]);
     const [municipioFiltro, setMunicipioFiltro] = useState([]);
     const [prestadorFiltro, setPrestadorFiltro] = useState([]);
+    const [apenasFinalizadas, setApenasFinalizadas] = useState(false);
 
     const { data: fiscalizacoes = [] } = useQuery({
         queryKey: ['fiscalizacoes'],
@@ -284,7 +286,9 @@ export default function Relatorios() {
         const matchPrestador = prestadorFiltro.length === 0 || 
             prestadorFiltro.includes(f.prestador_servico_id);
         
-        return matchAno && matchServico && matchMunicipio && matchPrestador;
+        const matchStatus = !apenasFinalizadas || f.status === 'finalizada';
+        
+        return matchAno && matchServico && matchMunicipio && matchPrestador && matchStatus;
     });
 
     // Estatísticas gerais
@@ -464,45 +468,66 @@ export default function Relatorios() {
             {/* Barra de Filtros */}
             <div className="max-w-6xl mx-auto px-4 mt-6 print:hidden">
                 <Card className="bg-white border border-gray-200 shadow-sm">
-                    <CardContent className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="space-y-1">
-                            <label className="text-xs font-semibold text-gray-500 block">Ano</label>
-                            <MultiSelect 
-                                placeholder="Todos os Anos" 
-                                options={anosOptions} 
-                                selectedValues={anoFiltro} 
-                                onChange={setAnoFiltro} 
-                            />
+                    <CardContent className="p-4 space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="space-y-1">
+                                <label className="text-xs font-semibold text-gray-500 block">Ano</label>
+                                <MultiSelect 
+                                    placeholder="Todos os Anos" 
+                                    options={anosOptions} 
+                                    selectedValues={anoFiltro} 
+                                    onChange={setAnoFiltro} 
+                                />
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-xs font-semibold text-gray-500 block">Serviço</label>
+                                <MultiSelect 
+                                    placeholder="Todos os Serviços" 
+                                    options={servicosOptions} 
+                                    selectedValues={servicoFiltro} 
+                                    onChange={setServicoFiltro} 
+                                />
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-xs font-semibold text-gray-500 block">Município</label>
+                                <MultiSelect 
+                                    placeholder="Todos os Municípios" 
+                                    options={municipiosOptions} 
+                                    selectedValues={municipioFiltro} 
+                                    onChange={setMunicipioFiltro} 
+                                />
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-xs font-semibold text-gray-500 block">Prestador</label>
+                                <MultiSelect 
+                                    placeholder="Todos os Prestadores" 
+                                    options={prestadoresOptions} 
+                                    selectedValues={prestadorFiltro} 
+                                    onChange={setPrestadorFiltro} 
+                                />
+                            </div>
                         </div>
 
-                        <div className="space-y-1">
-                            <label className="text-xs font-semibold text-gray-500 block">Serviço</label>
-                            <MultiSelect 
-                                placeholder="Todos os Serviços" 
-                                options={servicosOptions} 
-                                selectedValues={servicoFiltro} 
-                                onChange={setServicoFiltro} 
-                            />
-                        </div>
-
-                        <div className="space-y-1">
-                            <label className="text-xs font-semibold text-gray-500 block">Município</label>
-                            <MultiSelect 
-                                placeholder="Todos os Municípios" 
-                                options={municipiosOptions} 
-                                selectedValues={municipioFiltro} 
-                                onChange={setMunicipioFiltro} 
-                            />
-                        </div>
-
-                        <div className="space-y-1">
-                            <label className="text-xs font-semibold text-gray-500 block">Prestador</label>
-                            <MultiSelect 
-                                placeholder="Todos os Prestadores" 
-                                options={prestadoresOptions} 
-                                selectedValues={prestadorFiltro} 
-                                onChange={setPrestadorFiltro} 
-                            />
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-t border-gray-100 pt-3 gap-2">
+                            <div className="flex items-center gap-2">
+                                <Switch 
+                                    id="apenas-finalizadas" 
+                                    checked={apenasFinalizadas} 
+                                    onCheckedChange={setApenasFinalizadas} 
+                                />
+                                <label 
+                                    htmlFor="apenas-finalizadas" 
+                                    className="text-sm font-medium text-gray-700 cursor-pointer select-none"
+                                >
+                                    Exibir apenas dados de fiscalizações finalizadas
+                                </label>
+                            </div>
+                            <div className="text-xs text-gray-400 font-medium">
+                                {totalFiscalizacoes} fiscalizações correspondentes
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
