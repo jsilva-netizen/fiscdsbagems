@@ -69,6 +69,8 @@ export type Fiscalizacao = {
   last_modified_at?: string
   created_at?: string
   updated_at?: string
+  tipo_modulo?: string
+  rodovia?: string
 }
 
 export type Unidade = {
@@ -90,6 +92,11 @@ export type Unidade = {
   data_hora_vistoria?: string
   created_at?: string
   updated_at?: string
+  rodovia?: string
+  trecho?: string
+  km?: string
+  tipo_ocorrencia?: string
+  gravidade?: string
 }
 
 export type ItemChecklist = {

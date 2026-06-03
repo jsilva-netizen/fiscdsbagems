@@ -174,11 +174,925 @@ async function generatePdfForJob(adminClient: any, job: any): Promise<Uint8Array
 // STUB: Template DTR — Laudo de Rodovia
 // Implementação completa na Fase 4, quando o módulo DTR estiver definido.
 // ====================================================================
-async function generatePdfDTR(_adminClient: any, _job: any): Promise<Uint8Array> {
-  throw new Error(
-    'Template de relatório para o módulo de Transportes (DTR) ainda não implementado. ' +
-    'O módulo será disponibilizado na Fase 4 do desenvolvimento.'
-  )
+async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
+  const { data: fisc, error: fiscErr } = await adminClient
+    .from('fiscalizacoes')
+    .select('*')
+    .eq('id', job.fiscalizacao_id)
+    .maybeSingle()
+  if (fiscErr) throw new Error(fiscErr.message)
+  if (!fisc) throw new Error('Fiscalização não encontrada')
+
+  let municipioNome = String(fisc.municipio_nome || '')
+  if (!municipioNome && fisc.municipio_id) {
+    try {
+      const { data: mun } = await adminClient.from('municipios').select('nome').eq('id', fisc.municipio_id).maybeSingle()
+      municipioNome = String(mun?.nome || '')
+    } catch {}
+  }
+
+  let prestadorNome = String(fisc.prestador_servico_nome || '')
+  if (!prestadorNome && fisc.prestador_servico_id) {
+    try {
+      const { data: pres } = await adminClient.from('prestadores_servico').select('nome').eq('id', fisc.prestador_servico_id).maybeSingle()
+      prestadorNome = String(pres?.nome || '')
+    } catch {}
+  }
+
+  const { data: unidades, error: uErr } = await adminClient
+    .from('unidades_fiscalizadas')
+    .select('*')
+    .eq('fiscalizacao_id', job.fiscalizacao_id)
+    .order('ordem', { ascending: true, nullsFirst: true })
+    .order('created_at', { ascending: true })
+  if (uErr) throw new Error(uErr.message)
+  if (!unidades || unidades.length === 0) {
+    throw new Error('Nenhuma ocorrência encontrada para esta fiscalização. Sincronize e tente novamente.')
+  }
+
+  const unidadeIds = (unidades || []).map((u: any) => u.id)
+  const { data: todasDeterminacoes, error: detErr } = unidadeIds.length
+    ? await adminClient
+        .from('determinacoes')
+        .select('*')
+        .in('unidade_fiscalizada_id', unidadeIds)
+        .eq('origem', 'dtr_determination')
+    : { data: [], error: null }
+  if (detErr) throw new Error(detErr.message)
+
+  const decimalToDms = (value: number, positiveRef: string, negativeRef: string) => {
+    const ref = value >= 0 ? positiveRef : negativeRef
+    const abs = Math.abs(value)
+    let deg = Math.floor(abs)
+    let minFloat = (abs - deg) * 60
+    let min = Math.floor(minFloat)
+    let sec = (minFloat - min) * 60
+
+    sec = Math.round(sec * 100) / 100
+    if (sec >= 60) {
+      sec = 0
+      min += 1
+    }
+    if (min >= 60) {
+      min = 0
+      deg += 1
+    }
+
+    let secTxt = sec.toFixed(2)
+    if (sec < 10) secTxt = `0${secTxt}`
+    return `${deg}° ${min}' ${secTxt}" ${ref}`
+  }
+
+  const forceSouthWestDmsText = (text: string) => {
+    return String(text || '')
+      .replace(/"\s*[Nn](?=[,\s]|$)/g, `" S`)
+      .replace(/"\s*[Ee](?=[,\s]|$)/g, `" W`)
+      .replace(/\s+[Nn](?=[,\s]|$)/g, ' S')
+      .replace(/\s+[Ee](?=[,\s]|$)/g, ' W')
+  }
+
+  const formatCoordsDms = (lat: number, lon: number) => {
+    const latTxt = decimalToDms(-Math.abs(lat), 'N', 'S')
+    const lonTxt = decimalToDms(-Math.abs(lon), 'E', 'W')
+    return `${latTxt}, ${lonTxt}`
+  }
+
+  const tryParseDecimalCoordsPair = (text: string): { lat: number; lon: number } | null => {
+    const nums = String(text || '').match(/-?\d+(?:\.\d+)?/g) || []
+    if (nums.length < 2) return null
+    const lat = Number(nums[0])
+    const lon = Number(nums[1])
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null
+    if (Math.abs(lat) > 90 || Math.abs(lon) > 180) return null
+    return { lat, lon }
+  }
+
+  const mapWithConcurrency = async <T, R>(items: T[], limit: number, mapper: (item: T, index: number) => Promise<R>): Promise<R[]> => {
+    const results: R[] = new Array(items.length)
+    let nextIndex = 0
+    const runOne = async () => {
+      while (true) {
+        const i = nextIndex
+        nextIndex++
+        if (i >= items.length) return
+        results[i] = await mapper(items[i], i)
+      }
+    }
+    const workers = new Array(Math.max(1, Math.min(limit, items.length))).fill(0).map(() => runOne())
+    await Promise.all(workers)
+    return results
+  }
+
+  const parseStorageUrl = (url: string) => {
+    const raw = String(url || '').trim()
+    if (!raw) return null
+    if (raw.startsWith('storage://')) {
+      const remainder = raw.slice('storage://'.length)
+      const slash = remainder.indexOf('/')
+      if (slash === -1) return null
+      const bucket = remainder.slice(0, slash)
+      let path = remainder.slice(slash + 1)
+      const q = path.indexOf('?')
+      if (q !== -1) path = path.slice(0, q)
+      if (!bucket || !path) return null
+      return { bucket, path }
+    }
+    const publicMarker = '/storage/v1/object/public/'
+    const signMarker = '/storage/v1/object/sign/'
+    let marker = ''
+    let idx = raw.indexOf(publicMarker)
+    if (idx !== -1) marker = publicMarker
+    else {
+      idx = raw.indexOf(signMarker)
+      if (idx !== -1) marker = signMarker
+    }
+    if (!marker) return null
+    const remainder = raw.slice(idx + marker.length)
+    const slash = remainder.indexOf('/')
+    if (slash === -1) return null
+    const bucket = remainder.slice(0, slash)
+    let path = remainder.slice(slash + 1)
+    const q = path.indexOf('?')
+    if (q !== -1) path = path.slice(0, q)
+    if (!bucket || !path) return null
+    return { bucket, path }
+  }
+
+  const resolveToSignedUrl = async (input: unknown, expiresInSeconds = 60 * 60) => {
+    if (!input) return ''
+    if (typeof input === 'object') {
+      const anyObj: any = input as any
+      if (anyObj.bucket && anyObj.path) {
+        const { data, error } = await adminClient.storage.from(String(anyObj.bucket)).createSignedUrl(String(anyObj.path), expiresInSeconds)
+        if (error) return ''
+        return String(data?.signedUrl || '')
+      }
+      if (typeof anyObj.url === 'string') return await resolveToSignedUrl(anyObj.url, expiresInSeconds)
+    }
+    if (typeof input === 'string') {
+      const raw = input.trim()
+      if (!raw) return ''
+      if (raw.startsWith('data:')) return raw
+      const parsed = parseStorageUrl(raw)
+      if (!parsed) return raw
+      const { data, error } = await adminClient.storage.from(parsed.bucket).createSignedUrl(parsed.path, expiresInSeconds)
+      if (error) return ''
+      return String(data?.signedUrl || '')
+    }
+    return ''
+  }
+
+  const preparePhotoBytes = async (fotoInput: unknown) => {
+    const fotoUrl = await resolveToSignedUrl(fotoInput)
+    if (!fotoUrl) return null
+    try {
+      const buf = await fetchArrayBuffer(fotoUrl, 25000)
+      return new Uint8Array(buf)
+    } catch {
+      return null
+    }
+  }
+
+  const preparePhotoHeadBytes = async (fotoInput: unknown) => {
+    const fotoUrl = await resolveToSignedUrl(fotoInput)
+    if (!fotoUrl) return null
+    try {
+      const buf = await fetchArrayBufferRange(fotoUrl, 25000, 256 * 1024)
+      return new Uint8Array(buf)
+    } catch {
+      return null
+    }
+  }
+
+  const parseExifDateTimeString = (s: string): Date | undefined => {
+    const m = /^\s*(\d{4}):(\d{2}):(\d{2})\s+(\d{2}):(\d{2}):(\d{2})\s*$/.exec(String(s || ''))
+    if (!m) return undefined
+    const dt = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6]))
+    if (Number.isNaN(dt.getTime())) return undefined
+    return dt
+  }
+
+  const extractCaptureFromJpegBytes = (
+    jpeg: Uint8Array
+  ): { latitude: number; longitude: number; takenAt?: string; latitudeRef?: 'N' | 'S'; longitudeRef?: 'E' | 'W' } | null => {
+    if (!(jpeg instanceof Uint8Array) || jpeg.length < 4) return null
+    if (jpeg[0] !== 0xff || jpeg[1] !== 0xd8) return null
+
+    let offset = 2
+    while (offset + 4 <= jpeg.length) {
+      if (jpeg[offset] !== 0xff) {
+        offset++
+        continue
+      }
+      while (offset < jpeg.length && jpeg[offset] === 0xff) offset++
+      if (offset >= jpeg.length) break
+      const marker = jpeg[offset++]
+      if (marker === 0xd9 || marker === 0xda) break
+      if (offset + 2 > jpeg.length) break
+      const segLen = (jpeg[offset] << 8) | jpeg[offset + 1]
+      offset += 2
+      const segStart = offset
+      const segEnd = segStart + segLen - 2
+      if (segEnd > jpeg.length) break
+
+      if (marker !== 0xe1 || segLen < 10) {
+        offset = segEnd
+        continue
+      }
+
+      const isExif =
+        jpeg[segStart] === 0x45 &&
+        jpeg[segStart + 1] === 0x78 &&
+        jpeg[segStart + 2] === 0x69 &&
+        jpeg[segStart + 3] === 0x66 &&
+        jpeg[segStart + 4] === 0x00 &&
+        jpeg[segStart + 5] === 0x00
+      if (!isExif) {
+        offset = segEnd
+        continue
+      }
+
+      const tiffStart = segStart + 6
+      if (tiffStart + 8 > segEnd) {
+        offset = segEnd
+        continue
+      }
+
+      const isLE = jpeg[tiffStart] === 0x49 && jpeg[tiffStart + 1] === 0x49
+      const isBE = jpeg[tiffStart] === 0x4d && jpeg[tiffStart + 1] === 0x4d
+      if (!isLE && !isBE) {
+        offset = segEnd
+        continue
+      }
+
+      const u16 = (p: number) => (isLE ? jpeg[p] | (jpeg[p + 1] << 8) : (jpeg[p] << 8) | jpeg[p + 1])
+      const u32 = (p: number) => {
+        if (isLE) return (jpeg[p] | (jpeg[p + 1] << 8) | (jpeg[p + 2] << 16) | (jpeg[p + 3] << 24)) >>> 0
+        return ((jpeg[p] << 24) | (jpeg[p + 1] << 16) | (jpeg[p + 2] << 8) | jpeg[p + 3]) >>> 0
+      }
+
+      const magic = u16(tiffStart + 2)
+      if (magic !== 42) {
+        offset = segEnd
+        continue
+      }
+
+      const ifd0Ptr = u32(tiffStart + 4)
+      const ifd0Abs = tiffStart + ifd0Ptr
+      if (ifd0Abs + 2 > segEnd) {
+        offset = segEnd
+        continue
+      }
+
+      const readAsciiTag = (ifdAbs: number, tag: number): string | undefined => {
+        const countEntries = u16(ifdAbs)
+        const base = ifdAbs + 2
+        for (let i = 0; i < countEntries; i++) {
+          const e = base + i * 12
+          if (e + 12 > segEnd) break
+          const t = u16(e)
+          if (t !== tag) continue
+          const type = u16(e + 2)
+          const count = u32(e + 4)
+          const valOrOff = u32(e + 8)
+          if (type !== 2 || count < 1) return undefined
+          const bytes = count
+          const dataAbs = bytes <= 4 ? e + 8 : tiffStart + valOrOff
+          if (dataAbs + bytes > segEnd) return undefined
+          let out = ''
+          for (let k = 0; k < bytes; k++) {
+            const ch = jpeg[dataAbs + k]
+            if (ch === 0) break
+            out += String.fromCharCode(ch)
+          }
+          return out
+        }
+        return undefined
+      }
+
+      const readLongTag = (ifdAbs: number, tag: number): number | undefined => {
+        const countEntries = u16(ifdAbs)
+        const base = ifdAbs + 2
+        for (let i = 0; i < countEntries; i++) {
+          const e = base + i * 12
+          if (e + 12 > segEnd) break
+          const t = u16(e)
+          if (t !== tag) continue
+          const type = u16(e + 2)
+          const count = u32(e + 4)
+          const valOrOff = u32(e + 8)
+          if (count < 1) return undefined
+          if (type === 4) return valOrOff
+          if (type === 3) return isLE ? (valOrOff & 0xffff) : (valOrOff >>> 16)
+          return undefined
+        }
+        return undefined
+      }
+
+      const readRationals = (ifdAbs: number, tag: number): { num: number; den: number }[] | undefined => {
+        const countEntries = u16(ifdAbs)
+        const base = ifdAbs + 2
+        for (let i = 0; i < countEntries; i++) {
+          const e = base + i * 12
+          if (e + 12 > segEnd) break
+          const t = u16(e)
+          if (t !== tag) continue
+          const type = u16(e + 2)
+          const count = u32(e + 4)
+          const valOrOff = u32(e + 8)
+          if (type !== 5 || count < 1) return undefined
+          const dataAbs = tiffStart + valOrOff
+          const bytes = count * 8
+          if (dataAbs + bytes > segEnd) return undefined
+          const out: { num: number; den: number }[] = []
+          for (let k = 0; k < count; k++) {
+            const p = dataAbs + k * 8
+            out.push({ num: u32(p), den: u32(p + 4) })
+          }
+          return out
+        }
+        return undefined
+      }
+
+      const IFD0_TAG_EXIF_PTR = 0x8769
+      const IFD0_TAG_GPS_PTR = 0x8825
+      const IFD0_TAG_DATETIME = 0x0132
+      const EXIF_TAG_DATETIME_ORIGINAL = 0x9003
+      const GPS_TAG_LAT_REF = 0x0001
+      const GPS_TAG_LAT = 0x0002
+      const GPS_TAG_LON_REF = 0x0003
+      const GPS_TAG_LON = 0x0004
+      const GPS_TAG_TIME_STAMP = 0x0007
+      const GPS_TAG_DATE_STAMP = 0x001d
+
+      const exifPtr = readLongTag(ifd0Abs, IFD0_TAG_EXIF_PTR)
+      const gpsPtr = readLongTag(ifd0Abs, IFD0_TAG_GPS_PTR)
+      const dt0 = readAsciiTag(ifd0Abs, IFD0_TAG_DATETIME)
+
+      let dtOriginal: string | undefined
+      if (typeof exifPtr === 'number') {
+        const exifAbs = tiffStart + exifPtr
+        if (exifAbs + 2 <= segEnd) dtOriginal = readAsciiTag(exifAbs, EXIF_TAG_DATETIME_ORIGINAL)
+      }
+
+      let lat: number | undefined
+      let lon: number | undefined
+      let latRefNorm: 'N' | 'S' | undefined
+      let lonRefNorm: 'E' | 'W' | undefined
+      let gpsDate: string | undefined
+      let gpsTime: { num: number; den: number }[] | undefined
+      if (typeof gpsPtr === 'number') {
+        const gpsAbs = tiffStart + gpsPtr
+        if (gpsAbs + 2 <= segEnd) {
+          const latRef = readAsciiTag(gpsAbs, GPS_TAG_LAT_REF)
+          const lonRef = readAsciiTag(gpsAbs, GPS_TAG_LON_REF)
+          const latVals = readRationals(gpsAbs, GPS_TAG_LAT)
+          const lonVals = readRationals(gpsAbs, GPS_TAG_LON)
+          gpsDate = readAsciiTag(gpsAbs, GPS_TAG_DATE_STAMP)
+          gpsTime = readRationals(gpsAbs, GPS_TAG_TIME_STAMP)
+
+          const normalizeLatRef = (v: unknown): 'N' | 'S' | undefined => {
+            const s = String(v || '').trim().toUpperCase()
+            if (s === 'N' || s === 'S') return s
+            return undefined
+          }
+          const normalizeLonRef = (v: unknown): 'E' | 'W' | undefined => {
+            const s = String(v || '').trim().toUpperCase()
+            if (s === 'E' || s === 'W') return s
+            return undefined
+          }
+          latRefNorm = normalizeLatRef(latRef)
+          lonRefNorm = normalizeLonRef(lonRef)
+
+          const toDeg = (ref: string | undefined, vals: { num: number; den: number }[] | undefined): number | undefined => {
+            if (!ref || !vals || vals.length < 3) return undefined
+            const d = vals[0].den ? vals[0].num / vals[0].den : NaN
+            const m = vals[1].den ? vals[1].num / vals[1].den : NaN
+            const s = vals[2].den ? vals[2].num / vals[2].den : NaN
+            if (![d, m, s].every((x) => Number.isFinite(x))) return undefined
+            let dec = d + m / 60 + s / 3600
+            const r = ref.trim().toUpperCase()
+            if (r === 'S' || r === 'W') dec = -dec
+            return dec
+          }
+          lat = toDeg(latRef, latVals)
+          lon = toDeg(lonRef, lonVals)
+        }
+      }
+
+      let takenAt: Date | undefined = dtOriginal ? parseExifDateTimeString(dtOriginal) : undefined
+      if (!takenAt && dt0) takenAt = parseExifDateTimeString(dt0)
+      if (!takenAt && gpsDate && gpsTime && gpsTime.length >= 3) {
+        const dm = /^(\d{4}):(\d{2}):(\d{2})$/.exec(String(gpsDate || '').trim())
+        const hh = gpsTime[0].den ? gpsTime[0].num / gpsTime[0].den : NaN
+        const mm = gpsTime[1].den ? gpsTime[1].num / gpsTime[1].den : NaN
+        const ss = gpsTime[2].den ? gpsTime[2].num / gpsTime[2].den : NaN
+        if (dm && [hh, mm, ss].every((x) => Number.isFinite(x))) {
+          const dt = new Date(Number(dm[1]), Number(dm[2]) - 1, Number(dm[3]), Math.floor(hh), Math.floor(mm), Math.floor(ss))
+          if (!Number.isNaN(dt.getTime())) takenAt = dt
+        }
+      }
+
+      if (typeof lat === 'number' && typeof lon === 'number' && Number.isFinite(lat) && Number.isFinite(lon)) {
+        return {
+          latitude: lat,
+          longitude: lon,
+          takenAt: takenAt ? takenAt.toISOString() : undefined,
+          latitudeRef: latRefNorm,
+          longitudeRef: lonRefNorm
+        }
+      }
+
+      offset = segEnd
+    }
+
+    return null
+  }
+
+  const findFirstCaptureFromFotos = async (fotos: any[]) => {
+    for (const foto of fotos || []) {
+      const head = await preparePhotoHeadBytes(foto)
+      if (!head) continue
+      const cap = extractCaptureFromJpegBytes(head)
+      if (cap) return cap
+    }
+    return null
+  }
+
+  const formatLegendaFigura = (numFigura: number, legendaPrincipal: string) => {
+    const base = String(legendaPrincipal || '').trim()
+    const terminaComExclamOuInterrog = /[!?]$/.test(base)
+    const semPontosFinais = base.replace(/\.+$/, '').trim()
+    const texto = semPontosFinais || 'Ocorrência'
+    return terminaComExclamOuInterrog ? `Figura ${numFigura} – ${texto}` : `Figura ${numFigura} – ${texto}.`
+  }
+
+  const formatDateTimeBR = (val: any) => {
+    if (!val) return ''
+    const d = new Date(val)
+    if (Number.isNaN(d.getTime())) return ''
+    const dd = String(d.getDate()).padStart(2, '0')
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const yyyy = String(d.getFullYear())
+    const hh = String(d.getHours()).padStart(2, '0')
+    const mi = String(d.getMinutes()).padStart(2, '0')
+    return `${dd}/${mm}/${yyyy} ${hh}:${mi}`
+  }
+
+  const formatGravidadeLabel = (g: string) => {
+    const key = String(g || '').toLowerCase().trim()
+    if (key === 'leve') return 'Leve (Monitoramento)'
+    if (key === 'media') return 'Média (Atenção)'
+    if (key === 'grave') return 'Grave (Urgente)'
+    if (key === 'gravissima') return 'Gravíssima (Crítico / Risco de Vida)'
+    return 'Média (Atenção)'
+  }
+
+  const pdfDoc = await PDFDocument.create()
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
+
+  const pageSize: [number, number] = [mm2pt(210), mm2pt(297)]
+  const pageWidth = pageSize[0]
+  const pageHeight = pageSize[1]
+
+  const rgb255 = (r: number, g: number, b: number) => rgb(r / 255, g / 255, b / 255)
+  const margin = mm2pt(10)
+  const firstPageTopPadding = mm2pt(20)
+  const topMargin = mm2pt(35)
+  const bottomMargin = mm2pt(25)
+  const tableWidth = pageWidth - 2 * margin
+  const rowHeight = mm2pt(7)
+
+  let page = pdfDoc.addPage(pageSize)
+  let yPos = topMargin
+
+  const addPage = () => {
+    page = pdfDoc.addPage(pageSize)
+    yPos = topMargin
+  }
+
+  const drawRectTop = (x: number, yTop: number, w: number, h: number, fill?: any, border = false) => {
+    page.drawRectangle({
+      x,
+      y: pageHeight - yTop - h,
+      width: w,
+      height: h,
+      color: fill || undefined,
+      borderColor: border ? rgb255(0, 0, 0) : undefined,
+      borderWidth: border ? 1 : 0
+    })
+  }
+
+  const drawTextAt = (t: string, x: number, yBaselineTop: number, size: number, opts?: { bold?: boolean; color?: any }) => {
+    const chosen = opts?.bold ? fontBold : font
+    page.drawText(String(t || ''), {
+      x,
+      y: pageHeight - yBaselineTop,
+      size,
+      font: chosen,
+      color: opts?.color || rgb255(0, 0, 0)
+    })
+  }
+
+  const drawJustifiedLineAt = (t: string, x: number, yBaselineTop: number, maxWidth: number, size: number, opts?: { bold?: boolean; color?: any }) => {
+    const chosen = opts?.bold ? fontBold : font
+    const raw = String(t || '').replace(/\s+/g, ' ').trim()
+    if (!raw) return
+    const words = raw.split(' ').filter(Boolean)
+    if (words.length <= 1) {
+      drawTextAt(raw, x, yBaselineTop, size, opts)
+      return
+    }
+
+    const spaceW = chosen.widthOfTextAtSize(' ', size)
+    let wordsW = 0
+    for (const w of words) wordsW += chosen.widthOfTextAtSize(w, size)
+
+    const gaps = words.length - 1
+    const baseW = wordsW + gaps * spaceW
+    const extra = maxWidth - baseW
+
+    if (!(extra > 0)) {
+      drawTextAt(raw, x, yBaselineTop, size, opts)
+      return
+    }
+
+    const extraPerGap = extra / gaps
+    let curX = x
+    for (let i = 0; i < words.length; i++) {
+      const w = words[i]
+      page.drawText(w, {
+        x: curX,
+        y: pageHeight - yBaselineTop,
+        size,
+        font: chosen,
+        color: opts?.color || rgb255(0, 0, 0)
+      })
+      const wW = chosen.widthOfTextAtSize(w, size)
+      curX += wW
+      if (i < words.length - 1) curX += spaceW + extraPerGap
+    }
+  }
+
+  const drawLinesAt = (
+    lines: string[],
+    x: number,
+    yStartTop: number,
+    maxWidth: number,
+    size: number,
+    lineHeight: number,
+    opts?: { bold?: boolean; color?: any; justify?: boolean }
+  ) => {
+    const justify = !!opts?.justify
+    let y = yStartTop
+    for (let i = 0; i < lines.length; i++) {
+      const ln = String(lines[i] ?? '')
+      const trimmed = ln.trim()
+      const isBlank = trimmed.length === 0
+      const next = i + 1 < lines.length ? String(lines[i + 1] ?? '') : ''
+      const isLastInParagraph = i === lines.length - 1 || next.trim().length === 0
+
+      if (!isBlank) {
+        if (justify && !isLastInParagraph) drawJustifiedLineAt(ln, x, y, maxWidth, size, opts)
+        else drawTextAt(ln, x, y, size, opts)
+      }
+      y += lineHeight
+    }
+  }
+
+  const drawTextCenteredAt = (t: string, xCenter: number, yBaselineTop: number, size: number, opts?: { bold?: boolean; color?: any }) => {
+    const chosen = opts?.bold ? fontBold : font
+    const w = chosen.widthOfTextAtSize(String(t || ''), size)
+    drawTextAt(t, xCenter - w / 2, yBaselineTop, size, opts)
+  }
+
+  const drawCell = (text: string, x: number, yTop: number, w: number, h: number, bold = false, center = false, fillColor: number[] | null = null) => {
+    const fill = fillColor ? rgb255(fillColor[0], fillColor[1], fillColor[2]) : undefined
+    drawRectTop(x, yTop, w, h, fill, false)
+    drawRectTop(x, yTop, w, h, undefined, true)
+    const size = 9
+    const textY = yTop + h / 2 + mm2pt(1.5)
+    const chosen = bold ? fontBold : font
+    const t = String(text || '')
+    if (center) {
+      const tw = chosen.widthOfTextAtSize(t, size)
+      drawTextAt(t, x + w / 2 - tw / 2, textY, size, { bold })
+    } else {
+      drawTextAt(t, x + mm2pt(2), textY, size, { bold })
+    }
+  }
+
+  // Cover Page
+  drawRectTop(0, firstPageTopPadding, pageWidth, mm2pt(40), rgb255(25, 75, 145), false)
+  const titulo = fisc.numero_termo ? `RELATÓRIO DE FISCALIZAÇÃO AGEMS/DTR Nº ${fisc.numero_termo}` : 'RELATÓRIO DE FISCALIZAÇÃO DE RODOVIA'
+  drawTextCenteredAt(titulo, pageWidth / 2, firstPageTopPadding + mm2pt(15), 18, { bold: true, color: rgb255(255, 255, 255) })
+  drawTextCenteredAt('DIRETORIA DE TRANSPORTES, RODOVIAS, FERROVIAS, PORTOS E AEROPORTOS (DTR)', pageWidth / 2, firstPageTopPadding + mm2pt(25), 9, { color: rgb255(255, 255, 255) })
+  drawTextCenteredAt(`Rodovia Vistoriada: ${fisc.rodovia || 'Geral'}`, pageWidth / 2, firstPageTopPadding + mm2pt(33), 11, { color: rgb255(255, 255, 255) })
+
+  yPos = firstPageTopPadding + mm2pt(45)
+  drawTextAt('INFORMAÇÕES DA FISCALIZAÇÃO', margin, yPos, 12, { bold: true })
+  yPos += mm2pt(7)
+  drawTextAt(`Rodovia principal: ${fisc.rodovia || '-'}`, margin + mm2pt(2), yPos, 10)
+  yPos += mm2pt(6)
+  drawTextAt(`Concessionária: ${prestadorNome || '-'}`, margin + mm2pt(2), yPos, 10)
+  yPos += mm2pt(6)
+  
+  if (fisc.data_inicio) {
+    drawTextAt(`Data Início: ${formatDateTimeBR(fisc.data_inicio)}`, margin + mm2pt(2), yPos, 10)
+    yPos += mm2pt(6)
+  }
+  if (fisc.data_fim) {
+    drawTextAt(`Data Fim: ${formatDateTimeBR(fisc.data_fim)}`, margin + mm2pt(2), yPos, 10)
+    yPos += mm2pt(6)
+  }
+  if (fisc.fiscal_nome) {
+    drawTextAt(`Fiscal Responsável: ${fisc.fiscal_nome}`, margin + mm2pt(2), yPos, 10)
+    yPos += mm2pt(6)
+  }
+  yPos += mm2pt(14)
+
+  // Resumo Executivo
+  drawRectTop(margin, yPos, tableWidth, mm2pt(8), rgb255(25, 75, 145), false)
+  drawRectTop(margin, yPos, tableWidth, mm2pt(8), undefined, true)
+  drawTextAt('RESUMO EXECUTIVO', margin + mm2pt(2), yPos + mm2pt(5.5), 12, { bold: true, color: rgb255(255, 255, 255) })
+  yPos += mm2pt(14)
+
+  const totalOcorrencias = (unidades || []).length
+  const countsByGravidade = { leve: 0, media: 0, grave: 0, gravissima: 0 }
+  const countsByTipo = new Map<string, number>()
+
+  for (const u of unidades || []) {
+    const grav = String(u.gravidade || 'media').toLowerCase()
+    if (grav in countsByGravidade) {
+      countsByGravidade[grav as keyof typeof countsByGravidade]++
+    } else {
+      countsByGravidade.media++
+    }
+    const tipo = String(u.tipo_ocorrencia || u.nome_unidade || 'Outro')
+    countsByTipo.set(tipo, (countsByTipo.get(tipo) || 0) + 1)
+  }
+
+  drawTextAt(`• Total de Ocorrências Registradas: ${totalOcorrencias}`, margin + mm2pt(2), yPos, 10)
+  yPos += mm2pt(6)
+  drawTextAt(`• Gravidade Leve (Monitoramento): ${countsByGravidade.leve}`, margin + mm2pt(2), yPos, 10)
+  yPos += mm2pt(6)
+  drawTextAt(`• Gravidade Média (Atenção): ${countsByGravidade.media}`, margin + mm2pt(2), yPos, 10)
+  yPos += mm2pt(6)
+  drawTextAt(`• Gravidade Grave (Urgente): ${countsByGravidade.grave}`, margin + mm2pt(2), yPos, 10)
+  yPos += mm2pt(6)
+  drawTextAt(`• Gravidade Gravíssima (Crítico): ${countsByGravidade.gravissima}`, margin + mm2pt(2), yPos, 10)
+  yPos += mm2pt(10)
+
+  if (countsByTipo.size > 0) {
+    drawTextAt('OCORRÊNCIAS POR TIPO', margin, yPos, 11, { bold: true })
+    yPos += mm2pt(6)
+    
+    drawCell('Tipo de Ocorrência', margin, yPos, tableWidth * 0.7, rowHeight, true, false, [220, 220, 220])
+    drawCell('Quantidade', margin + tableWidth * 0.7, yPos, tableWidth * 0.3, rowHeight, true, true, [220, 220, 220])
+    yPos += rowHeight
+
+    const entries = Array.from(countsByTipo.entries())
+    for (const entry of entries) {
+      const tipo = entry[0]
+      const count = entry[1]
+      if (yPos + rowHeight > pageHeight - bottomMargin) {
+        addPage()
+      }
+      drawCell(tipo, margin, yPos, tableWidth * 0.7, rowHeight, false, false)
+      drawCell(String(count), margin + tableWidth * 0.7, yPos, tableWidth * 0.3, rowHeight, false, true)
+      yPos += rowHeight
+    }
+  }
+
+  let offsetGlobalFiguras = 0
+  let processedFotos = 0
+  const PHOTO_PREP_CONCURRENCY = 4
+  const PHOTO_CHUNK_SIZE = 8
+
+  const updateProgress = async (unidadesProcessadas: number, fotosProcessadas: number) => {
+    try {
+      await updateJob(adminClient, job.id, {
+        progress_unidades: unidadesProcessadas,
+        progress_fotos: fotosProcessadas
+      })
+    } catch {}
+  }
+
+  for (let idx = 0; idx < unidades.length; idx++) {
+    const u = unidades[idx]
+    const uDets = todasDeterminacoes.filter((d: any) => d.unidade_fiscalizada_id === u.id)
+    const fotosRaw = Array.isArray(u.fotos_unidade) ? u.fotos_unidade : []
+
+    addPage()
+
+    drawRectTop(margin, yPos, tableWidth, rowHeight, rgb255(189, 214, 238), false)
+    drawRectTop(margin, yPos, tableWidth, rowHeight, undefined, true)
+    const labelOcorr = `REGISTRO DE OCORRÊNCIA #${idx + 1}`
+    drawTextCenteredAt(labelOcorr, pageWidth / 2, yPos + mm2pt(4.5), 11, { bold: true })
+    yPos += rowHeight
+
+    drawCell(`Tipo de Ocorrência: ${u.tipo_ocorrencia || u.nome_unidade || '-'}`, margin, yPos, tableWidth, rowHeight, true)
+    yPos += rowHeight
+    drawCell(`Rodovia: ${u.rodovia || fisc.rodovia || '-'}  |  KM: ${u.km || '-'}  |  Trecho: ${u.trecho || '-'}`, margin, yPos, tableWidth, rowHeight, true)
+    yPos += rowHeight
+
+    const firstCapture = await findFirstCaptureFromFotos(fotosRaw)
+    const coordsTxt = String((u as any).coordenadas || '').trim()
+    const coordsFinal = (() => {
+      if (coordsTxt) {
+        const isLikelyDms = /[°º]/.test(coordsTxt) && /[NSEW]/i.test(coordsTxt)
+        if (isLikelyDms) return forceSouthWestDmsText(coordsTxt)
+        const parsed = tryParseDecimalCoordsPair(coordsTxt)
+        if (parsed) return formatCoordsDms(parsed.lat, parsed.lon)
+        return coordsTxt
+      }
+      if (firstCapture && Number.isFinite(firstCapture.latitude) && Number.isFinite(firstCapture.longitude)) {
+        return formatCoordsDms(Number(firstCapture.latitude), Number(firstCapture.longitude))
+      }
+      return ''
+    })()
+
+    if (coordsFinal) {
+      drawCell(`Coordenadas: ${coordsFinal}`, margin, yPos, tableWidth, rowHeight, true)
+      yPos += rowHeight
+    }
+
+    const vistoriaAt = firstCapture?.takenAt
+      ? formatDateTimeBR(firstCapture.takenAt)
+      : u.data_hora_vistoria
+        ? formatDateTimeBR(u.data_hora_vistoria)
+        : '-'
+    drawCell(`Data/Hora da Vistoria: ${vistoriaAt}`, margin, yPos, tableWidth, rowHeight, true)
+    yPos += rowHeight
+
+    const gravLabel = formatGravidadeLabel(u.gravidade)
+    drawCell(`Gravidade / Nível de Risco: ${gravLabel}`, margin, yPos, tableWidth, rowHeight, true)
+    yPos += rowHeight
+
+    drawCell('Descrição da Irregularidade', margin, yPos, tableWidth, rowHeight, true, true, [189, 214, 238])
+    yPos += rowHeight
+
+    const descTexto = String(u.endereco || 'Nenhuma descrição adicional informada.').trim()
+    const descLines = wrapText(descTexto, mm2pt(210 - 2 * 10 - 15), font, 9)
+    const descCellHeight = Math.max(rowHeight, descLines.length * mm2pt(5) + mm2pt(4))
+
+    if (yPos + descCellHeight > pageHeight - bottomMargin) addPage()
+    drawRectTop(margin, yPos, tableWidth, descCellHeight, undefined, true)
+    drawLinesAt(descLines, margin + mm2pt(5), yPos + mm2pt(5), mm2pt(210 - 2 * 10 - 15), 9, mm2pt(5), { justify: true })
+    yPos += descCellHeight
+
+    if (uDets.length > 0) {
+      if (yPos + rowHeight > pageHeight - bottomMargin) addPage()
+      drawCell('Determinações e Prazos Corretivos', margin, yPos, tableWidth, rowHeight, true, true, [189, 214, 238])
+      yPos += rowHeight
+
+      for (const d of uDets) {
+        let textoDet = String(d.descricao || '').trim()
+        if (!textoDet.endsWith('.')) textoDet = `${textoDet}.`
+        const prazoDias = Number(d.prazo_dias)
+        if (Number.isFinite(prazoDias) && prazoDias > 0) {
+          textoDet = `${textoDet} Prazo: ${prazoDias} dias.`
+        }
+        
+        const detLines = wrapText(textoDet, mm2pt(210 - 2 * 10 - 15), font, 9)
+        const detCellHeight = Math.max(rowHeight, detLines.length * mm2pt(5) + mm2pt(4))
+
+        if (yPos + detCellHeight > pageHeight - bottomMargin) addPage()
+        drawRectTop(margin, yPos, tableWidth, detCellHeight, undefined, true)
+        drawLinesAt(detLines, margin + mm2pt(5), yPos + mm2pt(5), mm2pt(210 - 2 * 10 - 15), 9, mm2pt(5), { justify: true })
+        yPos += detCellHeight
+      }
+    }
+
+    if (fotosRaw.length > 0) {
+      if (yPos + rowHeight > pageHeight - bottomMargin) addPage()
+      drawCell('Registros Fotográficos', margin, yPos, tableWidth, rowHeight, true, true, [189, 214, 238])
+      yPos += rowHeight
+
+      const cellPadding = mm2pt(2)
+      const imgCellWidth = (tableWidth - cellPadding) / 2
+      const imgWidth = imgCellWidth - mm2pt(4)
+      const imgHeight = mm2pt(70)
+      const captionHeight = mm2pt(8)
+      const totalCellHeight = imgHeight + captionHeight
+
+      const embedAnyImage = async (bytes: Uint8Array) => {
+        try {
+          return await pdfDoc.embedJpg(bytes)
+        } catch {
+          try {
+            return await pdfDoc.embedPng(bytes)
+          } catch {
+            return null
+          }
+        }
+      }
+
+      const fotosOk: any[] = []
+      for (let chunkStart = 0; chunkStart < fotosRaw.length; chunkStart += PHOTO_CHUNK_SIZE) {
+        const chunk = fotosRaw.slice(chunkStart, chunkStart + PHOTO_CHUNK_SIZE)
+        const prepared = await mapWithConcurrency(chunk, PHOTO_PREP_CONCURRENCY, async (foto) => {
+          const legenda = typeof foto === 'object' ? String((foto as any)?.legenda || '') : ''
+          const bytes = await preparePhotoBytes(foto)
+          return { bytes, legenda }
+        })
+
+        for (const p of prepared) {
+          if (p?.bytes) fotosOk.push(p)
+        }
+        processedFotos += chunk.length
+        await updateProgress(idx + 1, processedFotos)
+      }
+
+      for (let i = 0; i < fotosOk.length; i += 2) {
+        if (yPos + totalCellHeight + mm2pt(10) > pageHeight - bottomMargin) addPage()
+        const leftX = margin
+        const rightX = margin + imgCellWidth
+
+        drawRectTop(leftX, yPos, imgCellWidth, totalCellHeight, undefined, true)
+        if (fotosOk[i]?.bytes) {
+          try {
+            const embedded = await embedAnyImage(fotosOk[i].bytes)
+            if (!embedded) throw new Error('Formato de imagem não suportado')
+            const pad = mm2pt(2)
+            const iw = (embedded as any).width
+            const ih = (embedded as any).height
+            const scale = Math.min(imgWidth / iw, imgHeight / ih)
+            const drawW = iw * scale
+            const drawH = ih * scale
+            page.drawImage(embedded, {
+              x: leftX + pad + (imgWidth - drawW) / 2,
+              y: pageHeight - (yPos + pad + (imgHeight - drawH) / 2 + drawH),
+              width: drawW,
+              height: drawH
+            })
+            const numFigura = offsetGlobalFiguras + i + 1
+            const fallbackNome = u.tipo_unidade_name || u.tipo_ocorrencia || u.nome_unidade || 'Ocorrência'
+            const legendaPrincipal = fotosOk[i].legenda && String(fotosOk[i].legenda).trim() ? String(fotosOk[i].legenda).trim() : String(fallbackNome)
+            const legenda = formatLegendaFigura(numFigura, legendaPrincipal)
+            const lines = wrapText(legenda, imgCellWidth - mm2pt(4), font, 7)
+            let yLine = yPos + imgHeight + mm2pt(5)
+            for (const ln of lines) {
+              drawTextCenteredAt(ln, leftX + imgCellWidth / 2, yLine, 7)
+              yLine += mm2pt(3)
+            }
+          } catch {}
+        }
+
+        drawRectTop(rightX, yPos, imgCellWidth, totalCellHeight, undefined, true)
+        if (fotosOk[i + 1]?.bytes) {
+          try {
+            const embedded = await embedAnyImage(fotosOk[i + 1].bytes)
+            if (!embedded) throw new Error('Formato de imagem não suportado')
+            const pad = mm2pt(2)
+            const iw = (embedded as any).width
+            const ih = (embedded as any).height
+            const scale = Math.min(imgWidth / iw, imgHeight / ih)
+            const drawW = iw * scale
+            const drawH = ih * scale
+            page.drawImage(embedded, {
+              x: rightX + pad + (imgWidth - drawW) / 2,
+              y: pageHeight - (yPos + pad + (imgHeight - drawH) / 2 + drawH),
+              width: drawW,
+              height: drawH
+            })
+            const numFigura = offsetGlobalFiguras + i + 2
+            const fallbackNome = u.tipo_unidade_name || u.tipo_ocorrencia || u.nome_unidade || 'Ocorrência'
+            const legendaPrincipal =
+              fotosOk[i + 1].legenda && String(fotosOk[i + 1].legenda).trim() ? String(fotosOk[i + 1].legenda).trim() : String(fallbackNome)
+            const legenda = formatLegendaFigura(numFigura, legendaPrincipal)
+            const lines = wrapText(legenda, imgCellWidth - mm2pt(4), font, 7)
+            let yLine = yPos + imgHeight + mm2pt(5)
+            for (const ln of lines) {
+              drawTextCenteredAt(ln, rightX + imgCellWidth / 2, yLine, 7)
+              yLine += mm2pt(3)
+            }
+          } catch {}
+        }
+
+        yPos += totalCellHeight
+      }
+      offsetGlobalFiguras += fotosOk.length
+    }
+
+    await updateProgress(idx + 1, processedFotos)
+  }
+
+  const pages = pdfDoc.getPages()
+  const totalPages = pages.length
+  const footerSize = 8
+  const footerPaddingY = mm2pt(6)
+  for (let i = 0; i < totalPages; i++) {
+    const page = pages[i]
+    const label = `Página ${i + 1} de ${totalPages}`
+    const textW = font.widthOfTextAtSize(label, footerSize)
+    const x = pageWidth - margin - textW
+    const y = footerPaddingY
+    page.drawText(label, { x, y, size: footerSize, font, color: rgb(0.35, 0.35, 0.35) })
+  }
+
+  return await pdfDoc.save()
 }
 
 // ====================================================================

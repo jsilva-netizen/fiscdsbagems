@@ -116,6 +116,39 @@ export default function Home() {
                 </div>
                 )}
 
+                {/* Quick Actions — DTR */}
+                {isDTR && !isDSB && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                    <Link to={createPageUrl('NovaFiscalizacaoDTR')}>
+                        <Card className="bg-blue-600 hover:bg-blue-700 transition-all cursor-pointer border-none h-full shadow-lg">
+                            <CardContent className="p-6 flex items-center gap-4">
+                                <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center">
+                                    <Plus className="h-8 w-8 text-white" />
+                                </div>
+                                <div className="text-white">
+                                    <h3 className="text-xl font-bold">Nova Fiscalização Rodoviária</h3>
+                                    <p className="text-blue-100 text-sm">Iniciar vistoria na rodovia concedida</p>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </Link>
+
+                    <Link to={createPageUrl('FiscalizacoesDTR')}>
+                        <Card className="bg-white/10 hover:bg-white/20 transition-all cursor-pointer border-white/20 h-full">
+                            <CardContent className="p-6 flex items-center gap-4">
+                                <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center">
+                                    <History className="h-8 w-8 text-white" />
+                                </div>
+                                <div className="text-white">
+                                    <h3 className="text-xl font-bold">Histórico DTR</h3>
+                                    <p className="text-blue-250 text-sm">Ver histórico e pontos registrados</p>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </Link>
+                </div>
+                )}
+
                 {/* Menu Grid */}
                 {!isMobile && (
                 <>
@@ -233,17 +266,29 @@ export default function Home() {
                     </>
                     )}
 
-                    {/* === Módulo DTR: Transportes — espaço reservado para módulos futuros === */}
+                    {/* === Módulo DTR: Transportes === */}
                     {isDTR && !isDSB && (
-                        <div className="col-span-2 md:col-span-4">
-                            <Card className="bg-white/5 border-white/20">
-                                <CardContent className="p-6 text-center text-white/60">
-                                    <FileText className="h-10 w-10 mx-auto mb-2 opacity-40" />
-                                    <p className="font-medium">Módulo de Transportes</p>
-                                    <p className="text-xs mt-1">Em implementação — em breve disponível aqui.</p>
-                                </CardContent>
-                            </Card>
-                        </div>
+                    <>
+                    <Link to={createPageUrl('FiscalizacoesDTR')}>
+                        <Card className="bg-white/10 hover:bg-white/20 transition-all cursor-pointer border-white/20 h-full">
+                            <CardContent className="p-4 text-center">
+                                <ClipboardCheck className="h-8 w-8 text-blue-300 mx-auto mb-2" />
+                                <h3 className="text-white font-medium text-sm">Inspeções</h3>
+                                <p className="text-blue-300 text-xs">Vistorias de rodovias</p>
+                            </CardContent>
+                        </Card>
+                    </Link>
+
+                    <Link to={createPageUrl('Relatorios')}>
+                        <Card className="bg-white/10 hover:bg-white/20 transition-all cursor-pointer border-white/20 h-full">
+                            <CardContent className="p-4 text-center">
+                                <BarChart3 className="h-8 w-8 text-blue-300 mx-auto mb-2" />
+                                <h3 className="text-white font-medium text-sm">Relatórios</h3>
+                                <p className="text-blue-300 text-xs">Indicadores DTR</p>
+                            </CardContent>
+                        </Card>
+                    </Link>
+                    </>
                     )}
 
                     {/* === Módulo DGE: Gás e Energia — espaço reservado === */}

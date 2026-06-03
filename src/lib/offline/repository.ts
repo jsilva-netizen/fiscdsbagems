@@ -242,7 +242,7 @@ export const Repository = {
     return all.slice().sort((a, b) => (b.data_inicio || '').localeCompare(a.data_inicio || '')).slice(0, limit)
   },
   
-  async createFiscalizacao(data: Partial<Fiscalizacao> & { municipio_id: string; prestador_servico_id?: string; servicos?: string[]; fiscal_email?: string; fiscal_nome?: string; latitude_inicio?: number; longitude_inicio?: number }): Promise<Fiscalizacao> {
+  async createFiscalizacao(data: Partial<Fiscalizacao> & { municipio_id: string; prestador_servico_id?: string; servicos?: string[]; fiscal_email?: string; fiscal_nome?: string; latitude_inicio?: number; longitude_inicio?: number; tipo_modulo?: string; rodovia?: string }): Promise<Fiscalizacao> {
     const id = uid()
     const muni = await db.municipios.get(data.municipio_id as any)
     const prest = data.prestador_servico_id ? await db.prestadores.get(data.prestador_servico_id as any) : null
@@ -258,6 +258,8 @@ export const Repository = {
       data_inicio: now(),
       fiscal_email: data.fiscal_email,
       fiscal_nome: data.fiscal_nome,
+      tipo_modulo: data.tipo_modulo || 'saneamento_dsb',
+      rodovia: data.rodovia || undefined,
       created_at: now(),
       updated_at: now(),
       numero_termo: ''
@@ -317,11 +319,11 @@ export const Repository = {
     })
   },
   
-  async createUnidade(data: { fiscalizacao_id: string; tipo_unidade_id: string; codigo_unidade?: string; nome_unidade?: string; endereco?: string; latitude?: number | null; longitude?: number | null; data_hora_vistoria?: string }): Promise<Unidade> {
+  async createUnidade(data: { fiscalizacao_id: string; tipo_unidade_id: string; codigo_unidade?: string; nome_unidade?: string; endereco?: string; latitude?: number | null; longitude?: number | null; data_hora_vistoria?: string; rodovia?: string; trecho?: string; km?: string; tipo_ocorrencia?: string; gravidade?: string }): Promise<Unidade> {
     const id = uid()
     const all = await db.unidades.where('fiscalizacao_id').equals(data.fiscalizacao_id).toArray()
     const maxOrdem = (all || []).reduce((acc: number, u: any) => Math.max(acc, Number(u?.ordem) || 0), 0)
-    const item: Unidade & { endereco?: string; latitude?: number | null; longitude?: number | null; data_hora_vistoria?: string } = {
+    const item: Unidade = {
       id,
       fiscalizacao_id: data.fiscalizacao_id,
       tipo_unidade_id: data.tipo_unidade_id,
@@ -333,6 +335,11 @@ export const Repository = {
       latitude: data.latitude ?? null,
       longitude: data.longitude ?? null,
       data_hora_vistoria: data.data_hora_vistoria || now(),
+      rodovia: data.rodovia || undefined,
+      trecho: data.trecho || undefined,
+      km: data.km || undefined,
+      tipo_ocorrencia: data.tipo_ocorrencia || undefined,
+      gravidade: data.gravidade || undefined,
       created_at: now(),
       updated_at: now()
     }
@@ -1966,6 +1973,14 @@ export const Repository = {
       await db.unidades.update(unidadeId, { ...u, coordenadas, updated_at: now() })
     }
     await enqueueMutation({ id: unidadeId, coordenadas, updated_at: now() }, 'update', 'unidades')
+  },
+
+  async updateUnidadeDTR(unidadeId: string, changes: { rodovia?: string; trecho?: string; km?: string; tipo_ocorrencia?: string; latitude?: number | null; longitude?: number | null; status?: string }): Promise<void> {
+    const u = await db.unidades.get(unidadeId)
+    if (u) {
+      await db.unidades.update(unidadeId, { ...u, ...changes, updated_at: now() })
+    }
+    await enqueueMutation({ id: unidadeId, ...changes, updated_at: now() }, 'update', 'unidades')
   },
   
   async finalizarFiscalizacao(fiscalizacaoId: string): Promise<void> {
