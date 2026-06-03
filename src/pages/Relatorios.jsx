@@ -8,8 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, ArrowLeft, Download, FileJson, FileText, CheckCircle2, AlertTriangle, ChevronDown, Check, Search } from 'lucide-react';
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Legend, Cell } from 'recharts';
-import { Switch } from '@/components/ui/switch';
-
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
@@ -154,7 +152,6 @@ export default function Relatorios() {
     const [servicoFiltro, setServicoFiltro] = useState([]);
     const [municipioFiltro, setMunicipioFiltro] = useState([]);
     const [prestadorFiltro, setPrestadorFiltro] = useState([]);
-    const [apenasFinalizadas, setApenasFinalizadas] = useState(false);
 
     const { data: fiscalizacoes = [] } = useQuery({
         queryKey: ['fiscalizacoes'],
@@ -203,14 +200,13 @@ export default function Relatorios() {
         por_servico: [],
         ranking_determinacoes: []
     } } = useQuery({
-        queryKey: ['resumo-indicadores', anoFiltro, servicoFiltro, municipioFiltro, prestadorFiltro, apenasFinalizadas],
+        queryKey: ['resumo-indicadores', anoFiltro, servicoFiltro, municipioFiltro, prestadorFiltro],
         queryFn: async () => {
             const { data, error } = await supabase.rpc('obter_resumo_indicadores', {
                 p_anos: anoFiltro,
                 p_servicos: servicoFiltro,
                 p_municipio_ids: municipioFiltro,
-                p_prestador_ids: prestadorFiltro,
-                p_apenas_finalizadas: apenasFinalizadas
+                p_prestador_ids: prestadorFiltro
             });
             if (error) throw error;
             return data;
@@ -233,9 +229,7 @@ export default function Relatorios() {
         const matchPrestador = prestadorFiltro.length === 0 || 
             prestadorFiltro.includes(f.prestador_servico_id);
         
-        const matchStatus = !apenasFinalizadas || f.status === 'finalizada';
-        
-        return matchAno && matchServico && matchMunicipio && matchPrestador && matchStatus;
+        return matchAno && matchServico && matchMunicipio && matchPrestador;
     });
 
     // Estatísticas gerais extraídas diretamente da RPC
@@ -394,21 +388,7 @@ export default function Relatorios() {
                                 />
                             </div>
                         </div>
-
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-t border-gray-100 pt-3 gap-2">
-                            <div className="flex items-center gap-2">
-                                <Switch 
-                                    id="apenas-finalizadas" 
-                                    checked={apenasFinalizadas} 
-                                    onCheckedChange={setApenasFinalizadas} 
-                                />
-                                <label 
-                                    htmlFor="apenas-finalizadas" 
-                                    className="text-sm font-medium text-gray-700 cursor-pointer select-none"
-                                >
-                                    Exibir apenas dados de fiscalizações finalizadas
-                                </label>
-                            </div>
+                        <div className="flex justify-end border-t border-gray-100 pt-3">
                             <div className="text-xs text-gray-400 font-medium">
                                 {totalFiscalizacoes} fiscalizações correspondentes
                             </div>
