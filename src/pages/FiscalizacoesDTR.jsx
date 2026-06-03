@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from '@/components/ui/alert-dialog';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, Filter, Trash2, Calendar, Map, CheckCircle2, Clock, Plus, Compass } from 'lucide-react';
+import { ArrowLeft, Search, Filter, Trash2, Calendar, Map, CheckCircle2, Clock, Plus, Compass, Loader2 } from 'lucide-react';
 import RelatorioFiscalizacao from '@/components/fiscalizacao/RelatorioFiscalizacao';
 
 const DTR_MODULOS = ['rodovias_dtr', 'transportes_dtr', 'fiscal_dtr'];
