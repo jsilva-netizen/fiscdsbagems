@@ -1,6 +1,5 @@
--- Migração para otimizar os indicadores do painel de Relatórios
--- Cria uma função RPC no Supabase que consolida todas as somas, contagens e agrupamentos
--- no lado do servidor com índices otimizados, eliminando limites de consulta no frontend.
+-- Migração para otimizar os indicadores do painel de Relatórios (Corrigida)
+-- Removemos referências à coluna inexistente f.servico, utilizando apenas f.servicos (text[]).
 
 CREATE OR REPLACE FUNCTION public.obter_resumo_indicadores(
   p_anos text[],
@@ -27,7 +26,7 @@ DECLARE
 BEGIN
   -- Criar tabelas temporárias para armazenar os IDs das entidades filtradas no escopo desta transação
   CREATE TEMP TABLE temp_fisc ON COMMIT DROP AS
-  SELECT f.id, f.status, f.municipio_id, f.municipio_nome, f.prestador_servico_id, f.prestador_servico_nome, f.servicos, f.servico, f.created_at
+  SELECT f.id, f.status, f.municipio_id, f.municipio_nome, f.prestador_servico_id, f.prestador_servico_nome, f.servicos, f.created_at
   FROM public.fiscalizacoes f
   WHERE
     (cardinality(p_anos) = 0 OR extract(year from f.created_at)::text = ANY(p_anos))
@@ -36,7 +35,6 @@ BEGIN
       OR (
         f.servicos IS NOT NULL AND f.servicos && p_servicos
       )
-      OR f.servico = ANY(p_servicos)
     )
     AND (cardinality(p_municipio_ids) = 0 OR f.municipio_id = ANY(p_municipio_ids))
     AND (cardinality(p_prestador_ids) = 0 OR f.prestador_servico_id = ANY(p_prestador_ids))
@@ -106,7 +104,7 @@ BEGIN
   FROM (
     SELECT unnest_servico AS servico_nome, count(*) AS qty
     FROM (
-      SELECT unnest(coalesce(tf.servicos, ARRAY[tf.servico])) AS unnest_servico
+      SELECT unnest(tf.servicos) AS unnest_servico
       FROM temp_fisc tf
     ) s
     WHERE unnest_servico IS NOT NULL AND unnest_servico <> ''
