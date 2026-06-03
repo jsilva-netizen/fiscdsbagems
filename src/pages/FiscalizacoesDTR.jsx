@@ -323,7 +323,7 @@ export default function FiscalizacoesDTR() {
 
             {/* Footer */}
             <div className="py-4 text-center text-xs text-slate-500">
-                AGEMS - Diretoria de Regulação e Fiscalização
+                AGEMS - DTR
             </div>
         </div>
     );

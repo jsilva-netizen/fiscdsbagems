@@ -489,7 +489,7 @@ export default function VistoriarOcorrenciaDTR() {
 
             {/* Footer */}
             <div className="py-4 text-center text-xs text-slate-600 bg-slate-900/50 border-t border-slate-850">
-                AGEMS - Setor de Fiscalização
+                AGEMS - DTR
             </div>
         </div>
     );

@@ -254,7 +254,12 @@ export default function GerenciarUsuarios() {
 
     const isAdmin = currentUser?.role === 'admin';
     const getPrestadorNome = (id) => prestadores.find((p) => p.id === id)?.nome || 'N/A';
-    const getDiretoriaNome = (id) => diretorias.find((d) => d.id === id)?.nome || id || 'DSB';
+    const getDiretoriaNome = (id) => {
+        const d = diretorias.find((d) => d.id === id);
+        if (!d) return id?.toUpperCase() || 'DSB';
+        const cleaned = d.nome.replace(/^(Diretoria de Regulação e Fiscalização|Diretoria de) -?\s*/i, '');
+        return `${id.toUpperCase()} - ${cleaned}`;
+    };
     const getCamaraNome = (id) => camaras.find((c) => c.id === id)?.nome || null;
     // Câmaras filtradas pela diretoria selecionada
     const getCamarasDiretoria = (diretoriaId) => camaras.filter((c) => c.diretoria_id === diretoriaId);
@@ -429,7 +434,7 @@ export default function GerenciarUsuarios() {
                                                                     </SelectTrigger>
                                                                     <SelectContent>
                                                                         {diretorias.map((d) => (
-                                                                            <SelectItem key={d.id} value={d.id}>{d.nome.replace('Diretoria de ', '')}</SelectItem>
+                                                                            <SelectItem key={d.id} value={d.id}>{getDiretoriaNome(d.id)}</SelectItem>
                                                                         ))}
                                                                     </SelectContent>
                                                                 </Select>
