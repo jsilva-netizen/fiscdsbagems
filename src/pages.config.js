@@ -55,17 +55,21 @@ import CamaraJulgamento from './pages/CamaraJulgamento';
 import Checklists from './pages/Checklists';
 import DetalhePrestador from './pages/DetalhePrestador';
 import ExecutarFiscalizacao from './pages/ExecutarFiscalizacao';
+import ExecutarFiscalizacaoDTR from './pages/ExecutarFiscalizacaoDTR';
 import Fiscalizacoes from './pages/Fiscalizacoes';
+import FiscalizacoesDTR from './pages/FiscalizacoesDTR';
 import GerenciarTermos from './pages/GerenciarTermos';
 import GerenciarUsuarios from './pages/GerenciarUsuarios';
 import GestaoAutos from './pages/GestaoAutos';
 import Home from './pages/Home';
 import Municipios from './pages/Municipios';
 import NovaFiscalizacao from './pages/NovaFiscalizacao';
+import NovaFiscalizacaoDTR from './pages/NovaFiscalizacaoDTR';
 import PareceresTecnicos from './pages/PareceresTecnicos';
 import PrestadoresServico from './pages/PrestadoresServico';
 import Relatorios from './pages/Relatorios';
 import TiposUnidade from './pages/TiposUnidade';
+import VistoriarOcorrenciaDTR from './pages/VistoriarOcorrenciaDTR';
 import VistoriarUnidade from './pages/VistoriarUnidade';
 import PortalPrestadorHome from './pages/PortalPrestadorHome';
 import ResponderTermo from './pages/ResponderTermo';
@@ -81,17 +85,21 @@ export const PAGES = {
     "Checklists": Checklists,
     "DetalhePrestador": DetalhePrestador,
     "ExecutarFiscalizacao": ExecutarFiscalizacao,
+    "ExecutarFiscalizacaoDTR": ExecutarFiscalizacaoDTR,
     "Fiscalizacoes": Fiscalizacoes,
+    "FiscalizacoesDTR": FiscalizacoesDTR,
     "GerenciarTermos": GerenciarTermos,
     "GerenciarUsuarios": GerenciarUsuarios,
     "GestaoAutos": GestaoAutos,
     "Home": Home,
     "Municipios": Municipios,
     "NovaFiscalizacao": NovaFiscalizacao,
+    "NovaFiscalizacaoDTR": NovaFiscalizacaoDTR,
     "PareceresTecnicos": PareceresTecnicos,
     "PrestadoresServico": PrestadoresServico,
     "Relatorios": Relatorios,
     "TiposUnidade": TiposUnidade,
+    "VistoriarOcorrenciaDTR": VistoriarOcorrenciaDTR,
     "VistoriarUnidade": VistoriarUnidade,
     "PortalPrestadorHome": PortalPrestadorHome,
     "ResponderTermo": ResponderTermo,
