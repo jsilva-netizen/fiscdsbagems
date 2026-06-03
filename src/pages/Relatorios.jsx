@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPageUrl } from '@/utils';
 import { supabase } from '@/lib/supabase';
+import { useModulo } from '@/hooks/useModulo';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -148,6 +149,11 @@ function MultiSelect({ placeholder, options, selectedValues, onChange }) {
 }
 
 export default function Relatorios() {
+    const { tipoModulo, modulosFiltro, isDSB, isAdmin, diretoriaNome } = useModulo();
+
+    // modulosFiltro: lista de tipo_modulo visíveis para este usuário (do hook)
+    // Admin recebe [] = sem filtro; demais recebem todos os módulos da sua diretoria
+
     const [anoFiltro, setAnoFiltro] = useState([new Date().getFullYear().toString()]);
     const [servicoFiltro, setServicoFiltro] = useState([]);
     const [municipioFiltro, setMunicipioFiltro] = useState([]);
@@ -200,13 +206,14 @@ export default function Relatorios() {
         por_servico: [],
         ranking_determinacoes: []
     } } = useQuery({
-        queryKey: ['resumo-indicadores', anoFiltro, servicoFiltro, municipioFiltro, prestadorFiltro],
+        queryKey: ['resumo-indicadores', anoFiltro, servicoFiltro, municipioFiltro, prestadorFiltro, modulosFiltro],
         queryFn: async () => {
             const { data, error } = await supabase.rpc('obter_resumo_indicadores', {
                 p_anos: anoFiltro,
                 p_servicos: servicoFiltro,
                 p_municipio_ids: municipioFiltro,
-                p_prestador_ids: prestadorFiltro
+                p_prestador_ids: prestadorFiltro,
+                p_tipo_modulo: modulosFiltro,   // NOVO: filtro por módulo
             });
             if (error) throw error;
             return data;
@@ -326,7 +333,7 @@ export default function Relatorios() {
                             </Link>
                             <div>
                                 <h1 className="text-xl font-bold">Relatórios e Indicadores</h1>
-                                <p className="text-blue-200 text-sm">Visão geral das fiscalizações</p>
+                                <p className="text-blue-200 text-sm">{diretoriaNome}</p>
                             </div>
                         </div>
                         <div className="flex gap-2">
@@ -348,45 +355,53 @@ export default function Relatorios() {
                 <Card className="bg-white border border-gray-200 shadow-sm">
                     <CardContent className="p-4 space-y-4">
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                            {/* Ano — comum a todos os módulos */}
                             <div className="space-y-1">
                                 <label className="text-xs font-semibold text-gray-500 block">Ano</label>
-                                <MultiSelect 
-                                    placeholder="Todos os Anos" 
-                                    options={anosOptions} 
-                                    selectedValues={anoFiltro} 
-                                    onChange={setAnoFiltro} 
+                                <MultiSelect
+                                    placeholder="Todos os Anos"
+                                    options={anosOptions}
+                                    selectedValues={anoFiltro}
+                                    onChange={setAnoFiltro}
                                 />
                             </div>
 
-                            <div className="space-y-1">
-                                <label className="text-xs font-semibold text-gray-500 block">Serviço</label>
-                                <MultiSelect 
-                                    placeholder="Todos os Serviços" 
-                                    options={servicosOptions} 
-                                    selectedValues={servicoFiltro} 
-                                    onChange={setServicoFiltro} 
-                                />
-                            </div>
-
+                            {/* Município — comum a todos os módulos */}
                             <div className="space-y-1">
                                 <label className="text-xs font-semibold text-gray-500 block">Município</label>
-                                <MultiSelect 
-                                    placeholder="Todos os Municípios" 
-                                    options={municipiosOptions} 
-                                    selectedValues={municipioFiltro} 
-                                    onChange={setMunicipioFiltro} 
+                                <MultiSelect
+                                    placeholder="Todos os Municípios"
+                                    options={municipiosOptions}
+                                    selectedValues={municipioFiltro}
+                                    onChange={setMunicipioFiltro}
                                 />
                             </div>
 
-                            <div className="space-y-1">
-                                <label className="text-xs font-semibold text-gray-500 block">Prestador</label>
-                                <MultiSelect 
-                                    placeholder="Todos os Prestadores" 
-                                    options={prestadoresOptions} 
-                                    selectedValues={prestadorFiltro} 
-                                    onChange={setPrestadorFiltro} 
-                                />
-                            </div>
+                            {/* Serviço — apenas DSB */}
+                            {isDSB && (
+                                <div className="space-y-1">
+                                    <label className="text-xs font-semibold text-gray-500 block">Serviço</label>
+                                    <MultiSelect
+                                        placeholder="Todos os Serviços"
+                                        options={servicosOptions}
+                                        selectedValues={servicoFiltro}
+                                        onChange={setServicoFiltro}
+                                    />
+                                </div>
+                            )}
+
+                            {/* Prestador — apenas DSB */}
+                            {isDSB && (
+                                <div className="space-y-1">
+                                    <label className="text-xs font-semibold text-gray-500 block">Prestador</label>
+                                    <MultiSelect
+                                        placeholder="Todos os Prestadores"
+                                        options={prestadoresOptions}
+                                        selectedValues={prestadorFiltro}
+                                        onChange={setPrestadorFiltro}
+                                    />
+                                </div>
+                            )}
                         </div>
                         <div className="flex justify-end border-t border-gray-100 pt-3">
                             <div className="text-xs text-gray-400 font-medium">

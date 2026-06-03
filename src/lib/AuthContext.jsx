@@ -14,7 +14,7 @@ export const AuthProvider = ({ children }) => {
     const LOGOUT_INTENT_KEY = 'agms_logout_intent_v1';
     const AUTH_CACHE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
     const LOGOUT_INTENT_MAX_AGE_MS = 10 * 1000;
-    const PROFILE_FETCH_TIMEOUT_MS = 900;
+    const PROFILE_FETCH_TIMEOUT_MS = 4000;
 
     const readAuthCache = () => {
       try {
@@ -92,6 +92,8 @@ export const AuthProvider = ({ children }) => {
         ? {
             ...(cachedUser?.role ? { role: cachedUser.role } : {}),
             ...(cachedUser?.ativo === false ? { ativo: false } : {}),
+            ...(cachedUser?.diretoria_id ? { diretoria_id: cachedUser.diretoria_id } : {}),
+            ...(cachedUser?.camara_tecnica_id ? { camara_tecnica_id: cachedUser.camara_tecnica_id } : {}),
           }
         : {};
 

@@ -14,12 +14,12 @@ CREATE TABLE IF NOT EXISTS public.diretorias (
   nome text NOT NULL
 );
 
--- Seed das diretorias
+-- Seed das diretorias (nomes oficiais)
 INSERT INTO public.diretorias (id, nome) VALUES
-  ('dsb', 'Diretoria de Saneamento Básico'),
-  ('dtr', 'Diretoria de Transportes'),
-  ('dge', 'Diretoria de Gás e Energia')
-ON CONFLICT (id) DO NOTHING;
+  ('dsb', 'Diretoria de Regulação e Fiscalização - Saneamento Básico e Resíduos Sólidos'),
+  ('dtr', 'Diretoria de Regulação e Fiscalização - Transportes, Rodovias, Ferrovias, Portos e Aeroportos'),
+  ('dge', 'Diretoria de Regulação e Fiscalização - Gás Canalizado, Energia e Mineração')
+ON CONFLICT (id) DO UPDATE SET nome = EXCLUDED.nome;
 
 -- RLS
 ALTER TABLE public.diretorias ENABLE ROW LEVEL SECURITY;
@@ -38,12 +38,22 @@ CREATE TABLE IF NOT EXISTS public.camaras_tecnicas (
   nome         text NOT NULL
 );
 
--- Seed das câmaras técnicas iniciais
+-- Seed completo das Câmaras Técnicas da AGEMS (lista oficial)
 INSERT INTO public.camaras_tecnicas (id, diretoria_id, nome) VALUES
-  ('caterf', 'dtr', 'Câmara Técnica de Rodovias e Ferrovias'),
-  ('caterm', 'dtr', 'Câmara Técnica de Terminais Rodoviários'),
-  ('catesg', 'dge', 'Câmara Técnica de Serviços de Gás')
-ON CONFLICT (id) DO NOTHING;
+  -- DSB: Saneamento Básico e Resíduos Sólidos
+  ('catesa',   'dsb', 'Câmara Técnica de Saneamento'),
+  ('caters',   'dsb', 'Câmara Técnica de Resíduos Sólidos'),
+  ('cres',     'dsb', 'Câmara Técnica de Regulação Econômica do Saneamento'),
+  -- DTR: Transportes, Rodovias, Ferrovias, Portos e Aeroportos
+  ('catransp', 'dtr', 'Câmara Técnica de Transporte'),
+  ('caterf',   'dtr', 'Câmara Técnica de Rodovias e Ferrovias'),
+  ('catefis',  'dtr', 'Câmara Técnica de Fiscalização'),
+  ('cret',     'dtr', 'Câmara Técnica de Regulação Econômica'),
+  -- DGE: Gás Canalizado, Energia e Mineração
+  ('categas',  'dge', 'Câmara Técnica de Gás Canalizado'),
+  ('catene',   'dge', 'Câmara Técnica de Energia e Mineração'),
+  ('creg',     'dge', 'Câmara Técnica de Regulação Econômica')
+ON CONFLICT (id) DO UPDATE SET nome = EXCLUDED.nome, diretoria_id = EXCLUDED.diretoria_id;
 
 -- RLS
 ALTER TABLE public.camaras_tecnicas ENABLE ROW LEVEL SECURITY;
@@ -86,7 +96,10 @@ WHERE tipo_modulo IS NULL;
 
 -- Adicionar comentário explicativo nos valores esperados
 COMMENT ON COLUMN public.fiscalizacoes.tipo_modulo IS
-  'Identificador do módulo/diretoria que originou a fiscalização. Valores: saneamento_dsb, rodovias_dtr, terminais_dtr, gas_dge';
+  'Módulo/diretoria de origem da fiscalização.
+   DSB: saneamento_dsb | residuos_dsb
+   DTR: rodovias_dtr | transportes_dtr | fiscal_dtr
+   DGE: gas_dge | energia_dge';
 
 -- ====================================================================
 -- 5. FUNÇÕES AUXILIARES RLS

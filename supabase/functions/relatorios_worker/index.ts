@@ -149,7 +149,43 @@ async function claimJobs(adminClient: any, limit: number, specificJobId?: string
   return claimed
 }
 
-async function generatePdfForJob(adminClient: any, job: any) {
+// ====================================================================
+// ROTEADOR DE TEMPLATES — seleciona o gerador de PDF pelo tipo_modulo
+// Adicionar novos módulos aqui quando implementados (ex: DTR, DGE)
+// ====================================================================
+async function generatePdfForJob(adminClient: any, job: any): Promise<Uint8Array> {
+  const { data: fiscMod } = await adminClient
+    .from('fiscalizacoes')
+    .select('tipo_modulo')
+    .eq('id', job.fiscalizacao_id)
+    .maybeSingle()
+
+  const tipoModulo = String(fiscMod?.tipo_modulo || 'saneamento_dsb')
+
+  if (tipoModulo.startsWith('rodovias') || tipoModulo.startsWith('terminais')) {
+    return generatePdfDTR(adminClient, job)
+  }
+
+  // Default: módulo de Saneamento Básico (DSB)
+  return generatePdfDSB(adminClient, job)
+}
+
+// ====================================================================
+// STUB: Template DTR — Laudo de Rodovia
+// Implementação completa na Fase 4, quando o módulo DTR estiver definido.
+// ====================================================================
+async function generatePdfDTR(_adminClient: any, _job: any): Promise<Uint8Array> {
+  throw new Error(
+    'Template de relatório para o módulo de Transportes (DTR) ainda não implementado. ' +
+    'O módulo será disponibilizado na Fase 4 do desenvolvimento.'
+  )
+}
+
+// ====================================================================
+// TEMPLATE DSB: Termo de Vistoria — Saneamento Básico
+// Função original, sem nenhuma alteração interna.
+// ====================================================================
+async function generatePdfDSB(adminClient: any, job: any) {
   const { data: fisc, error: fiscErr } = await adminClient.from('fiscalizacoes').select('*').eq('id', job.fiscalizacao_id).maybeSingle()
   if (fiscErr) throw new Error(fiscErr.message)
   if (!fisc) throw new Error('Fiscalização não encontrada')
