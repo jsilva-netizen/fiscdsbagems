@@ -192,85 +192,32 @@ export default function Relatorios() {
         }
     });
 
-    const { data: ncs = [] } = useQuery({
-        queryKey: ['todas-ncs'],
+    const { data: resumo = {
+        total_fiscalizacoes: 0,
+        finalizadas: 0,
+        total_ncs: 0,
+        total_constatacoes: 0,
+        total_determinacoes: 0,
+        total_recomendacoes: 0,
+        total_conformidades: 0,
+        por_servico: [],
+        ranking_determinacoes: []
+    } } = useQuery({
+        queryKey: ['resumo-indicadores', anoFiltro, servicoFiltro, municipioFiltro, prestadorFiltro, apenasFinalizadas],
         queryFn: async () => {
-            const { data, error } = await supabase
-                .from('nao_conformidades')
-                .select('*')
-                .order('created_at', { ascending: false })
-                .limit(10000);
+            const { data, error } = await supabase.rpc('obter_resumo_indicadores', {
+                p_anos: anoFiltro,
+                p_servicos: servicoFiltro,
+                p_municipio_ids: municipioFiltro,
+                p_prestador_ids: prestadorFiltro,
+                p_apenas_finalizadas: apenasFinalizadas
+            });
             if (error) throw error;
             return data;
         }
     });
 
-    const { data: unidades = [] } = useQuery({
-        queryKey: ['todas-unidades'],
-        queryFn: async () => {
-            const { data, error } = await supabase
-                .from('unidades_fiscalizadas')
-                .select('*')
-                .order('created_at', { ascending: false })
-                .limit(10000);
-            if (error) throw error;
-            return data;
-        }
-    });
-
-    const { data: respostas = [] } = useQuery({
-        queryKey: ['todas-respostas'],
-        queryFn: async () => {
-            const { data, error } = await supabase
-                .from('respostas_checklist')
-                .select('*')
-                .order('created_at', { ascending: false })
-                .limit(30000);
-            if (error) throw error;
-            return data;
-        }
-    });
-
-    const { data: determinacoes = [] } = useQuery({
-        queryKey: ['todas-determinacoes'],
-        queryFn: async () => {
-            const { data, error } = await supabase
-                .from('determinacoes')
-                .select('*')
-                .order('created_at', { ascending: false })
-                .limit(10000);
-            if (error) throw error;
-            return data;
-        }
-    });
-
-    const { data: recomendacoes = [] } = useQuery({
-        queryKey: ['todas-recomendacoes'],
-        queryFn: async () => {
-            const { data, error } = await supabase
-                .from('recomendacoes')
-                .select('*')
-                .order('created_at', { ascending: false })
-                .limit(10000);
-            if (error) throw error;
-            return data;
-        }
-    });
-
-    const { data: constatacoesManuais = [] } = useQuery({
-        queryKey: ['todas-constatacoes-manuais'],
-        queryFn: async () => {
-            const { data, error } = await supabase
-                .from('constatacoes_manuais')
-                .select('*')
-                .order('created_at', { ascending: false })
-                .limit(10000);
-            if (error) throw error;
-            return data;
-        }
-    });
-
-    // Filtrar por ano e outros critérios em cascata
+    // Filtrar por ano e outros critérios em cascata (mantido para exportação JSON e metadados rápidos)
     const fiscalizacoesAno = fiscalizacoes.filter(f => {
         const matchAno = anoFiltro.length === 0 || 
             anoFiltro.includes(new Date(f.created_at).getFullYear().toString());
@@ -291,83 +238,20 @@ export default function Relatorios() {
         return matchAno && matchServico && matchMunicipio && matchPrestador && matchStatus;
     });
 
-    // Estatísticas gerais
-    const totalFiscalizacoes = fiscalizacoesAno.length;
-    const finalizadas = fiscalizacoesAno.filter(f => f.status === 'finalizada').length;
-    
-    // Contar NCs corretas filtrando por unidades das fiscalizações do ano
-    const unidadesFiscalizacoesAno = unidades.filter(u => 
-        fiscalizacoesAno.some(f => f.id === u.fiscalizacao_id)
-    );
-    const totalNCs = ncs.filter(nc => 
-        unidadesFiscalizacoesAno.some(u => u.id === nc.unidade_fiscalizada_id)
-    ).length;
+    // Estatísticas gerais extraídas diretamente da RPC
+    const totalFiscalizacoes = resumo.total_fiscalizacoes;
+    const finalizadas = resumo.finalizadas;
+    const totalNCs = resumo.total_ncs;
+    const totalConstatacoes = resumo.total_constatacoes;
+    const totalDeterminacoes = resumo.total_determinacoes;
+    const totalRecomendacoes = resumo.total_recomendacoes;
+    const totalConformidades = resumo.total_conformidades;
 
-    // Constatações (respostas com SIM ou NAO + constatacoes manuais)
-    const totalConstatacoesChecklist = respostas.filter(r => 
-        unidadesFiscalizacoesAno.some(u => u.id === r.unidade_fiscalizada_id) &&
-        (r.resposta === 'SIM' || r.resposta === 'NAO' || r.resposta === 'NÃO') &&
-        r.pergunta && r.pergunta.trim() !== ''
-    ).length;
+    // Dados por serviço consolidados da RPC
+    const dadosServico = resumo.por_servico || [];
 
-    const totalConstatacoesManuais = constatacoesManuais.filter(cm =>
-        unidadesFiscalizacoesAno.some(u => u.id === cm.unidade_fiscalizada_id)
-    ).length;
-
-    const totalConstatacoes = totalConstatacoesChecklist + totalConstatacoesManuais;
-
-    // Determinações
-    const totalDeterminacoes = determinacoes.filter(d => 
-        unidadesFiscalizacoesAno.some(u => u.id === d.unidade_fiscalizada_id)
-    ).length;
-
-    // Recomendações
-    const totalRecomendacoes = recomendacoes.filter(r => 
-        unidadesFiscalizacoesAno.some(u => u.id === r.unidade_fiscalizada_id)
-    ).length;
-
-    // Contar conformidades (respostas SIM ao checklist)
-    const totalConformidades = respostas.filter(r => 
-        unidadesFiscalizacoesAno.some(u => u.id === r.unidade_fiscalizada_id) &&
-        r.resposta === 'SIM'
-    ).length;
-
-    // Dados por serviço - cada fiscalização pode ter múltiplos serviços
-    const porServico = {};
-    fiscalizacoesAno.forEach(f => {
-        const servicos = Array.isArray(f.servicos) ? f.servicos : (f.servico ? [f.servico] : []);
-        
-        servicos.forEach(servico => {
-            if (!porServico[servico]) {
-                porServico[servico] = { 
-                    servico: servico, 
-                    quantidade: 0
-                };
-            }
-            porServico[servico].quantidade++;
-        });
-    });
-    const dadosServico = Object.values(porServico);
-
-    // Ranking de determinações por município
-    const porMunicipioDeterm = {};
-    determinacoes.filter(d => 
-        unidadesFiscalizacoesAno.some(u => u.id === d.unidade_fiscalizada_id)
-    ).forEach(d => {
-        const unidade = unidadesFiscalizacoesAno.find(u => u.id === d.unidade_fiscalizada_id);
-        const fisc = fiscalizacoesAno.find(f => f.id === unidade?.fiscalizacao_id);
-        if (fisc) {
-            const muniNome = fisc.municipio_nome || todosMunicipios.find(m => m.id === fisc.municipio_id)?.nome || 'Sem Nome';
-            if (!porMunicipioDeterm[muniNome]) {
-                porMunicipioDeterm[muniNome] = { municipio: muniNome, determinacoes: 0 };
-            }
-            porMunicipioDeterm[muniNome].determinacoes++;
-        }
-    });
-    const rankingDeterminacoes = Object.values(porMunicipioDeterm)
-        .sort((a, b) => b.determinacoes - a.determinacoes)
-        .slice(0, 10);
-
+    // Ranking de determinações por município consolidados da RPC
+    const rankingDeterminacoes = resumo.ranking_determinacoes || [];
     const topMunicipios = rankingDeterminacoes.map(m => m.municipio);
 
     // Dados para gráfico de pizza
@@ -376,7 +260,7 @@ export default function Relatorios() {
         { name: 'Não Conformidades', value: totalNCs }
     ];
 
-    // Municípios sem fiscalização
+    // Municípios sem fiscalização (calculados a partir do filtro local)
     const municipiosFiscalizados = new Set(fiscalizacoesAno.map(f => 
         f.municipio_nome || todosMunicipios.find(m => m.id === f.municipio_id)?.nome || 'Sem Nome'
     ));
