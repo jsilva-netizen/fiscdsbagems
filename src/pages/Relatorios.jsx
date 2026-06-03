@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { createPageUrl } from '@/utils';
 import { supabase } from '@/lib/supabase';
 import { useQuery } from '@tanstack/react-query';
@@ -6,10 +6,8 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp } from 'lucide-react';
+import { TrendingUp, ArrowLeft, Download, FileJson, FileText, CheckCircle2, AlertTriangle, ChevronDown, Check, Search } from 'lucide-react';
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Legend, Cell } from 'recharts';
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Download, FileJson, FileText, CheckCircle2, AlertTriangle } from 'lucide-react';
 
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -25,11 +23,136 @@ const SERVICO_COLORS = {
 
 const TODOS_SERVICOS = ['Abastecimento de Água', 'Esgotamento Sanitário', 'Manejo de Resíduos Sólidos', 'Limpeza Urbana', 'Drenagem'];
 
+function MultiSelect({ placeholder, options, selectedValues, onChange }) {
+    const [open, setOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const containerRef = useRef(null);
+
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (containerRef.current && !containerRef.current.contains(event.target)) {
+                setOpen(false);
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const filteredOptions = options.filter(opt =>
+        opt.label.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const handleSelect = (val) => {
+        let newSelection;
+        if (selectedValues.includes(val)) {
+            newSelection = selectedValues.filter(v => v !== val);
+        } else {
+            newSelection = [...selectedValues, val];
+        }
+        onChange(newSelection);
+    };
+
+    const handleSelectAll = () => {
+        onChange(options.map(opt => opt.value));
+    };
+
+    const handleClear = () => {
+        onChange([]);
+    };
+
+    const getDisplayText = () => {
+        if (selectedValues.length === 0) return placeholder;
+        if (selectedValues.length === options.length) return "Todos";
+        
+        const selectedLabels = options
+            .filter(opt => selectedValues.includes(opt.value))
+            .map(opt => opt.label);
+
+        if (selectedLabels.length <= 2) {
+            return selectedLabels.join(', ');
+        }
+        return `${selectedValues.length} selecionados`;
+    };
+
+    return (
+        <div className="relative w-full" ref={containerRef}>
+            <button
+                type="button"
+                onClick={() => setOpen(!open)}
+                className="flex h-10 w-full items-center justify-between rounded-md border border-gray-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-left"
+            >
+                <span className="truncate block pr-2 text-gray-700">
+                    {getDisplayText()}
+                </span>
+                <ChevronDown className="h-4 w-4 shrink-0 text-gray-500 opacity-50" />
+            </button>
+
+            {open && (
+                <div className="absolute z-50 mt-1 max-h-60 w-full overflow-hidden rounded-md border border-gray-200 bg-white shadow-md animate-in fade-in-0 zoom-in-95 duration-100 flex flex-col">
+                    {options.length > 5 && (
+                        <div className="flex items-center border-b border-gray-100 px-3 py-2">
+                            <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                            <input
+                                type="text"
+                                placeholder="Buscar..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="flex h-6 w-full rounded-md bg-transparent text-sm outline-none placeholder:text-gray-400 disabled:cursor-not-allowed disabled:opacity-50"
+                            />
+                        </div>
+                    )}
+                    
+                    <div className="flex items-center justify-between border-b border-gray-100 px-3 py-1.5 bg-gray-50 text-[11px] font-medium text-gray-500">
+                        <button 
+                            type="button" 
+                            onClick={handleSelectAll}
+                            className="hover:text-blue-600 transition-colors cursor-pointer"
+                        >
+                            Selecionar Todos
+                        </button>
+                        <button 
+                            type="button" 
+                            onClick={handleClear}
+                            className="hover:text-red-600 transition-colors cursor-pointer"
+                        >
+                            Limpar
+                        </button>
+                    </div>
+
+                    <div className="overflow-y-auto flex-1 py-1 max-h-40">
+                        {filteredOptions.length === 0 ? (
+                            <div className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm text-gray-500 justify-center">
+                                Nenhum resultado encontrado.
+                            </div>
+                        ) : (
+                            filteredOptions.map((opt) => {
+                                const isSelected = selectedValues.includes(opt.value);
+                                return (
+                                    <div
+                                        key={opt.value}
+                                        onClick={() => handleSelect(opt.value)}
+                                        className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-3 pr-2 text-sm outline-none hover:bg-gray-100 text-gray-700 transition-colors"
+                                    >
+                                        <div className="mr-2 flex h-4 w-4 items-center justify-center rounded border border-gray-300 bg-white">
+                                            {isSelected && <Check className="h-3 w-3 text-blue-600 font-bold" />}
+                                        </div>
+                                        <span className="flex-1 truncate">{opt.label}</span>
+                                    </div>
+                                );
+                            })
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
 export default function Relatorios() {
-    const [anoFiltro, setAnoFiltro] = useState(new Date().getFullYear().toString());
-    const [servicoFiltro, setServicoFiltro] = useState('todos');
-    const [municipioFiltro, setMunicipioFiltro] = useState('todos');
-    const [prestadorFiltro, setPrestadorFiltro] = useState('todos');
+    const [anoFiltro, setAnoFiltro] = useState([new Date().getFullYear().toString()]);
+    const [servicoFiltro, setServicoFiltro] = useState([]);
+    const [municipioFiltro, setMunicipioFiltro] = useState([]);
+    const [prestadorFiltro, setPrestadorFiltro] = useState([]);
 
     const { data: fiscalizacoes = [] } = useQuery({
         queryKey: ['fiscalizacoes'],
@@ -73,7 +196,8 @@ export default function Relatorios() {
             const { data, error } = await supabase
                 .from('nao_conformidades')
                 .select('*')
-                .order('created_at', { ascending: false });
+                .order('created_at', { ascending: false })
+                .limit(10000);
             if (error) throw error;
             return data;
         }
@@ -85,7 +209,8 @@ export default function Relatorios() {
             const { data, error } = await supabase
                 .from('unidades_fiscalizadas')
                 .select('*')
-                .order('created_at', { ascending: false });
+                .order('created_at', { ascending: false })
+                .limit(10000);
             if (error) throw error;
             return data;
         }
@@ -97,7 +222,8 @@ export default function Relatorios() {
             const { data, error } = await supabase
                 .from('respostas_checklist')
                 .select('*')
-                .order('created_at', { ascending: false });
+                .order('created_at', { ascending: false })
+                .limit(30000);
             if (error) throw error;
             return data;
         }
@@ -109,7 +235,8 @@ export default function Relatorios() {
             const { data, error } = await supabase
                 .from('determinacoes')
                 .select('*')
-                .order('created_at', { ascending: false });
+                .order('created_at', { ascending: false })
+                .limit(10000);
             if (error) throw error;
             return data;
         }
@@ -121,7 +248,21 @@ export default function Relatorios() {
             const { data, error } = await supabase
                 .from('recomendacoes')
                 .select('*')
-                .order('created_at', { ascending: false });
+                .order('created_at', { ascending: false })
+                .limit(10000);
+            if (error) throw error;
+            return data;
+        }
+    });
+
+    const { data: constatacoesManuais = [] } = useQuery({
+        queryKey: ['todas-constatacoes-manuais'],
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from('constatacoes_manuais')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(10000);
             if (error) throw error;
             return data;
         }
@@ -129,14 +270,19 @@ export default function Relatorios() {
 
     // Filtrar por ano e outros critérios em cascata
     const fiscalizacoesAno = fiscalizacoes.filter(f => {
-        const matchAno = new Date(f.created_at).getFullYear().toString() === anoFiltro;
+        const matchAno = anoFiltro.length === 0 || 
+            anoFiltro.includes(new Date(f.created_at).getFullYear().toString());
         
-        const matchServico = servicoFiltro === 'todos' || 
-            (Array.isArray(f.servicos) ? f.servicos.includes(servicoFiltro) : f.servico === servicoFiltro);
+        const matchServico = servicoFiltro.length === 0 || 
+            (Array.isArray(f.servicos) 
+                ? f.servicos.some(s => servicoFiltro.includes(s)) 
+                : servicoFiltro.includes(f.servico));
             
-        const matchMunicipio = municipioFiltro === 'todos' || f.municipio_id === municipioFiltro;
+        const matchMunicipio = municipioFiltro.length === 0 || 
+            municipioFiltro.includes(f.municipio_id);
         
-        const matchPrestador = prestadorFiltro === 'todos' || f.prestador_servico_id === prestadorFiltro;
+        const matchPrestador = prestadorFiltro.length === 0 || 
+            prestadorFiltro.includes(f.prestador_servico_id);
         
         return matchAno && matchServico && matchMunicipio && matchPrestador;
     });
@@ -153,11 +299,18 @@ export default function Relatorios() {
         unidadesFiscalizacoesAno.some(u => u.id === nc.unidade_fiscalizada_id)
     ).length;
 
-    // Constatações (respostas com SIM ou NAO)
-    const totalConstatacoes = respostas.filter(r => 
+    // Constatações (respostas com SIM ou NAO + constatacoes manuais)
+    const totalConstatacoesChecklist = respostas.filter(r => 
         unidadesFiscalizacoesAno.some(u => u.id === r.unidade_fiscalizada_id) &&
-        (r.resposta === 'SIM' || r.resposta === 'NAO')
+        (r.resposta === 'SIM' || r.resposta === 'NAO' || r.resposta === 'NÃO') &&
+        r.pergunta && r.pergunta.trim() !== ''
     ).length;
+
+    const totalConstatacoesManuais = constatacoesManuais.filter(cm =>
+        unidadesFiscalizacoesAno.some(u => u.id === cm.unidade_fiscalizada_id)
+    ).length;
+
+    const totalConstatacoes = totalConstatacoesChecklist + totalConstatacoesManuais;
 
     // Determinações
     const totalDeterminacoes = determinacoes.filter(d => 
@@ -200,10 +353,11 @@ export default function Relatorios() {
         const unidade = unidadesFiscalizacoesAno.find(u => u.id === d.unidade_fiscalizada_id);
         const fisc = fiscalizacoesAno.find(f => f.id === unidade?.fiscalizacao_id);
         if (fisc) {
-            if (!porMunicipioDeterm[fisc.municipio_nome]) {
-                porMunicipioDeterm[fisc.municipio_nome] = { municipio: fisc.municipio_nome, determinacoes: 0 };
+            const muniNome = fisc.municipio_nome || todosMunicipios.find(m => m.id === fisc.municipio_id)?.nome || 'Sem Nome';
+            if (!porMunicipioDeterm[muniNome]) {
+                porMunicipioDeterm[muniNome] = { municipio: muniNome, determinacoes: 0 };
             }
-            porMunicipioDeterm[fisc.municipio_nome].determinacoes++;
+            porMunicipioDeterm[muniNome].determinacoes++;
         }
     });
     const rankingDeterminacoes = Object.values(porMunicipioDeterm)
@@ -219,9 +373,15 @@ export default function Relatorios() {
     ];
 
     // Municípios sem fiscalização
-    const municipiosFiscalizados = new Set(fiscalizacoesAno.map(f => f.municipio_nome));
+    const municipiosFiscalizados = new Set(fiscalizacoesAno.map(f => 
+        f.municipio_nome || todosMunicipios.find(m => m.id === f.municipio_id)?.nome || 'Sem Nome'
+    ));
 
     const anos = ['2024', '2025', '2026'];
+    const anosOptions = anos.map(ano => ({ value: ano, label: ano }));
+    const servicosOptions = TODOS_SERVICOS.map(s => ({ value: s, label: s }));
+    const municipiosOptions = todosMunicipios.map(m => ({ value: m.id, label: m.nome }));
+    const prestadoresOptions = todosPrestadores.map(p => ({ value: p.id, label: p.nome }));
 
     const exportarPDF = async () => {
         const element = document.getElementById('relatorio-completo');
@@ -232,12 +392,13 @@ export default function Relatorios() {
         const imgHeight = (canvas.height * imgWidth) / canvas.width;
         
         pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-        pdf.save(`Relatorio-Fiscalizacoes-${anoFiltro}.pdf`);
+        const anoStr = anoFiltro.length > 0 ? anoFiltro.join('-') : 'Todos';
+        pdf.save(`Relatorio-Fiscalizacoes-${anoStr}.pdf`);
     };
 
     const exportarJSON = () => {
         const dados = {
-            ano: anoFiltro,
+            ano: anoFiltro.length > 0 ? anoFiltro.join(', ') : 'Todos',
             data_geracao: new Date().toLocaleString('pt-BR'),
             resumo: {
                 totalFiscalizacoes,
@@ -250,7 +411,7 @@ export default function Relatorios() {
             top_municipios: topMunicipios,
             fiscalizacoes_detalhes: fiscalizacoesAno.map(f => ({
                 id: f.id,
-                municipio: f.municipio_nome,
+                municipio: f.municipio_nome || todosMunicipios.find(m => m.id === f.municipio_id)?.nome || 'Sem Nome',
                 prestador: f.prestador_servico_nome,
                 servico: f.servico,
                 status: f.status,
@@ -263,7 +424,8 @@ export default function Relatorios() {
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `Relatorio-Fiscalizacoes-${anoFiltro}.json`;
+        const anoStr = anoFiltro.length > 0 ? anoFiltro.join('-') : 'Todos';
+        link.download = `Relatorio-Fiscalizacoes-${anoStr}.json`;
         link.click();
         window.URL.revokeObjectURL(url);
     };
@@ -305,61 +467,42 @@ export default function Relatorios() {
                     <CardContent className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                         <div className="space-y-1">
                             <label className="text-xs font-semibold text-gray-500 block">Ano</label>
-                            <Select value={anoFiltro} onValueChange={setAnoFiltro}>
-                                <SelectTrigger className="w-full bg-white border-gray-200">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {anos.map(ano => (
-                                        <SelectItem key={ano} value={ano}>{ano}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <MultiSelect 
+                                placeholder="Todos os Anos" 
+                                options={anosOptions} 
+                                selectedValues={anoFiltro} 
+                                onChange={setAnoFiltro} 
+                            />
                         </div>
 
                         <div className="space-y-1">
                             <label className="text-xs font-semibold text-gray-500 block">Serviço</label>
-                            <Select value={servicoFiltro} onValueChange={setServicoFiltro}>
-                                <SelectTrigger className="w-full bg-white border-gray-200">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="todos">Todos os Serviços</SelectItem>
-                                    {TODOS_SERVICOS.map(s => (
-                                        <SelectItem key={s} value={s}>{s}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <MultiSelect 
+                                placeholder="Todos os Serviços" 
+                                options={servicosOptions} 
+                                selectedValues={servicoFiltro} 
+                                onChange={setServicoFiltro} 
+                            />
                         </div>
 
                         <div className="space-y-1">
                             <label className="text-xs font-semibold text-gray-500 block">Município</label>
-                            <Select value={municipioFiltro} onValueChange={setMunicipioFiltro}>
-                                <SelectTrigger className="w-full bg-white border-gray-200">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="todos">Todos os Municípios</SelectItem>
-                                    {todosMunicipios.map(m => (
-                                        <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <MultiSelect 
+                                placeholder="Todos os Municípios" 
+                                options={municipiosOptions} 
+                                selectedValues={municipioFiltro} 
+                                onChange={setMunicipioFiltro} 
+                            />
                         </div>
 
                         <div className="space-y-1">
                             <label className="text-xs font-semibold text-gray-500 block">Prestador</label>
-                            <Select value={prestadorFiltro} onValueChange={setPrestadorFiltro}>
-                                <SelectTrigger className="w-full bg-white border-gray-200">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="todos">Todos os Prestadores</SelectItem>
-                                    {todosPrestadores.map(p => (
-                                        <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <MultiSelect 
+                                placeholder="Todos os Prestadores" 
+                                options={prestadoresOptions} 
+                                selectedValues={prestadorFiltro} 
+                                onChange={setPrestadorFiltro} 
+                            />
                         </div>
                     </CardContent>
                 </Card>
