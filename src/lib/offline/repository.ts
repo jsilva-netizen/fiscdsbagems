@@ -296,9 +296,9 @@ export const Repository = {
     return all.slice().sort((a, b) => (b.data_inicio || '').localeCompare(a.data_inicio || '')).slice(0, limit)
   },
   
-  async createFiscalizacao(data: Partial<Fiscalizacao> & { municipio_id: string; prestador_servico_id?: string; servicos?: string[]; fiscal_email?: string; fiscal_nome?: string; latitude_inicio?: number; longitude_inicio?: number; tipo_modulo?: string; rodovia?: string }): Promise<Fiscalizacao> {
+  async createFiscalizacao(data: Partial<Fiscalizacao> & { municipio_id?: string; prestador_servico_id?: string; servicos?: string[]; fiscal_email?: string; fiscal_nome?: string; latitude_inicio?: number; longitude_inicio?: number; tipo_modulo?: string; rodovia?: string }): Promise<Fiscalizacao> {
     const id = uid()
-    const muni = await db.municipios.get(data.municipio_id as any)
+    const muni = data.municipio_id ? await db.municipios.get(data.municipio_id as any) : null
     const prest = data.prestador_servico_id ? await db.prestadores.get(data.prestador_servico_id as any) : null
     
     const item: Fiscalizacao = {
