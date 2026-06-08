@@ -303,7 +303,33 @@ export default function VistoriarUnidade() {
                         height: f.height
                     }))
                 );
-                setFotos([...(locais || []), ...remotas]);
+
+                const merged = [];
+                const seenUrls = new Set();
+                const seenPaths = new Set();
+                const seenLocalIds = new Set();
+
+                const addFoto = (f) => {
+                    if (!f) return;
+                    const url = String(f.url || '').trim();
+                    const path = String(f.path || '').trim();
+                    const localId = String(f.localId || '').trim();
+
+                    if (url && seenUrls.has(url)) return;
+                    if (path && seenPaths.has(path)) return;
+                    if (localId && seenLocalIds.has(localId)) return;
+
+                    if (url) seenUrls.add(url);
+                    if (path) seenPaths.add(path);
+                    if (localId) seenLocalIds.add(localId);
+
+                    merged.push(f);
+                };
+
+                (locais || []).forEach(addFoto);
+                (remotas || []).forEach(addFoto);
+
+                setFotos(merged);
                 fotosCarregadasRef.current = unidadeId;
                 setFotosDirty(false);
             } catch (err) {
