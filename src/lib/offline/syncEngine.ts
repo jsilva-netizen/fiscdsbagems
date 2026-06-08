@@ -893,6 +893,9 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
     if (entity === 'unidades') {
       mapped.fiscalizacao_id = await resolveId('fiscalizacoes', payload?.fiscalizacao_id)
       mapped.tipo_unidade_id = await resolveId('tipos_unidade', payload?.tipo_unidade_id)
+      if (mapped.tipo_unidade_id === 'dtr-occurrence-dummy-uuid') {
+        mapped.tipo_unidade_id = null
+      }
       const codigo = String(mapped?.codigo_unidade || '').trim()
       if (type === 'insert' && codigo && mapped?.fiscalizacao_id) {
         try {

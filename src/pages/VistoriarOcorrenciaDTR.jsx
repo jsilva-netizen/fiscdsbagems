@@ -174,7 +174,7 @@ export default function VistoriarOcorrenciaDTR() {
 
             const unitPayload = {
                 fiscalizacao_id: fiscId,
-                tipo_unidade_id: 'dtr-occurrence-dummy-uuid', // UUID placeholder
+                tipo_unidade_id: null, // No specific unit type for DTR occurrences
                 tipo_unidade_name: 'Ocorrência',
                 nome_unidade: formData.tipo_ocorrencia,
                 codigo_unidade: '',
