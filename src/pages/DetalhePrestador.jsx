@@ -186,7 +186,7 @@ export default function DetalhePrestador() {
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Header */}
-            <div className="bg-blue-900 text-white">
+            <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
                 <div className="max-w-6xl mx-auto px-4 py-6">
                     <div className="flex items-center gap-3 mb-4">
                         <Link to={createPageUrl('PrestadoresServico')}>

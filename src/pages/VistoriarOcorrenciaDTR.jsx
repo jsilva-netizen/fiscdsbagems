@@ -310,7 +310,7 @@ export default function VistoriarOcorrenciaDTR() {
     return (
         <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col justify-between">
             {/* Header */}
-            <div className="bg-gradient-to-r from-blue-700 to-indigo-800 border-b border-indigo-600/30">
+            <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
                 <div className="max-w-md mx-auto px-4 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <Link to={createPageUrl('ExecutarFiscalizacaoDTR') + `?id=${fiscId}`}>

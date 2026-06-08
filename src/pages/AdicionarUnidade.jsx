@@ -190,7 +190,7 @@ export default function AdicionarUnidade() {
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Header */}
-            <div className="bg-blue-900 text-white">
+            <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
                 <div className="max-w-lg mx-auto px-4 py-4">
                     <div className="flex items-center gap-3">
                         <Link to={createPageUrl('ExecutarFiscalizacao') + `?id=${fiscalizacaoId}`}>

@@ -1074,7 +1074,7 @@ export default function VistoriarUnidade() {
         <div className="min-h-screen bg-gray-100 pb-24">
             
             {/* Header */}
-            <div className="bg-blue-900 text-white sticky top-0 z-40">
+            <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md sticky top-0 z-40">
                 <div className="max-w-4xl mx-auto px-4 py-3">
                     <div className="flex items-center gap-3">
                         <Link to={createPageUrl('ExecutarFiscalizacao') + `?id=${unidade?.fiscalizacao_id}`}>
