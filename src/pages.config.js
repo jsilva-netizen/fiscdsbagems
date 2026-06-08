@@ -73,6 +73,7 @@ import VistoriarOcorrenciaDTR from './pages/VistoriarOcorrenciaDTR';
 import VistoriarUnidade from './pages/VistoriarUnidade';
 import PortalPrestadorHome from './pages/PortalPrestadorHome';
 import ResponderTermo from './pages/ResponderTermo';
+import Contratos from './pages/Contratos';
 import __Layout from './Layout.jsx';
 
 
@@ -103,6 +104,7 @@ export const PAGES = {
     "VistoriarUnidade": VistoriarUnidade,
     "PortalPrestadorHome": PortalPrestadorHome,
     "ResponderTermo": ResponderTermo,
+    "Contratos": Contratos,
 }
 
 export const pagesConfig = {
