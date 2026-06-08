@@ -79,7 +79,7 @@ serve(async (req) => {
 
   const { data: fiscRow } = await adminClient
     .from('fiscalizacoes')
-    .select('id, created_by, fiscal_email')
+    .select('id, created_by, fiscal_email, tipo_modulo')
     .eq('id', fiscalizacao_id)
     .maybeSingle()
   if (!fiscRow) return jsonResponse({ error: 'fiscalizacao_not_found' }, 404)
@@ -102,17 +102,22 @@ serve(async (req) => {
     console.error('Falha ao chamar finalizar_fiscalizacao:', err)
   }
 
-  const { data: unidadeProbe, error: unidadeErr } = await adminClient
-    .from('unidades_fiscalizadas')
-    .select('id')
-    .eq('fiscalizacao_id', fiscalizacao_id)
-    .limit(1)
-  if (unidadeErr) return jsonResponse({ error: 'unidades_check_failed', details: unidadeErr.message }, 500)
-  if (!Array.isArray(unidadeProbe) || unidadeProbe.length === 0) {
-    return jsonResponse(
-      { error: 'Nenhuma unidade encontrada para esta fiscalização. Sincronize todas as unidades e tente novamente.', code: 'no_unidades' },
-      409
-    )
+  const tipoModulo = String(fiscRow?.tipo_modulo || '')
+  const isDtr = tipoModulo.startsWith('rodovias') || tipoModulo.startsWith('terminais') || tipoModulo.includes('dtr')
+
+  if (!isDtr) {
+    const { data: unidadeProbe, error: unidadeErr } = await adminClient
+      .from('unidades_fiscalizadas')
+      .select('id')
+      .eq('fiscalizacao_id', fiscalizacao_id)
+      .limit(1)
+    if (unidadeErr) return jsonResponse({ error: 'unidades_check_failed', details: unidadeErr.message }, 500)
+    if (!Array.isArray(unidadeProbe) || unidadeProbe.length === 0) {
+      return jsonResponse(
+        { error: 'Nenhuma unidade encontrada para esta fiscalização. Sincronize todas as unidades e tente novamente.', code: 'no_unidades' },
+        409
+      )
+    }
   }
 
   const { data: jobRow, error: jobErr } = await adminClient

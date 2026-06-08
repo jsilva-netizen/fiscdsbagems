@@ -199,18 +199,16 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
     } catch {}
   }
 
-  const { data: unidades, error: uErr } = await adminClient
+  const { data: rawUnidades, error: uErr } = await adminClient
     .from('unidades_fiscalizadas')
     .select('*')
     .eq('fiscalizacao_id', job.fiscalizacao_id)
     .order('ordem', { ascending: true, nullsFirst: true })
     .order('created_at', { ascending: true })
   if (uErr) throw new Error(uErr.message)
-  if (!unidades || unidades.length === 0) {
-    throw new Error('Nenhuma ocorrência encontrada para esta fiscalização. Sincronize e tente novamente.')
-  }
+  const unidades = rawUnidades || []
 
-  const unidadeIds = (unidades || []).map((u: any) => u.id)
+  const unidadeIds = unidades.map((u: any) => u.id)
   const { data: todasDeterminacoes, error: detErr } = unidadeIds.length
     ? await adminClient
         .from('determinacoes')
@@ -843,6 +841,12 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
   yPos += mm2pt(6)
   drawTextAt(`• Gravidade Gravíssima (Crítico): ${countsByGravidade.gravissima}`, margin + mm2pt(2), yPos, 10)
   yPos += mm2pt(10)
+
+  if (totalOcorrencias === 0) {
+    yPos += mm2pt(5)
+    drawTextAt('Nota: Nenhuma irregularidade ou não conformidade foi identificada na rodovia durante esta vistoria.', margin + mm2pt(2), yPos, 10, { bold: true })
+    yPos += mm2pt(10)
+  }
 
   if (countsByTipo.size > 0) {
     drawTextAt('OCORRÊNCIAS POR TIPO', margin, yPos, 11, { bold: true })
