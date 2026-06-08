@@ -994,7 +994,9 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
         }
       } catch {}
     }
-    mapped.id = await resolveId(entity, payload?.id)
+    if (!mapped.id || mapped.id === payload?.id) {
+      mapped.id = await resolveId(entity, payload?.id)
+    }
     const safe = serializePayload(entity, type, mapped)
     if (entity === 'constatacoes_manuais') {
       const parseMissingColumn = (err: any): string | null => {
@@ -1439,6 +1441,18 @@ async function pullEntity(entity: Entity, since?: string) {
         const fkMap = await db.id_map.filter((m) => m.server_id === normalized.unidade_fiscalizada_id && m.entity === 'unidades').first()
         if (fkMap?.local_id) normalized.unidade_fiscalizada_id = fkMap.local_id
       }
+      if ((entity === 'determinacoes' || entity === 'recomendacoes') && normalized.unidade_fiscalizada_id && normalized.origem) {
+        const dbTable = (entity === 'determinacoes') ? (db as any).determinacoes : db.recomendacoes
+        const localItems = await dbTable.where('unidade_fiscalizada_id').equals(normalized.unidade_fiscalizada_id as any).toArray()
+        const existingLocal = localItems.find((x: any) => x.origem && String(x.origem).trim() === String(normalized.origem).trim())
+        if (existingLocal) {
+          if (existingLocal.id !== normalized.id) {
+            await dbTable.delete(existingLocal.id as any)
+            await db.id_map.put({ entity, local_id: existingLocal.id, server_id: server_id })
+            normalized.id = existingLocal.id
+          }
+        }
+      }
       switch (entity) {
         case 'fiscalizacoes':
           await db.fiscalizacoes.put(normalized)
@@ -1550,6 +1564,18 @@ async function pullEntity(entity: Entity, since?: string) {
     if ((entity === 'respostas' || entity === 'constatacoes_manuais' || entity === 'recomendacoes' || entity === 'determinacoes') && normalized?.unidade_fiscalizada_id) {
       const fkMap = await db.id_map.filter((m) => m.server_id === normalized.unidade_fiscalizada_id && m.entity === 'unidades').first()
       if (fkMap?.local_id) normalized.unidade_fiscalizada_id = fkMap.local_id
+    }
+    if ((entity === 'determinacoes' || entity === 'recomendacoes') && normalized.unidade_fiscalizada_id && normalized.origem) {
+      const dbTable = (entity === 'determinacoes') ? (db as any).determinacoes : db.recomendacoes
+      const localItems = await dbTable.where('unidade_fiscalizada_id').equals(normalized.unidade_fiscalizada_id as any).toArray()
+      const existingLocal = localItems.find((x: any) => x.origem && String(x.origem).trim() === String(normalized.origem).trim())
+      if (existingLocal) {
+        if (existingLocal.id !== normalized.id) {
+          await dbTable.delete(existingLocal.id as any)
+          await db.id_map.put({ entity, local_id: existingLocal.id, server_id: server_id })
+          normalized.id = existingLocal.id
+        }
+      }
     }
     switch (entity) {
       case 'fiscalizacoes':
