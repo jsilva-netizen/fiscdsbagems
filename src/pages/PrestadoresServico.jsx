@@ -469,22 +469,22 @@ export default function PrestadoresServico() {
                                                             Deletar
                                                         </Button>
                                                     </AlertDialogTrigger>
-                                                    <AlertDialogContent className="bg-slate-900 border border-slate-800 text-slate-100 rounded-2xl">
+                                                    <AlertDialogContent className="max-w-sm rounded-2xl">
                                                         {deleteConfirmation.step === 1 ? (
                                                             <>
                                                                 <AlertDialogHeader>
-                                                                    <AlertDialogTitle className="flex items-center gap-2 text-rose-400">
+                                                                    <AlertDialogTitle className="flex items-center gap-2 text-rose-600">
                                                                         <AlertTriangle className="h-5 w-5" />
                                                                         Excluir Entidade Regulada?
                                                                     </AlertDialogTitle>
-                                                                    <AlertDialogDescription className="space-y-2 text-slate-400">
+                                                                    <AlertDialogDescription className="space-y-2 text-gray-600">
                                                                         <p>Você está prestes a excluir permanentemente:</p>
-                                                                        <p className="font-semibold text-slate-200">{prestador.nome}</p>
-                                                                        <p className="text-rose-400 text-xs">Esta ação não pode ser desfeita.</p>
+                                                                        <p className="font-semibold text-gray-800">{prestador.nome}</p>
+                                                                        <p className="text-rose-500 text-xs">Esta ação não pode ser desfeita.</p>
                                                                     </AlertDialogDescription>
                                                                 </AlertDialogHeader>
                                                                 <AlertDialogFooter className="pt-4">
-                                                                    <AlertDialogCancel className="bg-slate-800 hover:bg-slate-700 border-none text-slate-200">Cancelar</AlertDialogCancel>
+                                                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
                                                                     <Button
                                                                         variant="destructive"
                                                                         className="bg-rose-600 hover:bg-rose-700 text-white rounded-xl"
@@ -497,22 +497,22 @@ export default function PrestadoresServico() {
                                                         ) : (
                                                             <>
                                                                 <AlertDialogHeader>
-                                                                    <AlertDialogTitle className="flex items-center gap-2 text-rose-400">
+                                                                    <AlertDialogTitle className="flex items-center gap-2 text-rose-600">
                                                                         <AlertTriangle className="h-5 w-5" />
                                                                         Confirmação Final
                                                                     </AlertDialogTitle>
-                                                                    <AlertDialogDescription className="space-y-3 text-slate-400">
-                                                                        <p>Para confirmar a exclusão, digite <span className="font-bold text-slate-200">EXCLUIR</span> no campo abaixo:</p>
+                                                                    <AlertDialogDescription className="space-y-3 text-gray-600">
+                                                                        <p>Para confirmar a exclusão, digite <span className="font-bold text-gray-800">EXCLUIR</span> no campo abaixo:</p>
                                                                         <Input
                                                                             placeholder="Digite EXCLUIR"
                                                                             value={deleteConfirmation.inputValue}
                                                                             onChange={(e) => setDeleteConfirmation(prev => ({ ...prev, inputValue: e.target.value }))}
-                                                                            className="mt-2 bg-slate-800 border-slate-700 text-slate-100 placeholder-slate-500 rounded-xl"
+                                                                            className="mt-2 rounded-xl"
                                                                         />
                                                                     </AlertDialogDescription>
                                                                 </AlertDialogHeader>
                                                                 <AlertDialogFooter className="pt-4">
-                                                                    <AlertDialogCancel className="bg-slate-800 hover:bg-slate-700 border-none text-slate-200" onClick={() => setDeleteConfirmation({ open: false, prestadorId: null, step: 1, inputValue: '' })}>
+                                                                    <AlertDialogCancel onClick={() => setDeleteConfirmation({ open: false, prestadorId: null, step: 1, inputValue: '' })}>
                                                                         Cancelar
                                                                     </AlertDialogCancel>
                                                                     <Button
