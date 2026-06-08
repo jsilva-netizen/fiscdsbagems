@@ -50,6 +50,24 @@ export type Prestador = {
   documentos?: any
   created_at?: string
   updated_at?: string
+  tipo_entidade?: string
+  tipo_servico?: string[]
+  logo_url?: string
+  status?: string
+  website?: string
+  estado?: string
+  cep?: string
+  observacoes?: string
+}
+
+export type Contrato = {
+  id: UUID
+  numero_contrato: string
+  prestador_servico_id: UUID
+  rodovia: string
+  ativo: boolean
+  created_at?: string
+  updated_at?: string
 }
 
 export type Fiscalizacao = {
@@ -198,6 +216,7 @@ export type PendingEntity = {
 export class AppDB extends Dexie {
   municipios!: Table<Municipio, UUID>
   prestadores!: Table<Prestador, UUID>
+  contratos!: Table<Contrato, UUID>
   tipos_unidade!: Table<{ id: UUID; nome: string; codigo?: string; servicos_aplicaveis?: string[]; ativo?: boolean; updated_at?: string; created_at?: string }, UUID>
   fiscalizacoes!: Table<Fiscalizacao, UUID>
   unidades!: Table<Unidade, UUID>
@@ -326,6 +345,48 @@ export class AppDB extends Dexie {
 
     this.version(10).stores({
       determinacoes: 'id, unidade_fiscalizada_id, numero_determinacao, origem, created_at'
+    })
+
+    this.version(11).stores({
+      prestadores: 'id, nome, updated_at',
+      contratos: 'id, numero_contrato, prestador_servico_id, rodovia, ativo, updated_at'
+    }).upgrade(async (tx) => {
+      const table = tx.table('prestadores') as Table<any, UUID>
+      const all = await table.toArray()
+      for (const p of all) {
+        let updated = false
+        if (!p.tipo_entidade) {
+          p.tipo_entidade = 'Concessionária'
+          updated = true
+        }
+        if (!p.status) {
+          p.status = 'ativa'
+          updated = true
+        }
+        if (!p.tipo_servico) {
+          if (p.nome === 'SANESUL') {
+            p.tipo_servico = ['Abastecimento de Água', 'Esgotamento Sanitário']
+          } else if (p.nome === 'Município de Paraíso das Águas') {
+            p.tipo_servico = ['Abastecimento de Água', 'Esgotamento Sanitário', 'Limpeza Urbana', 'Manejo de Resíduos Sólidos', 'Drenagem Urbana']
+          } else if (['CCR MSVia', 'Way-306', 'Way-112'].includes(p.nome)) {
+            p.tipo_servico = ['Rodovias']
+          } else {
+            p.tipo_servico = []
+          }
+          updated = true
+        }
+        if (!p.estado) {
+          p.estado = 'MS'
+          updated = true
+        }
+        if (!p.cep) {
+          p.cep = p.nome === 'SANESUL' ? '79040-040' : (p.nome === 'Município de Paraíso das Águas' ? '79556-000' : '79000-000')
+          updated = true
+        }
+        if (updated) {
+          await table.put(p)
+        }
+      }
     })
   }
 }

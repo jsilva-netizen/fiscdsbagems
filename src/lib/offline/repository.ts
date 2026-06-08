@@ -1,4 +1,4 @@
-import { db, Foto, Fiscalizacao, Unidade, ItemChecklist, RespostaChecklist, ConstatacaoManual, OfflineFoto } from './db'
+import { db, Foto, Fiscalizacao, Unidade, ItemChecklist, RespostaChecklist, ConstatacaoManual, OfflineFoto, Contrato } from './db'
 import { enqueueMutation } from './syncEngine'
 import { compressFileToBlob, MAX_DIMENSION, JPEG_QUALITY, MAX_PHOTOS_PER_UNIDADE, MAX_PHOTO_BYTES } from './image'
 import { getOrCreatePreviewUrl, revokePreviewUrl } from './photoPreviewCache'
@@ -168,13 +168,35 @@ export const Repository = {
     return list.slice().sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
   },
   
-  async listPrestadores(): Promise<{ id: string; nome: string }[]> {
-    const list = await db.prestadores.toArray()
+  async listPrestadores(diretoriaId?: string): Promise<{ id: string; nome: string }[]> {
+    let list = await db.prestadores.toArray()
+    const SERVICES_BY_DIRETORIA: Record<string, string[]> = {
+      dsb: ['Abastecimento de Água', 'Esgotamento Sanitário', 'Limpeza Urbana', 'Manejo de Resíduos Sólidos', 'Drenagem Urbana'],
+      dtr: ['Rodovias'],
+      dge: ['Energia Elétrica', 'Gás Canalizado', 'Iluminação Pública']
+    }
+    if (diretoriaId && SERVICES_BY_DIRETORIA[diretoriaId]) {
+      const allowed = SERVICES_BY_DIRETORIA[diretoriaId]
+      list = list.filter((p: any) => 
+        Array.isArray(p.tipo_servico) && p.tipo_servico.some((s: string) => allowed.includes(s))
+      )
+    }
     return list.slice().sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
   },
   
-  async listPrestadoresFull(): Promise<any[]> {
-    const list = await db.prestadores.toArray()
+  async listPrestadoresFull(diretoriaId?: string): Promise<any[]> {
+    let list = await db.prestadores.toArray()
+    const SERVICES_BY_DIRETORIA: Record<string, string[]> = {
+      dsb: ['Abastecimento de Água', 'Esgotamento Sanitário', 'Limpeza Urbana', 'Manejo de Resíduos Sólidos', 'Drenagem Urbana'],
+      dtr: ['Rodovias'],
+      dge: ['Energia Elétrica', 'Gás Canalizado', 'Iluminação Pública']
+    }
+    if (diretoriaId && SERVICES_BY_DIRETORIA[diretoriaId]) {
+      const allowed = SERVICES_BY_DIRETORIA[diretoriaId]
+      list = list.filter((p: any) => 
+        Array.isArray(p.tipo_servico) && p.tipo_servico.some((s: string) => allowed.includes(s))
+      )
+    }
     return list.slice().sort((a, b) => (a.nome || '').localeCompare(b.nome || '', 'pt-BR'))
   },
   
@@ -203,6 +225,38 @@ export const Repository = {
   async deletePrestador(id: string): Promise<void> {
     await db.prestadores.delete(id as any)
     await enqueueMutation({ id }, 'delete', 'prestadores')
+  },
+  
+  async listContratos(): Promise<Contrato[]> {
+    const list = await db.contratos.toArray()
+    return list.slice().sort((a, b) => (a.numero_contrato || '').localeCompare(b.numero_contrato || '', 'pt-BR'))
+  },
+
+  async getContratoById(id: string): Promise<Contrato | null> {
+    const row = await db.contratos.get(id as any)
+    return row || null
+  },
+
+  async createContrato(data: any): Promise<string> {
+    const id = uid()
+    const item = { id, ...data, created_at: now(), updated_at: now() }
+    await db.contratos.add(item as any)
+    await enqueueMutation(item, 'insert', 'contratos')
+    return id
+  },
+
+  async updateContrato(id: string, changes: any): Promise<void> {
+    const cur = await db.contratos.get(id as any)
+    if (cur) {
+      const next = { ...cur, ...changes, updated_at: now() }
+      await db.contratos.update(id as any, next)
+      await enqueueMutation({ id, ...changes }, 'update', 'contratos')
+    }
+  },
+
+  async deleteContrato(id: string): Promise<void> {
+    await db.contratos.delete(id as any)
+    await enqueueMutation({ id }, 'delete', 'contratos')
   },
   
   async listTiposUnidade(): Promise<{ id: string; nome: string; codigo?: string; servicos_aplicaveis?: string[]; ativo?: boolean }[]> {

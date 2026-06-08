@@ -17,6 +17,7 @@ type Entity =
   | 'finalizacao_fiscalizacao'
   | 'reabrir_fiscalizacao'
   | 'prestadores'
+  | 'contratos'
 
 type MutationType = 'insert' | 'update' | 'delete' | 'finalize' | 'reopen'
 
@@ -34,7 +35,8 @@ const entityTableMap: Record<Entity, string> = {
   finalizacao_fiscalizacao: 'fiscalizacoes',
   reabrir_fiscalizacao: 'fiscalizacoes'
   ,
-  prestadores: 'prestadores_servico'
+  prestadores: 'prestadores_servico',
+  contratos: 'contratos'
 }
 
 function serializePayload(entity: Entity, type: MutationType, payload: any): any {
@@ -181,6 +183,24 @@ function serializePayload(entity: Entity, type: MutationType, payload: any): any
         'tipo',
         'documentos',
         'created_at',
+        'updated_at',
+        'tipo_entidade',
+        'tipo_servico',
+        'logo_url',
+        'status',
+        'website',
+        'estado',
+        'cep',
+        'observacoes'
+      ])
+    case 'contratos':
+      return pick(payload, [
+        'id',
+        'numero_contrato',
+        'prestador_servico_id',
+        'rodovia',
+        'ativo',
+        'created_at',
         'updated_at'
       ])
     default:
@@ -190,6 +210,7 @@ function serializePayload(entity: Entity, type: MutationType, payload: any): any
 
 const orderForSyncUp: Entity[] = [
   'prestadores',
+  'contratos',
   'tipos_unidade',
   'itens_checklist',
   'fiscalizacoes',
@@ -1410,6 +1431,8 @@ function selectColsForPull(entity: Entity): string {
       return '*'
     case 'prestadores':
       return '*'
+    case 'contratos':
+      return '*'
     default:
       return '*'
   }
@@ -1507,6 +1530,9 @@ async function pullEntity(entity: Entity, since?: string) {
           break
         case 'prestadores':
           await db.prestadores.put(normalized)
+          break
+        case 'contratos':
+          await db.contratos.put(normalized)
           break
         case 'fotos':
           break
@@ -1632,6 +1658,9 @@ async function pullEntity(entity: Entity, since?: string) {
       case 'prestadores':
         await db.prestadores.put(normalized)
         break
+      case 'contratos':
+        await db.contratos.put(normalized)
+        break
       case 'fotos':
         // servidor não tem tabela fotos; se vier via unidade, já coberto
         break
@@ -1674,7 +1703,8 @@ export async function syncDown(onProgress?: (msg: string, isError?: boolean) => 
     pullEntity('respostas', since),
     pullEntity('constatacoes_manuais', since),
     pullEntity('determinacoes', since),
-    pullEntity('prestadores', since)
+    pullEntity('prestadores', since),
+    pullEntity('contratos', since)
   ])
   // itens_checklist e recomendacoes: tabelas adicionais
   log('Baixando municípios...')
@@ -1758,9 +1788,10 @@ export async function syncDown(onProgress?: (msg: string, isError?: boolean) => 
 }
 
 async function hardResetLocalData(): Promise<void> {
-  await db.transaction('rw', db.municipios, db.prestadores, db.tipos_unidade, db.fiscalizacoes, async () => {
+  await db.transaction('rw', db.municipios, db.prestadores, db.contratos, db.tipos_unidade, db.fiscalizacoes, async () => {
     await db.municipios.clear()
     await db.prestadores.clear()
+    await db.contratos.clear()
     await db.tipos_unidade.clear()
     await db.fiscalizacoes.clear()
   })

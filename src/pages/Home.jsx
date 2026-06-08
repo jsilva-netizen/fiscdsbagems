@@ -117,7 +117,7 @@ export default function Home() {
                 )}
 
                 {/* Quick Actions — DTR */}
-                {isDTR && !isDSB && (
+                {isDTR && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                     <Link to={createPageUrl('NovaFiscalizacaoDTR')}>
                         <Card className="bg-blue-600 hover:bg-blue-700 transition-all cursor-pointer border-none h-full shadow-lg">
@@ -267,7 +267,7 @@ export default function Home() {
                     )}
 
                     {/* === Módulo DTR: Transportes === */}
-                    {isDTR && !isDSB && (
+                    {isDTR && (
                     <>
                     <Link to={createPageUrl('FiscalizacoesDTR')}>
                         <Card className="bg-white/10 hover:bg-white/20 transition-all cursor-pointer border-white/20 h-full">
@@ -275,6 +275,26 @@ export default function Home() {
                                 <ClipboardCheck className="h-8 w-8 text-blue-300 mx-auto mb-2" />
                                 <h3 className="text-white font-medium text-sm">Inspeções</h3>
                                 <p className="text-blue-300 text-xs">Vistorias de rodovias</p>
+                            </CardContent>
+                        </Card>
+                    </Link>
+
+                    <Link to={createPageUrl('PrestadoresServico')}>
+                        <Card className="bg-white/10 hover:bg-white/20 transition-all cursor-pointer border-white/20 h-full">
+                            <CardContent className="p-4 text-center">
+                                <Users className="h-8 w-8 text-blue-300 mx-auto mb-2" />
+                                <h3 className="text-white font-medium text-sm">Concessionárias</h3>
+                                <p className="text-blue-300 text-xs">Empresas Cadastradas</p>
+                            </CardContent>
+                        </Card>
+                    </Link>
+
+                    <Link to={createPageUrl('Contratos')}>
+                        <Card className="bg-white/10 hover:bg-white/20 transition-all cursor-pointer border-white/20 h-full">
+                            <CardContent className="p-4 text-center">
+                                <FileText className="h-8 w-8 text-blue-300 mx-auto mb-2" />
+                                <h3 className="text-white font-medium text-sm">Contratos</h3>
+                                <p className="text-blue-300 text-xs">Rodovias e Concessões</p>
                             </CardContent>
                         </Card>
                     </Link>
