@@ -234,212 +234,216 @@ export default function DetalhePrestador() {
     const fiscFinalizadas = fiscalizacoes.filter(f => f.status === 'finalizada').length;
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
-                <div className="max-w-6xl mx-auto px-4 py-5">
-                    <div className="flex items-center gap-4">
-                        <Link to={createPageUrl('PrestadoresServico')}>
-                            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full">
-                                <ArrowLeft className="h-5 w-5" />
-                            </Button>
-                        </Link>
-                        {/* Logo + Title */}
-                        <div className="flex items-center gap-4 flex-1 min-w-0">
-                            {prestador.logo_url ? (
-                                <img src={prestador.logo_url} alt="Logo" className="w-14 h-14 rounded-xl object-contain bg-white border border-white/20 shadow-md flex-shrink-0" />
-                            ) : (
-                                <div className="w-14 h-14 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center font-bold text-lg flex-shrink-0 shadow-md">
-                                    {prestador.nome.substring(0, 2).toUpperCase()}
-                                </div>
-                            )}
-                            <div className="min-w-0">
-                                <h1 className="text-2xl font-bold truncate">{prestador.nome}</h1>
-                                <p className="text-blue-200 text-sm truncate">{prestador.razao_social}</p>
-                                <div className="flex items-center gap-3 mt-1 flex-wrap">
-                                    {prestador.email_contato && (
-                                        <span className="flex items-center gap-1 text-blue-200 text-xs">
-                                            <Mail className="h-3.5 w-3.5" /> {prestador.email_contato}
-                                        </span>
+        <div className="min-h-screen bg-gray-50 flex flex-col justify-between">
+            <div>
+                {/* Header */}
+                <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
+                    <div className="max-w-6xl mx-auto px-6 py-5">
+                        <div className="flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-4 min-w-0">
+                                <Link to={createPageUrl('PrestadoresServico')}>
+                                    <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full transition-all">
+                                        <ArrowLeft className="h-5 w-5" />
+                                    </Button>
+                                </Link>
+                                {/* Logo + Title */}
+                                <div className="flex items-center gap-4 min-w-0">
+                                    {prestador.logo_url ? (
+                                        <img src={prestador.logo_url} alt="Logo" className="w-14 h-14 rounded-xl object-contain bg-white border border-white/20 shadow-md flex-shrink-0" />
+                                    ) : (
+                                        <div className="w-14 h-14 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center font-bold text-lg flex-shrink-0 shadow-md">
+                                            {prestador.nome.substring(0, 2).toUpperCase()}
+                                        </div>
                                     )}
-                                    {prestador.telefone && (
-                                        <span className="flex items-center gap-1 text-blue-200 text-xs">
-                                            <Phone className="h-3.5 w-3.5" /> {prestador.telefone}
-                                        </span>
-                                    )}
+                                    <div className="min-w-0">
+                                        <h1 className="text-2xl font-bold tracking-tight truncate">{prestador.nome}</h1>
+                                        <p className="text-blue-200 text-xs truncate mt-0.5">{prestador.razao_social}</p>
+                                        <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                                            {prestador.email_contato && (
+                                                <span className="flex items-center gap-1 text-blue-200 text-xs">
+                                                    <Mail className="h-3.5 w-3.5" /> {prestador.email_contato}
+                                                </span>
+                                            )}
+                                            {prestador.telefone && (
+                                                <span className="flex items-center gap-1 text-blue-200 text-xs">
+                                                    <Phone className="h-3.5 w-3.5" /> {prestador.telefone}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${statusColor}`}>
-                                {prestador.status || 'Ativa'}
-                            </span>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="bg-white/10 border-white/30 text-white hover:bg-white/20 rounded-xl"
-                                onClick={handleOpenEdit}
-                            >
-                                <Edit2 className="h-4 w-4 mr-1.5" />
-                                Editar
-                            </Button>
+                            <div className="flex items-center gap-3 flex-shrink-0">
+                                <span className={`text-xs font-bold px-3 py-1 rounded-xl border ${statusColor}`}>
+                                    {prestador.status || 'Ativa'}
+                                </span>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="bg-white/10 border-white/30 text-white hover:bg-white/20 rounded-xl font-semibold transition-all h-9"
+                                    onClick={handleOpenEdit}
+                                >
+                                    <Edit2 className="h-3.5 w-3.5 mr-1.5" />
+                                    Editar
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Stats bar */}
-            <div className="bg-white border-b border-gray-200 shadow-sm">
-                <div className="max-w-6xl mx-auto px-4 py-3">
-                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 text-center">
-                        {[
-                            { label: 'Fiscalizações', value: fiscalizacoes.length, color: 'text-indigo-600', icon: <FileText className="h-4 w-4" /> },
-                            { label: 'Finalizadas', value: fiscFinalizadas, color: 'text-emerald-600', icon: <CheckCircle2 className="h-4 w-4" /> },
-                            { label: 'Em Andamento', value: fiscalizacoes.length - fiscFinalizadas, color: 'text-sky-600', icon: <Clock className="h-4 w-4" /> },
-                            { label: 'NCs', value: ncs.length, color: 'text-red-600', icon: <AlertCircle className="h-4 w-4" /> },
-                            { label: 'Determinações', value: determinacoes.length, color: 'text-amber-600', icon: <AlertCircle className="h-4 w-4" /> },
-                            { label: 'Documentos', value: prestador.documentos?.length || 0, color: 'text-teal-600', icon: <FileText className="h-4 w-4" /> },
-                        ].map((stat, i) => (
-                            <div key={i} className="flex flex-col items-center gap-0.5 py-1">
-                                <div className={`${stat.color} opacity-60`}>{stat.icon}</div>
-                                <p className={`text-xl font-bold ${stat.color}`}>{stat.value}</p>
-                                <p className="text-[11px] text-gray-400 font-medium">{stat.label}</p>
-                            </div>
-                        ))}
+                {/* Stats bar */}
+                <div className="bg-white border-b border-gray-200 shadow-sm mb-6">
+                    <div className="max-w-6xl mx-auto px-6 py-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 text-center">
+                            {[
+                                { label: 'Fiscalizações', value: fiscalizacoes.length, color: 'text-indigo-600', icon: <FileText className="h-4 w-4" /> },
+                                { label: 'Finalizadas', value: fiscFinalizadas, color: 'text-emerald-600', icon: <CheckCircle2 className="h-4 w-4" /> },
+                                { label: 'Em Andamento', value: fiscalizacoes.length - fiscFinalizadas, color: 'text-sky-600', icon: <Clock className="h-4 w-4" /> },
+                                { label: 'NCs', value: ncs.length, color: 'text-rose-600', icon: <AlertCircle className="h-4 w-4" /> },
+                                { label: 'Determinações', value: determinacoes.length, color: 'text-amber-600', icon: <AlertCircle className="h-4 w-4" /> },
+                                { label: 'Documentos', value: prestador.documentos?.length || 0, color: 'text-teal-600', icon: <FileText className="h-4 w-4" /> },
+                            ].map((stat, i) => (
+                                <div key={i} className="flex flex-col items-center gap-1.5 py-2.5 bg-slate-50 border border-slate-200/40 rounded-2xl shadow-sm hover:shadow transition-all duration-300">
+                                    <div className={`${stat.color} opacity-80 p-1.5 bg-white rounded-lg border border-slate-100`}>{stat.icon}</div>
+                                    <p className={`text-2xl font-extrabold ${stat.color}`}>{stat.value}</p>
+                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">{stat.label}</p>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Content */}
-            <div className="max-w-6xl mx-auto px-4 py-6">
-                <Tabs defaultValue="info" className="w-full">
-                    <TabsList className="grid w-full grid-cols-5 mb-6 bg-white border border-gray-200 rounded-xl shadow-sm p-1 h-auto">
-                        <TabsTrigger value="info" className="rounded-lg data-[state=active]:bg-indigo-600 data-[state=active]:text-white py-2 text-xs font-semibold">Informações</TabsTrigger>
-                        <TabsTrigger value="fiscalizacoes" className="rounded-lg data-[state=active]:bg-indigo-600 data-[state=active]:text-white py-2 text-xs font-semibold">Fiscalizações ({fiscalizacoes.length})</TabsTrigger>
-                        <TabsTrigger value="determinacoes" className="rounded-lg data-[state=active]:bg-indigo-600 data-[state=active]:text-white py-2 text-xs font-semibold">Determinações ({determinacoes.length})</TabsTrigger>
-                        <TabsTrigger value="autos" className="rounded-lg data-[state=active]:bg-indigo-600 data-[state=active]:text-white py-2 text-xs font-semibold">Autos ({autos.length})</TabsTrigger>
-                        <TabsTrigger value="documentos" className="rounded-lg data-[state=active]:bg-indigo-600 data-[state=active]:text-white py-2 text-xs font-semibold">Documentos</TabsTrigger>
-                    </TabsList>
+                {/* Content */}
+                <div className="max-w-6xl mx-auto px-6 py-4">
+                    <Tabs defaultValue="info" className="w-full space-y-6">
+                        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 bg-gray-200/60 p-1 rounded-xl shadow-inner h-auto gap-1">
+                            <TabsTrigger value="info" className="rounded-lg py-2.5 text-xs font-bold transition-all data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow text-slate-650 hover:text-slate-900">Informações</TabsTrigger>
+                            <TabsTrigger value="fiscalizacoes" className="rounded-lg py-2.5 text-xs font-bold transition-all data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow text-slate-650 hover:text-slate-900">Fiscalizações ({fiscalizacoes.length})</TabsTrigger>
+                            <TabsTrigger value="determinacoes" className="rounded-lg py-2.5 text-xs font-bold transition-all data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow text-slate-650 hover:text-slate-900">Determinações ({determinacoes.length})</TabsTrigger>
+                            <TabsTrigger value="autos" className="rounded-lg py-2.5 text-xs font-bold transition-all data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow text-slate-650 hover:text-slate-900">Autos ({autos.length})</TabsTrigger>
+                            <TabsTrigger value="documentos" className="rounded-lg py-2.5 text-xs font-bold transition-all data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow text-slate-650 hover:text-slate-900">Documentos</TabsTrigger>
+                        </TabsList>
 
-                    <TabsContent value="info" className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* Dados Gerais */}
-                            <Card className="border border-gray-200 rounded-2xl shadow-sm">
-                                <CardHeader className="pb-3 border-b border-gray-100">
-                                    <CardTitle className="text-sm font-bold text-gray-700 flex items-center gap-2">
-                                        <Building2 className="h-4 w-4 text-indigo-500" /> Dados Gerais
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="pt-4 space-y-3">
-                                    {[
-                                        { label: 'Nome Fantasia', value: prestador.nome },
-                                        { label: 'Razão Social', value: prestador.razao_social },
-                                        { label: 'CNPJ', value: prestador.cnpj },
-                                        { label: 'Tipo de Entidade', value: prestador.tipo_entidade },
-                                    ].map(item => item.value && (
-                                        <div key={item.label}>
-                                            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">{item.label}</p>
-                                            <p className="text-sm text-gray-800 font-medium mt-0.5">{item.value}</p>
-                                        </div>
-                                    ))}
-                                    {Array.isArray(prestador.tipo_servico) && prestador.tipo_servico.length > 0 && (
-                                        <div>
-                                            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Serviços Prestados</p>
-                                            <div className="flex flex-wrap gap-1.5">
-                                                {prestador.tipo_servico.map(s => (
-                                                    <Badge key={s} className="text-[10px] bg-indigo-50 text-indigo-700 border-none font-semibold">{s}</Badge>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-
-                            {/* Contato & Endereço */}
-                            <Card className="border border-gray-200 rounded-2xl shadow-sm">
-                                <CardHeader className="pb-3 border-b border-gray-100">
-                                    <CardTitle className="text-sm font-bold text-gray-700 flex items-center gap-2">
-                                        <MapPin className="h-4 w-4 text-indigo-500" /> Contato & Endereço
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="pt-4 space-y-3">
-                                    {prestador.email_contato && (
-                                        <div className="flex items-center gap-2 text-sm text-gray-700">
-                                            <Mail className="h-4 w-4 text-gray-400" />
-                                            <a href={`mailto:${prestador.email_contato}`} className="hover:text-indigo-600 hover:underline">{prestador.email_contato}</a>
-                                        </div>
-                                    )}
-                                    {prestador.telefone && (
-                                        <div className="flex items-center gap-2 text-sm text-gray-700">
-                                            <Phone className="h-4 w-4 text-gray-400" />
-                                            <span>{prestador.telefone}</span>
-                                        </div>
-                                    )}
-                                    {prestador.website && (
-                                        <div className="flex items-center gap-2 text-sm text-gray-700">
-                                            <Globe className="h-4 w-4 text-gray-400" />
-                                            <a href={prestador.website.startsWith('http') ? prestador.website : `https://${prestador.website}`} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">{prestador.website}</a>
-                                        </div>
-                                    )}
-                                    {(prestador.endereco || prestador.cidade) && (
-                                        <div className="flex items-start gap-2 text-sm text-gray-700">
-                                            <MapPin className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                                            <span>{[prestador.endereco, prestador.cidade, prestador.estado, prestador.cep ? `CEP ${prestador.cep}` : ''].filter(Boolean).join(', ')}</span>
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-
-                            {/* Representante */}
-                            {(prestador.responsavel || prestador.cargo) && (
-                                <Card className="border border-gray-200 rounded-2xl shadow-sm">
+                        <TabsContent value="info" className="space-y-4 focus-visible:outline-none">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Dados Gerais */}
+                                <Card className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300">
                                     <CardHeader className="pb-3 border-b border-gray-100">
-                                        <CardTitle className="text-sm font-bold text-gray-700 flex items-center gap-2">
-                                            <User className="h-4 w-4 text-indigo-500" /> Representante Legal
+                                        <CardTitle className="text-sm font-bold text-gray-700 flex items-center gap-2 uppercase tracking-wider">
+                                            <Building2 className="h-4 w-4 text-indigo-500" /> Dados Gerais
                                         </CardTitle>
                                     </CardHeader>
-                                    <CardContent className="pt-4 space-y-2">
-                                        {prestador.responsavel && <p className="text-sm text-gray-800 font-semibold">{prestador.responsavel}</p>}
-                                        {prestador.cargo && <p className="text-xs text-gray-500">{prestador.cargo}</p>}
+                                    <CardContent className="pt-4 space-y-3">
+                                        {[
+                                            { label: 'Nome Fantasia', value: prestador.nome },
+                                            { label: 'Razão Social', value: prestador.razao_social },
+                                            { label: 'CNPJ', value: prestador.cnpj },
+                                            { label: 'Tipo de Entidade', value: prestador.tipo_entidade },
+                                        ].map(item => item.value && (
+                                            <div key={item.label}>
+                                                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">{item.label}</p>
+                                                <p className="text-sm text-gray-800 font-semibold mt-0.5">{item.value}</p>
+                                            </div>
+                                        ))}
+                                        {Array.isArray(prestador.tipo_servico) && prestador.tipo_servico.length > 0 && (
+                                            <div>
+                                                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Serviços Prestados</p>
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {prestador.tipo_servico.map(s => (
+                                                        <Badge key={s} className="text-[10px] bg-indigo-50 text-indigo-750 border-none font-bold rounded-lg px-2.5 py-1">{s}</Badge>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </CardContent>
                                 </Card>
-                            )}
 
-                            {/* Observações */}
-                            {prestador.observacoes && (
-                                <Card className="border border-gray-200 rounded-2xl shadow-sm">
+                                {/* Contato & Endereço */}
+                                <Card className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300">
                                     <CardHeader className="pb-3 border-b border-gray-100">
-                                        <CardTitle className="text-sm font-bold text-gray-700">Observações</CardTitle>
+                                        <CardTitle className="text-sm font-bold text-gray-700 flex items-center gap-2 uppercase tracking-wider">
+                                            <MapPin className="h-4 w-4 text-indigo-500" /> Contato & Endereço
+                                        </CardTitle>
                                     </CardHeader>
-                                    <CardContent className="pt-4">
-                                        <p className="text-sm text-gray-600 whitespace-pre-wrap">{prestador.observacoes}</p>
+                                    <CardContent className="pt-4 space-y-3">
+                                        {prestador.email_contato && (
+                                            <div className="flex items-center gap-2 text-sm text-gray-700 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                                                <Mail className="h-4 w-4 text-slate-400" />
+                                                <a href={`mailto:${prestador.email_contato}`} className="hover:text-indigo-600 hover:underline font-semibold">{prestador.email_contato}</a>
+                                            </div>
+                                        )}
+                                        {prestador.telefone && (
+                                            <div className="flex items-center gap-2 text-sm text-gray-700 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                                                <Phone className="h-4 w-4 text-slate-400" />
+                                                <span className="font-semibold">{prestador.telefone}</span>
+                                            </div>
+                                        )}
+                                        {prestador.website && (
+                                            <div className="flex items-center gap-2 text-sm text-gray-700 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                                                <Globe className="h-4 w-4 text-slate-400" />
+                                                <a href={prestador.website.startsWith('http') ? prestador.website : `https://${prestador.website}`} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline font-semibold">{prestador.website}</a>
+                                            </div>
+                                        )}
+                                        {(prestador.endereco || prestador.cidade) && (
+                                            <div className="flex items-start gap-2 text-sm text-gray-700 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                                <MapPin className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
+                                                <span className="font-semibold">{[prestador.endereco, prestador.cidade, prestador.estado, prestador.cep ? `CEP ${prestador.cep}` : ''].filter(Boolean).join(', ')}</span>
+                                            </div>
+                                        )}
                                     </CardContent>
                                 </Card>
-                            )}
-                        </div>
-                    </TabsContent>
 
-                    <TabsContent value="fiscalizacoes">
-                        <HistoricoFiscalizacoes fiscalizacoes={fiscalizacoes} municipios={municipios} />
-                    </TabsContent>
+                                {/* Representante */}
+                                {(prestador.responsavel || prestador.cargo) && (
+                                    <Card className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300">
+                                        <CardHeader className="pb-3 border-b border-gray-100">
+                                            <CardTitle className="text-sm font-bold text-gray-700 flex items-center gap-2 uppercase tracking-wider">
+                                                <User className="h-4 w-4 text-indigo-500" /> Representante Legal
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="pt-4 space-y-2">
+                                            {prestador.responsavel && <p className="text-sm text-gray-800 font-bold">{prestador.responsavel}</p>}
+                                            {prestador.cargo && <p className="text-xs text-gray-500 font-medium">{prestador.cargo}</p>}
+                                        </CardContent>
+                                    </Card>
+                                )}
 
-                    <TabsContent value="determinacoes">
-                        <HistoricoDeterminacoes determinacoes={determinacoes} respostas={respostas} />
-                    </TabsContent>
+                                {/* Observações */}
+                                {prestador.observacoes && (
+                                    <Card className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300">
+                                        <CardHeader className="pb-3 border-b border-gray-100">
+                                            <CardTitle className="text-sm font-bold text-gray-700 uppercase tracking-wider">Observações</CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="pt-4">
+                                            <p className="text-sm text-gray-600 whitespace-pre-wrap font-medium">{prestador.observacoes}</p>
+                                        </CardContent>
+                                    </Card>
+                                )}
+                            </div>
+                        </TabsContent>
 
-                    <TabsContent value="autos">
-                        <HistoricoAutos autos={autos} />
-                    </TabsContent>
+                        <TabsContent value="fiscalizacoes" className="focus-visible:outline-none">
+                            <HistoricoFiscalizacoes fiscalizacoes={fiscalizacoes} municipios={municipios} />
+                        </TabsContent>
 
-                    <TabsContent value="documentos">
-                        <DocumentosManager
-                            documentos={prestador.documentos || []}
-                            onUpload={handleUploadDocumento}
-                            onDelete={handleDeleteDocumento}
-                            isUploading={isUploadingDoc}
-                        />
-                    </TabsContent>
-                </Tabs>
+                        <TabsContent value="determinacoes" className="focus-visible:outline-none">
+                            <HistoricoDeterminacoes determinacoes={determinacoes} respostas={respostas} />
+                        </TabsContent>
+
+                        <TabsContent value="autos" className="focus-visible:outline-none">
+                            <HistoricoAutos autos={autos} />
+                        </TabsContent>
+
+                        <TabsContent value="documentos" className="focus-visible:outline-none">
+                            <DocumentosManager
+                                documentos={prestador.documentos || []}
+                                onUpload={handleUploadDocumento}
+                                onDelete={handleDeleteDocumento}
+                                isUploading={isUploadingDoc}
+                            />
+                        </TabsContent>
+                    </Tabs>
+                </div>
             </div>
 
             {/* Edit Dialog */}
@@ -464,7 +468,7 @@ export default function DetalhePrestador() {
                                     <Label className="text-xs text-gray-500 font-bold block mb-1">Logo da Entidade (PNG ou JPG)</Label>
                                     <div className="flex items-center gap-2">
                                         <Input type="file" accept="image/png, image/jpeg, image/jpg" onChange={handleLogoChange} className="hidden" id="logo-uploader-edit" />
-                                        <Label htmlFor="logo-uploader-edit" className="flex items-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold px-4 py-2.5 rounded-lg border border-indigo-200 cursor-pointer transition-all">
+                                        <Label htmlFor="logo-uploader-edit" className="flex items-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold px-4 py-2.5 rounded-lg border border-indigo-200 cursor-pointer transition-all shadow-sm">
                                             <Upload className="h-4 w-4" /> Selecionar Imagem
                                         </Label>
                                     </div>
@@ -474,15 +478,15 @@ export default function DetalhePrestador() {
 
                             <div>
                                 <Label className="text-gray-700 font-semibold text-xs">Nome Fantasia *</Label>
-                                <Input value={editForm.nome || ''} onChange={e => setEditForm({ ...editForm, nome: e.target.value })} className="rounded-lg mt-1 h-11" placeholder="Nome Fantasia" />
+                                <Input value={editForm.nome || ''} onChange={e => setEditForm({ ...editForm, nome: e.target.value })} className="rounded-lg mt-1 h-11 border-gray-200 bg-white" placeholder="Nome Fantasia" />
                             </div>
                             <div>
                                 <Label className="text-gray-700 font-semibold text-xs">Razão Social *</Label>
-                                <Input value={editForm.razao_social || ''} onChange={e => setEditForm({ ...editForm, razao_social: e.target.value })} className="rounded-lg mt-1 h-11" placeholder="Razão Social" />
+                                <Input value={editForm.razao_social || ''} onChange={e => setEditForm({ ...editForm, razao_social: e.target.value })} className="rounded-lg mt-1 h-11 border-gray-200 bg-white" placeholder="Razão Social" />
                             </div>
                             <div>
                                 <Label className="text-gray-700 font-semibold text-xs">CNPJ *</Label>
-                                <Input value={editForm.cnpj || ''} onChange={e => setEditForm({ ...editForm, cnpj: e.target.value })} className="rounded-lg mt-1 h-11" placeholder="00.000.000/0000-00" />
+                                <Input value={editForm.cnpj || ''} onChange={e => setEditForm({ ...editForm, cnpj: e.target.value })} className="rounded-lg mt-1 h-11 border-gray-200 bg-white" placeholder="00.000.000/0000-00" />
                             </div>
                             <div>
                                 <Label className="text-gray-700 font-semibold text-xs">Tipo de Entidade *</Label>
@@ -508,45 +512,45 @@ export default function DetalhePrestador() {
                             </div>
                             <div>
                                 <Label className="text-gray-700 font-semibold text-xs">E-mail Principal</Label>
-                                <Input type="email" value={editForm.email_contato || ''} onChange={e => setEditForm({ ...editForm, email_contato: e.target.value })} className="rounded-lg mt-1 h-11" placeholder="contato@entidade.com.br" />
+                                <Input type="email" value={editForm.email_contato || ''} onChange={e => setEditForm({ ...editForm, email_contato: e.target.value })} className="rounded-lg mt-1 h-11 border-gray-200 bg-white" placeholder="contato@entidade.com.br" />
                             </div>
                             <div>
                                 <Label className="text-gray-700 font-semibold text-xs">Telefone</Label>
-                                <Input value={editForm.telefone || ''} onChange={e => setEditForm({ ...editForm, telefone: e.target.value })} className="rounded-lg mt-1 h-11" placeholder="(00) 0000-0000" />
+                                <Input value={editForm.telefone || ''} onChange={e => setEditForm({ ...editForm, telefone: e.target.value })} className="rounded-lg mt-1 h-11 border-gray-200 bg-white" placeholder="(00) 0000-0000" />
                             </div>
                             <div>
                                 <Label className="text-gray-700 font-semibold text-xs">Website</Label>
-                                <Input value={editForm.website || ''} onChange={e => setEditForm({ ...editForm, website: e.target.value })} className="rounded-lg mt-1 h-11" placeholder="www.entidade.com.br" />
+                                <Input value={editForm.website || ''} onChange={e => setEditForm({ ...editForm, website: e.target.value })} className="rounded-lg mt-1 h-11 border-gray-200 bg-white" placeholder="www.entidade.com.br" />
                             </div>
                             <div className="md:col-span-2">
                                 <Label className="text-gray-700 font-semibold text-xs">Endereço *</Label>
-                                <Input value={editForm.endereco || ''} onChange={e => setEditForm({ ...editForm, endereco: e.target.value })} className="rounded-lg mt-1 h-11" placeholder="Rua, Número, Bairro" />
+                                <Input value={editForm.endereco || ''} onChange={e => setEditForm({ ...editForm, endereco: e.target.value })} className="rounded-lg mt-1 h-11 border-gray-200 bg-white" placeholder="Rua, Número, Bairro" />
                             </div>
                             <div>
                                 <Label className="text-gray-700 font-semibold text-xs">Cidade *</Label>
-                                <Input value={editForm.cidade || ''} onChange={e => setEditForm({ ...editForm, cidade: e.target.value })} className="rounded-lg mt-1 h-11" placeholder="Cidade" />
+                                <Input value={editForm.cidade || ''} onChange={e => setEditForm({ ...editForm, cidade: e.target.value })} className="rounded-lg mt-1 h-11 border-gray-200 bg-white" placeholder="Cidade" />
                             </div>
                             <div className="grid grid-cols-2 gap-2">
                                 <div>
                                     <Label className="text-gray-700 font-semibold text-xs">Estado *</Label>
-                                    <Input value={editForm.estado || ''} maxLength={2} onChange={e => setEditForm({ ...editForm, estado: e.target.value.toUpperCase() })} className="rounded-lg mt-1 h-11" placeholder="UF" />
+                                    <Input value={editForm.estado || ''} maxLength={2} onChange={e => setEditForm({ ...editForm, estado: e.target.value.toUpperCase() })} className="rounded-lg mt-1 h-11 border-gray-200 bg-white" placeholder="UF" />
                                 </div>
                                 <div>
                                     <Label className="text-gray-700 font-semibold text-xs">CEP *</Label>
-                                    <Input value={editForm.cep || ''} onChange={e => setEditForm({ ...editForm, cep: e.target.value })} className="rounded-lg mt-1 h-11" placeholder="00000-000" />
+                                    <Input value={editForm.cep || ''} onChange={e => setEditForm({ ...editForm, cep: e.target.value })} className="rounded-lg mt-1 h-11 border-gray-200 bg-white" placeholder="00000-000" />
                                 </div>
                             </div>
                             <div>
                                 <Label className="text-gray-700 font-semibold text-xs">Representante Legal</Label>
-                                <Input value={editForm.responsavel || ''} onChange={e => setEditForm({ ...editForm, responsavel: e.target.value })} className="rounded-lg mt-1 h-11" placeholder="Nome do Representante" />
+                                <Input value={editForm.responsavel || ''} onChange={e => setEditForm({ ...editForm, responsavel: e.target.value })} className="rounded-lg mt-1 h-11 border-gray-200 bg-white" placeholder="Nome do Representante" />
                             </div>
                             <div>
                                 <Label className="text-gray-700 font-semibold text-xs">Cargo</Label>
-                                <Input value={editForm.cargo || ''} onChange={e => setEditForm({ ...editForm, cargo: e.target.value })} className="rounded-lg mt-1 h-11" placeholder="Cargo do Representante" />
+                                <Input value={editForm.cargo || ''} onChange={e => setEditForm({ ...editForm, cargo: e.target.value })} className="rounded-lg mt-1 h-11 border-gray-200 bg-white" placeholder="Cargo do Representante" />
                             </div>
                             <div className="md:col-span-2">
                                 <Label className="text-gray-700 font-semibold text-xs">Observações</Label>
-                                <Textarea value={editForm.observacoes || ''} onChange={e => setEditForm({ ...editForm, observacoes: e.target.value })} className="rounded-lg mt-1" rows={2} placeholder="Informações adicionais..." />
+                                <Textarea value={editForm.observacoes || ''} onChange={e => setEditForm({ ...editForm, observacoes: e.target.value })} className="rounded-lg mt-1 border-gray-200 bg-white" rows={2} placeholder="Informações adicionais..." />
                             </div>
                             <div className="md:col-span-2">
                                 <Label className="text-gray-700 font-semibold text-xs mb-2 block">Tipos de Serviço Prestados</Label>
@@ -557,7 +561,7 @@ export default function DetalhePrestador() {
                                                 type="checkbox"
                                                 checked={(editForm.tipo_servico || []).includes(s.id)}
                                                 onChange={() => toggleService(s.id)}
-                                                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                                                className="rounded border-gray-350 text-indigo-600 focus:ring-indigo-500 h-4 w-4"
                                             />
                                             <span>{s.label} <span className="text-[9px] text-gray-400 uppercase font-mono">({s.group})</span></span>
                                         </label>
@@ -566,9 +570,9 @@ export default function DetalhePrestador() {
                             </div>
                         </div>
 
-                        <div className="flex gap-2.5 pt-4 border-t border-gray-100">
+                        <div className="flex gap-2.5 pt-4 border-t border-gray-150">
                             <Button
-                                className="flex-1 h-11 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow font-semibold"
+                                className="flex-1 h-11 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md font-semibold transition-all"
                                 onClick={handleSaveEdit}
                                 disabled={atualizarMutation.isPending}
                             >
@@ -582,6 +586,11 @@ export default function DetalhePrestador() {
                     </div>
                 </DialogContent>
             </Dialog>
+
+            {/* Footer */}
+            <div className="py-5 text-center text-xs text-slate-400 bg-white border-t border-slate-200">
+                AGEMS - Agência Estadual de Regulação de Serviços Públicos de MS
+            </div>
         </div>
     );
 }

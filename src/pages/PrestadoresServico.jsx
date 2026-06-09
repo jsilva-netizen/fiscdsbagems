@@ -286,7 +286,7 @@ export default function PrestadoresServico() {
             <div>
                 {/* Header */}
                 <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
-                    <div className="max-w-4xl mx-auto px-4 py-5 flex items-center gap-3">
+                    <div className="max-w-5xl mx-auto px-6 py-5 flex items-center gap-3">
                         <Link to={createPageUrl('Home')}>
                             <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full transition-all">
                                 <ArrowLeft className="h-5 w-5" />
@@ -300,46 +300,46 @@ export default function PrestadoresServico() {
                 </div>
 
                 {/* Content */}
-                <div className="max-w-4xl mx-auto px-4 py-6 space-y-5">
+                <div className="max-w-5xl mx-auto px-6 py-6 space-y-5">
                     {/* Controls & Tabs */}
                     <div className="flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center">
                         {isAdmin ? (
                             <div className="flex gap-1 bg-slate-200/60 p-1 rounded-xl text-xs shadow-inner">
                                 <button 
                                     type="button" 
-                                    className={`px-3 py-1.5 rounded-lg font-medium transition-all ${activeTab === 'todos' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                                    className={`px-3 py-1.5 rounded-lg font-bold transition-all ${activeTab === 'todos' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-650 hover:text-slate-900'}`}
                                     onClick={() => setActiveTab('todos')}
                                 >
                                     Todos
                                 </button>
                                 <button 
                                     type="button" 
-                                    className={`px-3 py-1.5 rounded-lg font-medium transition-all ${activeTab === 'dsb' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                                    className={`px-3 py-1.5 rounded-lg font-bold transition-all ${activeTab === 'dsb' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-650 hover:text-slate-900'}`}
                                     onClick={() => setActiveTab('dsb')}
                                 >
                                     DSB (Saneamento)
                                 </button>
                                 <button 
                                     type="button" 
-                                    className={`px-3 py-1.5 rounded-lg font-medium transition-all ${activeTab === 'dtr' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                                    className={`px-3 py-1.5 rounded-lg font-bold transition-all ${activeTab === 'dtr' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-650 hover:text-slate-900'}`}
                                     onClick={() => setActiveTab('dtr')}
                                 >
                                     DTR (Rodovias)
                                 </button>
                                 <button 
                                     type="button" 
-                                    className={`px-3 py-1.5 rounded-lg font-medium transition-all ${activeTab === 'dge' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                                    className={`px-3 py-1.5 rounded-lg font-bold transition-all ${activeTab === 'dge' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-650 hover:text-slate-900'}`}
                                     onClick={() => setActiveTab('dge')}
                                 >
                                     DGE (Energia/Gás)
                                 </button>
                             </div>
                         ) : (
-                            <div className="text-sm text-slate-500 font-medium bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
-                                Módulo: <span className="text-slate-800 uppercase font-bold">{diretoria}</span>
+                            <div className="text-xs text-slate-500 font-bold bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
+                                Módulo: <span className="text-slate-800 uppercase font-extrabold">{diretoria}</span>
                             </div>
                         )}
-                        <Button onClick={() => { resetForm(); setShowForm(true); }} className="bg-indigo-650 hover:bg-indigo-700 text-white rounded-xl shadow transition-all">
+                        <Button onClick={() => { resetForm(); setShowForm(true); }} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow font-semibold transition-all">
                             <Plus className="h-4 w-4 mr-2" />
                             {buttonText}
                         </Button>
@@ -347,19 +347,19 @@ export default function PrestadoresServico() {
 
                     {isLoading ? (
                         <div className="flex justify-center py-12">
-                            <Loader2 className="h-8 w-8 animate-spin text-indigo-650" />
+                            <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
                         </div>
                     ) : filteredPrestadores.length === 0 ? (
-                        <Card className="border-dashed border-2 border-slate-300 bg-slate-50/50">
+                        <Card className="border-dashed border-2 border-slate-300 bg-slate-50/50 rounded-2xl">
                             <CardContent className="p-10 text-center text-gray-500">
-                                <p className="font-medium text-slate-600">Nenhuma entidade cadastrada neste filtro.</p>
+                                <p className="font-semibold text-slate-600">Nenhuma entidade cadastrada neste filtro.</p>
                                 <p className="text-xs text-slate-400 mt-1">Utilize o botão superior para adicionar um novo cadastro.</p>
                             </CardContent>
                         </Card>
                     ) : (
                         <div className="grid gap-4">
                             {filteredPrestadores.map(prestador => (
-                                <Card key={prestador.id} className="hover:shadow-md transition-shadow border border-slate-200 rounded-2xl overflow-hidden bg-white">
+                                <Card key={prestador.id} className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
                                     <CardContent className="p-5 flex gap-4">
                                         {/* Logo/Avatar */}
                                         <div className="flex-shrink-0">
@@ -379,14 +379,14 @@ export default function PrestadoresServico() {
                                                     <h3 className="font-bold text-slate-800 text-base leading-tight truncate">{prestador.nome}</h3>
                                                     <p className="text-xs text-slate-400 font-mono mt-0.5 truncate">{prestador.razao_social}</p>
                                                 </div>
-                                                <div className="flex gap-1.5 items-center">
-                                                    <Badge variant="outline" className="text-[10px] font-semibold py-0.5 bg-slate-55 border-slate-200 text-slate-600 uppercase">
+                                                <div className="flex gap-1.5 items-center flex-wrap">
+                                                    <Badge variant="outline" className="text-[10px] font-bold py-1 px-2.5 bg-slate-50 border-slate-200 text-slate-600 rounded-lg uppercase">
                                                         {prestador.tipo_entidade || 'Concessionária'}
                                                     </Badge>
-                                                    <Badge className={`text-[10px] font-semibold py-0.5 uppercase border-none text-white ${
-                                                        prestador.status === 'ativa' ? 'bg-emerald-500 hover:bg-emerald-600' : 
-                                                        prestador.status === 'suspensa' ? 'bg-amber-500 hover:bg-amber-600' : 
-                                                        'bg-rose-500 hover:bg-rose-600'
+                                                    <Badge variant="outline" className={`text-[10px] font-bold py-1 px-2.5 rounded-lg uppercase ${
+                                                        prestador.status === 'ativa' ? 'bg-emerald-50 text-emerald-700 border-emerald-250' : 
+                                                        prestador.status === 'suspensa' ? 'bg-amber-50 text-amber-700 border-amber-250' : 
+                                                        'bg-rose-50 text-rose-700 border-rose-250'
                                                     }`}>
                                                         {prestador.status || 'Ativa'}
                                                     </Badge>
@@ -400,7 +400,7 @@ export default function PrestadoresServico() {
                                                 {prestador.website && (
                                                     <p className="flex items-center gap-1">
                                                         <Globe className="h-3.5 w-3.5 text-slate-400" />
-                                                        <a href={prestador.website.startsWith('http') ? prestador.website : `https://${prestador.website}`} target="_blank" rel="noopener noreferrer" className="text-indigo-650 hover:underline">
+                                                        <a href={prestador.website.startsWith('http') ? prestador.website : `https://${prestador.website}`} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">
                                                             {prestador.website}
                                                         </a>
                                                     </p>
@@ -415,7 +415,7 @@ export default function PrestadoresServico() {
                                             {Array.isArray(prestador.tipo_servico) && prestador.tipo_servico.length > 0 && (
                                                 <div className="flex gap-1 flex-wrap pt-2.5">
                                                     {prestador.tipo_servico.map(s => (
-                                                        <Badge key={s} variant="secondary" className="text-[10px] py-0 px-2 bg-indigo-50/80 text-indigo-700 hover:bg-indigo-50 border-none font-semibold">
+                                                        <Badge key={s} variant="secondary" className="text-[10px] py-1 px-2.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-none font-bold rounded-lg">
                                                             {s}
                                                         </Badge>
                                                     ))}
@@ -433,21 +433,21 @@ export default function PrestadoresServico() {
                                                     );
                                                 })()}
                                             </div>
-
+ 
                                             <div className="flex gap-2 justify-end pt-3 border-t border-slate-100 mt-4">
                                                 <Link to={createPageUrl(`DetalhePrestador?id=${prestador.id}`)}>
-                                                    <Button size="sm" variant="outline" className="text-xs h-9 border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl">
-                                                        <Eye className="h-4 w-4 mr-1 text-slate-400" />
+                                                    <Button size="sm" variant="outline" className="text-xs h-9 border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl font-bold shadow-sm px-4">
+                                                        <Eye className="h-4 w-4 mr-1 text-indigo-600" />
                                                         Detalhes
                                                     </Button>
                                                 </Link>
                                                 <Button
                                                     size="sm"
                                                     variant="outline"
-                                                    className="text-xs h-9 border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl"
+                                                    className="text-xs h-9 border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl font-bold shadow-sm px-4"
                                                     onClick={() => handleEdit(prestador)}
                                                 >
-                                                    <Edit2 className="h-4 w-4 mr-1 text-slate-400" />
+                                                    <Edit2 className="h-4 w-4 mr-1 text-amber-600" />
                                                     Editar
                                                 </Button>
                                                 <AlertDialog 
@@ -677,7 +677,7 @@ export default function PrestadoresServico() {
 
                         <div className="flex gap-2.5 pt-4 border-t mt-6">
                             <Button
-                                className="flex-1 h-11 bg-indigo-650 hover:bg-indigo-700 text-white rounded-xl shadow-lg transition-all font-semibold"
+                                className="flex-1 h-11 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg transition-all font-semibold"
                                 onClick={handleSubmit}
                                 disabled={criarMutation.isPending || atualizarMutation.isPending}
                             >

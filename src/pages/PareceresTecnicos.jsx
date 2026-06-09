@@ -189,90 +189,96 @@ export default function PareceresTecnicos() {
   const autosDoLote = useMemo(() => (remessaItens || []).map((it) => it?.autos_infracao).filter(Boolean), [remessaItens]);
  
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center gap-3">
-          <Link to={createPageUrl('Home')}>
-            <Button variant="ghost">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Voltar
-            </Button>
-          </Link>
-          <h1 className="text-xl font-bold">Pareceres Técnicos</h1>
-          {loteAbertoId && (
-            <div className="ml-auto flex items-center gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setLoteAbertoId(null)}
-              >
-                Trocar lote
-              </Button>
-              <Button
-                className="bg-blue-600 hover:bg-blue-700"
-                disabled={!podeEncaminhar || enviandoLoteId === loteAbertoId}
-                onClick={() => void encaminharParaCamara()}
-              >
-                {enviandoLoteId === loteAbertoId ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
-                Encaminhar à Câmara
-              </Button>
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-between">
+      <div>
+        {/* Header */}
+        <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md mb-6">
+          <div className="max-w-6xl mx-auto px-4 py-5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Link to={createPageUrl('Home')}>
+                <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full transition-all">
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+              </Link>
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight">Pareceres Técnicos</h1>
+                <p className="text-blue-200 text-xs mt-0.5">Análise e recomendação técnica de Autos de Infração</p>
+              </div>
             </div>
-          )}
+            {loteAbertoId && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setLoteAbertoId(null)}
+                  className="bg-white/10 text-white border-white/20 hover:bg-white/20 rounded-xl"
+                >
+                  Trocar lote
+                </Button>
+                <Button
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md transition-all font-semibold"
+                  disabled={!podeEncaminhar || enviandoLoteId === loteAbertoId}
+                  onClick={() => void encaminharParaCamara()}
+                >
+                  {enviandoLoteId === loteAbertoId ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
+                  Encaminhar à Câmara
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
- 
-      <div className="max-w-6xl mx-auto px-4 py-6">
+        <div className="max-w-6xl mx-auto px-4">
         {!loteAbertoId && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <Card className="border">
+            <Card className="border border-gray-200 rounded-2xl bg-white shadow-sm hover:shadow-md transition-shadow">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="font-semibold">Pendentes</div>
-                  <Badge variant="outline">{pendentes.length}</Badge>
+                  <div className="font-semibold text-slate-800">Pendentes</div>
+                  <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200">{pendentes.length}</Badge>
                 </div>
                 <div className="space-y-3">
                   {pendentes.map((r) => (
-                    <div key={r.id} className="flex items-center gap-3 rounded border p-3 bg-white">
+                    <div key={r.id} className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 bg-slate-50 hover:bg-slate-100 transition-colors">
                       <div className="flex-1">
-                        <div className="text-sm font-medium">
+                        <div className="text-sm font-semibold text-slate-800">
                           RFP: {r?.numero_rfp || '—'} | TN: {r?.numero_tn || '—'}
                         </div>
-                        <div className="text-xs text-gray-600">
+                        <div className="text-xs text-slate-500 mt-1">
                           Prestador: {getPrestadorNome(r?.prestador_servico_id)} | Município: {getMunicipioNomeFromFiscalizacao(r?.fiscalizacao_id)}
                         </div>
                       </div>
-                      <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => setLoteAbertoId(r.id)}>
+                      <Button className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm" onClick={() => setLoteAbertoId(r.id)}>
                         Abrir
                       </Button>
                     </div>
                   ))}
-                  {pendentes.length === 0 && <div className="text-sm text-gray-600">Nenhum lote pendente.</div>}
+                  {pendentes.length === 0 && <div className="text-sm text-gray-500 py-4 text-center">Nenhum lote pendente.</div>}
                 </div>
               </CardContent>
             </Card>
- 
-            <Card className="border">
+
+            <Card className="border border-gray-200 rounded-2xl bg-white shadow-sm hover:shadow-md transition-shadow">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="font-semibold">Encaminhados</div>
-                  <Badge variant="outline">{encaminhados.length}</Badge>
+                  <div className="font-semibold text-slate-800">Encaminhados</div>
+                  <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">{encaminhados.length}</Badge>
                 </div>
                 <div className="space-y-3">
                   {encaminhados.map((r) => (
-                    <div key={r.id} className="flex items-center gap-3 rounded border p-3 bg-white">
+                    <div key={r.id} className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 bg-slate-50 hover:bg-slate-100 transition-colors">
                       <div className="flex-1">
-                        <div className="text-sm font-medium">
+                        <div className="text-sm font-semibold text-slate-800">
                           RFP: {r?.numero_rfp || '—'} | TN: {r?.numero_tn || '—'}
                         </div>
-                        <div className="text-xs text-gray-600">
+                        <div className="text-xs text-slate-500 mt-1">
                           Prestador: {getPrestadorNome(r?.prestador_servico_id)} | Município: {getMunicipioNomeFromFiscalizacao(r?.fiscalizacao_id)}
                         </div>
                       </div>
-                      <Button variant="outline" onClick={() => setLoteAbertoId(r.id)}>
+                      <Button variant="outline" className="rounded-xl" onClick={() => setLoteAbertoId(r.id)}>
                         Ver
                       </Button>
                     </div>
                   ))}
-                  {encaminhados.length === 0 && <div className="text-sm text-gray-600">Nenhum lote encaminhado.</div>}
+                  {encaminhados.length === 0 && <div className="text-sm text-gray-500 py-4 text-center">Nenhum lote encaminhado.</div>}
                 </div>
               </CardContent>
             </Card>
@@ -281,7 +287,7 @@ export default function PareceresTecnicos() {
  
         {loteAbertoId && (
           <div className="space-y-4">
-            <Card className="border">
+            <Card className="border border-gray-200 rounded-2xl bg-white shadow-sm">
               <CardContent className="p-4 flex items-center justify-between">
                 <div>
                   <div className="text-sm font-medium">
@@ -303,7 +309,7 @@ export default function PareceresTecnicos() {
               const fisc = getFiscalizacao(a?.fiscalizacao_id);
               const munNome = getMunicipioNomeFromFiscalizacao(a?.fiscalizacao_id);
               return (
-                <Card key={a.id} className="border">
+                <Card key={a.id} className="border border-gray-200 rounded-2xl bg-white shadow-sm overflow-hidden hover:shadow-md transition-shadow">
                   <CardContent className="p-4 space-y-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -442,6 +448,11 @@ export default function PareceresTecnicos() {
             })}
           </div>
         )}
+      </div>
+      </div>
+      {/* Footer */}
+      <div className="py-5 text-center text-xs text-slate-400 bg-white border-t border-slate-200 mt-8">
+        AGEMS - Agência Estadual de Regulação de Serviços Públicos de MS
       </div>
     </div>
   );

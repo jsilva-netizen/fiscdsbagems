@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ArrowLeft, FileText, Trash2, Plus, Download, Upload } from 'lucide-react';
+import { ArrowLeft, FileText, Trash2, Plus, Download, Upload, AlertTriangle } from 'lucide-react';
 import TermosKPI from '@/components/termos/TermosKPI';
 import TermosFiltros from '@/components/termos/TermosFiltros';
 import { deleteTermoNotificacaoComDependencias } from '@/lib/storageCleanup';
@@ -679,39 +679,45 @@ export default function GerenciarTermos() {
         };
 
     return (
-        <div className="min-h-screen bg-gray-50 p-6">
-            <div className="max-w-6xl mx-auto">
+        <div className="min-h-screen bg-gray-50 flex flex-col justify-between">
+            <div>
                 {/* Header */}
-                <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-2">
-                        <Link to={createPageUrl('Home')}>
-                            <Button variant="ghost" size="icon">
-                                <ArrowLeft className="h-4 w-4" />
-                            </Button>
-                        </Link>
-                        <h1 className="text-3xl font-bold">Gerenciar Termos de Notificação</h1>
+                <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md mb-6">
+                    <div className="max-w-6xl mx-auto px-4 py-5 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <Link to={createPageUrl('Home')}>
+                                <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full transition-all">
+                                    <ArrowLeft className="h-5 w-5" />
+                                </Button>
+                            </Link>
+                            <div>
+                                <h1 className="text-2xl font-bold tracking-tight">Gerenciar Termos de Notificação</h1>
+                                <p className="text-blue-200 text-xs mt-0.5">Emissão e controle de prazos e respostas de TN</p>
+                            </div>
+                        </div>
+                        <Button 
+                            onClick={() => {
+                                setSelectedFiscalizacao(fiscalizacoes.find(f => f.status === 'finalizada'));
+                                setShowDialog(true);
+                            }}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md transition-all font-semibold"
+                        >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Novo Termo
+                        </Button>
                     </div>
-                    <Button 
-                        onClick={() => {
-                            setSelectedFiscalizacao(fiscalizacoes.find(f => f.status === 'finalizada'));
-                            setShowDialog(true);
-                        }}
-                        className="bg-blue-600 hover:bg-blue-700"
-                    >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Novo Termo
-                    </Button>
                 </div>
 
-                {/* Dashboard KPI */}
-                <TermosKPI termos={termos} />
+                <div className="max-w-6xl mx-auto px-4">
+                    {/* Dashboard KPI */}
+                    <TermosKPI termos={termos} />
 
-                {/* Filtros */}
-                <TermosFiltros onFilterChange={setFiltros} filtros={filtros} />
+                    {/* Filtros */}
+                    <TermosFiltros onFilterChange={setFiltros} filtros={filtros} />
 
-                {/* Dialog de Criar Termo */}
-                <Dialog open={showDialog} onOpenChange={setShowDialog}>
-                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    {/* Dialog de Criar Termo */}
+                    <Dialog open={showDialog} onOpenChange={setShowDialog}>
+                        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white border border-slate-200 rounded-2xl p-6 shadow-2xl">
                         <DialogHeader>
                             <DialogTitle>Criar Termo de Notificação</DialogTitle>
                         </DialogHeader>
@@ -896,9 +902,9 @@ export default function GerenciarTermos() {
                               setRespostaOficioTemp(null);
                           }
                       }}>
-                    <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                    <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white border border-slate-200 rounded-2xl p-6 shadow-2xl">
                         <DialogHeader>
-                            <DialogTitle>Detalhes do Termo de Notificação</DialogTitle>
+                            <DialogTitle className="text-xl font-bold text-slate-900">Detalhes do Termo de Notificação</DialogTitle>
                         </DialogHeader>
                         {termoDetalhes && (
                             <div className="space-y-4">
@@ -1247,9 +1253,9 @@ export default function GerenciarTermos() {
                         }
                     }}
                 >
-                    <DialogContent>
+                    <DialogContent className="bg-white border border-slate-200 rounded-2xl p-6 shadow-2xl max-w-md">
                         <DialogHeader>
-                            <DialogTitle>Registrar Protocolo / AR</DialogTitle>
+                            <DialogTitle className="text-xl font-bold text-slate-900">Registrar Protocolo / AR</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4">
                             <div>
@@ -1422,9 +1428,9 @@ export default function GerenciarTermos() {
                         }
                     }}
                 >
-                    <DialogContent>
+                    <DialogContent className="bg-white border border-slate-200 rounded-2xl p-6 shadow-2xl max-w-md">
                         <DialogHeader>
-                            <DialogTitle>Registrar Recebimento de Resposta</DialogTitle>
+                            <DialogTitle className="text-xl font-bold text-slate-900">Registrar Recebimento de Resposta</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4">
                             <div>
@@ -1592,16 +1598,16 @@ export default function GerenciarTermos() {
 
                 <div className="space-y-4">
                     {termosFiltrados.length === 0 ? (
-                        <Card className="p-8">
-                            <div className="text-center text-gray-500">
-                                <FileText className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                                <p>Nenhum termo encontrado com os filtros aplicados</p>
-                            </div>
+                        <Card className="border border-gray-200 rounded-2xl bg-white shadow-sm">
+                            <CardContent className="p-8 text-center text-gray-500">
+                                <FileText className="h-12 w-12 mx-auto mb-3 opacity-30 text-slate-400" />
+                                <p className="font-medium text-slate-600">Nenhum termo encontrado com os filtros aplicados</p>
+                            </CardContent>
                         </Card>
                     ) : (
                         termosFiltrados.map(termo => (
-                            <Card key={termo.id} className="hover:shadow-lg transition-shadow">
-                                <CardContent className="p-4">
+                            <Card key={termo.id} className="hover:shadow-md transition-shadow border border-slate-200 rounded-2xl overflow-hidden bg-white">
+                                <CardContent className="p-5">
                                     <div className="flex justify-between items-start mb-3">
                                          <div className="flex-1">
                                              <h3 className="font-semibold text-lg">{termo.numero_termo_notificacao || termo.numero_termo}</h3>
@@ -1686,19 +1692,22 @@ export default function GerenciarTermos() {
                                                                             Excluir
                                                                         </Button>
                                                                     </AlertDialogTrigger>
-                                                                    <AlertDialogContent>
+                                                                    <AlertDialogContent className="bg-white border border-slate-200 text-slate-900 rounded-2xl shadow-xl">
                                                                         {deleteConfirmation.step === 1 ? (
                                                                             <>
                                                                                 <AlertDialogHeader>
-                                                                                    <AlertDialogTitle className="text-red-600">Excluir Termo de Notificação?</AlertDialogTitle>
-                                                                                    <AlertDialogDescription className="space-y-2">
+                                                                                    <AlertDialogTitle className="text-rose-600 flex items-center gap-2">
+                                                                                        <AlertTriangle className="h-5 w-5 text-rose-500" />
+                                                                                        Excluir Termo de Notificação?
+                                                                                    </AlertDialogTitle>
+                                                                                    <AlertDialogDescription className="space-y-2 text-slate-500">
                                                                                         <p>Você está prestes a excluir permanentemente:</p>
                                                                                         <p className="font-semibold text-gray-900">{termo.numero_termo_notificacao || termo.numero_termo}</p>
-                                                                                        <p className="text-red-600">Esta ação não pode ser desfeita e também removerá os arquivos e registros vinculados.</p>
+                                                                                        <p className="text-rose-600">Esta ação não pode ser desfeita e também removerá os arquivos e registros vinculados.</p>
                                                                                     </AlertDialogDescription>
                                                                                 </AlertDialogHeader>
                                                                                 <AlertDialogFooter>
-                                                                                    <AlertDialogCancel disabled={excluirTermoMutation.isPending}>Cancelar</AlertDialogCancel>
+                                                                                    <AlertDialogCancel disabled={excluirTermoMutation.isPending} className="bg-slate-105 hover:bg-slate-200 border-none text-slate-700 rounded-xl">Cancelar</AlertDialogCancel>
                                                                                     <Button
                                                                                         variant="destructive"
                                                                                         disabled={excluirTermoMutation.isPending}
@@ -1711,14 +1720,17 @@ export default function GerenciarTermos() {
                                                                         ) : (
                                                                             <>
                                                                                 <AlertDialogHeader>
-                                                                                    <AlertDialogTitle className="text-red-600">Confirmação Final</AlertDialogTitle>
-                                                                                    <AlertDialogDescription className="space-y-3">
+                                                                                    <AlertDialogTitle className="text-rose-600 flex items-center gap-2">
+                                                                                        <AlertTriangle className="h-5 w-5 text-rose-500" />
+                                                                                        Confirmação Final
+                                                                                    </AlertDialogTitle>
+                                                                                    <AlertDialogDescription className="space-y-3 text-slate-500">
                                                                                         <p>Para confirmar a exclusão, digite <span className="font-bold">EXCLUIR</span> no campo abaixo:</p>
                                                                                         <Input
                                                                                             placeholder="Digite EXCLUIR"
                                                                                             value={deleteConfirmation.inputValue}
                                                                                             onChange={(e) => setDeleteConfirmation(prev => ({ ...prev, inputValue: e.target.value }))}
-                                                                                            className="mt-2"
+                                                                                            className="mt-2 bg-white border-slate-200 text-slate-900 placeholder-slate-400 rounded-xl h-11"
                                                                                         />
                                                                                     </AlertDialogDescription>
                                                                                 </AlertDialogHeader>
@@ -1726,6 +1738,7 @@ export default function GerenciarTermos() {
                                                                                     <AlertDialogCancel
                                                                                         disabled={excluirTermoMutation.isPending}
                                                                                         onClick={() => setDeleteConfirmation({ open: false, termoId: null, step: 1, inputValue: '' })}
+                                                                                        className="bg-slate-105 hover:bg-slate-200 border-none text-slate-700 rounded-xl"
                                                                                     >
                                                                                         Cancelar
                                                                                     </AlertDialogCancel>
@@ -1746,12 +1759,17 @@ export default function GerenciarTermos() {
                                                   );
                                               })()}
                                          </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))
-                    )}
+                                     </div>
+                                 </CardContent>
+                             </Card>
+                         ))
+                     )}
                 </div>
+            </div>
+            </div>
+            {/* Footer */}
+            <div className="py-5 text-center text-xs text-slate-400 bg-white border-t border-slate-200 mt-8">
+                AGEMS - Agência Estadual de Regulação de Serviços Públicos de MS
             </div>
         </div>
     );

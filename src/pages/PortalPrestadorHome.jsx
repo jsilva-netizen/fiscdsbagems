@@ -333,132 +333,163 @@ export default function PortalPrestadorHome() {
   }, [autosAI, autosByRemessaId, defesaForms]);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex items-start justify-between gap-4 mb-6">
-          <div className="flex flex-col">
-            <h1 className="text-3xl font-bold">Portal do Prestador</h1>
-            <p className="text-sm text-gray-600 mt-1">
-              Prestador: <span className="font-medium text-gray-900">{prestador?.nome || '—'}</span>
-            </p>
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-between">
+      <div>
+        {/* Header */}
+        <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
+          <div className="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">Portal do Prestador</h1>
+              <p className="text-blue-200 text-xs mt-0.5">
+                Prestador: <span className="font-semibold text-white">{prestador?.nome || '—'}</span>
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              disabled={saindo}
+              className="text-white hover:bg-white/10 rounded-xl transition-all"
+              onClick={async () => {
+                if (saindo) return;
+                setSaindo(true);
+                try {
+                  await logout();
+                  navigate('/login', { replace: true });
+                } catch (err) {
+                  alert('Erro ao sair: ' + (err?.message || String(err)));
+                } finally {
+                  setSaindo(false);
+                }
+              }}
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Sair
+            </Button>
           </div>
-          <Button
-            variant="outline"
-            disabled={saindo}
-            onClick={async () => {
-              if (saindo) return;
-              setSaindo(true);
-              try {
-                await logout();
-                navigate('/login', { replace: true });
-              } catch (err) {
-                alert('Erro ao sair: ' + (err?.message || String(err)));
-              } finally {
-                setSaindo(false);
-              }
-            }}
-          >
-            <LogOut className="h-4 w-4 mr-2" />
-            Sair
-          </Button>
         </div>
 
-        <div className="grid grid-cols-4 gap-4 mb-8">
-          {cardsKpi.map((c) => (
-            <Card key={c.label}>
-              <CardContent className="p-4 text-center">
-                <p className="text-sm text-gray-600 mb-1">{c.label}</p>
-                <p className={`text-2xl font-bold ${c.valueClass}`}>{c.value}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="tns">TNs</TabsTrigger>
-            <TabsTrigger value="ais">Autos de Infração</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="tns" className="space-y-3 mt-4">
-            {termosPublicados.length === 0 ? (
-              <Card>
-                <CardContent className="p-6 text-center text-gray-500">
-                  Nenhum TN disponível no portal (aguarde a publicação de TN + RFP)
+        {/* Main Content */}
+        <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
+          {/* KPI Dashboard */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {cardsKpi.map((c) => (
+              <Card key={c.label} className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300">
+                <CardContent className="p-6 text-center">
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">{c.label}</p>
+                  <p className={`text-3xl font-extrabold ${c.valueClass}`}>{c.value}</p>
                 </CardContent>
               </Card>
-            ) : (
-              termosPublicados.map((termo) => {
-                const effectiveStatus = getEffectiveStatus(termo);
-                const prazoMax = termo.data_maxima_resposta;
-                const daysLeft = prazoMax ? Math.ceil((new Date(prazoMax).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
-                const prazoBadge = prazoMax ? (
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Clock className="h-4 w-4 mr-1" />
-                    {daysLeft !== null ? `${daysLeft} dias restantes` : 'Prazo não definido'}
-                  </div>
-                ) : null;
+            ))}
+          </div>
 
-                const actionLabel =
-                  effectiveStatus === 'aguardando_assinatura_prestador'
-                    ? 'Assinar TN'
-                    : effectiveStatus === 'respondido'
-                      ? 'Ver resposta'
-                      : 'Responder TN';
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
+            <TabsList className="grid w-full grid-cols-2 max-w-md bg-gray-200/60 p-1 rounded-xl shadow-inner">
+              <TabsTrigger
+                value="tns"
+                className="rounded-lg py-2.5 font-bold transition-all data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow text-slate-600 hover:text-slate-900"
+              >
+                TNs
+              </TabsTrigger>
+              <TabsTrigger
+                value="ais"
+                className="rounded-lg py-2.5 font-bold transition-all data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow text-slate-600 hover:text-slate-900"
+              >
+                Autos de Infração
+              </TabsTrigger>
+            </TabsList>
 
-                const municipioNome = municipioNomeById[termo?.municipio_id] || termo?.municipio_nome || '—';
-                const numeroRfp = formatRelatorioTN(termo);
-                const tipoRelatorio = String(termo?.tipo_relatorio || 'RFP').trim().toUpperCase();
-                const determinacoesCount = termo?.fiscalizacao_id ? (determinacoesCountByFiscalizacaoId[termo.fiscalizacao_id] || 0) : 0;
+            <TabsContent value="tns" className="space-y-4 focus-visible:outline-none">
+              {termosPublicados.length === 0 ? (
+                <Card className="bg-white border border-gray-200 rounded-2xl shadow-sm">
+                  <CardContent className="p-12 text-center text-gray-500">
+                    <FileText className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                    <p className="font-medium">Nenhum TN disponível no portal</p>
+                    <p className="text-xs text-gray-400 mt-1">Aguarde a publicação do Termo de Notificação + Relatório/Nota Técnica.</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                termosPublicados.map((termo) => {
+                  const effectiveStatus = getEffectiveStatus(termo);
+                  const prazoMax = termo.data_maxima_resposta;
+                  const daysLeft = prazoMax ? Math.ceil((new Date(prazoMax).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
+                  const prazoBadge = prazoMax ? (
+                    <div className="flex items-center text-xs font-semibold text-gray-500 bg-gray-100 px-2.5 py-1 rounded-lg">
+                      <Clock className="h-3.5 w-3.5 mr-1 text-gray-555" />
+                      {daysLeft !== null ? `${daysLeft} dias restantes` : 'Prazo não definido'}
+                    </div>
+                  ) : null;
 
-                return (
-                  <Card key={termo.id} className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-4 flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3">
-                          <FileText className="h-5 w-5 text-blue-600" />
-                          <p className="font-semibold">{termo.numero_termo_notificacao || termo.numero_termo}</p>
-                          {getStatusBadge(effectiveStatus)}
-                        </div>
-                        <div className="mt-1 text-sm text-gray-600">
-                          <span className="font-medium">Município:</span> {municipioNome} <span className="text-gray-400">•</span>{' '}
-                          <span className="font-medium">{tipoRelatorio}:</span> {numeroRfp} <span className="text-gray-400">•</span>{' '}
-                          <span className="font-medium">Determinações:</span> {determinacoesCount}
-                        </div>
-                        <div className="mt-1 text-sm text-gray-600 flex items-center gap-4">
-                          {prazoBadge}
-                          {termo.camara_tecnica && (
-                            <div className="flex items-center">
-                              <AlertTriangle className="h-4 w-4 mr-1 text-orange-600" />
-                              {termo.camara_tecnica}
+                  const actionLabel =
+                    effectiveStatus === 'aguardando_assinatura_prestador'
+                      ? 'Assinar TN'
+                      : effectiveStatus === 'respondido'
+                        ? 'Ver resposta'
+                        : 'Responder TN';
+
+                  const municipioNome = municipioNomeById[termo?.municipio_id] || termo?.municipio_nome || '—';
+                  const numeroRfp = formatRelatorioTN(termo);
+                  const tipoRelatorio = String(termo?.tipo_relatorio || 'RFP').trim().toUpperCase();
+                  const determinacoesCount = termo?.fiscalizacao_id ? (determinacoesCountByFiscalizacaoId[termo.fiscalizacao_id] || 0) : 0;
+
+                  return (
+                    <Card key={termo.id} className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300">
+                      <CardContent className="p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                        <div className="flex-1 space-y-2">
+                          <div className="flex flex-wrap items-center gap-3">
+                            <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+                              <FileText className="h-5 w-5" />
                             </div>
-                          )}
+                            <p className="font-bold text-gray-950 text-lg">
+                              {termo.numero_termo_notificacao || termo.numero_termo}
+                            </p>
+                            {getStatusBadge(effectiveStatus)}
+                          </div>
+                          <div className="text-sm text-gray-650 flex flex-wrap gap-x-4 gap-y-1">
+                            <div>
+                              <span className="font-bold text-gray-900">Município:</span> {municipioNome}
+                            </div>
+                            <div className="text-gray-300">|</div>
+                            <div>
+                              <span className="font-bold text-gray-900">{tipoRelatorio}:</span> {numeroRfp}
+                            </div>
+                            <div className="text-gray-300">|</div>
+                            <div>
+                              <span className="font-bold text-gray-900">Determinações:</span> {determinacoesCount}
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-3 pt-1">
+                            {prazoBadge}
+                            {termo.camara_tecnica && (
+                              <div className="flex items-center text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg">
+                                <AlertTriangle className="h-3.5 w-3.5 mr-1" />
+                                {termo.camara_tecnica}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      <div>
-                        <Link to={`${createPageUrl('ResponderTermo')}?termo=${encodeURIComponent(termo.id)}`}>
-                          <Button className="bg-blue-600 hover:bg-blue-700">
-                            {actionLabel}
-                          </Button>
-                        </Link>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })
-            )}
-          </TabsContent>
+                        <div className="w-full md:w-auto flex justify-end">
+                          <Link to={`${createPageUrl('ResponderTermo')}?termo=${encodeURIComponent(termo.id)}`}>
+                            <Button className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm font-semibold transition-all px-6 py-2">
+                              {actionLabel}
+                            </Button>
+                          </Link>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })
+              )}
+            </TabsContent>
 
-          <TabsContent value="ais" className="space-y-3 mt-4">
-            {autosAI.length === 0 ? (
-              <Card>
-                <CardContent className="p-6 text-center text-gray-500">
-                  Nenhum Auto de Infração disponível
-                </CardContent>
-              </Card>
-            ) : (
-              <>
-                <div className="space-y-3">
+            <TabsContent value="ais" className="space-y-4 focus-visible:outline-none">
+              {autosAI.length === 0 ? (
+                <Card className="bg-white border border-gray-200 rounded-2xl shadow-sm">
+                  <CardContent className="p-12 text-center text-gray-500">
+                    <FileText className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                    <p className="font-medium">Nenhum Auto de Infração disponível</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-4">
                   {autosAI.map((auto) => {
                     const r = auto?._remessa || null;
                     const f = defesaForms[auto.id] || { defesa_texto: '', defesa_arquivos: [] };
@@ -466,39 +497,49 @@ export default function PortalPrestadorHome() {
                     const podeEnviar = !!podeEnviarDefesaAuto?.[auto.id] && (r?.status || '') === 'recebida';
                     const hasAiAssinado = !!getAiAssinadoPrestadorUrl(auto);
                     return (
-                      <Card key={auto.id} className="hover:shadow-md transition-shadow">
-                        <CardContent className="p-4 space-y-3">
-                          <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div className="flex-1">
-                              <div className="font-semibold">{auto.numero_auto || 'Auto de Infração'}</div>
-                              <div className="mt-1 text-xs text-gray-600">
+                      <Card key={auto.id} className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300">
+                        <CardContent className="p-6 space-y-4">
+                          <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-100 pb-4">
+                            <div className="space-y-1">
+                              <div className="font-bold text-gray-900 text-lg">{auto.numero_auto || 'Auto de Infração'}</div>
+                              <div className="text-xs text-gray-500 flex items-center gap-2">
                                 {r?.numero_rfp ? (
-                                  <>
-                                    <span className="font-medium">RFP:</span> {r.numero_rfp}
-                                  </>
+                                  <div>
+                                    <span className="font-bold text-gray-700">RFP:</span> {r.numero_rfp}
+                                  </div>
                                 ) : null}
+                                {r?.numero_rfp && r?.numero_tn ? <span className="text-gray-350">•</span> : null}
                                 {r?.numero_tn ? (
-                                  <>
-                                    {r?.numero_rfp ? <span className="text-gray-400"> • </span> : null}
-                                    <span className="font-medium">TN:</span> {r.numero_tn}
-                                  </>
+                                  <div>
+                                    <span className="font-bold text-gray-700">TN:</span> {r.numero_tn}
+                                  </div>
                                 ) : null}
                               </div>
-                              <div className="mt-2 flex flex-wrap items-center gap-2">
-                                <Badge className="bg-gray-700">{r?.status || auto?.status || 'enviado'}</Badge>
-                                {hasAiAssinado ? <Badge className="bg-green-600">AI assinado enviado</Badge> : null}
-                                {r?.arquivo_oficio_defesa_url ? <Badge className="bg-blue-600">Ofício anexado</Badge> : null}
+                              <div className="flex flex-wrap items-center gap-2 pt-1">
+                                <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200 rounded-xl px-3 py-1 font-semibold text-xs capitalize">
+                                  {r?.status || auto?.status || 'enviado'}
+                                </Badge>
+                                {hasAiAssinado ? (
+                                  <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-250 rounded-xl px-3 py-1 font-semibold text-xs">
+                                    AI assinado enviado
+                                  </Badge>
+                                ) : null}
+                                {r?.arquivo_oficio_defesa_url ? (
+                                  <Badge variant="outline" className="bg-blue-50 text-blue-750 border-blue-200 rounded-xl px-3 py-1 font-semibold text-xs">
+                                    Ofício anexado
+                                  </Badge>
+                                ) : null}
                               </div>
                             </div>
                             <div className="flex flex-wrap gap-2">
                               {auto?.arquivo_url ? (
-                                <Button variant="outline" size="sm" onClick={() => void openArquivo(auto.arquivo_url)}>
+                                <Button variant="outline" size="sm" onClick={() => void openArquivo(auto.arquivo_url)} className="rounded-xl border-gray-200 hover:bg-gray-50 text-gray-700 font-semibold shadow-sm h-10">
                                   <Download className="h-4 w-4 mr-2" />
                                   Baixar AI
                                 </Button>
                               ) : null}
                               {r?.arquivo_oficio_defesa_url ? (
-                                <Button variant="outline" size="sm" onClick={() => void openArquivo(r.arquivo_oficio_defesa_url)}>
+                                <Button variant="outline" size="sm" onClick={() => void openArquivo(r.arquivo_oficio_defesa_url)} className="rounded-xl border-gray-200 hover:bg-gray-50 text-gray-700 font-semibold shadow-sm h-10">
                                   <Download className="h-4 w-4 mr-2" />
                                   Baixar ofício
                                 </Button>
@@ -507,12 +548,13 @@ export default function PortalPrestadorHome() {
                           </div>
 
                           {r?.status === 'enviada' && !hasAiAssinado ? (
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Label className="text-sm">Enviar AI assinado (PDF)</Label>
+                            <div className="flex flex-col gap-2 p-4 rounded-xl border border-dashed border-amber-200 bg-amber-50/20">
+                              <Label className="text-sm font-bold text-amber-900">Enviar AI assinado (PDF)</Label>
                               <Input
                                 type="file"
                                 accept=".pdf,application/pdf"
                                 disabled={uploadingRemessa}
+                                className="rounded-xl border-amber-250 bg-white h-11"
                                 onChange={async (e) => {
                                   const file = e.target.files?.[0];
                                   if (!file) return;
@@ -560,51 +602,58 @@ export default function PortalPrestadorHome() {
                             </div>
                           ) : null}
 
-                          <div>
-                            <Label>Defesa (texto)</Label>
+                          <div className="space-y-1.5">
+                            <Label className="font-bold text-gray-800 text-sm">Defesa (texto)</Label>
                             <Textarea
-                              className="mt-1"
+                              className="mt-1 rounded-xl border-gray-200 bg-white focus:ring-indigo-500 focus:border-indigo-500"
+                              rows={4}
                               value={f.defesa_texto}
                               onChange={(e) => setDefesaForms((prev) => ({ ...prev, [auto.id]: { ...f, defesa_texto: e.target.value } }))}
                               disabled={disabledDefesa}
+                              placeholder="Digite a justificativa ou texto da defesa..."
                             />
                           </div>
 
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Input
-                              type="file"
-                              accept=".pdf,image/*"
-                              multiple
-                              disabled={disabledDefesa}
-                              onChange={async (e) => {
-                                const files = Array.from(e.target.files || []);
-                                if (files.length === 0) return;
-                                try {
-                                  setUploadingRemessa(true);
-                                  const uploaded = [];
-                                  for (const file of files) {
-                                    const ext = file?.name && file.name.includes('.') ? file.name.split('.').pop() : 'bin';
-                                    const ts = Date.now();
-                                    const rand = Math.random().toString(36).slice(2, 8);
-                                    const path = `autos_infracao/${auto.id}/defesa/${ts}-${rand}.${String(ext || 'bin').toLowerCase()}`;
-                                    const up = await Repository.uploadDocumentoAutos(file, path);
-                                    uploaded.push({ ...up, url: `storage://${up.bucket}/${up.path}` });
+                          <div className="flex flex-col sm:flex-row sm:items-end gap-3 p-4 rounded-xl bg-slate-50 border border-slate-200/50">
+                            <div className="flex-1 space-y-1.5">
+                              <Label className="text-sm font-bold text-gray-800">Anexar Documentos de Defesa</Label>
+                              <Input
+                                type="file"
+                                accept=".pdf,image/*"
+                                multiple
+                                disabled={disabledDefesa}
+                                className="rounded-xl border-gray-200 bg-white h-11"
+                                onChange={async (e) => {
+                                  const files = Array.from(e.target.files || []);
+                                  if (files.length === 0) return;
+                                  try {
+                                    setUploadingRemessa(true);
+                                    const uploaded = [];
+                                    for (const file of files) {
+                                      const ext = file?.name && file.name.includes('.') ? file.name.split('.').pop() : 'bin';
+                                      const ts = Date.now();
+                                      const rand = Math.random().toString(36).slice(2, 8);
+                                      const path = `autos_infracao/${auto.id}/defesa/${ts}-${rand}.${String(ext || 'bin').toLowerCase()}`;
+                                      const up = await Repository.uploadDocumentoAutos(file, path);
+                                      uploaded.push({ ...up, url: `storage://${up.bucket}/${up.path}` });
+                                    }
+                                    setDefesaForms((prev) => {
+                                      const cur = prev[auto.id] || { defesa_texto: '', defesa_arquivos: [] };
+                                      return { ...prev, [auto.id]: { ...cur, defesa_arquivos: [...(cur.defesa_arquivos || []), ...uploaded] } };
+                                    });
+                                  } catch (err) {
+                                    alert('Erro ao enviar anexo: ' + (err?.message || String(err)));
+                                  } finally {
+                                    setUploadingRemessa(false);
+                                    e.target.value = '';
                                   }
-                                  setDefesaForms((prev) => {
-                                    const cur = prev[auto.id] || { defesa_texto: '', defesa_arquivos: [] };
-                                    return { ...prev, [auto.id]: { ...cur, defesa_arquivos: [...(cur.defesa_arquivos || []), ...uploaded] } };
-                                  });
-                                } catch (err) {
-                                  alert('Erro ao enviar anexo: ' + (err?.message || String(err)));
-                                } finally {
-                                  setUploadingRemessa(false);
-                                  e.target.value = '';
-                                }
-                              }}
-                            />
+                                }}
+                              />
+                            </div>
                             <Button
                               variant="outline"
                               disabled={disabledDefesa || salvandoDefesaAutoId === auto.id}
+                              className="rounded-xl border-gray-200 hover:bg-gray-50 text-gray-700 font-semibold h-11 shadow-sm px-5"
                               onClick={async () => {
                                 setSalvandoDefesaAutoId(auto.id);
                                 try {
@@ -620,15 +669,15 @@ export default function PortalPrestadorHome() {
                                 }
                               }}
                             >
-                              <UploadCloud className="h-4 w-4 mr-2" />
+                              <UploadCloud className="h-4 w-4 mr-2 text-indigo-600" />
                               {salvandoDefesaAutoId === auto.id ? 'Salvando...' : 'Salvar rascunho'}
                             </Button>
                           </div>
 
                           {Array.isArray(f?.defesa_arquivos) && f.defesa_arquivos.length > 0 ? (
-                            <div className="flex flex-wrap gap-2">
+                            <div className="flex flex-wrap gap-2 pt-1">
                               {f.defesa_arquivos.map((a, idx) => (
-                                <Badge key={idx} variant="outline" className="cursor-pointer" onClick={() => void openArquivo(a?.url || a)}>
+                                <Badge key={idx} variant="outline" className="cursor-pointer bg-indigo-55 text-indigo-700 border-indigo-200 rounded-xl px-3 py-1 font-semibold text-xs hover:bg-indigo-100 transition-all" onClick={() => void openArquivo(a?.url || a)}>
                                   {a?.nome || a?.path || `Anexo ${idx + 1}`}
                                 </Badge>
                               ))}
@@ -636,12 +685,13 @@ export default function PortalPrestadorHome() {
                           ) : null}
 
                           {(r?.status || '') === 'recebida' ? (
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Label className="text-sm">Ofício de envio da defesa (PDF)</Label>
+                            <div className="flex flex-col gap-2 p-4 rounded-xl border border-dashed border-indigo-200 bg-indigo-50/10">
+                              <Label className="text-sm font-bold text-indigo-900">Ofício de envio da defesa (PDF)</Label>
                               <Input
                                 type="file"
                                 accept=".pdf,application/pdf"
                                 disabled={uploadingRemessa || (r?.status || '') !== 'recebida'}
+                                className="rounded-xl border-indigo-200 bg-white h-11"
                                 onChange={async (e) => {
                                   const file = e.target.files?.[0];
                                   if (!file) return;
@@ -668,9 +718,9 @@ export default function PortalPrestadorHome() {
                             </div>
                           ) : null}
 
-                          <div className="flex justify-end">
+                          <div className="flex justify-end pt-2">
                             <Button
-                              className="bg-purple-600 hover:bg-purple-700"
+                              className="bg-purple-650 hover:bg-purple-700 text-white rounded-xl shadow-md font-bold transition-all px-6 py-2"
                               disabled={enviandoDefesa || !podeEnviar || !auto?._remessaId}
                               onClick={async () => {
                                 if (!auto?._remessaId) return;
@@ -707,10 +757,15 @@ export default function PortalPrestadorHome() {
                     );
                   })}
                 </div>
-              </>
-            )}
-          </TabsContent>
-        </Tabs>
+              )}
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="py-5 text-center text-xs text-slate-400 bg-white border-t border-slate-200 mt-12">
+        AGEMS - Agência Estadual de Regulação de Serviços Públicos de MS
       </div>
     </div>
   );

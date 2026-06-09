@@ -140,7 +140,7 @@ export default function Contratos() {
                         <div className="text-sm text-slate-500 font-medium bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
                             Total de Contratos: <span className="text-slate-800 font-bold">{contratos.length}</span>
                         </div>
-                        <Button onClick={() => { resetForm(); setShowForm(true); }} className="bg-indigo-650 hover:bg-indigo-700 text-white rounded-xl shadow transition-all">
+                        <Button onClick={() => { resetForm(); setShowForm(true); }} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow transition-all">
                             <Plus className="h-4 w-4 mr-2" />
                             Novo Contrato
                         </Button>
@@ -148,7 +148,7 @@ export default function Contratos() {
 
                     {isLoadingContratos || isLoadingConcess ? (
                         <div className="flex justify-center py-12">
-                            <Loader2 className="h-8 w-8 animate-spin text-indigo-650" />
+                            <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
                         </div>
                     ) : contratos.length === 0 ? (
                         <Card className="border-dashed border-2 border-slate-300 bg-slate-50/50">
@@ -228,22 +228,22 @@ export default function Contratos() {
                                                                 Deletar
                                                             </Button>
                                                         </AlertDialogTrigger>
-                                                        <AlertDialogContent className="bg-slate-900 border border-slate-800 text-slate-100 rounded-2xl">
+                                                        <AlertDialogContent className="bg-white border border-slate-200 text-slate-900 rounded-2xl shadow-xl">
                                                             {deleteConfirmation.step === 1 ? (
                                                                 <>
                                                                     <AlertDialogHeader>
-                                                                        <AlertDialogTitle className="flex items-center gap-2 text-rose-400">
-                                                                            <AlertTriangle className="h-5 w-5" />
+                                                                        <AlertDialogTitle className="flex items-center gap-2 text-rose-600">
+                                                                            <AlertTriangle className="h-5 w-5 text-rose-500" />
                                                                             Excluir Contrato de Concessão?
                                                                         </AlertDialogTitle>
-                                                                        <AlertDialogDescription className="space-y-2 text-slate-400">
+                                                                        <AlertDialogDescription className="space-y-2 text-slate-500">
                                                                             <p>Você está prestes a excluir permanentemente o contrato:</p>
-                                                                            <p className="font-semibold text-slate-200">nº {contrato.numero_contrato} ({contrato.rodovia})</p>
-                                                                            <p className="text-rose-400 text-xs">Esta ação não pode ser desfeita e removerá os vínculos locais.</p>
+                                                                            <p className="font-semibold text-slate-800">nº {contrato.numero_contrato} ({contrato.rodovia})</p>
+                                                                            <p className="text-rose-600 text-xs">Esta ação não pode ser desfeita e removerá os vínculos locais.</p>
                                                                         </AlertDialogDescription>
                                                                     </AlertDialogHeader>
                                                                     <AlertDialogFooter className="pt-4">
-                                                                        <AlertDialogCancel className="bg-slate-800 hover:bg-slate-700 border-none text-slate-200">Cancelar</AlertDialogCancel>
+                                                                        <AlertDialogCancel className="bg-slate-105 hover:bg-slate-200 border-none text-slate-700 rounded-xl">Cancelar</AlertDialogCancel>
                                                                         <Button
                                                                             variant="destructive"
                                                                             className="bg-rose-600 hover:bg-rose-700 text-white rounded-xl"
@@ -256,22 +256,22 @@ export default function Contratos() {
                                                             ) : (
                                                                 <>
                                                                     <AlertDialogHeader>
-                                                                        <AlertDialogTitle className="flex items-center gap-2 text-rose-400">
-                                                                            <AlertTriangle className="h-5 w-5" />
+                                                                        <AlertDialogTitle className="flex items-center gap-2 text-rose-600">
+                                                                            <AlertTriangle className="h-5 w-5 text-rose-500" />
                                                                             Confirmação Final
                                                                         </AlertDialogTitle>
-                                                                        <AlertDialogDescription className="space-y-3 text-slate-400">
-                                                                            <p>Para confirmar a exclusão, digite <span className="font-bold text-slate-200">EXCLUIR</span> no campo abaixo:</p>
+                                                                        <AlertDialogDescription className="space-y-3 text-slate-500">
+                                                                            <p>Para confirmar a exclusão, digite <span className="font-bold text-slate-800">EXCLUIR</span> no campo abaixo:</p>
                                                                             <Input
                                                                                 placeholder="Digite EXCLUIR"
                                                                                 value={deleteConfirmation.inputValue}
                                                                                 onChange={(e) => setDeleteConfirmation(prev => ({ ...prev, inputValue: e.target.value }))}
-                                                                                className="mt-2 bg-slate-800 border-slate-700 text-slate-100 placeholder-slate-500 rounded-xl"
+                                                                                className="mt-2 bg-white border-slate-200 text-slate-900 placeholder-slate-400 rounded-xl h-11"
                                                                             />
                                                                         </AlertDialogDescription>
                                                                     </AlertDialogHeader>
                                                                     <AlertDialogFooter className="pt-4">
-                                                                        <AlertDialogCancel className="bg-slate-800 hover:bg-slate-700 border-none text-slate-200" onClick={() => setDeleteConfirmation({ open: false, contratoId: null, step: 1, inputValue: '' })}>
+                                                                        <AlertDialogCancel className="bg-slate-105 hover:bg-slate-200 border-none text-slate-700 rounded-xl" onClick={() => setDeleteConfirmation({ open: false, contratoId: null, step: 1, inputValue: '' })}>
                                                                             Cancelar
                                                                         </AlertDialogCancel>
                                                                         <Button
@@ -327,7 +327,7 @@ export default function Contratos() {
                                     </SelectTrigger>
                                     <SelectContent className="bg-white border-slate-200">
                                         {concessionarias.map(c => (
-                                            <SelectItem key={c.id} value={c.id} className="focus:bg-indigo-650 hover:bg-indigo-600">
+                                            <SelectItem key={c.id} value={c.id} className="focus:bg-indigo-600 hover:bg-indigo-600">
                                                 {c.nome}
                                             </SelectItem>
                                         ))}
@@ -351,7 +351,7 @@ export default function Contratos() {
 
                         <div className="flex gap-2.5 pt-4 border-t mt-6">
                             <Button
-                                className="flex-1 h-11 bg-indigo-650 hover:bg-indigo-700 text-white rounded-xl shadow-lg transition-all font-semibold"
+                                className="flex-1 h-11 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg transition-all font-semibold"
                                 onClick={handleSubmit}
                                 disabled={criarMutation.isPending || atualizarMutation.isPending}
                             >

@@ -481,20 +481,27 @@ export default function AnalisarResposta() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 p-6">
-            <div className="max-w-5xl mx-auto">
+        <div className="min-h-screen bg-gray-50 flex flex-col justify-between">
+            <div>
                 {/* Header */}
-                <div className="flex items-center gap-2 mb-6">
-                    <Link to={createPageUrl('AnaliseManifestacao')}>
-                        <Button variant="ghost" size="icon">
-                            <ArrowLeft className="h-4 w-4" />
-                        </Button>
-                    </Link>
-                    <h1 className="text-2xl font-bold">Análise da Manifestação</h1>
+                <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md mb-6">
+                    <div className="max-w-5xl mx-auto px-4 py-5 flex items-center gap-3">
+                        <Link to={createPageUrl('AnaliseManifestacao')}>
+                            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full transition-all">
+                                <ArrowLeft className="h-5 w-5" />
+                            </Button>
+                        </Link>
+                        <div>
+                            <h1 className="text-2xl font-bold tracking-tight">Análise da Manifestação</h1>
+                            <p className="text-blue-200 text-xs mt-0.5">Avaliação de conformidade das determinações e justificativas</p>
+                        </div>
+                    </div>
                 </div>
 
+                <div className="max-w-5xl mx-auto px-4">
+
                 {/* Info do TN */}
-                <Card className="mb-6">
+                <Card className="border border-gray-200 rounded-2xl shadow-sm bg-white mb-6">
                     <CardHeader>
                         <CardTitle>{termo.numero_termo_notificacao || termo.numero_termo}</CardTitle>
                         {termo.numero_rfp && (
@@ -533,7 +540,7 @@ export default function AnalisarResposta() {
                         const dets = determinacoesPorUnidade.get(unidade.id) || [];
                         if (dets.length === 0) return null;
                         return (
-                            <Card key={unidade.id}>
+                            <Card key={unidade.id} className="border border-gray-200 rounded-2xl bg-white shadow-sm mb-6">
                                 <CardHeader className="pb-3">
                                     <CardTitle className="text-base">
                                         Unidade: {unidade.codigo_unidade || unidade.codigo || unidade.id}
@@ -581,7 +588,7 @@ export default function AnalisarResposta() {
                                                         <AlertCircle className="h-5 w-5 text-gray-400" />;
 
                                         return (
-                                            <Card key={det.id} className={bloqueado ? 'opacity-50' : 'hover:shadow-lg transition-shadow'}>
+                                            <Card key={det.id} className={`${bloqueado ? 'opacity-50' : 'hover:shadow-md transition-shadow'} border border-slate-200 rounded-2xl overflow-hidden bg-white mb-4`}>
                                                 <CardContent className="p-4">
                                                     <div className="flex justify-between items-start">
                                                         <div className="flex-1">
@@ -648,7 +655,7 @@ export default function AnalisarResposta() {
 
                 {/* Dialog de Análise */}
                 <Dialog open={detalheDeterminacao !== null} onOpenChange={(open) => !open && setDetalheDeterminacao(null)}>
-                    <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                    <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white border border-slate-200 rounded-2xl p-6 shadow-2xl">
                         <DialogHeader>
                             {(() => {
                                 const det = detalheDeterminacao;
@@ -841,16 +848,15 @@ export default function AnalisarResposta() {
                     </DialogContent>
                 </Dialog>
 
-                {/* Alert Dialog de Confirmação */}
                 <AlertDialog open={confirmDialog.open} onOpenChange={(open) => setConfirmDialog({ open, determinacao: null })}>
-                    <AlertDialogContent>
+                    <AlertDialogContent className="bg-white border border-slate-200 text-slate-900 rounded-2xl shadow-xl">
                         <AlertDialogHeader>
-                            <AlertDialogTitle>Confirmar Análise</AlertDialogTitle>
-                            <AlertDialogDescription>
+                            <AlertDialogTitle className="text-xl font-bold text-slate-900">Confirmar Análise</AlertDialogTitle>
+                            <AlertDialogDescription className="text-slate-500">
                                 Você está prestes a marcar a determinação <strong>{getNumeroDeterminacaoExibicao(confirmDialog.determinacao)}</strong> como{' '}
-                                <strong>{analiseForm.status === 'atendida' ? 'Acatada' : 'Não Acatada'}</strong>.
+                                <strong className="text-slate-800">{analiseForm.status === 'atendida' ? 'Acatada' : 'Não Acatada'}</strong>.
                                 {analiseForm.status === 'nao_atendida' && (
-                                    <span className="block mt-2 text-red-600 font-medium">
+                                    <span className="block mt-2 text-rose-600 font-medium">
                                         O Auto de Infração será gerado ao concluir a AM.
                                     </span>
                                 )}
@@ -858,13 +864,18 @@ export default function AnalisarResposta() {
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={confirmarAnalise}>Confirmar</AlertDialogAction>
+                            <AlertDialogCancel className="bg-slate-105 hover:bg-slate-200 border-none text-slate-700 rounded-xl">Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={confirmarAnalise} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl">Confirmar</AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>
 
 
+            </div>
+            </div>
+            {/* Footer */}
+            <div className="py-5 text-center text-xs text-slate-400 bg-white border-t border-slate-200 mt-8">
+                AGEMS - Agência Estadual de Regulação de Serviços Públicos de MS
             </div>
         </div>
     );

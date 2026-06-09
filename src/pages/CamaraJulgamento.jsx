@@ -73,36 +73,43 @@ export default function CamaraJulgamento() {
     const remessasEncaminhadas = (remessas || []).filter(r => String(r?.status || '') === 'parecer_enviado');
 
     return (
-        <div className="min-h-screen bg-gray-50 p-6">
-            <div className="max-w-6xl mx-auto">
+        <div className="min-h-screen bg-gray-50 flex flex-col justify-between">
+            <div>
                 {/* Header */}
-                <div className="flex items-center gap-2 mb-6">
-                    <Link to={createPageUrl('Home')}>
-                        <Button variant="ghost" size="icon">
-                            <ArrowLeft className="h-4 w-4" />
-                        </Button>
-                    </Link>
-                    <h1 className="text-3xl font-bold">Câmara de Julgamento</h1>
+                <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md mb-6">
+                    <div className="max-w-6xl mx-auto px-4 py-5 flex items-center gap-3">
+                        <Link to={createPageUrl('Home')}>
+                            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full transition-all">
+                                <ArrowLeft className="h-5 w-5" />
+                            </Button>
+                        </Link>
+                        <div>
+                            <h1 className="text-2xl font-bold tracking-tight">Câmara de Julgamento</h1>
+                            <p className="text-blue-200 text-xs mt-0.5">Deliberação e julgamento de recursos e remessas de autos</p>
+                        </div>
+                    </div>
                 </div>
+
+                <div className="max-w-6xl mx-auto px-4">
 
                 {/* KPIs */}
                 <div className="grid grid-cols-3 gap-4 mb-8">
-                    <Card>
+                    <Card className="border border-gray-200 rounded-2xl shadow-sm bg-white hover:shadow-md transition-shadow">
                         <CardContent className="p-4 text-center">
-                            <p className="text-sm text-gray-600 mb-1">Remessas Encaminhadas</p>
-                            <p className="text-2xl font-bold text-blue-600">{remessasEncaminhadas.length}</p>
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Remessas Encaminhadas</p>
+                            <p className="text-3xl font-bold text-blue-600">{remessasEncaminhadas.length}</p>
                         </CardContent>
                     </Card>
-                    <Card>
+                    <Card className="border border-gray-200 rounded-2xl shadow-sm bg-white hover:shadow-md transition-shadow">
                         <CardContent className="p-4 text-center">
-                            <p className="text-sm text-gray-600 mb-1">Sem Assinatura</p>
-                            <p className="text-2xl font-bold text-yellow-600">{pareceresSemAssinatura.length}</p>
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Sem Assinatura</p>
+                            <p className="text-3xl font-bold text-yellow-600">{pareceresSemAssinatura.length}</p>
                         </CardContent>
                     </Card>
-                    <Card>
+                    <Card className="border border-gray-200 rounded-2xl shadow-sm bg-white hover:shadow-md transition-shadow">
                         <CardContent className="p-4 text-center">
-                            <p className="text-sm text-gray-600 mb-1">Total Finalizados</p>
-                            <p className="text-2xl font-bold">{pareceresFinalizados.length}</p>
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Total Finalizados</p>
+                            <p className="text-3xl font-bold text-slate-800">{pareceresFinalizados.length}</p>
                         </CardContent>
                     </Card>
                 </div>
@@ -117,7 +124,7 @@ export default function CamaraJulgamento() {
                         </Card>
                     ) : (
                         remessasEncaminhadas.map((r) => (
-                            <Card key={r.id} className={remessaAbertaId === r.id ? 'border-blue-300' : ''}>
+                            <Card key={r.id} className={`${remessaAbertaId === r.id ? 'border-indigo-300 ring-1 ring-indigo-300' : 'border-slate-200'} hover:shadow-md transition-shadow border rounded-2xl overflow-hidden bg-white mb-4`}>
                                 <CardContent className="p-4 space-y-3">
                                     <div className="flex flex-wrap items-center justify-between gap-2">
                                         <div>
@@ -156,7 +163,7 @@ export default function CamaraJulgamento() {
                                                     const parecer = (pareceresAssinados || []).find(p => p.auto_id === a.id) || null;
                                                     const defesaArquivos = Array.isArray(a?.defesa_arquivos) ? a.defesa_arquivos : [];
                                                     return (
-                                                        <Card key={it.id} className="border-gray-200">
+                                                        <Card key={it.id} className="border-gray-200 rounded-2xl bg-white shadow-sm overflow-hidden mb-3">
                                                             <CardContent className="p-4 space-y-3">
                                                                 <div className="flex flex-wrap items-center justify-between gap-2">
                                                                     <div className="font-semibold">{a.numero_auto || a.id}</div>
@@ -210,6 +217,11 @@ export default function CamaraJulgamento() {
                         ))
                     )}
                 </div>
+            </div>
+            </div>
+            {/* Footer */}
+            <div className="py-5 text-center text-xs text-slate-400 bg-white border-t border-slate-200 mt-8">
+                AGEMS - Agência Estadual de Regulação de Serviços Públicos de MS
             </div>
         </div>
     );

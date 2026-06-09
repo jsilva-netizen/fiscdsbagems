@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from '@/components/ui/alert-dialog';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, Filter, Trash2, AlertTriangle, MapPin, ChevronRight, Calendar, CheckCircle2, Clock, Plus, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Search, Filter, Trash2, AlertTriangle, MapPin, ChevronRight, Calendar, CheckCircle2, Clock, Plus, RotateCcw, Loader2 } from 'lucide-react';
 import ExportarPDFConsolidado from '@/components/fiscalizacao/ExportarPDFConsolidado';
 import RelatorioFiscalizacao from '@/components/fiscalizacao/RelatorioFiscalizacao';
 import HistoricoFiscalizacao from '@/components/fiscalizacao/HistoricoFiscalizacao';
@@ -231,9 +231,10 @@ export default function Fiscalizacoes() {
                             return (
                                 <Card key={fisc.id} className="hover:shadow-md transition-all border border-gray-200 rounded-2xl overflow-hidden bg-white">
                                     <CardContent className="p-5">
+                                        <div className="flex justify-between items-start gap-3">
                                         <Link
                                             to={createPageUrl('ExecutarFiscalizacao') + `?id=${fisc.id}`}
-                                            className="block"
+                                            className="flex-1 min-w-0 block"
                                         >
                                             <div className="flex items-start justify-between">
                                                 <div className="flex items-start gap-3">
@@ -292,11 +293,15 @@ export default function Fiscalizacoes() {
                                                 </div>
                                             )}
                                         </Link>
-
-                                                             setDeleteConfirmation({ open: false, fiscId: null, step: 1, inputValue: '' });
-                                                         }
-                                                     }}
-                                                 >
+                                            {podeDeleter && (
+                                                <AlertDialog
+                                                    open={deleteConfirmation.open && deleteConfirmation.fiscId === fisc.id}
+                                                    onOpenChange={(open) => {
+                                                        if (!open) {
+                                                            setDeleteConfirmation({ open: false, fiscId: null, step: 1, inputValue: '' });
+                                                        }
+                                                    }}
+                                                >
                                                     <Button
                                                          variant="outline"
                                                          size="sm"

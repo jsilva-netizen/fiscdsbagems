@@ -263,19 +263,25 @@ export default function AcompanhamentoDeterminacoes() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 p-6">
-            <div className="max-w-7xl mx-auto">
-                {/* Header */}
-                <div className="mb-8">
-                    <div className="flex items-center gap-2 mb-4">
+        <div className="min-h-screen bg-gray-50">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
+                <div className="max-w-7xl mx-auto px-4 py-5">
+                    <div className="flex items-center gap-3">
                         <Link to={createPageUrl('Home')}>
-                            <Button variant="ghost" size="icon">
-                                <ArrowLeft className="h-4 w-4" />
+                            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full">
+                                <ArrowLeft className="h-5 w-5" />
                             </Button>
                         </Link>
-                        <h1 className="text-3xl font-bold">Acompanhamento de Determinações</h1>
+                        <div>
+                            <h1 className="text-xl font-bold">Acompanhamento de Determinações</h1>
+                            <p className="text-blue-200 text-xs mt-0.5">{determinacoes.length} determinações no total</p>
+                        </div>
                     </div>
                 </div>
+            </div>
+
+            <div className="max-w-7xl mx-auto px-4 py-6">
 
                 {/* Filtros */}
                 <DeterminacoesFiltros 
@@ -288,42 +294,50 @@ export default function AcompanhamentoDeterminacoes() {
 
                 {/* KPIs */}
                 <div className="grid grid-cols-4 gap-4 mb-8">
-                    <Card>
-                        <CardContent className="p-6">
+                    <Card className="border border-gray-200 rounded-2xl shadow-sm bg-white">
+                        <CardContent className="p-5">
                             <div className="text-center">
-                                <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
-                                <p className="text-sm text-gray-600 mb-1">Vencidas</p>
-                                <p className="text-2xl font-bold text-red-600">{determVencidas}</p>
+                                <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center mx-auto mb-2">
+                                    <AlertCircle className="h-5 w-5 text-red-500" />
+                                </div>
+                                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Vencidas</p>
+                                <p className="text-3xl font-bold text-red-600">{determVencidas}</p>
                             </div>
                         </CardContent>
                     </Card>
 
-                    <Card>
-                        <CardContent className="p-6">
+                    <Card className="border border-gray-200 rounded-2xl shadow-sm bg-white">
+                        <CardContent className="p-5">
                             <div className="text-center">
-                                <Clock className="h-8 w-8 text-orange-500 mx-auto mb-2" />
-                                <p className="text-sm text-gray-600 mb-1">Vencer em 7 dias</p>
-                                <p className="text-2xl font-bold text-orange-600">{determVencerEm7}</p>
+                                <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center mx-auto mb-2">
+                                    <Clock className="h-5 w-5 text-amber-500" />
+                                </div>
+                                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Vencer em 7 dias</p>
+                                <p className="text-3xl font-bold text-amber-600">{determVencerEm7}</p>
                             </div>
                         </CardContent>
                     </Card>
 
-                    <Card>
-                        <CardContent className="p-6">
+                    <Card className="border border-gray-200 rounded-2xl shadow-sm bg-white">
+                        <CardContent className="p-5">
                             <div className="text-center">
-                                <CheckCircle className="h-8 w-8 text-green-500 mx-auto mb-2" />
-                                <p className="text-sm text-gray-600 mb-1">Respondidas</p>
-                                <p className="text-2xl font-bold text-green-600">{determRespondidas}</p>
+                                <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center mx-auto mb-2">
+                                    <CheckCircle className="h-5 w-5 text-emerald-500" />
+                                </div>
+                                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Respondidas</p>
+                                <p className="text-3xl font-bold text-emerald-600">{determRespondidas}</p>
                             </div>
                         </CardContent>
                     </Card>
 
-                    <Card>
-                        <CardContent className="p-6">
+                    <Card className="border border-gray-200 rounded-2xl shadow-sm bg-white">
+                        <CardContent className="p-5">
                             <div className="text-center">
-                                <FileText className="h-8 w-8 text-blue-500 mx-auto mb-2" />
-                                <p className="text-sm text-gray-600 mb-1">Total</p>
-                                <p className="text-2xl font-bold text-blue-600">{determinacoes.length}</p>
+                                <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center mx-auto mb-2">
+                                    <FileText className="h-5 w-5 text-blue-500" />
+                                </div>
+                                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Total</p>
+                                <p className="text-3xl font-bold text-blue-600">{determinacoes.length}</p>
                             </div>
                         </CardContent>
                     </Card>
@@ -632,7 +646,7 @@ export default function AcompanhamentoDeterminacoes() {
 
                 {/* Análises */}
                 <div className="mb-8">
-                    <h2 className="text-xl font-semibold mb-4">Análises</h2>
+                    <h2 className="text-lg font-bold text-gray-800 mb-4">Análises</h2>
                     <AnaliseTemposMedios determinacoes={determFiltradas} respostas={respostas} />
                 </div>
 
@@ -641,6 +655,10 @@ export default function AcompanhamentoDeterminacoes() {
                     <ChartEvolucaoStatus determinacoes={determFiltradas} respostas={respostas} />
                     <MapaDistribuicao determinacoes={determFiltradas} autos={autos} municipios={municipios} />
                 </div>
+            </div>
+
+            <div className="py-5 text-center text-xs text-gray-400 bg-white border-t border-gray-200 mt-8">
+                AGEMS — Agência Estadual de Regulação de Serviços Públicos de MS
             </div>
         </div>
     );

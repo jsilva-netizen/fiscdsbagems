@@ -569,75 +569,86 @@ export default function AnaliseManifestacao() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 p-6">
-            <div className="max-w-6xl mx-auto">
+        <div className="min-h-screen bg-gray-50 flex flex-col justify-between">
+            <div>
                 {/* Header */}
-                <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-2">
+                <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md mb-6">
+                    <div className="max-w-6xl mx-auto px-4 py-5 flex items-center gap-3">
                         <Link to={createPageUrl('Home')}>
-                            <Button variant="ghost" size="icon">
-                                <ArrowLeft className="h-4 w-4" />
+                            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full transition-all">
+                                <ArrowLeft className="h-5 w-5" />
                             </Button>
                         </Link>
-                        <h1 className="text-3xl font-bold">Análise da Manifestação</h1>
+                        <div>
+                            <h1 className="text-2xl font-bold tracking-tight">Análise da Manifestação</h1>
+                            <p className="text-blue-200 text-xs mt-0.5">Gestão de prazos, análises técnicas e emissão de AM</p>
+                        </div>
                     </div>
                 </div>
 
+                <div className="max-w-6xl mx-auto px-4">
+
                 {/* Dashboard KPI */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                    <Card>
+                    <Card className="border border-gray-200 rounded-2xl shadow-sm bg-white hover:shadow-md transition-shadow">
                         <CardContent className="p-4">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm text-gray-600">Total TNs</p>
-                                    <p className="text-2xl font-bold">{termosFiltrados.length}</p>
+                                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Total TNs</p>
+                                    <p className="text-3xl font-bold text-blue-600">{termosFiltrados.length}</p>
                                 </div>
-                                <FileText className="h-8 w-8 text-blue-600" />
+                                <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
+                                    <FileText className="h-5 w-5 text-blue-500" />
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
-                    <Card>
+                    <Card className="border border-gray-200 rounded-2xl shadow-sm bg-white hover:shadow-md transition-shadow">
                         <CardContent className="p-4">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm text-gray-600">Aguardando Análise</p>
-                                    <p className="text-2xl font-bold">
+                                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Aguardando Análise</p>
+                                    <p className="text-3xl font-bold text-amber-600">
                                         {termosFiltrados.filter(t => {
                                             const stats = contarStatusDeterminacoes(t);
                                             return t.data_recebimento_resposta && stats.total > 0 && (stats.atendidas + stats.naoAtendidas < stats.total);
                                         }).length}
                                     </p>
                                 </div>
-                                <Clock className="h-8 w-8 text-yellow-600" />
+                                <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center">
+                                    <Clock className="h-5 w-5 text-amber-500" />
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
-                    <Card>
+                    <Card className="border border-gray-200 rounded-2xl shadow-sm bg-white hover:shadow-md transition-shadow">
                         <CardContent className="p-4">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm text-gray-600">Análises Concluídas</p>
-                                    <p className="text-2xl font-bold">
+                                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Análises Concluídas</p>
+                                    <p className="text-3xl font-bold text-emerald-600">
                                         {termosFiltrados.filter(t => {
                                             const stats = contarStatusDeterminacoes(t);
                                             return t.data_recebimento_resposta && stats.atendidas + stats.naoAtendidas === stats.total && stats.total > 0;
                                         }).length}
                                     </p>
                                 </div>
-                                <CheckCircle className="h-8 w-8 text-green-600" />
+                                <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center">
+                                    <CheckCircle className="h-5 w-5 text-emerald-500" />
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
-                    <Card>
+                    <Card className="border border-gray-200 rounded-2xl shadow-sm bg-white hover:shadow-md transition-shadow">
                         <CardContent className="p-4">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm text-gray-600">Autos Gerados</p>
-                                    <p className="text-2xl font-bold">
-                                        {autos.length}
-                                    </p>
+                                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Autos Gerados</p>
+                                    <p className="text-3xl font-bold text-red-650">{autos.length}</p>
                                 </div>
-                                <AlertCircle className="h-8 w-8 text-red-600" />
+                                <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center">
+                                    <AlertCircle className="h-5 w-5 text-red-500" />
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
@@ -702,11 +713,11 @@ export default function AnaliseManifestacao() {
                 {/* Lista de TNs */}
                 <div className="space-y-4">
                     {termosFiltrados.length === 0 ? (
-                        <Card className="p-8">
-                            <div className="text-center text-gray-500">
-                                <FileText className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                                <p>Nenhum TN encontrado para análise</p>
-                            </div>
+                        <Card className="border border-gray-200 rounded-2xl bg-white shadow-sm">
+                            <CardContent className="p-8 text-center text-gray-500">
+                                <FileText className="h-12 w-12 mx-auto mb-3 opacity-30 text-slate-400" />
+                                <p className="font-medium text-slate-655">Nenhum TN encontrado para análise</p>
+                            </CardContent>
                         </Card>
                     ) : (
                         termosFiltrados.map(termo => {
@@ -716,8 +727,8 @@ export default function AnaliseManifestacao() {
                             const numeroTN = termo.numero_termo_notificacao || termo.numero_termo || 'N/A';
 
                             return (
-                                <Card key={termo.id} className="hover:shadow-lg transition-shadow">
-                                    <CardContent className="p-4">
+                                <Card key={termo.id} className="hover:shadow-md transition-shadow border border-slate-200 rounded-2xl overflow-hidden bg-white mb-4">
+                                    <CardContent className="p-5">
                                         <div className="flex justify-between items-start">
                                             <div className="flex-1">
                                                 <h3 className="font-semibold text-lg mb-2">
@@ -847,21 +858,22 @@ export default function AnaliseManifestacao() {
                 <AlertDialog open={termoExcluindo !== null} onOpenChange={(open) => {
                     if (!open) setTermoExcluindo(null);
                 }}>
-                    <AlertDialogContent>
+                    <AlertDialogContent className="bg-white border border-slate-200 text-slate-900 rounded-2xl shadow-xl">
                         {!confirmarExclusao ? (
                             <>
                                 <AlertDialogHeader>
-                                    <AlertDialogTitle>Excluir Análise?</AlertDialogTitle>
-                                    <AlertDialogDescription>
+                                    <AlertDialogTitle className="text-xl font-bold text-slate-900">Excluir Análise?</AlertDialogTitle>
+                                    <AlertDialogDescription className="text-slate-500">
                                         Tem certeza que deseja excluir a análise da manifestação? Esta ação removerá o número AM e permitirá que a análise seja refeita.
                                     </AlertDialogDescription>
                                 </AlertDialogHeader>
-                                <div className="flex gap-2 justify-end">
-                                    <AlertDialogCancel onClick={() => setTermoExcluindo(null)}>
+                                <div className="flex gap-2 justify-end mt-4">
+                                    <AlertDialogCancel onClick={() => setTermoExcluindo(null)} className="bg-slate-105 hover:bg-slate-200 border-none text-slate-700 rounded-xl">
                                         Cancelar
                                     </AlertDialogCancel>
                                     <Button
                                         variant="destructive"
+                                        className="bg-rose-600 hover:bg-rose-700 text-white rounded-xl"
                                         onClick={() => setConfirmarExclusao(true)}
                                     >
                                         Excluir
@@ -871,20 +883,21 @@ export default function AnaliseManifestacao() {
                         ) : (
                             <>
                                 <AlertDialogHeader>
-                                    <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
-                                    <AlertDialogDescription>
+                                    <AlertDialogTitle className="text-xl font-bold text-slate-900">Confirmar Exclusão</AlertDialogTitle>
+                                    <AlertDialogDescription className="text-slate-500">
                                         Esta é a última confirmação. Ao continuar, a análise será removida permanentemente e o TN voltará ao estado anterior.
                                     </AlertDialogDescription>
                                 </AlertDialogHeader>
-                                <div className="flex gap-2 justify-end">
+                                <div className="flex gap-2 justify-end mt-4">
                                     <Button
                                         variant="outline"
+                                        className="rounded-xl"
                                         onClick={() => setConfirmarExclusao(false)}
                                     >
                                         Voltar
                                     </Button>
                                     <AlertDialogAction
-                                        className="bg-red-600 hover:bg-red-700"
+                                        className="bg-rose-600 hover:bg-rose-700 text-white rounded-xl"
                                         onClick={() => excluirAnalise(termoExcluindo)}
                                     >
                                         Confirmar Exclusão
@@ -894,6 +907,11 @@ export default function AnaliseManifestacao() {
                         )}
                     </AlertDialogContent>
                 </AlertDialog>
+            </div>
+            </div>
+            {/* Footer */}
+            <div className="py-5 text-center text-xs text-slate-400 bg-white border-t border-slate-200 mt-8">
+                AGEMS - Agência Estadual de Regulação de Serviços Públicos de MS
             </div>
         </div>
     );
