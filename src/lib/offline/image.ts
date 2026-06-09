@@ -1,5 +1,5 @@
 export const MAX_DIMENSION = 1600
-export const JPEG_QUALITY = 0.82
+export const JPEG_QUALITY = 0.78
 export const MAX_PHOTO_BYTES = 5 * 1024 * 1024
 export const MAX_PHOTOS_PER_UNIDADE = 20
 

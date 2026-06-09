@@ -1449,167 +1449,73 @@ async function pullEntity(entity: Entity, since?: string) {
     const u = typeof x?.url === 'string' ? x.url : ''
     return u ? String(u) : ''
   }
-  if (!since) {
-    const rows = await withBackoff(() => withTimeout(() => safeSelect(table, prefer), 15000))
-    for (const row of rows) {
+
+  // Pre-load all ID maps once into a Map for O(1) lookups
+  const maps = await db.id_map.toArray()
+  const serverToLocal = new Map<string, string>()
+  for (const m of maps) {
+    if (m.server_id && m.local_id) {
+      serverToLocal.set(`${m.entity}:${m.server_id}`, m.local_id)
+    }
+  }
+
+  // Pre-load local records to avoid IndexedDB queries inside the loops
+  let localUnidadesMap = new Map()
+  if (entity === 'unidades') {
+    const localUnidades = await db.unidades.toArray()
+    localUnidadesMap = new Map(localUnidades.map(u => [u.id, u]))
+  }
+
+  let localItemsMap = new Map()
+  if (entity === 'determinacoes' || entity === 'recomendacoes') {
+    const dbTable = (entity === 'determinacoes') ? (db as any).determinacoes : db.recomendacoes
+    const allLocal = await dbTable.toArray()
+    for (const item of allLocal) {
+      if (item.unidade_fiscalizada_id && item.origem) {
+        const key = `${item.unidade_fiscalizada_id}:${String(item.origem).trim()}`
+        localItemsMap.set(key, item)
+      }
+    }
+  }
+
+  const idsToDelete: any[] = []
+  const idMapPuts: any[] = []
+
+  const normalizeRows = (rawRows: any[]) => {
+    const normalizedRows: any[] = []
+    for (const row of rawRows) {
       const server_id = row.id as UUID
-      const map = await db.id_map.filter((m) => m.server_id === server_id && m.entity === entity).first()
-      const local_id = map?.local_id || server_id
+      const local_id = serverToLocal.get(`${entity}:${server_id}`) || server_id
       const normalized: any = { ...row, id: local_id }
+
+      // Map foreign keys using cache
       if (entity === 'unidades' && normalized?.fiscalizacao_id) {
-        const fkMap = await db.id_map.filter((m) => m.server_id === normalized.fiscalizacao_id && m.entity === 'fiscalizacoes').first()
-        if (fkMap?.local_id) normalized.fiscalizacao_id = fkMap.local_id
+        const fkLocalId = serverToLocal.get(`fiscalizacoes:${normalized.fiscalizacao_id}`)
+        if (fkLocalId) normalized.fiscalizacao_id = fkLocalId
       }
       if ((entity === 'respostas' || entity === 'constatacoes_manuais' || entity === 'recomendacoes' || entity === 'determinacoes') && normalized?.unidade_fiscalizada_id) {
-        const fkMap = await db.id_map.filter((m) => m.server_id === normalized.unidade_fiscalizada_id && m.entity === 'unidades').first()
-        if (fkMap?.local_id) normalized.unidade_fiscalizada_id = fkMap.local_id
+        const fkLocalId = serverToLocal.get(`unidades:${normalized.unidade_fiscalizada_id}`)
+        if (fkLocalId) normalized.unidade_fiscalizada_id = fkLocalId
       }
+
+      // Deduplicate recommendations/determinations with same origin
       if ((entity === 'determinacoes' || entity === 'recomendacoes') && normalized.unidade_fiscalizada_id && normalized.origem) {
-        const dbTable = (entity === 'determinacoes') ? (db as any).determinacoes : db.recomendacoes
-        const localItems = await dbTable.where('unidade_fiscalizada_id').equals(normalized.unidade_fiscalizada_id as any).toArray()
-        const existingLocal = localItems.find((x: any) => x.origem && String(x.origem).trim() === String(normalized.origem).trim())
+        const key = `${normalized.unidade_fiscalizada_id}:${String(normalized.origem).trim()}`
+        const existingLocal = localItemsMap.get(key)
         if (existingLocal) {
           if (existingLocal.id !== normalized.id) {
-            await dbTable.delete(existingLocal.id as any)
-            await db.id_map.put({ entity, local_id: existingLocal.id, server_id: server_id })
+            idsToDelete.push(existingLocal.id)
+            idMapPuts.push({ entity, local_id: existingLocal.id, server_id: server_id })
+            serverToLocal.set(`${entity}:${server_id}`, existingLocal.id)
             normalized.id = existingLocal.id
           }
         }
       }
-      switch (entity) {
-        case 'fiscalizacoes':
-          await db.fiscalizacoes.put(normalized)
-          break
-        case 'unidades':
-          try {
-            const existingLocal: any = await db.unidades.get(local_id as any)
-            if (existingLocal && Array.isArray(existingLocal.fotos_unidade) && Array.isArray((normalized as any).fotos_unidade)) {
-              const hasLocal = (existingLocal.fotos_unidade as any[]).some((f) => isLocalUrl(String(f?.url || '')))
-              if (hasLocal) {
-                const serverFotos = (normalized as any).fotos_unidade as any[]
-                const serverByKey = new Map<string, any>()
-                for (const sf of serverFotos) {
-                  const k = keyOfFoto(sf)
-                  if (k) serverByKey.set(k, sf)
-                }
-                const used = new Set<string>()
-                const mergedLocal: any[] = []
-                for (const lf of existingLocal.fotos_unidade as any[]) {
-                  const u = String(lf?.url || '')
-                  if (u && isLocalUrl(u)) {
-                    mergedLocal.push(lf)
-                    continue
-                  }
-                  const k = keyOfFoto(lf)
-                  if (k && serverByKey.has(k)) {
-                    mergedLocal.push({ ...lf, ...serverByKey.get(k) })
-                    used.add(k)
-                  } else {
-                    mergedLocal.push(lf)
-                  }
-                }
-                for (const sf of serverFotos) {
-                  const k = keyOfFoto(sf)
-                  if (!k || used.has(k)) continue
-                  mergedLocal.push(sf)
-                }
-                ;(normalized as any).fotos_unidade = mergedLocal
-              }
-            }
-          } catch {}
-          await db.unidades.put(normalized)
-          break
-        case 'respostas':
-          await db.respostas.put(normalized)
-          break
-        case 'constatacoes_manuais':
-          await db.constatacoes_manuais.put(normalized)
-          break
-        case 'determinacoes':
-          await (db as any).determinacoes.put(normalized)
-          break
-        case 'prestadores':
-          await db.prestadores.put(normalized)
-          break
-        case 'contratos':
-          await db.contratos.put(normalized)
-          break
-        case 'fotos':
-          break
-        default:
-          break
-      }
-    }
-    return
-  }
-  const doRequest = async () => {
-    const run = async (cols: string, mode: 'since' | 'created', v?: string, strategy: 'updated' | 'or' = 'updated') => {
-      let q = supabase.from(table).select(cols)
-      if (mode === 'since' && v) {
-        q = strategy === 'or' ? q.or(`updated_at.gte.${v},created_at.gte.${v}`) : q.gte('updated_at', v)
-      }
-      if (mode === 'created' && v) q = q.gte('created_at', v)
-      return await selectAllPages(q)
-    }
-    try {
-      try {
+
+      // Merge local unit photos if needed
+      if (entity === 'unidades') {
         try {
-          return await run(prefer, 'since', since, 'updated')
-        } catch {
-          return await run(prefer, 'since', since, 'or')
-        }
-      } catch {
-        try {
-          return await run('*', 'since', since, 'updated')
-        } catch {
-          return await run('*', 'since', since, 'or')
-        }
-      }
-    } catch (err: any) {
-      if (since) {
-        try {
-          return await run(prefer, 'created', since)
-        } catch {
-          return await run('*', 'created', since)
-        }
-      }
-      throw err
-    }
-  }
-  const rows: any[] = await withBackoff(() => withTimeout(doRequest, 15000))
-  // aplica dedup por id_map
-  for (const row of rows) {
-    const server_id = row.id as UUID
-    const map = await db.id_map.filter((m) => m.server_id === server_id && m.entity === entity).first()
-    const local_id = map?.local_id || server_id
-    const normalized: any = { ...row, id: local_id }
-    if (entity === 'unidades' && normalized?.fiscalizacao_id) {
-      const fkMap = await db.id_map.filter((m) => m.server_id === normalized.fiscalizacao_id && m.entity === 'fiscalizacoes').first()
-      if (fkMap?.local_id) normalized.fiscalizacao_id = fkMap.local_id
-    }
-    if ((entity === 'respostas' || entity === 'constatacoes_manuais' || entity === 'recomendacoes' || entity === 'determinacoes') && normalized?.unidade_fiscalizada_id) {
-      const fkMap = await db.id_map.filter((m) => m.server_id === normalized.unidade_fiscalizada_id && m.entity === 'unidades').first()
-      if (fkMap?.local_id) normalized.unidade_fiscalizada_id = fkMap.local_id
-    }
-    if ((entity === 'determinacoes' || entity === 'recomendacoes') && normalized.unidade_fiscalizada_id && normalized.origem) {
-      const dbTable = (entity === 'determinacoes') ? (db as any).determinacoes : db.recomendacoes
-      const localItems = await dbTable.where('unidade_fiscalizada_id').equals(normalized.unidade_fiscalizada_id as any).toArray()
-      const existingLocal = localItems.find((x: any) => x.origem && String(x.origem).trim() === String(normalized.origem).trim())
-      if (existingLocal) {
-        if (existingLocal.id !== normalized.id) {
-          await dbTable.delete(existingLocal.id as any)
-          await db.id_map.put({ entity, local_id: existingLocal.id, server_id: server_id })
-          normalized.id = existingLocal.id
-        }
-      }
-    }
-    switch (entity) {
-      case 'fiscalizacoes':
-        await db.fiscalizacoes.put(normalized)
-        break
-      case 'unidades':
-        try {
-          const existingLocal: any = await db.unidades.get(local_id as any)
+          const existingLocal = localUnidadesMap.get(local_id)
           if (existingLocal && Array.isArray(existingLocal.fotos_unidade) && Array.isArray((normalized as any).fotos_unidade)) {
             const hasLocal = (existingLocal.fotos_unidade as any[]).some((f) => isLocalUrl(String(f?.url || '')))
             if (hasLocal) {
@@ -1644,30 +1550,135 @@ async function pullEntity(entity: Entity, since?: string) {
             }
           }
         } catch {}
-        await db.unidades.put(normalized)
-        break
-      case 'respostas':
-        await db.respostas.put(normalized)
-        break
-      case 'constatacoes_manuais':
-        await db.constatacoes_manuais.put(normalized)
-        break
-      case 'determinacoes':
-        await (db as any).determinacoes.put(normalized)
-        break
-      case 'prestadores':
-        await db.prestadores.put(normalized)
-        break
-      case 'contratos':
-        await db.contratos.put(normalized)
-        break
-      case 'fotos':
-        // servidor não tem tabela fotos; se vier via unidade, já coberto
-        break
-      default:
-        break
+      }
+
+      if (entity !== 'fotos') {
+        normalizedRows.push(normalized)
+      }
+    }
+    return normalizedRows
+  }
+
+  const doWrite = async (normalizedRows: any[]) => {
+    if (idsToDelete.length > 0) {
+      const dbTable = (entity === 'determinacoes') ? (db as any).determinacoes : db.recomendacoes
+      await dbTable.bulkDelete(idsToDelete)
+    }
+    if (idMapPuts.length > 0) {
+      await db.id_map.bulkPut(idMapPuts)
+    }
+
+    if (normalizedRows.length > 0) {
+      switch (entity) {
+        case 'fiscalizacoes':
+          await db.fiscalizacoes.bulkPut(normalizedRows)
+          break
+        case 'unidades':
+          await db.unidades.bulkPut(normalizedRows)
+          break
+        case 'respostas':
+          await db.respostas.bulkPut(normalizedRows)
+          break
+        case 'constatacoes_manuais':
+          await db.constatacoes_manuais.bulkPut(normalizedRows)
+          break
+        case 'determinacoes':
+          await (db as any).determinacoes.bulkPut(normalizedRows)
+          break
+        case 'prestadores':
+          await db.prestadores.bulkPut(normalizedRows)
+          break
+        case 'contratos':
+          await db.contratos.bulkPut(normalizedRows)
+          break
+      }
     }
   }
+
+  if (!since) {
+    const rows = await withBackoff(() => withTimeout(() => safeSelect(table, prefer), 15000))
+    const normalizedRows = normalizeRows(rows)
+    await doWrite(normalizedRows)
+    return
+  }
+
+  const doRequest = async () => {
+    const run = async (cols: string, mode: 'since' | 'created', v?: string, strategy: 'updated' | 'or' = 'updated') => {
+      let q = supabase.from(table).select(cols)
+      if (mode === 'since' && v) {
+        q = strategy === 'or' ? q.or(`updated_at.gte.${v},created_at.gte.${v}`) : q.gte('updated_at', v)
+      }
+      if (mode === 'created' && v) q = q.gte('created_at', v)
+      return await selectAllPages(q)
+    }
+    try {
+      try {
+        try {
+          return await run(prefer, 'since', since, 'updated')
+        } catch {
+          return await run(prefer, 'since', since, 'or')
+        }
+      } catch {
+        try {
+          return await run('*', 'since', since, 'updated')
+        } catch {
+          return await run('*', 'since', since, 'or')
+        }
+      }
+    } catch (err: any) {
+      if (since) {
+        try {
+          return await run(prefer, 'created', since)
+        } catch {
+          return await run('*', 'created', since)
+        }
+      }
+      throw err
+    }
+  }
+
+  const rows: any[] = await withBackoff(() => withTimeout(doRequest, 15000))
+  const normalizedRows = normalizeRows(rows)
+  await doWrite(normalizedRows)
+}
+
+async function pullRecomendacoes(since?: string) {
+  // Pre-load all ID maps once into a Map for O(1) lookups
+  const maps = await db.id_map.toArray()
+  const serverToLocal = new Map<string, string>()
+  for (const m of maps) {
+    if (m.server_id && m.local_id) {
+      serverToLocal.set(`${m.entity}:${m.server_id}`, m.local_id)
+    }
+  }
+
+  await withBackoff(() => withTimeout(async () => {
+    try {
+      const data = await safeSelectSince('recomendacoes', '*', since)
+      if (Array.isArray(data)) {
+        const normalizedRows = []
+        for (const row of data) {
+          const server_id = (row as any).id as UUID
+          const local_id = serverToLocal.get(`recomendacoes:${server_id}`) || server_id
+          const normalized: any = { ...row, id: local_id }
+          if (normalized.unidade_fiscalizada_id) {
+            const fkLocalId = serverToLocal.get(`unidades:${normalized.unidade_fiscalizada_id}`)
+            if (fkLocalId) {
+              normalized.unidade_fiscalizada_id = fkLocalId
+            }
+          }
+          normalizedRows.push(normalized)
+        }
+        if (normalizedRows.length > 0) {
+          await db.recomendacoes.bulkPut(normalizedRows)
+        }
+      }
+    } catch (error: any) {
+      const status = (error as any)?.status
+      if (status === 400) return
+      throw error
+    }
+  }, 15000))
 }
 
 async function repairMappedFiscalizacoesOnServer(): Promise<void> {
@@ -1695,8 +1706,8 @@ export async function syncDown(onProgress?: (msg: string, isError?: boolean) => 
     const [fCount, uCount] = await Promise.all([db.fiscalizacoes.count(), db.unidades.count()])
     if ((fCount || 0) === 0 && (uCount || 0) === 0) since = undefined
   }
-  log('Baixando dados base...')
-  // baixa diffs das entidades solicitadas em paralelo
+  log('Baixando dados base e tabelas de suporte...')
+  // baixa diffs de todas as entidades em paralelo
   await Promise.all([
     pullEntity('fiscalizacoes', since),
     pullEntity('unidades', since),
@@ -1704,81 +1715,48 @@ export async function syncDown(onProgress?: (msg: string, isError?: boolean) => 
     pullEntity('constatacoes_manuais', since),
     pullEntity('determinacoes', since),
     pullEntity('prestadores', since),
-    pullEntity('contratos', since)
-  ])
-  // itens_checklist e recomendacoes: tabelas adicionais
-  log('Baixando municípios...')
-  await withBackoff(() => withTimeout(async () => {
-    const data = await safeSelectSince('municipios', 'id, nome', since)
-    if (Array.isArray(data)) {
-      for (const row of data) {
-        await db.municipios.put(row as any)
+    pullEntity('contratos', since),
+    pullRecomendacoes(since),
+    withBackoff(() => withTimeout(async () => {
+      const data = await safeSelectSince('municipios', 'id, nome', since)
+      if (Array.isArray(data) && data.length > 0) {
+        await db.municipios.bulkPut(data)
       }
-    }
-  }, 15000))
-  const fiscAll = await db.fiscalizacoes.toArray()
+    }, 15000)),
+    withBackoff(() => withTimeout(async () => {
+      const data = await safeSelectSince('tipos_unidade', 'id, nome, codigo, servicos_aplicaveis, ativo, created_at', undefined, 'or')
+      if (Array.isArray(data) && data.length > 0) {
+        await db.tipos_unidade.bulkPut(data)
+      }
+    }, 15000)),
+    withBackoff(() => withTimeout(async () => {
+      const data = await safeSelectSince('itens_checklist', '*', undefined, 'or')
+      if (Array.isArray(data) && data.length > 0) {
+        await db.itens_checklist.bulkPut(data)
+      }
+    }, 15000))
+  ])
+
+  log('Atualizando municípios locais...')
+  const [fiscAll, munAll] = await Promise.all([
+    db.fiscalizacoes.toArray(),
+    db.municipios.toArray()
+  ])
+  const munMap = new Map(munAll.map(m => [m.id, m]))
+  const fiscUpdates = []
   for (const f of fiscAll) {
     if (!f.municipio_nome && f.municipio_id) {
-      const m = await db.municipios.get(f.municipio_id as any)
+      const m = munMap.get(f.municipio_id)
       if (m?.nome) {
-        await db.fiscalizacoes.update(f.id as UUID, { ...f, municipio_nome: m.nome })
+        f.municipio_nome = m.nome
+        fiscUpdates.push(f)
       }
     }
   }
-  log('Baixando tipos de unidade...')
-  await withBackoff(() => withTimeout(async () => {
-    const data = await safeSelectSince('tipos_unidade', 'id, nome, codigo, servicos_aplicaveis, ativo, created_at', undefined, 'or')
-    if (Array.isArray(data)) {
-      for (const row of data) {
-        await db.tipos_unidade.put(row as any)
-      }
-    }
-  }, 15000))
-  // prestadores são baixados em pullEntity('prestadores') para manter campos completos
-  log('Baixando checklist...')
-  await withBackoff(() => withTimeout(async () => {
-    const data = await safeSelectSince(
-      'itens_checklist',
-      '*',
-      undefined,
-      'or'
-    )
-    if (Array.isArray(data)) {
-      for (const row of data) {
-        await db.itens_checklist.put(row as any)
-      }
-    }
-  }, 15000))
-  log('Baixando recomendações...')
-  await withBackoff(() => withTimeout(async () => {
-    try {
-      const data = await safeSelectSince(
-        'recomendacoes',
-        '*',
-        since
-      )
-      if (Array.isArray(data)) {
-        for (const row of data) {
-          const server_id = (row as any).id as UUID
-          const map = await db.id_map.filter((m) => m.server_id === server_id).first()
-          const local_id = map?.local_id || server_id
-          
-          const normalized: any = { ...row, id: local_id }
-          if (normalized.unidade_fiscalizada_id) {
-            const fkMap = await db.id_map.filter((m) => m.server_id === normalized.unidade_fiscalizada_id && m.entity === 'unidades').first()
-            if (fkMap?.local_id) {
-              normalized.unidade_fiscalizada_id = fkMap.local_id
-            }
-          }
-          await db.recomendacoes.put(normalized)
-        }
-      }
-    } catch (error: any) {
-      const status = (error as any)?.status
-      if (status === 400) return []
-      throw error
-    }
-  }, 15000))
+  if (fiscUpdates.length > 0) {
+    await db.fiscalizacoes.bulkPut(fiscUpdates)
+  }
+
   await db.estados_sync.put({
     id: 'global' as UUID,
     entidade: 'global',
@@ -1824,8 +1802,7 @@ export async function syncFotosWithProgress(onProgress?: (uploaded: number, tota
   const total = unsynced.length
   let uploaded = 0
   onProgress?.(uploaded, total)
-  const cpu = typeof navigator !== 'undefined' && typeof (navigator as any).hardwareConcurrency === 'number' ? Number((navigator as any).hardwareConcurrency) : 4
-  const concurrency = Math.max(2, Math.min(6, Math.ceil(cpu / 3)))
+  const concurrency = 6
   let cursor = 0
   const nextItem = () => {
     const i = cursor
@@ -2152,7 +2129,7 @@ async function pruneOutboxOrphans(): Promise<void> {
   }
 }
 
-export async function runFullSync(onProgress?: (msg: string, isError?: boolean) => void): Promise<{ outbox: number; lastSyncAt?: string }> {
+async function runFullSyncInternal(onProgress?: (msg: string, isError?: boolean) => void): Promise<{ outbox: number; lastSyncAt?: string }> {
   const log = (msg: string, isError = false) => { if (onProgress) onProgress(msg, isError) }
   
   log('Verificando conexão com o servidor...')
@@ -2219,4 +2196,41 @@ export async function runFullSync(onProgress?: (msg: string, isError?: boolean) 
   const pending = await getOutboxCount()
   const { lastSyncAt } = await getLastSync()
   return { outbox: pending, lastSyncAt }
+}
+
+const progressListeners = new Set<(msg: string, isError?: boolean) => void>()
+let currentSyncPromise: Promise<{ outbox: number; lastSyncAt?: string }> | null = null
+
+export async function runFullSync(onProgress?: (msg: string, isError?: boolean) => void): Promise<{ outbox: number; lastSyncAt?: string }> {
+  if (onProgress) {
+    progressListeners.add(onProgress)
+  }
+
+  if (currentSyncPromise) {
+    return currentSyncPromise
+  }
+
+  currentSyncPromise = (async () => {
+    const notifyListeners = (msg: string, isError = false) => {
+      for (const listener of progressListeners) {
+        try {
+          listener(msg, isError)
+        } catch (e) {
+          console.error('Error in sync progress listener:', e)
+        }
+      }
+    }
+
+    try {
+      return await runFullSyncInternal(notifyListeners)
+    } finally {
+      currentSyncPromise = null
+    }
+  })()
+
+  return currentSyncPromise.finally(() => {
+    if (onProgress) {
+      progressListeners.delete(onProgress)
+    }
+  })
 }
