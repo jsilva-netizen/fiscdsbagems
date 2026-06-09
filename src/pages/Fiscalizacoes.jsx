@@ -380,8 +380,55 @@ export default function Fiscalizacoes() {
                                                      </AlertDialogContent>
                                                  </AlertDialog>
                                              )}
-                                         </div>
-                                    </CardContent>
+                                          </div>
+                                          
+                                          {/* Ações da Fiscalização */}
+                                          <div className="mt-4 pt-4 border-t border-gray-100 flex gap-2 items-center justify-between">
+                                              <div className="flex gap-2 items-center">
+                                                  <HistoricoFiscalizacao fiscalizacao={fisc} />
+                                              </div>
+
+                                              {isFinished ? (
+                                                  <div className="flex gap-2 items-center">
+                                                      <RelatorioFiscalizacao fiscalizacao={fisc} />
+                                                      {podeDeleter && (
+                                                          <Button
+                                                              variant="outline"
+                                                              size="sm"
+                                                              className="text-orange-600 border-orange-200 hover:bg-orange-50 h-9 rounded-xl font-medium"
+                                                              disabled={reabrirFiscalizacaoMutation.isPending}
+                                                              onClick={(e) => {
+                                                                  e.preventDefault();
+                                                                  e.stopPropagation();
+                                                                  if (window.confirm("Deseja reabrir esta fiscalização para edição? O relatório anterior será mantido até que você finalize novamente.")) {
+                                                                      reabrirFiscalizacaoMutation.mutate(fisc.id);
+                                                                  }
+                                                              }}
+                                                          >
+                                                              <RotateCcw className={`h-4 w-4 mr-1.5 ${reabrirFiscalizacaoMutation.isPending ? 'animate-spin' : ''}`} />
+                                                              {reabrirFiscalizacaoMutation.isPending ? 'Reabrindo...' : 'Reabrir Edição'}
+                                                          </Button>
+                                                      )}
+                                                  </div>
+                                              ) : (
+                                                  <Button
+                                                      className="bg-indigo-600 hover:bg-indigo-700 text-white h-9 rounded-xl font-medium text-xs"
+                                                      size="sm"
+                                                      disabled={
+                                                          !online || !sessionValid || (outboxCount || 0) > 0 || finalizarFiscalizacaoMutation.isPending
+                                                      }
+                                                      onClick={(e) => {
+                                                          e.preventDefault();
+                                                          e.stopPropagation();
+                                                          finalizarFiscalizacaoMutation.mutate(fisc.id);
+                                                      }}
+                                                  >
+                                                      <CheckCircle2 className="h-4 w-4 mr-1.5" />
+                                                      {finalizarFiscalizacaoMutation.isPending ? 'Finalizando...' : 'Finalizar Fiscalização'}
+                                                  </Button>
+                                              )}
+                                          </div>
+                                     </CardContent>
                                 </Card>
                             );
                         })}
