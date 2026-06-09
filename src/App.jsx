@@ -35,7 +35,7 @@ const ProtectedRoute = ({ children }) => {
     let fallbackTimer = null;
     const run = async () => {
       if (isLoading || isAuthenticated) {
-        setOfflineBypass({ checked: true, allow: false });
+        setOfflineBypass({ checked: false, allow: false });
         return;
       }
       fallbackTimer = setTimeout(() => {
@@ -43,6 +43,27 @@ const ProtectedRoute = ({ children }) => {
         setOfflineBypass({ checked: true, allow: false });
       }, 1500);
       try {
+        const cacheRaw = localStorage.getItem('agms_auth_cache_v1');
+        const hasCache = (() => {
+          try {
+            if (!cacheRaw) return false;
+            const parsed = JSON.parse(cacheRaw);
+            return !!(parsed?.user || parsed?.session?.user);
+          } catch {
+            return false;
+          }
+        })();
+
+        if (!hasCache) {
+          if (cancelled) return;
+          if (fallbackTimer) {
+            clearTimeout(fallbackTimer);
+            fallbackTimer = null;
+          }
+          setOfflineBypass({ checked: true, allow: false });
+          return;
+        }
+
         const count = await db.fiscalizacoes.where('status').equals('em_andamento').count();
         if (cancelled) return;
         if (fallbackTimer) {

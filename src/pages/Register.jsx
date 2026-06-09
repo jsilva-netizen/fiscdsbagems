@@ -83,8 +83,13 @@ export default function Register() {
             return;
         }
 
-        if (['fiscal', 'coordenador', 'diretor'].includes(role) && (!selectedDiretoria || !selectedCamaraTecnica)) {
+        if (['fiscal', 'coordenador'].includes(role) && (!selectedDiretoria || !selectedCamaraTecnica)) {
             setError('Selecione a diretoria e a câmara técnica.');
+            return;
+        }
+
+        if (role === 'diretor' && !selectedDiretoria) {
+            setError('Selecione a diretoria.');
             return;
         }
 
@@ -100,7 +105,7 @@ export default function Register() {
                         full_name: fullName,
                         role: role,
                         diretoria_id: ['fiscal', 'coordenador', 'diretor'].includes(role) ? selectedDiretoria : 'dsb',
-                        camara_tecnica_id: ['fiscal', 'coordenador', 'diretor'].includes(role) ? (selectedCamaraTecnica || null) : null,
+                        camara_tecnica_id: ['fiscal', 'coordenador'].includes(role) ? (selectedCamaraTecnica || null) : null,
                         prestador_servico_id: role === 'prestador' ? (selectedPrestador || null) : null
                     }
                 }
@@ -134,7 +139,7 @@ export default function Register() {
                             role: role,
                             ativo: false,
                             diretoria_id: ['fiscal', 'coordenador', 'diretor'].includes(role) ? selectedDiretoria : 'dsb',
-                            camara_tecnica_id: ['fiscal', 'coordenador', 'diretor'].includes(role) ? (selectedCamaraTecnica || null) : null,
+                            camara_tecnica_id: ['fiscal', 'coordenador'].includes(role) ? (selectedCamaraTecnica || null) : null,
                             prestador_servico_id: role === 'prestador' ? (selectedPrestador || null) : null
                         });
                     
@@ -266,44 +271,44 @@ export default function Register() {
                         )}
 
                         {['fiscal', 'coordenador', 'diretor'].includes(role) && (
-                            <>
-                                <div className="space-y-1.5">
-                                    <label className="text-blue-200 text-xs font-semibold uppercase tracking-wider">Diretoria</label>
-                                    <div className="relative">
-                                        <Building className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-300 pointer-events-none" />
-                                        <select
-                                            id="diretoria"
-                                            value={selectedDiretoria}
-                                            onChange={(e) => handleDiretoriaChange(e.target.value)}
-                                            required
-                                            className="w-full h-12 pl-10 pr-4 bg-slate-900/60 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition-all text-sm cursor-pointer"
-                                        >
-                                            <option value="dsb" className="bg-[#151b30] text-white">DSB (Saneamento)</option>
-                                            <option value="dtr" className="bg-[#151b30] text-white">DTR (Transportes)</option>
-                                            <option value="dge" className="bg-[#151b30] text-white">DGE (Gás e Energia)</option>
-                                        </select>
-                                    </div>
+                            <div className="space-y-1.5">
+                                <label className="text-blue-200 text-xs font-semibold uppercase tracking-wider">Diretoria</label>
+                                <div className="relative">
+                                    <Building className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-300 pointer-events-none" />
+                                    <select
+                                        id="diretoria"
+                                        value={selectedDiretoria}
+                                        onChange={(e) => handleDiretoriaChange(e.target.value)}
+                                        required
+                                        className="w-full h-12 pl-10 pr-4 bg-slate-900/60 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition-all text-sm cursor-pointer"
+                                    >
+                                        <option value="dsb" className="bg-[#151b30] text-white">DSB (Saneamento)</option>
+                                        <option value="dtr" className="bg-[#151b30] text-white">DTR (Transportes)</option>
+                                        <option value="dge" className="bg-[#151b30] text-white">DGE (Gás e Energia)</option>
+                                    </select>
                                 </div>
+                            </div>
+                        )}
 
-                                <div className="space-y-1.5">
-                                    <label className="text-blue-200 text-xs font-semibold uppercase tracking-wider">Câmara Técnica</label>
-                                    <div className="relative">
-                                        <Layers className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-300 pointer-events-none" />
-                                        <select
-                                            id="camaraTecnica"
-                                            value={selectedCamaraTecnica}
-                                            onChange={(e) => setSelectedCamaraTecnica(e.target.value)}
-                                            required
-                                            className="w-full h-12 pl-10 pr-4 bg-slate-900/60 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition-all text-sm cursor-pointer"
-                                        >
-                                            <option value="" className="bg-[#151b30] text-white">Selecione uma câmara...</option>
-                                            {CAMARAS_TECNICAS_POR_DIRETORIA[selectedDiretoria]?.map((ct) => (
-                                                <option key={ct.id} value={ct.id} className="bg-[#151b30] text-white">{ct.nome}</option>
-                                            ))}
-                                        </select>
-                                    </div>
+                        {['fiscal', 'coordenador'].includes(role) && (
+                            <div className="space-y-1.5">
+                                <label className="text-blue-200 text-xs font-semibold uppercase tracking-wider">Câmara Técnica</label>
+                                <div className="relative">
+                                    <Layers className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-300 pointer-events-none" />
+                                    <select
+                                        id="camaraTecnica"
+                                        value={selectedCamaraTecnica}
+                                        onChange={(e) => setSelectedCamaraTecnica(e.target.value)}
+                                        required
+                                        className="w-full h-12 pl-10 pr-4 bg-slate-900/60 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition-all text-sm cursor-pointer"
+                                    >
+                                        <option value="" className="bg-[#151b30] text-white">Selecione uma câmara...</option>
+                                        {CAMARAS_TECNICAS_POR_DIRETORIA[selectedDiretoria]?.map((ct) => (
+                                            <option key={ct.id} value={ct.id} className="bg-[#151b30] text-white">{ct.nome}</option>
+                                        ))}
+                                    </select>
                                 </div>
-                            </>
+                            </div>
                         )}
 
                         <div className="space-y-1.5">
