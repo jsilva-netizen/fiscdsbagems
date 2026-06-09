@@ -133,25 +133,27 @@ export default function TiposUnidade() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-50 flex flex-col justify-between">
+            <div>
             {/* Header */}
             <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
-                <div className="max-w-4xl mx-auto px-4 py-4">
+                <div className="max-w-4xl mx-auto px-4 py-5">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <Link to={createPageUrl('Home')}>
-                                <Button variant="ghost" size="icon" className="text-white hover:bg-white/20">
+                                <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full">
                                     <ArrowLeft className="h-5 w-5" />
                                 </Button>
                             </Link>
                             <div>
                                 <h1 className="text-xl font-bold">Tipos de Unidade</h1>
-                                <p className="text-blue-200 text-sm">{tipos.length} tipos cadastrados</p>
+                                <p className="text-blue-200 text-xs mt-0.5">
+                                    <span className="font-semibold">{tipos.length}</span> tipos cadastrados
+                                </p>
                             </div>
                         </div>
-                        <Button onClick={() => setShowForm(true)} className="bg-green-500 hover:bg-green-600">
-                            <Plus className="h-4 w-4 mr-2" />
-                            Novo Tipo
+                        <Button onClick={() => setShowForm(true)} className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow gap-1.5">
+                            <Plus className="h-4 w-4" /> Novo Tipo
                         </Button>
                     </div>
                 </div>
@@ -212,30 +214,32 @@ export default function TiposUnidade() {
             {/* List */}
             <div className="max-w-4xl mx-auto px-4 py-6">
                 {isLoading ? (
-                    <div className="text-center py-8 text-gray-500">Carregando...</div>
+                    <div className="flex justify-center py-12">
+                        <Loader2 className="h-7 w-7 animate-spin text-indigo-500" />
+                    </div>
                 ) : (
                     <div className="space-y-3">
                         {tipos.map((tipo) => (
-                            <Card key={tipo.id}>
-                                <CardContent className="p-4">
+                            <Card key={tipo.id} className="border border-gray-200 rounded-2xl hover:shadow-md transition-all bg-white">
+                                <CardContent className="p-5">
                                     <div className="flex items-start justify-between">
                                         <div className="flex items-start gap-3">
-                                            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mt-1">
-                                                <Building2 className="h-5 w-5 text-blue-600" />
+                                            <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center mt-0.5 flex-shrink-0">
+                                                <Building2 className="h-5 w-5 text-indigo-500" />
                                             </div>
                                             <div>
-                                                <h3 className="font-medium">{tipo.nome}</h3>
+                                                <h3 className="font-bold text-gray-800">{tipo.nome}</h3>
                                                 {tipo.codigo && (
-                                                    <p className="text-sm text-gray-600 mt-1 font-mono">Código: <span className="font-bold">{tipo.codigo}</span></p>
+                                                    <p className="text-xs text-gray-500 mt-0.5 font-mono">Código: <span className="font-bold text-gray-700">{tipo.codigo}</span></p>
                                                 )}
                                                 {tipo.ativo === false && (
-                                                    <div className="mt-2">
-                                                        <Badge variant="destructive" className="text-xs">Inativo</Badge>
+                                                    <div className="mt-1">
+                                                        <Badge className="text-[10px] bg-rose-100 text-rose-600 border-none">Inativo</Badge>
                                                     </div>
                                                 )}
                                                 <div className="flex flex-wrap gap-1 mt-2">
                                                     {tipo.servicos_aplicaveis?.map(s => (
-                                                        <Badge key={s} variant="secondary" className="text-xs">
+                                                        <Badge key={s} className="text-[10px] bg-indigo-50 text-indigo-700 border-none font-medium">
                                                             {s}
                                                         </Badge>
                                                     ))}
@@ -244,8 +248,8 @@ export default function TiposUnidade() {
                                         </div>
                                         <div className="flex gap-1">
                                             <Link to={createPageUrl('Checklists') + `?tipo=${tipo.id}`}>
-                                                <Button variant="ghost" size="icon" title="Configurar Checklist">
-                                                    <ClipboardCheck className="h-4 w-4 text-blue-600" />
+                                                <Button variant="ghost" size="icon" title="Configurar Checklist" className="hover:bg-indigo-50 text-indigo-600">
+                                                    <ClipboardCheck className="h-4 w-4" />
                                                 </Button>
                                             </Link>
                                             {tipo.ativo === false ? (
@@ -346,15 +350,23 @@ export default function TiposUnidade() {
                 )}
 
                 {!isLoading && tipos.length === 0 && (
-                    <div className="text-center py-12 text-gray-500">
-                        <Building2 className="h-12 w-12 mx-auto mb-4 opacity-30" />
-                        <p>Nenhum tipo de unidade cadastrado</p>
-                        <Button onClick={() => setShowForm(true)} className="mt-4">
+                    <div className="text-center py-16">
+                        <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <Building2 className="h-7 w-7 text-gray-300" />
+                        </div>
+                        <p className="text-gray-500 font-semibold">Nenhum tipo de unidade cadastrado</p>
+                        <p className="text-gray-400 text-sm mt-1">Crie um tipo para começar a configurar checklists</p>
+                        <Button onClick={() => setShowForm(true)} className="mt-5 bg-indigo-600 hover:bg-indigo-700 rounded-xl">
                             <Plus className="h-4 w-4 mr-2" />
                             Criar primeiro tipo
                         </Button>
                     </div>
                 )}
+            </div>
+            </div>
+
+            <div className="py-5 text-center text-xs text-slate-400 bg-white border-t border-slate-200">
+                AGEMS — Agência Estadual de Regulação de Serviços Públicos de MS
             </div>
         </div>
     );

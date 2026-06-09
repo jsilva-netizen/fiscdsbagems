@@ -88,20 +88,20 @@ export default function ExecutarFiscalizacaoDTR() {
 
     if (loadingFisc) {
         return (
-            <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-slate-400 gap-3">
-                <Loader2 className="h-8 w-8 text-indigo-400 animate-spin" />
-                <p>Carregando dados da fiscalização...</p>
+            <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center text-gray-400 gap-3">
+                <Loader2 className="h-8 w-8 text-indigo-500 animate-spin" />
+                <p className="text-sm">Carregando dados da fiscalização...</p>
             </div>
         );
     }
 
     if (!fisc) {
         return (
-            <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-slate-400 p-6 text-center">
-                <p className="text-rose-400 font-bold mb-2">Erro</p>
-                <p>Fiscalização não encontrada localmente.</p>
+            <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center text-gray-500 p-6 text-center">
+                <p className="text-rose-500 font-bold mb-2">Erro</p>
+                <p className="text-sm">Fiscalização não encontrada localmente.</p>
                 <Link to={createPageUrl('FiscalizacoesDTR')} className="mt-4">
-                    <Button className="bg-slate-800 hover:bg-slate-700">Voltar para Listagem</Button>
+                    <Button variant="outline" className="border-gray-200 rounded-xl">Voltar para Listagem</Button>
                 </Link>
             </div>
         );
@@ -117,7 +117,7 @@ export default function ExecutarFiscalizacaoDTR() {
         : [];
 
     return (
-        <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col justify-between">
+        <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col justify-between">
             {/* Header */}
             <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
                 <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
@@ -128,7 +128,7 @@ export default function ExecutarFiscalizacaoDTR() {
                             </Button>
                         </Link>
                         <div>
-                            <h1 className="text-sm font-bold text-slate-100 flex items-center gap-1">
+                            <h1 className="text-sm font-bold text-white flex items-center gap-1">
                                 <MapIcon className="h-4 w-4 text-indigo-300" /> {fisc.rodovia}
                             </h1>
                             <p className="text-[10px] text-indigo-200">{fisc.prestador_servico_nome}</p>
@@ -159,8 +159,8 @@ export default function ExecutarFiscalizacaoDTR() {
             </div>
 
             {/* Map Container */}
-            <div className="h-64 md:h-80 w-full relative border-b border-slate-800 shadow-md">
-                <MapContainer center={mapCenter} zoom={GPS_ZOOM_LEVEL(gpsPosition)} className="h-full w-full bg-slate-950 z-0">
+            <div className="h-64 md:h-80 w-full relative border-b border-gray-200 shadow-md">
+                <MapContainer center={mapCenter} zoom={GPS_ZOOM_LEVEL(gpsPosition)} className="h-full w-full bg-gray-100 z-0">
                     <TileLayer
                         attribution='&copy; OpenStreetMap contributors'
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -227,17 +227,17 @@ export default function ExecutarFiscalizacaoDTR() {
 
                 {/* GPS Snapped overlay panel */}
                 {gpsPosition && snappedInfo && snappedInfo.km && (
-                    <div className="absolute bottom-3 left-3 right-3 bg-slate-900/90 backdrop-blur border border-slate-750 p-2.5 rounded-xl shadow-lg flex items-center justify-between text-xs z-10 animate-fade-in">
+                    <div className="absolute bottom-3 left-3 right-3 bg-white/95 backdrop-blur border border-gray-200 p-2.5 rounded-xl shadow-lg flex items-center justify-between text-xs z-10 animate-fade-in">
                         <div className="flex items-center gap-2">
-                            <Navigation className="h-4 w-4 text-emerald-400 rotate-45" />
+                            <Navigation className="h-4 w-4 text-emerald-500 rotate-45" />
                             <div>
-                                <p className="text-slate-400 text-[10px]">KM Atual Resolvido</p>
-                                <p className="font-bold text-slate-200 text-sm">KM {snappedInfo.km}</p>
+                                <p className="text-gray-500 text-[10px]">KM Atual Resolvido</p>
+                                <p className="font-bold text-gray-800 text-sm">KM {snappedInfo.km}</p>
                             </div>
                         </div>
                         <div className="text-right">
-                            <p className="text-slate-400 text-[10px]">Trecho</p>
-                            <p className="font-semibold text-slate-350">{snappedInfo.trecho}</p>
+                            <p className="text-gray-400 text-[10px]">Trecho</p>
+                            <p className="font-semibold text-gray-700">{snappedInfo.trecho}</p>
                         </div>
                     </div>
                 )}
@@ -246,7 +246,7 @@ export default function ExecutarFiscalizacaoDTR() {
             {/* List & Add panel */}
             <div className="flex-1 max-w-md w-full mx-auto px-4 py-5 flex flex-col gap-4">
                 <div className="flex items-center justify-between">
-                    <h2 className="text-sm font-semibold text-slate-300">Ocorrências Registradas ({ocorrencias.length})</h2>
+                    <h2 className="text-sm font-bold text-gray-700">Ocorrências Registradas ({ocorrencias.length})</h2>
                     
                     {!isFinalized && (
                         <Link to={createPageUrl('VistoriarOcorrenciaDTR') + `?fiscId=${fisc.id}`}>
@@ -261,13 +261,13 @@ export default function ExecutarFiscalizacaoDTR() {
                 <div className="space-y-2.5 flex-1">
                     {loadingOcorrencias ? (
                         <div className="flex justify-center py-6">
-                            <Loader2 className="h-6 w-8 text-indigo-400 animate-spin" />
+                            <Loader2 className="h-6 w-6 text-indigo-500 animate-spin" />
                         </div>
                     ) : ocorrencias.length === 0 ? (
-                        <div className="text-center py-10 bg-slate-800/10 border border-dashed border-slate-800/60 rounded-xl">
-                            <MapPin className="h-8 w-8 text-slate-700 mx-auto mb-1.5" />
-                            <p className="text-xs text-slate-400">Nenhum ponto registrado</p>
-                            <p className="text-[10px] text-slate-500 mt-0.5">Use o botão acima para adicionar.</p>
+                        <div className="text-center py-10 bg-gray-100 border border-dashed border-gray-300 rounded-2xl">
+                            <MapPin className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                            <p className="text-sm text-gray-500 font-semibold">Nenhum ponto registrado</p>
+                            <p className="text-xs text-gray-400 mt-0.5">Use o botão acima para adicionar.</p>
                         </div>
                     ) : (
                         ocorrencias.map((oc, index) => (
@@ -276,24 +276,24 @@ export default function ExecutarFiscalizacaoDTR() {
                                 to={createPageUrl('VistoriarOcorrenciaDTR') + `?fiscId=${fisc.id}&id=${oc.id}`}
                                 className="block active:scale-99 transition-all"
                             >
-                                <Card className="bg-slate-850 border border-slate-800/70 hover:border-slate-700 transition-all rounded-xl shadow-sm">
+                            <Card className="bg-white border border-gray-200 hover:shadow-md hover:border-indigo-200 transition-all rounded-xl shadow-sm">
                                     <CardContent className="p-3.5 flex items-center justify-between gap-3">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-lg bg-indigo-950 text-indigo-400 border border-indigo-900/50 flex items-center justify-center font-bold text-xs">
+                                            <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center font-bold text-xs">
                                                 #{index + 1}
                                             </div>
                                             <div>
-                                                <h4 className="font-semibold text-slate-200 text-sm">
+                                                <h4 className="font-semibold text-gray-800 text-sm">
                                                     {oc.tipo_ocorrencia || 'Ponto de Inspeção'}
                                                 </h4>
-                                                <p className="text-xs text-slate-450 mt-0.5 flex items-center gap-1">
-                                                    <span className="font-mono bg-slate-800 px-1 py-0.2 rounded text-[11px]">KM {oc.km || '—'}</span>
+                                                <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
+                                                    <span className="font-mono bg-gray-100 px-1 py-0.5 rounded text-[11px]">KM {oc.km || '—'}</span>
                                                     <span className="opacity-60">•</span>
                                                     <span className="truncate max-w-[150px]">{oc.trecho || 'Trecho Geral'}</span>
                                                 </p>
                                             </div>
                                         </div>
-                                        <ChevronRight className="h-5 w-5 text-slate-600" />
+                                        <ChevronRight className="h-5 w-5 text-gray-300" />
                                     </CardContent>
                                 </Card>
                             </Link>
@@ -303,8 +303,8 @@ export default function ExecutarFiscalizacaoDTR() {
             </div>
 
             {/* Footer */}
-            <div className="py-4 text-center text-xs text-slate-600 border-t border-slate-850 bg-slate-900/50">
-                AGEMS - DTR
+            <div className="py-4 text-center text-xs text-gray-400 border-t border-gray-200 bg-white">
+                AGEMS — Diretoria de Transportes Rodoviários
             </div>
         </div>
     );

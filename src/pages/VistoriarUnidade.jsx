@@ -1078,7 +1078,7 @@ export default function VistoriarUnidade() {
                 <div className="max-w-4xl mx-auto px-4 py-3">
                     <div className="flex items-center gap-3">
                         <Link to={createPageUrl('ExecutarFiscalizacao') + `?id=${unidade?.fiscalizacao_id}`}>
-                            <Button variant="ghost" size="icon" className="text-white hover:bg-white/20">
+                            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full">
                                 <ArrowLeft className="h-5 w-5" />
                             </Button>
                         </Link>

@@ -438,16 +438,16 @@ export default function Checklists() {
         <div className="min-h-screen bg-gray-50">
             {/* Header */}
             <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
-                <div className="max-w-4xl mx-auto px-4 py-4">
+                <div className="max-w-4xl mx-auto px-4 py-5">
                     <div className="flex items-center gap-3">
                         <Link to={createPageUrl('Home')}>
-                            <Button variant="ghost" size="icon" className="text-white hover:bg-white/20">
+                            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full">
                                 <ArrowLeft className="h-5 w-5" />
                             </Button>
                         </Link>
                         <div>
                             <h1 className="text-xl font-bold">Checklists Normativos</h1>
-                            <p className="text-blue-200 text-sm">Configure perguntas por tipo de unidade</p>
+                            <p className="text-blue-200 text-xs mt-0.5">Configure perguntas por tipo de unidade</p>
                         </div>
                     </div>
                 </div>
@@ -455,16 +455,16 @@ export default function Checklists() {
 
             {/* Seletor de Tipo */}
             <div className="max-w-4xl mx-auto px-4 py-4">
-                <Card>
+                <Card className="border border-gray-200 rounded-2xl shadow-sm bg-white">
                     <CardContent className="p-4">
                         <div className="flex items-center gap-4">
                             <div className="flex-1">
-                                <label className="text-sm font-medium mb-2 block">Selecione o Tipo de Unidade:</label>
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block">Tipo de Unidade</label>
                                 <Select value={selectedTipo} onValueChange={setSelectedTipo}>
-                                    <SelectTrigger>
+                                    <SelectTrigger className="h-11 rounded-xl bg-white border-gray-200">
                                         <SelectValue placeholder="Escolha um tipo de unidade..." />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent className="bg-white border-gray-200">
                                         {tipos.map(tipo => (
                                             <SelectItem key={tipo.id} value={tipo.id}>
                                                 {tipo.nome}
@@ -483,23 +483,18 @@ export default function Checklists() {
                                     className="hidden"
                                 />
                                 <label htmlFor="importar-xlsx">
-                                    <Button 
-                                        type="button" 
-                                        variant="outline" 
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="border-gray-200 rounded-xl"
                                         disabled={importing}
                                         asChild
                                     >
                                         <span className="cursor-pointer">
                                             {importing ? (
-                                                <>
-                                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                                    Importando...
-                                                </>
+                                                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Importando...</>
                                             ) : (
-                                                <>
-                                                    <Upload className="h-4 w-4 mr-2" />
-                                                    Importar Excel
-                                                </>
+                                                <><Upload className="h-4 w-4 mr-2" /> Importar Excel</>
                                             )}
                                         </span>
                                     </Button>
@@ -515,17 +510,17 @@ export default function Checklists() {
                 <div className="max-w-4xl mx-auto px-4 pb-8">
                     <div className="flex justify-between items-center mb-4">
                         <div>
-                            <h2 className="font-semibold">{tipoSelecionado?.nome}</h2>
-                            <p className="text-sm text-gray-500">{itens.length} itens no checklist</p>
+                            <h2 className="font-bold text-gray-800">{tipoSelecionado?.nome}</h2>
+                            <p className="text-xs text-gray-500">{itens.length} itens no checklist</p>
                         </div>
-                        <Button onClick={() => { setEditing(null); setShowForm(true); }}>
-                            <Plus className="h-4 w-4 mr-2" />
+                        <Button onClick={() => { setEditing(null); setShowForm(true); }} className="bg-indigo-600 hover:bg-indigo-700 rounded-xl">
+                            <Plus className="h-4 w-4 mr-1.5" />
                             Novo Item
                         </Button>
                     </div>
 
                     {isLoading ? (
-                        <div className="text-center py-8 text-gray-500">Carregando...</div>
+                        <div className="flex justify-center py-12"><Loader2 className="h-7 w-7 animate-spin text-indigo-500" /></div>
                     ) : (
                         <div className="space-y-2">
                             {itens.map((item, index) => (

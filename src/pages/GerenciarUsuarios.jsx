@@ -268,14 +268,17 @@ export default function GerenciarUsuarios() {
         <div className="min-h-screen bg-gray-50">
             {/* Header */}
             <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
-                <div className="max-w-6xl mx-auto px-4 py-6">
+                <div className="max-w-6xl mx-auto px-4 py-5">
                     <div className="flex items-center gap-3">
                         <Link to={createPageUrl('Home')}>
-                            <Button variant="ghost" size="icon" className="text-white hover:bg-white/20">
+                            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full">
                                 <ArrowLeft className="h-5 w-5" />
                             </Button>
                         </Link>
-                        <h1 className="text-2xl font-bold">Gestão de Usuários</h1>
+                        <div>
+                            <h1 className="text-xl font-bold">Gestão de Usuários</h1>
+                            <p className="text-blue-200 text-xs mt-0.5">{usuarios.length} usuários cadastrados</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -333,7 +336,7 @@ export default function GerenciarUsuarios() {
                         
                         {isLoading ? (
                             <div className="flex justify-center py-12">
-                                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                                <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
                             </div>
                         ) : usuarios.length === 0 ? (
                             <Card>
@@ -344,8 +347,8 @@ export default function GerenciarUsuarios() {
                         ) : (
                             <div className="grid gap-4">
                                 {usuarios.map(usuario => (
-                                    <Card key={usuario.id}>
-                                        <CardContent className="p-6">
+                                    <Card key={usuario.id} className="border border-gray-200 rounded-2xl shadow-sm bg-white hover:shadow-md transition-all">
+                                        <CardContent className="p-5">
                                             <div className="flex items-start justify-between">
                                                 <div className="flex-1">
                                                     <div className="flex items-center gap-3 mb-2">

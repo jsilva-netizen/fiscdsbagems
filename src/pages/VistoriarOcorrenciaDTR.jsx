@@ -308,7 +308,7 @@ export default function VistoriarOcorrenciaDTR() {
     const isEditable = !ocorrencia || ocorrencia.status !== 'finalizada' || true; // Em vistorias DTR sempre permitimos editar antes do fechamento geral
 
     return (
-        <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col justify-between">
+        <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col justify-between">
             {/* Header */}
             <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
                 <div className="max-w-md mx-auto px-4 py-4 flex items-center justify-between">
@@ -347,14 +347,14 @@ export default function VistoriarOcorrenciaDTR() {
             {/* Form */}
             <div className="flex-1 max-w-md w-full mx-auto px-4 py-5 space-y-5 overflow-y-auto">
                 {/* Georeferencing Snapping Panel */}
-                <Card className="bg-slate-800 border-none shadow-xl">
+                <Card className="bg-white border border-gray-200 shadow-sm">
                     <CardContent className="p-4 space-y-3">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-xs font-bold text-slate-400 flex items-center gap-1.5 uppercase tracking-wider">
-                                <Compass className="h-4 w-4 text-emerald-400" /> Georeferenciamento DTR
+                            <h3 className="text-xs font-bold text-gray-500 flex items-center gap-1.5 uppercase tracking-wider">
+                                <Compass className="h-4 w-4 text-indigo-400" /> Georeferenciamento DTR
                             </h3>
                             {gettingLocation && (
-                                <span className="text-[10px] text-indigo-400 flex items-center gap-1">
+                                <span className="text-[10px] text-indigo-500 flex items-center gap-1">
                                     <Loader2 className="h-3 w-3 animate-spin" /> Snapping ativo...
                                 </span>
                             )}
@@ -362,28 +362,28 @@ export default function VistoriarOcorrenciaDTR() {
 
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1">
-                                <Label className="text-xs text-slate-400">KM *</Label>
+                                <Label className="text-xs text-gray-500 font-semibold">KM *</Label>
                                 <Input 
                                     value={formData.km}
                                     onChange={e => setFormData({...formData, km: e.target.value})}
                                     placeholder="Ex: 142.5"
-                                    className="bg-slate-900 border-slate-750 text-slate-100 font-mono text-sm"
+                                    className="h-10 rounded-xl bg-white border-gray-200 font-mono text-sm"
                                 />
                             </div>
                             <div className="space-y-1">
-                                <Label className="text-xs text-slate-400">Trecho *</Label>
+                                <Label className="text-xs text-gray-500 font-semibold">Trecho *</Label>
                                 <Input 
                                     value={formData.trecho}
                                     onChange={e => setFormData({...formData, trecho: e.target.value})}
                                     placeholder="Ex: Sonora - Pedro Gomes"
-                                    className="bg-slate-900 border-slate-750 text-slate-100 text-xs"
+                                    className="h-10 rounded-xl bg-white border-gray-200 text-xs"
                                 />
                             </div>
                         </div>
 
                         {location && (
-                            <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-mono">
-                                <MapPin className="h-3.5 w-3.5 text-slate-500" />
+                            <div className="flex items-center gap-1.5 text-[10px] text-gray-400 font-mono">
+                                <MapPin className="h-3.5 w-3.5 text-gray-400" />
                                 {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
                             </div>
                         )}
@@ -391,22 +391,20 @@ export default function VistoriarOcorrenciaDTR() {
                 </Card>
 
                 {/* Main Occurrence Details */}
-                <div className="space-y-4 bg-slate-800/40 p-4 rounded-xl border border-slate-800/80">
+                <div className="space-y-4 bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
                     {/* Tipo de Ocorrência */}
                     <div className="space-y-2">
-                        <Label className="text-xs font-semibold text-slate-350">Tipo de Ocorrência *</Label>
-                        <Select 
-                            value={formData.tipo_ocorrencia} 
+                        <Label className="text-xs font-semibold text-gray-600">Tipo de Ocorrência *</Label>
+                        <Select
+                            value={formData.tipo_ocorrencia}
                             onValueChange={val => setFormData({...formData, tipo_ocorrencia: val})}
                         >
-                            <SelectTrigger className="bg-slate-800 border-slate-755 text-slate-100 text-sm h-11 rounded-lg">
+                            <SelectTrigger className="bg-white border-gray-200 text-gray-800 text-sm h-11 rounded-xl">
                                 <SelectValue placeholder="Selecione o tipo..." />
                             </SelectTrigger>
-                            <SelectContent className="bg-slate-800 border-slate-700 text-slate-150">
+                            <SelectContent className="bg-white border-gray-200 text-gray-800">
                                 {TIPOS_OCORRENCIA.map(t => (
-                                    <SelectItem key={t} value={t} className="focus:bg-indigo-650 hover:bg-indigo-600">
-                                        {t}
-                                    </SelectItem>
+                                    <SelectItem key={t} value={t}>{t}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
@@ -414,38 +412,36 @@ export default function VistoriarOcorrenciaDTR() {
 
                     {/* Gravidade */}
                     <div className="space-y-2">
-                        <Label className="text-xs font-semibold text-slate-350">Gravidade / Risco *</Label>
-                        <Select 
-                            value={formData.gravidade} 
+                        <Label className="text-xs font-semibold text-gray-600">Gravidade / Risco *</Label>
+                        <Select
+                            value={formData.gravidade}
                             onValueChange={val => setFormData({...formData, gravidade: val})}
                         >
-                            <SelectTrigger className="bg-slate-800 border-slate-755 text-slate-100 text-sm h-11 rounded-lg">
+                            <SelectTrigger className="bg-white border-gray-200 text-gray-800 text-sm h-11 rounded-xl">
                                 <SelectValue />
                             </SelectTrigger>
-                            <SelectContent className="bg-slate-800 border-slate-700 text-slate-150">
+                            <SelectContent className="bg-white border-gray-200 text-gray-800">
                                 {GRAVIDADES.map(g => (
-                                    <SelectItem key={g.value} value={g.value} className="focus:bg-indigo-650 hover:bg-indigo-600">
-                                        {g.label}
-                                    </SelectItem>
+                                    <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
                     </div>
 
-                    {/* Observação / Descrição */}
+                    {/* Observação */}
                     <div className="space-y-2">
-                        <Label className="text-xs font-semibold text-slate-350">Descrição Detalhada / Fotos</Label>
-                        <Textarea 
+                        <Label className="text-xs font-semibold text-gray-600">Descrição Detalhada</Label>
+                        <Textarea
                             value={formData.observacao}
                             onChange={e => setFormData({...formData, observacao: e.target.value})}
                             placeholder="Descreva as condições da pista, acostamento ou sinalização..."
-                            className="bg-slate-800 border-slate-755 text-slate-100 text-xs min-h-[80px]"
+                            className="bg-white border-gray-200 text-gray-800 text-xs min-h-[80px] rounded-xl"
                         />
                     </div>
                 </div>
 
                 {/* Photo Grid Section */}
-                <div className="bg-slate-850 p-4 rounded-xl border border-slate-800/80 shadow-md">
+                <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
                     <PhotoGrid
                         fotos={fotos}
                         minFotos={1}
@@ -460,45 +456,45 @@ export default function VistoriarOcorrenciaDTR() {
                     />
                 </div>
 
-                {/* Determination (Determinação / Prazo) */}
-                <Card className="bg-slate-800 border-none shadow-xl">
+                {/* Determination */}
+                <Card className="bg-white border border-gray-200 shadow-sm rounded-2xl">
                     <CardContent className="p-4 space-y-4">
                         <div className="flex items-center justify-between">
                             <div className="space-y-0.5">
-                                <Label className="text-sm font-semibold text-slate-200 flex items-center gap-1.5">
-                                    <FileText className="h-4.5 w-4.5 text-indigo-400" /> Requer Determinação?
+                                <Label className="text-sm font-semibold text-gray-800 flex items-center gap-1.5">
+                                    <FileText className="h-4 w-4 text-indigo-500" /> Requer Determinação?
                                 </Label>
-                                <p className="text-[10px] text-slate-550">Notificar concessionária para reparo.</p>
+                                <p className="text-[10px] text-gray-400">Notificar concessionária para reparo.</p>
                             </div>
-                            <Switch 
-                                checked={requerDeterminacao} 
+                            <Switch
+                                checked={requerDeterminacao}
                                 onCheckedChange={(val) => {
                                     setRequerDeterminacao(val);
                                     if (val && !textoDeterminacao) {
                                         setTextoDeterminacao(`Sanar a ocorrência de ${formData.tipo_ocorrencia || 'irregularidade'} identificada no KM ${formData.km || ''} da rodovia ${formData.rodovia || ''};`);
                                     }
-                                }} 
+                                }}
                             />
                         </div>
 
                         {requerDeterminacao && (
-                            <div className="space-y-3 pt-2 border-t border-slate-750/50 animate-fade-in">
+                            <div className="space-y-3 pt-2 border-t border-gray-100">
                                 <div className="space-y-1">
-                                    <Label className="text-xs text-slate-400">Texto da Determinação</Label>
-                                    <Textarea 
+                                    <Label className="text-xs text-gray-500 font-semibold">Texto da Determinação</Label>
+                                    <Textarea
                                         value={textoDeterminacao}
                                         onChange={e => setTextoDeterminacao(e.target.value)}
                                         placeholder="Ex: Corrigir defeito asfáltico no prazo estabelecido..."
-                                        className="bg-slate-900 border-slate-750 text-slate-100 text-xs min-h-[70px]"
+                                        className="bg-white border-gray-200 text-gray-800 text-xs min-h-[70px] rounded-xl"
                                     />
                                 </div>
                                 <div className="space-y-1">
-                                    <Label className="text-xs text-slate-400">Prazo de Resolução (Dias)</Label>
+                                    <Label className="text-xs text-gray-500 font-semibold">Prazo de Resolução (Dias)</Label>
                                     <Select value={prazoDeterminacao} onValueChange={setPrazoDeterminacao}>
-                                        <SelectTrigger className="bg-slate-900 border-slate-750 text-slate-200 text-xs h-9">
+                                        <SelectTrigger className="bg-white border-gray-200 text-gray-700 text-xs h-9 rounded-xl">
                                             <SelectValue />
                                         </SelectTrigger>
-                                        <SelectContent className="bg-slate-800 border-slate-700 text-slate-150">
+                                        <SelectContent className="bg-white border-gray-200 text-gray-800">
                                             <SelectItem value="1">24 Horas (Crítico)</SelectItem>
                                             <SelectItem value="5">5 Dias (Urgente)</SelectItem>
                                             <SelectItem value="15">15 Dias (Médio)</SelectItem>
@@ -514,8 +510,8 @@ export default function VistoriarOcorrenciaDTR() {
             </div>
 
             {/* Footer */}
-            <div className="py-4 text-center text-xs text-slate-600 bg-slate-900/50 border-t border-slate-850">
-                AGEMS - DTR
+            <div className="py-4 text-center text-xs text-gray-400 bg-white border-t border-gray-200">
+                AGEMS — Diretoria de Transportes Rodoviários
             </div>
         </div>
     );

@@ -499,42 +499,50 @@ export default function GestaoAutos() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 p-6">
-            <div className="max-w-6xl mx-auto">
-                {/* Header */}
-                <div className="flex items-center gap-2 mb-6">
-                    <Link to={createPageUrl('Home')}>
-                        <Button variant="ghost" size="icon">
-                            <ArrowLeft className="h-4 w-4" />
-                        </Button>
-                    </Link>
-                    <h1 className="text-3xl font-bold">Gestão de Autos de Infração</h1>
+        <div className="min-h-screen bg-gray-50">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
+                <div className="max-w-6xl mx-auto px-4 py-5">
+                    <div className="flex items-center gap-3">
+                        <Link to={createPageUrl('Home')}>
+                            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full">
+                                <ArrowLeft className="h-5 w-5" />
+                            </Button>
+                        </Link>
+                        <div>
+                            <h1 className="text-xl font-bold">Gestão de Autos de Infração</h1>
+                            <p className="text-blue-200 text-xs mt-0.5">{autos.length} autos cadastrados</p>
+                        </div>
+                    </div>
                 </div>
+            </div>
+
+            <div className="max-w-6xl mx-auto px-4 py-6">
 
                 {/* KPIs */}
                 <div className="grid grid-cols-4 gap-4 mb-8">
-                    <Card>
-                        <CardContent className="p-4 text-center">
-                            <p className="text-sm text-gray-600 mb-1">Gerados</p>
-                            <p className="text-2xl font-bold">{autosPorStatus.gerados.length}</p>
+                    <Card className="border border-gray-200 rounded-2xl shadow-sm bg-white">
+                        <CardContent className="p-5 text-center">
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Gerados</p>
+                            <p className="text-3xl font-bold text-gray-800">{autosPorStatus.gerados.length}</p>
                         </CardContent>
                     </Card>
-                    <Card>
-                        <CardContent className="p-4 text-center">
-                            <p className="text-sm text-gray-600 mb-1">Enviados</p>
-                            <p className="text-2xl font-bold">{autosPorStatus.enviados.length}</p>
+                    <Card className="border border-gray-200 rounded-2xl shadow-sm bg-white">
+                        <CardContent className="p-5 text-center">
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Enviados</p>
+                            <p className="text-3xl font-bold text-blue-600">{autosPorStatus.enviados.length}</p>
                         </CardContent>
                     </Card>
-                    <Card>
-                        <CardContent className="p-4 text-center">
-                            <p className="text-sm text-gray-600 mb-1">Em Análise</p>
-                            <p className="text-2xl font-bold">{autosPorStatus.em_analise.length}</p>
+                    <Card className="border border-gray-200 rounded-2xl shadow-sm bg-white">
+                        <CardContent className="p-5 text-center">
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Em Análise</p>
+                            <p className="text-3xl font-bold text-amber-600">{autosPorStatus.em_analise.length}</p>
                         </CardContent>
                     </Card>
-                    <Card>
-                        <CardContent className="p-4 text-center">
-                            <p className="text-sm text-gray-600 mb-1">Finalizados</p>
-                            <p className="text-2xl font-bold">{autosPorStatus.finalizados.length}</p>
+                    <Card className="border border-gray-200 rounded-2xl shadow-sm bg-white">
+                        <CardContent className="p-5 text-center">
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Finalizados</p>
+                            <p className="text-3xl font-bold text-emerald-600">{autosPorStatus.finalizados.length}</p>
                         </CardContent>
                     </Card>
                 </div>

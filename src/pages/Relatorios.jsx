@@ -327,7 +327,7 @@ export default function Relatorios() {
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <Link to={createPageUrl('Home')}>
-                                <Button variant="ghost" size="icon" className="text-white hover:bg-white/20">
+                                <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full">
                                     <ArrowLeft className="h-5 w-5" />
                                 </Button>
                             </Link>

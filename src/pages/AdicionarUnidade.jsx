@@ -188,55 +188,57 @@ export default function AdicionarUnidade() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-50 flex flex-col justify-between">
+            <div>
             {/* Header */}
             <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
-                <div className="max-w-lg mx-auto px-4 py-4">
-                    <div className="flex items-center gap-3">
-                        <Link to={createPageUrl('ExecutarFiscalizacao') + `?id=${fiscalizacaoId}`}>
-                            <Button variant="ghost" size="icon" className="text-white hover:bg-white/20">
-                                <ArrowLeft className="h-5 w-5" />
-                            </Button>
-                        </Link>
-                        <div>
-                            <h1 className="text-xl font-bold">Adicionar Unidade</h1>
-                            <p className="text-blue-200 text-sm">{fiscalizacao?.municipio_nome} • {fiscalizacao?.servicos?.join(', ')}</p>
-                        </div>
+                <div className="max-w-lg mx-auto px-4 py-5 flex items-center gap-3">
+                    <Link to={createPageUrl('ExecutarFiscalizacao') + `?id=${fiscalizacaoId}`}>
+                        <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full">
+                            <ArrowLeft className="h-5 w-5" />
+                        </Button>
+                    </Link>
+                    <div>
+                        <h1 className="text-xl font-bold">Adicionar Unidade</h1>
+                        <p className="text-blue-200 text-xs mt-0.5 truncate">
+                            {fiscalizacao?.municipio_nome} {fiscalizacao?.servicos?.length ? '• ' + fiscalizacao.servicos.join(', ') : ''}
+                        </p>
                     </div>
                 </div>
             </div>
 
             {/* Form */}
             <div className="max-w-lg mx-auto px-4 py-6">
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-5">
                     {/* GPS */}
-                    <Card className={location ? "border-green-200 bg-green-50" : "border-gray-200"}>
+                    <Card className={`border shadow-sm ${location ? 'border-emerald-200 bg-emerald-50' : 'border-amber-100 bg-amber-50'}`}>
                         <CardContent className="p-4 flex items-center gap-3">
-                            <Navigation className={`h-5 w-5 ${location ? 'text-green-600' : 'text-gray-400'}`} />
+                            <div className={`w-9 h-9 rounded-full flex items-center justify-center ${location ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-500'}`}>
+                                <Navigation className="h-4.5 w-4.5" />
+                            </div>
                             <div>
-                                <p className="font-medium text-sm">
-                                    {location ? 'GPS Capturado' : 'Obtendo GPS...'}
+                                <p className="font-semibold text-sm text-gray-800">
+                                    {location ? 'Coordenadas Capturadas' : 'Obtendo GPS...'}
                                 </p>
                                 {location && (
-                                    <p className="text-xs text-gray-500">
-                                        {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
-                                    </p>
+                                    <p className="text-xs text-gray-500 font-mono">{location.lat.toFixed(6)}, {location.lng.toFixed(6)}</p>
                                 )}
                             </div>
                         </CardContent>
                     </Card>
 
+                    <div className="space-y-4 bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
                     {/* Tipo de Unidade */}
                     <div className="space-y-2">
-                        <Label>Tipo de Unidade *</Label>
-                        <Select 
-                            value={formData.tipo_unidade_id} 
+                        <Label className="text-gray-700 font-semibold text-sm">Tipo de Unidade *</Label>
+                        <Select
+                            value={formData.tipo_unidade_id}
                             onValueChange={handleTipoChange}
                         >
-                            <SelectTrigger>
+                            <SelectTrigger className="h-12 rounded-xl bg-white border-gray-200">
                                 <SelectValue placeholder="Selecione o tipo..." />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="bg-white border-gray-200">
                                 {tiposFiltrados.map(t => (
                                     <SelectItem key={t.id} value={t.id}>
                                         <div className="flex items-center gap-2">
@@ -248,52 +250,51 @@ export default function AdicionarUnidade() {
                             </SelectContent>
                         </Select>
                         {tiposFiltrados.length === 0 && (
-                            <p className="text-xs text-yellow-600">
-                                Nenhum tipo de unidade cadastrado para os serviços "{servicosSelecionados.join(', ')}".
-                                <Link to={createPageUrl('TiposUnidade')} className="text-blue-600 ml-1">
-                                    Cadastrar tipos
-                                </Link>
+                            <p className="text-xs text-amber-600">
+                                Nenhum tipo cadastrado para os serviços selecionados.
+                                <Link to={createPageUrl('TiposUnidade')} className="text-indigo-600 ml-1 font-semibold">Cadastrar tipos</Link>
                             </p>
                         )}
                     </div>
 
                     {/* Código */}
                     <div className="space-y-2">
-                        <Label>Código/Identificador</Label>
+                        <Label className="text-gray-700 font-semibold text-sm">Código/Identificador</Label>
                         <Input
                             value={formData.codigo_unidade}
-                            onChange={(e) => setFormData({...formData, codigo_unidade: e.target.value})}
+                            onChange={(e) => setFormData({ ...formData, codigo_unidade: e.target.value })}
                             placeholder="Ex: ETA-001"
+                            className="h-11 rounded-xl bg-white border-gray-200"
                         />
                     </div>
 
                     {/* Nome */}
                     <div className="space-y-2">
-                        <Label>Nome/Descrição</Label>
+                        <Label className="text-gray-700 font-semibold text-sm">Nome/Descrição</Label>
                         <Input
                             value={formData.nome_unidade}
-                            onChange={(e) => setFormData({...formData, nome_unidade: e.target.value})}
+                            onChange={(e) => setFormData({ ...formData, nome_unidade: e.target.value })}
                             placeholder="Ex: ETA Central"
+                            className="h-11 rounded-xl bg-white border-gray-200"
                         />
                     </div>
 
                     {/* Endereço */}
                     <div className="space-y-2">
-                        <Label>Endereço</Label>
+                        <Label className="text-gray-700 font-semibold text-sm">Endereço</Label>
                         <Input
                             value={formData.endereco}
-                            onChange={(e) => setFormData({...formData, endereco: e.target.value})}
+                            onChange={(e) => setFormData({ ...formData, endereco: e.target.value })}
                             placeholder="Rua, número, bairro..."
                             disabled={loadingAddress}
+                            className="h-11 rounded-xl bg-white border-gray-200"
                         />
-                        {loadingAddress && (
-                            <p className="text-xs text-gray-500">Obtendo endereço do GPS...</p>
-                        )}
+                        {loadingAddress && <p className="text-xs text-gray-400">Obtendo endereço do GPS...</p>}
                     </div>
-                    
-                    {/* Coordenadas (WGS 84-EPSG:4326) */}
+
+                    {/* Coordenadas */}
                     <div className="space-y-2">
-                        <Label>Coordenadas (WGS 84-EPSG:4326)</Label>
+                        <Label className="text-gray-700 font-semibold text-sm">Coordenadas (WGS 84-EPSG:4326)</Label>
                         <Input
                             value={
                                 location
@@ -316,25 +317,27 @@ export default function AdicionarUnidade() {
                             }
                             placeholder="dd° mm' ss.s″ N/S, dd° mm' ss.s″ E/W"
                             disabled
+                            className="h-11 rounded-xl bg-gray-50 border-gray-200 font-mono text-xs"
                         />
+                    </div>
                     </div>
 
                     {/* Submit */}
-                    <Button 
-                        type="submit" 
-                        className="w-full h-14 text-lg bg-green-600 hover:bg-green-700"
+                    <Button
+                        type="submit"
+                        className="w-full h-14 font-semibold bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl shadow-lg transition-all text-base"
                         disabled={createMutation.isPending || !formData.tipo_unidade_id}
                     >
                         {createMutation.isPending ? (
-                            <>
-                                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                                Criando...
-                            </>
-                        ) : (
-                            'Iniciar Vistoria'
-                        )}
+                            <><Loader2 className="h-5 w-5 mr-2 animate-spin" /> Criando...</>
+                        ) : 'Iniciar Vistoria'}
                     </Button>
                 </form>
+            </div>
+            </div>
+
+            <div className="py-5 text-center text-xs text-slate-400 bg-white border-t border-slate-200">
+                AGEMS — Agência Estadual de Regulação de Serviços Públicos de MS
             </div>
         </div>
     );

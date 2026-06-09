@@ -106,26 +106,28 @@ export default function Fiscalizacoes() {
 
     return (
         <div className="min-h-screen bg-gray-50">
-                {/* Header */}
+            {/* Header */}
             <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
-                <div className="max-w-4xl mx-auto px-4 py-4">
+                <div className="max-w-4xl mx-auto px-4 py-5">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <Link to={createPageUrl('Home')}>
-                                <Button variant="ghost" size="icon" className="text-white hover:bg-white/20">
+                                <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full">
                                     <ArrowLeft className="h-5 w-5" />
                                 </Button>
                             </Link>
                             <div>
                                 <h1 className="text-xl font-bold">Fiscalizações</h1>
-                                <p className="text-blue-200 text-sm">
-                                    {emAndamento} em andamento • {finalizadas} finalizadas
+                                <p className="text-blue-200 text-xs mt-0.5">
+                                    <span className="font-semibold text-sky-300">{emAndamento}</span> em andamento
+                                    {' • '}
+                                    <span className="font-semibold text-emerald-300">{finalizadas}</span> finalizadas
                                 </p>
                             </div>
                         </div>
                         <Link to={createPageUrl('NovaFiscalizacao')}>
-                            <Button className="bg-green-500 hover:bg-green-600">
-                                <Plus className="h-4 w-4 mr-2" />
+                            <Button className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow gap-1.5">
+                                <Plus className="h-4 w-4" />
                                 Nova
                             </Button>
                         </Link>
@@ -142,12 +144,13 @@ export default function Fiscalizacoes() {
                             placeholder="Buscar município ou serviço..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="pl-10"
+                            className="pl-10 h-11 rounded-xl bg-white border-gray-200"
                         />
                     </div>
-                    <Button 
-                        variant="outline" 
+                    <Button
+                        variant="outline"
                         size="icon"
+                        className={`h-11 w-11 rounded-xl border-gray-200 ${mostrarFiltros ? 'bg-indigo-50 border-indigo-300 text-indigo-600' : ''}`}
                         onClick={() => setMostrarFiltros(!mostrarFiltros)}
                     >
                         <Filter className="h-4 w-4" />
@@ -156,29 +159,29 @@ export default function Fiscalizacoes() {
 
                 {/* Filtros Avançados */}
                 {mostrarFiltros && (
-                    <div className="space-y-2 p-4 bg-white rounded-lg border">
-                        <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-3 p-4 bg-white rounded-2xl border border-gray-200 shadow-sm">
+                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Filtros Avançados</p>
+                        <div className="grid grid-cols-2 gap-3">
                             <div>
-                                <label className="text-xs text-gray-600 mb-1 block">Status</label>
+                                <label className="text-xs text-gray-500 font-semibold mb-1 block">Status</label>
                                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                                    <SelectTrigger>
+                                    <SelectTrigger className="h-10 rounded-xl bg-white border-gray-200">
                                         <SelectValue />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent className="bg-white border-gray-200">
                                         <SelectItem value="todos">Todos</SelectItem>
                                         <SelectItem value="em_andamento">Em andamento</SelectItem>
                                         <SelectItem value="finalizada">Finalizadas</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
-
                             <div>
-                                <label className="text-xs text-gray-600 mb-1 block">Serviço</label>
+                                <label className="text-xs text-gray-500 font-semibold mb-1 block">Serviço</label>
                                 <Select value={servicoFilter} onValueChange={setServicoFilter}>
-                                    <SelectTrigger>
+                                    <SelectTrigger className="h-10 rounded-xl bg-white border-gray-200">
                                         <SelectValue />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent className="bg-white border-gray-200">
                                         <SelectItem value="todos">Todos</SelectItem>
                                         {servicos.map(s => (
                                             <SelectItem key={s} value={s}>{s}</SelectItem>
@@ -187,36 +190,21 @@ export default function Fiscalizacoes() {
                                 </Select>
                             </div>
                         </div>
-
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-2 gap-3">
                             <div>
-                                <label className="text-xs text-gray-600 mb-1 block">Data Início</label>
-                                <Input 
-                                    type="date" 
-                                    value={dataInicio}
-                                    onChange={(e) => setDataInicio(e.target.value)}
-                                />
+                                <label className="text-xs text-gray-500 font-semibold mb-1 block">Data Início</label>
+                                <Input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} className="h-10 rounded-xl bg-white border-gray-200" />
                             </div>
                             <div>
-                                <label className="text-xs text-gray-600 mb-1 block">Data Fim</label>
-                                <Input 
-                                    type="date" 
-                                    value={dataFim}
-                                    onChange={(e) => setDataFim(e.target.value)}
-                                />
+                                <label className="text-xs text-gray-500 font-semibold mb-1 block">Data Fim</label>
+                                <Input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} className="h-10 rounded-xl bg-white border-gray-200" />
                             </div>
                         </div>
-
-                        <Button 
-                            variant="ghost" 
+                        <Button
+                            variant="ghost"
                             size="sm"
-                            className="w-full"
-                            onClick={() => {
-                                setStatusFilter('todos');
-                                setServicoFilter('todos');
-                                setDataInicio('');
-                                setDataFim('');
-                            }}
+                            className="w-full text-gray-500 hover:text-gray-700 rounded-xl"
+                            onClick={() => { setStatusFilter('todos'); setServicoFilter('todos'); setDataInicio(''); setDataFim(''); }}
                         >
                             Limpar Filtros
                         </Button>
@@ -232,76 +220,72 @@ export default function Fiscalizacoes() {
             {/* List */}
             <div className="max-w-4xl mx-auto px-4 pb-8">
                 {isLoading ? (
-                    <div className="text-center py-8 text-gray-500">Carregando...</div>
+                    <div className="flex justify-center py-12"><Loader2 className="h-7 w-7 animate-spin text-indigo-500" /></div>
                 ) : (
                     <div className="space-y-3">
                         {filtered.map((fisc) => {
                             const isFiscalOrAdmin = user && ['admin', 'coordenador', 'fiscal'].includes(user.role);
                             const podeDeleter = isFiscalOrAdmin;
-                            
+                            const isFinished = fisc.status === 'finalizada';
+
                             return (
-                                <Card key={fisc.id} className="hover:shadow-md transition-shadow">
-                                    <CardContent className="p-4">
-                                        <Link 
+                                <Card key={fisc.id} className="hover:shadow-md transition-all border border-gray-200 rounded-2xl overflow-hidden bg-white">
+                                    <CardContent className="p-5">
+                                        <Link
                                             to={createPageUrl('ExecutarFiscalizacao') + `?id=${fisc.id}`}
                                             className="block"
                                         >
                                             <div className="flex items-start justify-between">
                                                 <div className="flex items-start gap-3">
-                                                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                                                        fisc.status === 'finalizada' ? 'bg-green-100' : 'bg-yellow-100'
+                                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                                                        isFinished ? 'bg-emerald-50' : 'bg-sky-50'
                                                     }`}>
-                                                        {fisc.status === 'finalizada' ? (
-                                                            <CheckCircle2 className="h-6 w-6 text-green-600" />
+                                                        {isFinished ? (
+                                                            <CheckCircle2 className="h-6 w-6 text-emerald-500" />
                                                         ) : (
-                                                            <Clock className="h-6 w-6 text-yellow-600" />
+                                                            <Clock className="h-6 w-6 text-sky-500" />
                                                         )}
                                                     </div>
-                                                    <div>
-                                                        <h3 className="font-medium flex items-center gap-2">
-                                                            <MapPin className="h-4 w-4 text-gray-400" />
+                                                    <div className="min-w-0">
+                                                        <h3 className="font-bold text-gray-800 flex items-center gap-1.5">
+                                                            <MapPin className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
                                                             {fisc.municipio_nome}
                                                         </h3>
-                                                        <div className="flex flex-wrap gap-2 mt-1">
-                                                                             {fisc.servicos?.map(s => (
-                                                                                 <Badge key={s} variant="secondary" className="text-xs">
-                                                                                     {s}
-                                                                                 </Badge>
-                                                                             ))}
-                                                            <Badge 
-                                                                variant={fisc.status === 'finalizada' ? 'default' : 'outline'}
-                                                                className={`text-xs ${fisc.status === 'finalizada' ? 'bg-green-500' : ''}`}
-                                                            >
-                                                                {fisc.status === 'finalizada' ? 'Finalizada' : 'Em andamento'}
+                                                        <div className="flex flex-wrap gap-1.5 mt-1.5">
+                                                            {fisc.servicos?.map(s => (
+                                                                <Badge key={s} className="text-[10px] bg-indigo-50 text-indigo-700 border-none font-semibold">{s}</Badge>
+                                                            ))}
+                                                            <Badge className={`text-[10px] font-semibold border-none ${
+                                                                isFinished ? 'bg-emerald-100 text-emerald-700' : 'bg-sky-100 text-sky-700'
+                                                            }`}>
+                                                                {isFinished ? 'Finalizada' : 'Em andamento'}
                                                             </Badge>
                                                         </div>
-                                                        <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
+                                                        <p className="text-xs text-gray-400 mt-1.5 flex items-center gap-1">
                                                             <Calendar className="h-3 w-3" />
                                                             {format(new Date(fisc.data_inicio), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                                                         </p>
                                                         {fisc.fiscal_nome && (
-                                                            <p className="text-xs text-gray-400 mt-1">
-                                                                Fiscal: {fisc.fiscal_nome}
+                                                            <p className="text-xs text-gray-400 mt-0.5">Fiscal: {fisc.fiscal_nome}</p>
+                                                        )}
+                                                        {fisc.last_modified_by && (
+                                                            <p className="text-xs text-gray-400 mt-0.5">
+                                                                Última alt.: {fisc.last_modified_by} {fisc.last_modified_at ? `em ${format(new Date(fisc.last_modified_at), 'dd/MM HH:mm', { locale: ptBR })}` : ''}
                                                             </p>
                                                         )}
-                                                         {fisc.last_modified_by && (
-                                                             <p className="text-xs text-gray-400 mt-0.5">
-                                                                 Última alt.: {fisc.last_modified_by} {fisc.last_modified_at ? `em ${format(new Date(fisc.last_modified_at), "dd/MM HH:mm", { locale: ptBR })}` : ''}
-                                                             </p>
-                                                         )}
                                                     </div>
                                                 </div>
-                                                <ChevronRight className="h-5 w-5 text-gray-400" />
+                                                <ChevronRight className="h-5 w-5 text-gray-300 flex-shrink-0 mt-1" />
                                             </div>
 
                                             {/* Stats */}
                                             {(fisc.total_conformidades > 0 || fisc.total_nao_conformidades > 0) && (
-                                                <div className="flex gap-4 mt-3 pt-3 border-t text-xs">
-                                                    <span className="flex items-center gap-1 text-green-600">
+                                                <div className="flex gap-4 mt-3 pt-3 border-t border-gray-100 text-xs">
+                                                    <span className="flex items-center gap-1 text-emerald-600 font-medium">
                                                         <CheckCircle2 className="h-3 w-3" />
                                                         {fisc.total_conformidades || 0} Constatações
                                                     </span>
-                                                    <span className="flex items-center gap-1 text-red-600">
+                                                    <span className="flex items-center gap-1 text-rose-600 font-medium">
                                                         <AlertTriangle className="h-3 w-3" />
                                                         {fisc.total_nao_conformidades || 0} NCs
                                                     </span>
@@ -309,49 +293,6 @@ export default function Fiscalizacoes() {
                                             )}
                                         </Link>
 
-                                         <div className="mt-3 pt-3 border-t flex gap-2">
-                                              {/* Botão de histórico discreto — sempre visível */}
-                                              <HistoricoFiscalizacao fiscalizacao={fisc} />
-
-                                              {fisc.status === 'finalizada' && (
-                                                  <div className="flex-1 flex gap-2 items-end">
-                                                      <RelatorioFiscalizacao fiscalizacao={fisc} />
-                                                      {podeDeleter && (
-                                                          <Button
-                                                              variant="outline"
-                                                              size="sm"
-                                                              className="text-orange-600 border-orange-200 hover:bg-orange-50"
-                                                              disabled={reabrirFiscalizacaoMutation.isPending}
-                                                              onClick={() => {
-                                                                  if (window.confirm("Deseja reabrir esta fiscalização para edição? O relatório anterior será mantido até que você finalize novamente.")) {
-                                                                      reabrirFiscalizacaoMutation.mutate(fisc.id);
-                                                                  }
-                                                              }}
-                                                          >
-                                                              <RotateCcw className={`h-4 w-4 mr-2 ${reabrirFiscalizacaoMutation.isPending ? 'animate-spin' : ''}`} />
-                                                              {reabrirFiscalizacaoMutation.isPending ? 'Reabrindo...' : 'Reabrir Edição'}
-                                                          </Button>
-                                                      )}
-                                                  </div>
-                                              )}
-                                              {fisc.status === 'em_andamento' && (
-                                                  <Button
-                                                      className="bg-blue-600 hover:bg-blue-700"
-                                                      size="sm"
-                                                      disabled={
-                                                          !online || !sessionValid || (outboxCount || 0) > 0 || finalizarFiscalizacaoMutation.isPending
-                                                      }
-                                                      onClick={() => finalizarFiscalizacaoMutation.mutate(fisc.id)}
-                                                  >
-                                                      <CheckCircle2 className="h-4 w-4 mr-2" />
-                                                      {finalizarFiscalizacaoMutation.isPending ? 'Finalizando...' : 'Finalizar Fiscalização'}
-                                                  </Button>
-                                              )}
-                                              {podeDeleter && (
-                                                 <AlertDialog 
-                                                     open={deleteConfirmation.open && deleteConfirmation.fiscId === fisc.id}
-                                                     onOpenChange={(open) => {
-                                                         if (!open) {
                                                              setDeleteConfirmation({ open: false, fiscId: null, step: 1, inputValue: '' });
                                                          }
                                                      }}
@@ -443,11 +384,14 @@ export default function Fiscalizacoes() {
                 )}
 
                 {!isLoading && filtered.length === 0 && (
-                    <div className="text-center py-12 text-gray-500">
-                        <MapPin className="h-12 w-12 mx-auto mb-4 opacity-30" />
-                        <p className="text-lg">Nenhuma fiscalização encontrada</p>
+                    <div className="text-center py-16">
+                        <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <MapPin className="h-8 w-8 text-gray-300" />
+                        </div>
+                        <p className="text-gray-500 font-semibold">Nenhuma fiscalização encontrada</p>
+                        <p className="text-gray-400 text-sm mt-1">Tente ajustar os filtros ou inicie uma nova vistoria</p>
                         <Link to={createPageUrl('NovaFiscalizacao')}>
-                            <Button className="mt-4">
+                            <Button className="mt-5 bg-indigo-600 hover:bg-indigo-700 rounded-xl">
                                 <Plus className="h-4 w-4 mr-2" />
                                 Iniciar primeira fiscalização
                             </Button>
@@ -456,7 +400,10 @@ export default function Fiscalizacoes() {
                 )}
             </div>
 
-
+            {/* Footer */}
+            <div className="py-5 text-center text-xs text-slate-400 bg-white border-t border-slate-200 mt-4">
+                AGEMS — Agência Estadual de Regulação de Serviços Públicos de MS
             </div>
-            );
+        </div>
+    );
 }
