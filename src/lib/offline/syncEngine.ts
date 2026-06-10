@@ -2052,12 +2052,22 @@ async function reachability(): Promise<boolean> {
 async function authRefresh(): Promise<void> {
   try {
     const { data: sessionRes } = await supabase.auth.getSession()
-    const refresh_token = sessionRes.session?.refresh_token
-    if (refresh_token) {
-      await supabase.auth.refreshSession({ refresh_token })
-    } else {
-      await supabase.auth.getUser()
+    const session = sessionRes.session
+    if (session) {
+      const expiresAt = session.expires_at || 0
+      const nowSeconds = Math.floor(Date.now() / 1000)
+      // Se a sessão atual ainda for válida por mais de 5 minutos (300s), não faz chamada de rede desnecessária
+      if (expiresAt - nowSeconds > 300) {
+        return
+      }
+      
+      const refresh_token = session.refresh_token
+      if (refresh_token) {
+        await supabase.auth.refreshSession({ refresh_token })
+        return
+      }
     }
+    await supabase.auth.getUser()
   } catch {
     // ignora, motor de sync tentará mesmo assim
   }
@@ -2142,21 +2152,30 @@ async function runFullSyncInternal(onProgress?: (msg: string, isError?: boolean)
   const log = (msg: string, isError = false) => { if (onProgress) onProgress(msg, isError) }
   
   log('Verificando conexão com o servidor...')
-  const ok = await withTimeout(() => reachability(), 5000)
-  if (!ok) {
-    log('Servidor indisponível. Verifique a conexão.', true)
-    throw new Error('Servidor indisponível. Verifique a URL do Supabase ou sua conexão.')
-  }
-  try {
-    log('Atualizando sessão...')
-    await withTimeout(() => authRefresh(), 15000)
-  } catch (err: any) {
-    if (String(err?.message || '').includes('Timeout')) {
-      log('Timeout na autenticação.', true)
-      throw new Error('Timeout na etapa de autenticação')
+  
+  const sessionRes = await supabase.auth.getSession().catch(() => null)
+  const session = sessionRes?.data?.session
+  const expiresAt = session?.expires_at || 0
+  const nowSeconds = Math.floor(Date.now() / 1000)
+  const hasValidSession = session && (expiresAt - nowSeconds > 300)
+
+  if (!hasValidSession) {
+    const ok = await withTimeout(() => reachability(), 5000)
+    if (!ok) {
+      log('Servidor indisponível. Verifique a conexão.', true)
+      throw new Error('Servidor indisponível. Verifique a URL do Supabase ou sua conexão.')
     }
-    log('Erro na autenticação.', true)
-    throw err
+    try {
+      log('Atualizando sessão...')
+      await withTimeout(() => authRefresh(), 15000)
+    } catch (err: any) {
+      if (String(err?.message || '').includes('Timeout')) {
+        log('Timeout na autenticação.', true)
+        throw new Error('Timeout na etapa de autenticação')
+      }
+      log('Erro na autenticação.', true)
+      throw err
+    }
   }
   
   log('Reprocessando erros anteriores...')
