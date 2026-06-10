@@ -431,7 +431,7 @@ export default function Fiscalizacoes() {
                                                           className="bg-indigo-600 hover:bg-indigo-700 text-white h-9 rounded-xl font-medium text-xs"
                                                           size="sm"
                                                           disabled={
-                                                              !online || !sessionValid || (outboxCount || 0) > 0 || finalizarFiscalizacaoMutation.isPending
+                                                              !online || !sessionValid || finalizarFiscalizacaoMutation.isPending
                                                           }
                                                           onClick={(e) => {
                                                               e.preventDefault();

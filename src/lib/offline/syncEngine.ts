@@ -435,6 +435,8 @@ export async function getSyncPendingForFiscalizacao(
 
   const matchesFiscalizacao = (m: any): boolean => {
     const entity = String(m?.entity || '')
+    // Ignore reabrir_fiscalizacao mutations
+    if (entity === 'reabrir_fiscalizacao') return false
     const p = m?.payload || {}
     const pid = p?.id
     const pfisc = p?.fiscalizacao_id
@@ -453,7 +455,24 @@ export async function getSyncPendingForFiscalizacao(
     return false
   }
 
-  const related = all.filter((m) => matchesFiscalizacao(m))
+  const isOnlyStatusReopen = (m: any): boolean => {
+    const entity = String(m?.entity || '')
+    const p = m?.payload || {}
+    // Check if it's just updating status to em_andamento
+    if (entity === 'fiscalizacoes') {
+      // Check if payload only has id, status: em_andamento, updated_at, data_fim: null
+      const keys = Object.keys(p).filter(k => k !== 'id' && k !== 'updated_at' && k !== 'data_fim')
+      return keys.length === 0 || (keys.length === 1 && keys[0] === 'status' && p.status === 'em_andamento')
+    }
+    if (entity === 'unidades') {
+      // Check if payload only has id, status: em_andamento, updated_at
+      const keys = Object.keys(p).filter(k => k !== 'id' && k !== 'updated_at')
+      return keys.length === 0 || (keys.length === 1 && keys[0] === 'status' && p.status === 'em_andamento')
+    }
+    return false
+  }
+
+  const related = all.filter((m) => matchesFiscalizacao(m) && !isOnlyStatusReopen(m))
   const outboxCount = related.length
   const sampleErrors = related
     .filter((m: any) => String(m?.status || '') === 'error' && m?.lastError)
