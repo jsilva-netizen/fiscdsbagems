@@ -306,8 +306,6 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
     const canRequest = isOnlineAndReady && localOutbox === 0 && localFotos === 0;
     const msg = !syncStatus.online || !syncStatus.sessionValid
         ? 'Conecte-se ao servidor para gerar/baixar relatório.'
-        : (localOutbox > 0 || localFotos > 0)
-        ? 'Sincronize esta fiscalização antes para gerar um novo relatório.'
         : null;
 
     return (
@@ -320,9 +318,6 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
             {msg ? (
                 <div className="text-sm text-yellow-700 bg-yellow-100 border border-yellow-200 rounded px-3 py-2">
                     {msg}
-                    {syncStatus.online && syncStatus.sessionValid && (localOutbox > 0 || localFotos > 0)
-                        ? ` (${localOutbox} itens, ${localFotos} fotos)`
-                        : ''}
                 </div>
             ) : null}
             {job?.status ? (

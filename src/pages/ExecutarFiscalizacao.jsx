@@ -5,6 +5,7 @@ import { Repository } from '@/lib/offline/repository';
 import { useAuth } from '@/lib/AuthContext';
 import { useOnlineStatus } from '@/lib/OnlineStatusContext';
 import { useSyncStatus } from '@/lib/SyncStatusContext.jsx';
+import { runFullSync } from '@/lib/offline/syncEngine';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -63,8 +64,11 @@ export default function ExecutarFiscalizacao() {
         mutationFn: async () => {
             await Repository.finalizarFiscalizacao(fiscalizacaoId);
         },
-        onSuccess: () => {
+        onSuccess: async () => {
             queryClient.invalidateQueries({ queryKey: ['fiscalizacoes'] });
+            if (syncStatus.online && syncStatus.sessionValid) {
+                await runFullSync();
+            }
             navigate(createPageUrl('Fiscalizacoes'));
         },
         onError: (err) => {

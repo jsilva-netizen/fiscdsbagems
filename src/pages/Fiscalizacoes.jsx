@@ -18,6 +18,7 @@ import ExportarPDFConsolidado from '@/components/fiscalizacao/ExportarPDFConsoli
 import RelatorioFiscalizacao from '@/components/fiscalizacao/RelatorioFiscalizacao';
 import HistoricoFiscalizacao from '@/components/fiscalizacao/HistoricoFiscalizacao';
 import { useSyncStatus } from '@/lib/SyncStatusContext.jsx';
+import { runFullSync } from '@/lib/offline/syncEngine';
 
 export default function Fiscalizacoes() {
     const queryClient = useQueryClient();
@@ -61,8 +62,11 @@ export default function Fiscalizacoes() {
         mutationFn: async (fiscalizacaoId) => {
             await Repository.finalizarFiscalizacao(fiscalizacaoId);
         },
-        onSuccess: () => {
+        onSuccess: async () => {
             queryClient.invalidateQueries({ queryKey: ['fiscalizacoes'] });
+            if (online && sessionValid) {
+                await runFullSync();
+            }
         },
         onError: (error) => {
             alert('Erro ao finalizar fiscalização: ' + error.message);
