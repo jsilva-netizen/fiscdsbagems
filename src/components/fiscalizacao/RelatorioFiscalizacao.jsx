@@ -309,19 +309,19 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
         : null;
 
     return (
-        <div className="space-y-2">
+        <div className="flex flex-col">
             {error ? (
-                <div className="text-sm text-red-700 bg-red-100 border border-red-200 rounded px-3 py-2">
+                <div className="text-sm text-red-700 bg-red-100 border border-red-200 rounded px-3 py-2 mb-2">
                     {error}
                 </div>
             ) : null}
             {msg ? (
-                <div className="text-sm text-yellow-700 bg-yellow-100 border border-yellow-200 rounded px-3 py-2">
+                <div className="text-sm text-yellow-700 bg-yellow-100 border border-yellow-200 rounded px-3 py-2 mb-2">
                     {msg}
                 </div>
             ) : null}
             {job?.status ? (
-                <div className="text-xs text-gray-600">
+                <div className="text-xs text-gray-600 mb-2">
                     Status: {job.status}
                     {typeof job.progress_unidades === 'number' ? ` | Unidades: ${job.progress_unidades}` : ''}
                     {typeof job.progress_fotos === 'number' ? ` | Fotos: ${job.progress_fotos}` : ''}
