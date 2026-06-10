@@ -2096,11 +2096,10 @@ export const Repository = {
       await db.fila_mutacoes.bulkDelete(toDelete)
     }
 
-    // Redefine o status de todas as unidades para 'em_andamento'
-    // para que fiquem em modo de edição imediato (botão "Finalizar Vistoria" visível)
+    // Redefine o status de todas as unidades para 'em_andamento' LOCALMENTE
+    // (não enfileirar mutações - a RPC fará isso no servidor!)
     for (const u of unidades) {
       await db.unidades.update(u.id, { ...u, status: 'em_andamento', updated_at: now() })
-      await enqueueMutation({ id: u.id, status: 'em_andamento', updated_at: now() }, 'update', 'unidades')
     }
     await enqueueMutation({ id: fiscalizacaoId, status: 'em_andamento', data_fim: null }, 'reopen' as any, 'reabrir_fiscalizacao' as any)
   }

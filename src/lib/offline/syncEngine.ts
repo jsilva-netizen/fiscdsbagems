@@ -1360,7 +1360,7 @@ export async function syncUp(onProgress?: (msg: string, isError?: boolean) => vo
     for (let i = 0; i < items.length; i += limit) {
       log(`Enviando ${entityName} (${Math.min(i + limit, items.length)} de ${items.length})...`)
       const chunk = items.slice(i, i + limit)
-      if (entity === 'recomendacoes') {
+      if (entity === 'recomendacoes' || entity === 'reabrir_fiscalizacao') {
         for (const m of chunk) await processOne(m)
       } else {
         await Promise.all(chunk.map(processOne))
