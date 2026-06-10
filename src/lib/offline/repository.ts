@@ -49,7 +49,8 @@ const normalizeFoto = (f: Partial<Foto>): Foto => ({
   legenda: f.legenda || '',
   mimeType: f.mimeType,
   width: typeof f.width === 'number' ? f.width : undefined,
-  height: typeof f.height === 'number' ? f.height : undefined
+  height: typeof f.height === 'number' ? f.height : undefined,
+  localId: typeof (f as any)?.localId === 'string' ? String((f as any).localId) : undefined
 })
 
 const isLocalUrl = (url: string): boolean => {
@@ -2039,9 +2040,11 @@ export const Repository = {
   
   async finalizarFiscalizacao(fiscalizacaoId: string): Promise<void> {
     const unidades = await db.unidades.where('fiscalizacao_id').equals(fiscalizacaoId).toArray()
-    const pendente = unidades.find((u) => u.status !== 'finalizada')
-    if (pendente) {
-      throw new Error(`Finalize a vistoria da unidade "${pendente.nome_unidade || pendente.tipo_unidade_nome}" antes de finalizar a fiscalização.`)
+    for (const u of unidades) {
+      if (u.status !== 'finalizada') {
+        await db.unidades.update(u.id, { ...u, status: 'finalizada', updated_at: now() })
+        await enqueueMutation({ id: u.id }, 'finalize', 'finalizacao_unidade')
+      }
     }
     const local = await db.fiscalizacoes.get(fiscalizacaoId as any)
     if (local) {

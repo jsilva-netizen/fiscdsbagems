@@ -10,6 +10,7 @@ export type Foto = {
   mimeType?: string
   width?: number
   height?: number
+  localId?: string
 }
 
 export type OfflineFoto = {

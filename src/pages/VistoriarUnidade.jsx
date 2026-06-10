@@ -288,11 +288,13 @@ export default function VistoriarUnidade() {
         // com possíveis refetches de unidade.fotos_unidade.
         if (!unidadeMudou && fotosDirty) return;
 
+        const isLocalUrl = (u) => /^blob:|^data:|^file:|^capacitor:/i.test(String(u || ''));
+
         const carregar = async () => {
             try {
-                const remotas = (unidade?.fotos_unidade || []).map(foto =>
-                    typeof foto === 'string' ? { url: foto } : foto
-                );
+                const remotas = (unidade?.fotos_unidade || [])
+                    .map(foto => typeof foto === 'string' ? { url: foto } : foto)
+                    .filter(foto => foto && foto.url && !isLocalUrl(foto.url));
                 const locais = await Repository.listLocalFotos(unidadeId).then(list =>
                     list.map(f => ({
                         localId: f.localId,
@@ -326,8 +328,8 @@ export default function VistoriarUnidade() {
                     merged.push(f);
                 };
 
-                (locais || []).forEach(addFoto);
                 (remotas || []).forEach(addFoto);
+                (locais || []).forEach(addFoto);
 
                 setFotos(merged);
                 fotosCarregadasRef.current = unidadeId;
@@ -890,7 +892,7 @@ export default function VistoriarUnidade() {
                 if (typeof f === 'string') {
                     return { url: f, legenda: '', mimeType: undefined, width: undefined, height: undefined };
                 }
-                return { url: f.url, bucket: f.bucket, path: f.path, legenda: f.legenda || '', mimeType: f.mimeType, width: f.width, height: f.height };
+                return { url: f.url, bucket: f.bucket, path: f.path, legenda: f.legenda || '', mimeType: f.mimeType, width: f.width, height: f.height, localId: f.localId };
             });
             await Repository.updateUnidadeFotos(unidadeId, fotosCompletas);
             await Repository.updateUnidadeStatus(unidadeId, 'finalizada');
@@ -978,7 +980,7 @@ export default function VistoriarUnidade() {
                 if (typeof f === 'string') {
                     return { url: f, legenda: '', mimeType: undefined, width: undefined, height: undefined };
                 }
-                return { url: f.url, bucket: f.bucket, path: f.path, legenda: f.legenda || '', mimeType: f.mimeType, width: f.width, height: f.height };
+                return { url: f.url, bucket: f.bucket, path: f.path, legenda: f.legenda || '', mimeType: f.mimeType, width: f.width, height: f.height, localId: f.localId };
             });
             await Repository.updateUnidadeFotos(unidadeId, fotosCompletas);
             

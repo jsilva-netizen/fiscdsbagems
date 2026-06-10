@@ -143,9 +143,13 @@ export default function VistoriarOcorrenciaDTR() {
         if (!occurrenceId) return;
         if (fotosCarregadasRef.current === occurrenceId) return;
 
+        const isLocalUrl = (u) => /^blob:|^data:|^file:|^capacitor:/i.test(String(u || ''));
+
         const carregarFotos = async () => {
             try {
-                const remotas = Array.isArray(ocorrencia?.fotos_unidade) ? ocorrencia.fotos_unidade : [];
+                const remotas = (Array.isArray(ocorrencia?.fotos_unidade) ? ocorrencia.fotos_unidade : [])
+                    .map(foto => typeof foto === 'string' ? { url: foto } : foto)
+                    .filter(foto => foto && foto.url && !isLocalUrl(foto.url));
                 const locais = await Repository.listLocalFotos(occurrenceId).then(list =>
                     list.map(f => ({
                         localId: f.localId,
@@ -179,8 +183,8 @@ export default function VistoriarOcorrenciaDTR() {
                     merged.push(f);
                 };
 
-                (locais || []).forEach(addFoto);
                 (remotas || []).forEach(addFoto);
+                (locais || []).forEach(addFoto);
 
                 setFotos(merged);
                 fotosCarregadasRef.current = occurrenceId;
@@ -226,7 +230,7 @@ export default function VistoriarOcorrenciaDTR() {
 
             // Salvar fotos vinculadas
             const fotosCompletas = fotos.map(f => {
-                if (typeof f === 'string') return { url: f, legenda: '' };
+                if (typeof f === 'string') return { url: f, legenda: '', mimeType: undefined, width: undefined, height: undefined };
                 return {
                     url: f.url,
                     bucket: f.bucket,
@@ -234,7 +238,8 @@ export default function VistoriarOcorrenciaDTR() {
                     legenda: f.legenda || '',
                     mimeType: f.mimeType,
                     width: f.width,
-                    height: f.height
+                    height: f.height,
+                    localId: f.localId
                 };
             });
             await Repository.updateUnidadeFotos(uId, fotosCompletas);

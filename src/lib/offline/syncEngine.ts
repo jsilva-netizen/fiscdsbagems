@@ -692,10 +692,13 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
       const existing = Array.isArray((existingRow as any)?.fotos_unidade) ? ((existingRow as any).fotos_unidade as any[]) : []
       
       const keyOf = (x: any): string => {
+        const lid = typeof x?.localId === 'string' ? x.localId.trim() : ''
+        if (lid) return `localId:${lid}`
         const b = typeof x?.bucket === 'string' ? x.bucket : ''
         const p = typeof x?.path === 'string' ? x.path : ''
         if (b && p) return `${b}:${p}`
-        return typeof x?.url === 'string' ? x.url : ''
+        const u = typeof x?.url === 'string' ? x.url : ''
+        return u ? String(u) : ''
       }
 
       const byKey = new Map<string, any>()
@@ -1452,6 +1455,8 @@ async function pullEntity(entity: Entity, since?: string) {
   const prefer = selectColsForPull(entity)
   const isLocalUrl = (u: string) => /^blob:|^data:|^file:/i.test(String(u || ''))
   const keyOfFoto = (x: any): string => {
+    const lid = typeof x?.localId === 'string' ? x.localId.trim() : ''
+    if (lid) return `localId:${lid}`
     const b = typeof x?.bucket === 'string' ? x.bucket : ''
     const p = typeof x?.path === 'string' ? x.path : ''
     if (b && p) return `${b}:${p}`
@@ -1538,14 +1543,12 @@ async function pullEntity(entity: Entity, since?: string) {
               const mergedLocal: any[] = []
               for (const lf of existingLocal.fotos_unidade as any[]) {
                 const u = String(lf?.url || '')
-                if (u && isLocalUrl(u)) {
-                  mergedLocal.push(lf)
-                  continue
-                }
                 const k = keyOfFoto(lf)
                 if (k && serverByKey.has(k)) {
                   mergedLocal.push({ ...lf, ...serverByKey.get(k) })
                   used.add(k)
+                } else if (u && isLocalUrl(u)) {
+                  mergedLocal.push(lf)
                 } else {
                   mergedLocal.push(lf)
                 }
@@ -1886,6 +1889,8 @@ export async function syncFotosWithProgress(onProgress?: (uploaded: number, tota
         const existing = Array.isArray((existingRow as any)?.fotos_unidade) ? ((existingRow as any).fotos_unidade as any[]) : []
         const byKey = new Map<string, any>()
         const keyOf = (x: any): string => {
+          const lid = typeof x?.localId === 'string' ? x.localId.trim() : ''
+          if (lid) return `localId:${lid}`
           const b = typeof x?.bucket === 'string' ? x.bucket : ''
           const p = typeof x?.path === 'string' ? x.path : ''
           if (b && p) return `${b}:${p}`
