@@ -2069,9 +2069,35 @@ export const Repository = {
         updated_at: now() 
       })
     }
+
+    // CRÍTICO: Limpar todas as mutações antigas de finalização da fila local
+    // (finalizacao_fiscalizacao e finalizacao_unidade) para evitar que o sync
+    // replay essas mutações e re-finalize a fiscalização automaticamente
+    const unidades = await db.unidades.where('fiscalizacao_id').equals(fiscalizacaoId).toArray()
+    const unidadeIds = new Set(unidades.map((u) => String(u.id)))
+
+    const toDelete: any[] = []
+    const allPending = await db.fila_mutacoes.where('status').anyOf('pending', 'error').toArray()
+    for (const m of allPending as any[]) {
+      const entity = String(m?.entity || '')
+      const pid = String(m?.payload?.id || '')
+      // Remove mutações de finalização da fiscalização
+      if (entity === 'finalizacao_fiscalizacao' && pid === fiscalizacaoId) {
+        toDelete.push(m.id)
+        continue
+      }
+      // Remove mutações de finalização de unidades desta fiscalização
+      if (entity === 'finalizacao_unidade' && unidadeIds.has(pid)) {
+        toDelete.push(m.id)
+        continue
+      }
+    }
+    if (toDelete.length > 0) {
+      await db.fila_mutacoes.bulkDelete(toDelete)
+    }
+
     // Redefine o status de todas as unidades para 'em_andamento'
     // para que fiquem em modo de edição imediato (botão "Finalizar Vistoria" visível)
-    const unidades = await db.unidades.where('fiscalizacao_id').equals(fiscalizacaoId).toArray()
     for (const u of unidades) {
       await db.unidades.update(u.id, { ...u, status: 'em_andamento', updated_at: now() })
       await enqueueMutation({ id: u.id, status: 'em_andamento', updated_at: now() }, 'update', 'unidades')
