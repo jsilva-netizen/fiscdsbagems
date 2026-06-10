@@ -384,13 +384,11 @@ export default function Fiscalizacoes() {
                                           </div>
                                           
                                           {/* Ações da Fiscalização */}
-                                          <div className="mt-4 pt-4 border-t border-gray-100 flex flex-col gap-3 items-start">
-                                              <div className="flex gap-2 items-center">
-                                                  <HistoricoFiscalizacao fiscalizacao={fisc} />
-                                              </div>
+                                          <div className="mt-4 pt-4 border-t border-gray-100 flex gap-2 items-center">
+                                              <HistoricoFiscalizacao fiscalizacao={fisc} />
 
                                               {isFinished ? (
-                                                  <div className="flex gap-2 items-center">
+                                                  <>
                                                       <RelatorioFiscalizacao fiscalizacao={fisc} />
                                                       {podeDeleter && (
                                                           <Button
@@ -410,7 +408,7 @@ export default function Fiscalizacoes() {
                                                               {reabrirFiscalizacaoMutation.isPending ? 'Reabrindo...' : 'Reabrir Edição'}
                                                           </Button>
                                                       )}
-                                                  </div>
+                                                  </>
                                               ) : (
                                                   <Button
                                                       className="bg-indigo-600 hover:bg-indigo-700 text-white h-9 rounded-xl font-medium text-xs"

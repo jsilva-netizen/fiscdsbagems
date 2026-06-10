@@ -108,9 +108,12 @@ export default function ExecutarFiscalizacao() {
         }
     });
 
-    const handleEditarUnidade = (e, unidadeId) => {
+    const handleEditarUnidade = async (e, unidadeId) => {
         e.preventDefault();
         e.stopPropagation();
+        await Repository.updateUnidadeStatus(unidadeId, 'pendente');
+        await queryClient.invalidateQueries({ queryKey: ['unidades-fiscalizacao', fiscalizacaoId] });
+        await queryClient.invalidateQueries({ queryKey: ['unidade', unidadeId] });
         navigate(createPageUrl('VistoriarUnidade') + `?id=${unidadeId}&modo=edicao`);
     };
 
