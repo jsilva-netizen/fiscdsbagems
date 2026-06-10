@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Search, Filter, Trash2, AlertTriangle, MapPin, ChevronRight, Calendar, CheckCircle2, Clock, Plus, RotateCcw, Loader2 } from 'lucide-react';
 import ExportarPDFConsolidado from '@/components/fiscalizacao/ExportarPDFConsolidado';
@@ -31,6 +31,7 @@ export default function Fiscalizacoes() {
     const [fiscalizacaoParaDeletar, setFiscalizacaoParaDeletar] = useState(null);
     const [mostrarFiltros, setMostrarFiltros] = useState(false);
     const [deleteConfirmation, setDeleteConfirmation] = useState({ open: false, fiscId: null, step: 1, inputValue: '' });
+    const [mostrarConfirmacaoFinalizacao, setMostrarConfirmacaoFinalizacao] = useState({ open: false, fiscId: null });
 
     const { data: fiscalizacoes = [], isLoading } = useQuery({
         queryKey: ['fiscalizacoes'],
@@ -383,7 +384,7 @@ export default function Fiscalizacoes() {
                                           </div>
                                           
                                           {/* Ações da Fiscalização */}
-                                          <div className="mt-4 pt-4 border-t border-gray-100 flex gap-2 items-center justify-between">
+                                          <div className="mt-4 pt-4 border-t border-gray-100 flex flex-col gap-3 items-start">
                                               <div className="flex gap-2 items-center">
                                                   <HistoricoFiscalizacao fiscalizacao={fisc} />
                                               </div>
@@ -420,7 +421,7 @@ export default function Fiscalizacoes() {
                                                       onClick={(e) => {
                                                           e.preventDefault();
                                                           e.stopPropagation();
-                                                          finalizarFiscalizacaoMutation.mutate(fisc.id);
+                                                          setMostrarConfirmacaoFinalizacao({ open: true, fiscId: fisc.id });
                                                       }}
                                                   >
                                                       <CheckCircle2 className="h-4 w-4 mr-1.5" />
@@ -434,6 +435,54 @@ export default function Fiscalizacoes() {
                         })}
                     </div>
                 )}
+
+                {/* Dialog de confirmação para finalizar fiscalização */}
+                <AlertDialog 
+                    open={mostrarConfirmacaoFinalizacao.open} 
+                    onOpenChange={(open) => setMostrarConfirmacaoFinalizacao({ open, fiscId: null })}
+                >
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Finalizar Fiscalização</AlertDialogTitle>
+                            <AlertDialogDescription asChild>
+                                <div>
+                                    <p>Tem certeza que deseja finalizar esta fiscalização?</p>
+                                    <p className="mt-3">Após a finalização:</p>
+                                    <ul className="list-disc ml-6 mt-2">
+                                        <li>Nenhuma unidade poderá ser editada ou excluída</li>
+                                        <li>Nenhuma nova unidade poderá ser adicionada</li>
+                                        <li>A fiscalização ficará disponível apenas para visualização</li>
+                                    </ul>
+                                    <p className="mt-3"><strong>Esta ação não pode ser desfeita (exceto por administradores).</strong></p>
+                                </div>
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel disabled={finalizarFiscalizacaoMutation.isPending}>
+                                Cancelar
+                            </AlertDialogCancel>
+                            <AlertDialogAction 
+                                onClick={() => {
+                                    if (mostrarConfirmacaoFinalizacao.fiscId) {
+                                        finalizarFiscalizacaoMutation.mutate(mostrarConfirmacaoFinalizacao.fiscId);
+                                        setMostrarConfirmacaoFinalizacao({ open: false, fiscId: null });
+                                    }
+                                }}
+                                disabled={finalizarFiscalizacaoMutation.isPending}
+                                className="bg-green-600 hover:bg-green-700"
+                            >
+                                {finalizarFiscalizacaoMutation.isPending ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Finalizando...
+                                    </>
+                                ) : (
+                                    'Sim, Finalizar'
+                                )}
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
 
                 {!isLoading && filtered.length === 0 && (
                     <div className="text-center py-16">

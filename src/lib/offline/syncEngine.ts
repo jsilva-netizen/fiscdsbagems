@@ -220,6 +220,7 @@ const orderForSyncUp: Entity[] = [
   'recomendacoes',
   'determinacoes',
   'fotos',
+  'reabrir_fiscalizacao',
   'finalizacao_unidade',
   'finalizacao_fiscalizacao'
 ]
@@ -1079,7 +1080,8 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
       finalizacao_unidade: undefined,
       finalizacao_fiscalizacao: undefined,
       reabrir_fiscalizacao: undefined,
-      prestadores: 'id'
+      prestadores: 'id',
+      contratos: 'id'
     }
     const upsertOptions: any = {}
     if (onConflictMap[entity]) {
@@ -1232,6 +1234,18 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
 export async function syncUp(onProgress?: (msg: string, isError?: boolean) => void): Promise<number> {
   const log = (msg: string, isError = false) => { if (onProgress) onProgress(msg, isError) }
   const pendingAll = await db.fila_mutacoes.where('status').equals('pending').toArray()
+  
+  // Coleta todas as fiscalizações que têm uma mutação de reabrir
+  const reabrirFiscalizacaoIds = new Set<string>()
+  for (const m of pendingAll as any[]) {
+    if (m.entity === 'reabrir_fiscalizacao' || m.tipo === 'reopen') {
+      const fiscId = String(m.payload?.id || m.payload?.fiscalizacao_id || '')
+      if (fiscId) {
+        reabrirFiscalizacaoIds.add(fiscId)
+      }
+    }
+  }
+  
   const mutationPriority = (entity: Entity, tipo: MutationType): number => {
     if (entity === 'recomendacoes') {
       if (tipo === 'delete') return 0
@@ -1244,8 +1258,36 @@ export async function syncUp(onProgress?: (msg: string, isError?: boolean) => vo
     if (tipo === 'update') return 2
     return 3
   }
+  
+  // Precisamos carregar as unidades para verificar quais pertencem a fiscalizações reabertas
+  const unidades = await db.unidades.toArray()
+  const unidadeToFiscalizacao = new Map<string, string>()
+  for (const u of unidades) {
+    unidadeToFiscalizacao.set(String(u.id), String(u.fiscalizacao_id))
+  }
+  
+  const mutationsToDelete: any[] = []
   const sorted = pendingAll
     .slice()
+    .filter((m: any) => {
+      // Se é finalizacao_unidade ou finalizacao_fiscalizacao e a fiscalização tem uma reabrir, pula e marca para deletar
+      if (m.entity === 'finalizacao_fiscalizacao') {
+        const fiscId = String(m.payload?.id || m.payload?.fiscalizacao_id || '')
+        if (reabrirFiscalizacaoIds.has(fiscId)) {
+          mutationsToDelete.push(m.id)
+          return false
+        }
+      }
+      if (m.entity === 'finalizacao_unidade') {
+        const unidadeId = String(m.payload?.id || m.payload?.unidade_fiscalizada_id || '')
+        const fiscId = unidadeToFiscalizacao.get(unidadeId)
+        if (fiscId && reabrirFiscalizacaoIds.has(fiscId)) {
+          mutationsToDelete.push(m.id)
+          return false
+        }
+      }
+      return true
+    })
     .sort((a, b) => {
       const ai = orderForSyncUp.indexOf(a.entity as Entity)
       const bi = orderForSyncUp.indexOf(b.entity as Entity)
@@ -1257,6 +1299,11 @@ export async function syncUp(onProgress?: (msg: string, isError?: boolean) => vo
       const bt = b.created_at || ''
       return at.localeCompare(bt)
     })
+  
+  // Deleta as mutações de finalização que foram puladas
+  if (mutationsToDelete.length > 0) {
+    await db.fila_mutacoes.bulkDelete(mutationsToDelete)
+  }
   let processed = 0
   const groupByEntity: Record<Entity, typeof sorted> = {} as any
   for (const m of sorted) {
@@ -1778,7 +1825,7 @@ export async function syncDown(onProgress?: (msg: string, isError?: boolean) => 
 }
 
 async function hardResetLocalData(): Promise<void> {
-  await db.transaction('rw', db.municipios, db.prestadores, db.contratos, db.tipos_unidade, db.fiscalizacoes, async () => {
+  await db.transaction('rw', [db.municipios, db.prestadores, db.contratos, db.tipos_unidade, db.fiscalizacoes], async () => {
     await db.municipios.clear()
     await db.prestadores.clear()
     await db.contratos.clear()
