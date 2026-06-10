@@ -974,28 +974,21 @@ export default function VistoriarUnidade() {
 
     const salvarAlteracoesMutation = useMutation({
         mutationFn: async () => {
-            console.log('🔵 Iniciando salvamento de alterações da unidade:', unidadeId);
-            console.log('🔵 Regenerando NC/D/R...');
+            console.log('🔵 Salvando alterações da unidade (modo edição):', unidadeId);
             const fotosCompletas = fotos.map(f => {
                 if (typeof f === 'string') {
                     return { url: f, legenda: '', mimeType: undefined, width: undefined, height: undefined };
                 }
                 return { url: f.url, bucket: f.bucket, path: f.path, legenda: f.legenda || '', mimeType: f.mimeType, width: f.width, height: f.height, localId: f.localId };
             });
+            // Apenas salva as fotos, sem alterar o status da unidade
             await Repository.updateUnidadeFotos(unidadeId, fotosCompletas);
-            
-            // Força a re-finalização no servidor para regenerar NC/D/R se houver mudanças
-            await Repository.updateUnidadeStatus(unidadeId, 'finalizada');
-
-            console.log('🟢 Salvamento concluído com sucesso');
+            console.log('🟢 Alterações salvas com sucesso');
         },
         onSuccess: () => {
             setFotosDirty(false);
             queryClient.invalidateQueries({ queryKey: ['unidades-fiscalizacao'] });
             queryClient.invalidateQueries({ queryKey: ['unidade', unidadeId] });
-            queryClient.invalidateQueries({ queryKey: ['ncs', unidadeId] });
-            queryClient.invalidateQueries({ queryKey: ['determinacoes', unidadeId] });
-            queryClient.invalidateQueries({ queryKey: ['recomendacoes', unidadeId] });
             navigate(createPageUrl('ExecutarFiscalizacao') + `?id=${unidade.fiscalizacao_id}`);
         },
         onError: (err) => {
@@ -1556,7 +1549,7 @@ export default function VistoriarUnidade() {
                 </Tabs>
             </div>
 
-            {/* Bottom Bar */}
+            {/* Bottom Bar - Finalizar Vistoria (unidade não finalizada) */}
             {unidade?.status !== 'finalizada' && (
                 <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 z-50">
                     <div className="max-w-4xl mx-auto">
@@ -1576,8 +1569,8 @@ export default function VistoriarUnidade() {
                 </div>
             )}
 
-            {/* Bottom Bar - Modo Edição */}
-            {unidade?.status === 'finalizada' && modoEdicao && (
+            {/* Bottom Bar - Modo Edição (fiscalização finalizada, editando após reabrir) */}
+            {unidade?.status === 'finalizada' && fiscalizacao?.status === 'finalizada' && modoEdicao && (
                 <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 z-50">
                     <div className="max-w-4xl mx-auto">
                         <Button 

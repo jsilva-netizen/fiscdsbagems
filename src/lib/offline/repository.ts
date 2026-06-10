@@ -2069,11 +2069,12 @@ export const Repository = {
         updated_at: now() 
       })
     }
-    // Redefine o status de todas as unidades da fiscalização para 'pendente'
+    // Redefine o status de todas as unidades para 'em_andamento'
+    // para que fiquem em modo de edição imediato (botão "Finalizar Vistoria" visível)
     const unidades = await db.unidades.where('fiscalizacao_id').equals(fiscalizacaoId).toArray()
     for (const u of unidades) {
-      await db.unidades.update(u.id, { ...u, status: 'pendente', updated_at: now() })
-      await enqueueMutation({ id: u.id, status: 'pendente', updated_at: now() }, 'update', 'unidades')
+      await db.unidades.update(u.id, { ...u, status: 'em_andamento', updated_at: now() })
+      await enqueueMutation({ id: u.id, status: 'em_andamento', updated_at: now() }, 'update', 'unidades')
     }
     await enqueueMutation({ id: fiscalizacaoId, status: 'em_andamento', data_fim: null }, 'reopen' as any, 'reabrir_fiscalizacao' as any)
   }
