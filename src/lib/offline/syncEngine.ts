@@ -799,7 +799,7 @@ async function pushOne(entity: Entity, type: MutationType, payload: any) {
       }
       return []
     }
-    if (entity === 'finalizacao_unidade' || type === 'finalize') {
+    if (entity === 'finalizacao_unidade') {
       const unidadeLocalId = payload?.id || payload?.unidade_fiscalizada_id
       const unidadeId = await resolveId('unidades', unidadeLocalId)
       const updateBody = { status: 'finalizada', updated_at: now() }

@@ -2,6 +2,9 @@
 -- Ao reabrir, as unidades devem entrar em modo de edição imediato
 BEGIN;
 
+-- Drop primeiro para permitir mudança no tipo de retorno
+DROP FUNCTION IF EXISTS public.reabrir_fiscalizacao(uuid);
+
 CREATE OR REPLACE FUNCTION public.reabrir_fiscalizacao(
   p_fiscalizacao_id uuid
 )
