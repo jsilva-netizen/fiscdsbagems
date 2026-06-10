@@ -25,6 +25,7 @@ export function SyncStatusProvider({ children }) {
 
   const prevOnlineRef = useRef(online)
   const prevOutboxCountRef = useRef(outboxCount)
+  const prevSessionValidRef = useRef(sessionValid)
   const lastSyncAttemptRef = useRef(0)
 
   useEffect(() => {
@@ -58,6 +59,42 @@ export function SyncStatusProvider({ children }) {
       if (timer) clearInterval(timer)
     }
   }, [refresh])
+
+  // Efeito para sincronizar automaticamente quando o usuário logar (sessionValid se torna true)
+  useEffect(() => {
+    const justLoggedIn = !prevSessionValidRef.current && sessionValid
+    const nowMs = Date.now()
+    const cooldownPassed = nowMs - lastSyncAttemptRef.current > 30000 // 30s cooldown
+
+    if (justLoggedIn && online && !isSyncing && cooldownPassed) {
+      lastSyncAttemptRef.current = nowMs
+      setIsSyncing(true)
+      setSyncProgress('Sincronizando dados...')
+      setSyncError(null)
+
+      runFullSync((msg, isError) => {
+        setSyncProgress(msg)
+        if (isError) {
+          console.error('[Login Auto Sync Error]', msg)
+        }
+      })
+        .then((res) => {
+          setOutboxCount(res.outbox || 0)
+          if (res.lastSyncAt) setLastSyncAt(res.lastSyncAt)
+          setSyncProgress('')
+        })
+        .catch((err) => {
+          console.error('[Login Auto Sync Failed]', err)
+          setSyncError(err?.message || 'Falha na sincronização inicial')
+          setSyncProgress('')
+        })
+        .finally(() => {
+          setIsSyncing(false)
+          refresh()
+        })
+    }
+    prevSessionValidRef.current = sessionValid
+  }, [sessionValid, online, isSyncing, refresh])
 
   useEffect(() => {
     if (online && sessionValid && outboxCount > 0) {
