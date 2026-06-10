@@ -119,22 +119,26 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
             const active = st.status === 'queued' || st.status === 'processing';
             setJobId(active ? (st?.id || lastJobId) : null);
         } catch (err) {
-            console.error('Erro ao carregar histórico de relatórios:', err);
-            const msg = err?.message || 'Erro ao carregar histórico de relatórios.'
-            if (String(msg).toLowerCase().includes('job_not_found')) {
-                try {
-                    const fiscalizacao_id = await resolveServerFiscalizacaoId();
-                    const key = `relatorio_last_job:${String(fiscalizacao_id)}`;
-                    localStorage.removeItem(key);
-                    localStorage.removeItem(`${key}:data`);
-                } catch {}
-                setJob(null);
-                setJobId(null);
-                setError(null);
-                return;
-            }
-            setError(msg);
+        console.error('Erro ao carregar histórico de relatórios:', err);
+        const msg = err?.message || 'Erro ao carregar histórico de relatórios.'
+        if (
+            String(msg).toLowerCase().includes('job_not_found') ||
+            String(msg).toLowerCase().includes('500') ||
+            String(msg).toLowerCase().includes('internal server error')
+        ) {
+            try {
+                const fiscalizacao_id = await resolveServerFiscalizacaoId();
+                const key = `relatorio_last_job:${String(fiscalizacao_id)}`;
+                localStorage.removeItem(key);
+                localStorage.removeItem(`${key}:data`);
+            } catch {}
+            setJob(null);
+            setJobId(null);
+            setError(null);
+            return;
         }
+        setError(msg);
+    }
     };
 
     const solicitarGeracao = async () => {
@@ -274,7 +278,12 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
             } catch (err) {
                 if (stopped) return;
                 const msg = err?.message || 'Erro ao consultar status.'
-                if (String(msg).toLowerCase().includes('job_not_found')) {
+                // Se for erro 500 ou job não encontrado, limpar localStorage e resetar
+                if (
+                    String(msg).toLowerCase().includes('job_not_found') || 
+                    String(msg).toLowerCase().includes('500') || 
+                    String(msg).toLowerCase().includes('internal server error')
+                ) {
                     stopped = true;
                     clearInterval(intervalId);
                     try {
