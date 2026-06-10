@@ -309,25 +309,25 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
         : null;
 
     return (
-        <div className="flex flex-col">
+        <>
             {error ? (
-                <div className="text-sm text-red-700 bg-red-100 border border-red-200 rounded px-3 py-2 mb-2">
+                <div className="text-sm text-red-700 bg-red-100 border border-red-200 rounded px-3 py-2 mb-2 w-full">
                     {error}
                 </div>
             ) : null}
             {msg ? (
-                <div className="text-sm text-yellow-700 bg-yellow-100 border border-yellow-200 rounded px-3 py-2 mb-2">
+                <div className="text-sm text-yellow-700 bg-yellow-100 border border-yellow-200 rounded px-3 py-2 mb-2 w-full">
                     {msg}
                 </div>
             ) : null}
             {job?.status ? (
-                <div className="text-xs text-gray-600 mb-2">
+                <div className="text-xs text-gray-600 mb-2 w-full">
                     Status: {job.status}
                     {typeof job.progress_unidades === 'number' ? ` | Unidades: ${job.progress_unidades}` : ''}
                     {typeof job.progress_fotos === 'number' ? ` | Fotos: ${job.progress_fotos}` : ''}
                 </div>
             ) : null}
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
                 <Button
                     onClick={(e) => {
                         e.preventDefault();
@@ -339,7 +339,7 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
                         solicitarGeracao();
                     }}
                     disabled={!isOnlineAndReady || isRequesting || isSyncingBeforeReport || isRunning}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                    className="h-9 rounded-xl font-medium"
                     size="sm"
                 >
                     {isRequesting || isSyncingBeforeReport || isRunning ? (
@@ -364,7 +364,7 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
                         }}
                         disabled={!isOnlineAndReady || isRequesting || isSyncingBeforeReport || isRunning}
                         variant="outline"
-                        className="text-orange-600 border-orange-200 hover:bg-orange-50"
+                        className="text-orange-600 border-orange-200 hover:bg-orange-50 h-9 rounded-xl"
                         size="sm"
                         title="Gerar novo relatório com dados atuais"
                     >
@@ -372,6 +372,6 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
                     </Button>
                 )}
             </div>
-        </div>
+        </>
     );
 }
