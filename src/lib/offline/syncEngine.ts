@@ -616,6 +616,15 @@ async function pruneLocalByServerIds(): Promise<void> {
   const { data: fiscRows, error: fiscErr } = await supabase.from('fiscalizacoes').select('id')
   if (fiscErr) throw fiscErr
   const serverFisc = new Set<string>((fiscRows || []).map((r: any) => r.id))
+  
+  if (serverFisc.size === 0) {
+    const localCount = await db.fiscalizacoes.count()
+    if (localCount > 0) {
+      console.warn('pruneLocalByServerIds: Server returned 0 fiscalizações, but local database has entries. Aborting prune to prevent data loss.')
+      return
+    }
+  }
+
   const locals = await db.fiscalizacoes.toArray()
   for (const f of locals) {
     const pendingInsert = await db.fila_mutacoes.where('entity').equals('fiscalizacoes').and((m) => m.tipo === 'insert' && m.payload?.id === f.id && m.status !== 'done').first()

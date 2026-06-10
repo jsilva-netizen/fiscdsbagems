@@ -13,6 +13,7 @@ import { ptBR } from 'date-fns/locale';
 
 export default function ExportarImportar() {
     const [exportando, setExportando] = useState(false);
+    const [exportandoTudo, setExportandoTudo] = useState(false);
     const [importando, setImportando] = useState(false);
     const [exportStatus, setExportStatus] = useState(null);
     const [importStatus, setImportStatus] = useState(null);
@@ -22,19 +23,27 @@ export default function ExportarImportar() {
     // ========================
     // EXPORTAÇÃO
     // ========================
-    const exportarDados = async () => {
-        setExportando(true);
+    const exportarDados = async (exportAll = false) => {
+        if (exportAll) {
+            setExportandoTudo(true);
+        } else {
+            setExportando(true);
+        }
         setExportStatus(null);
         try {
             // Toda a coleta de dados é feita no backend para evitar rate limit
-            const response = await base44.functions.invoke('exportarFiscalizacoes', {});
+            const response = await base44.functions.invoke('exportarFiscalizacoes', { exportAll });
             const { pacote, aviso, error } = response.data;
 
             if (error) throw new Error(error);
 
             if (aviso || !pacote) {
-                setExportStatus({ tipo: 'aviso', msg: aviso || 'Nenhuma fiscalização finalizada encontrada.' });
+                setExportStatus({ 
+                    tipo: 'aviso', 
+                    msg: aviso || (exportAll ? 'Nenhuma fiscalização encontrada no servidor.' : 'Nenhuma fiscalização finalizada encontrada.') 
+                });
                 setExportando(false);
+                setExportandoTudo(false);
                 return;
             }
 
@@ -42,7 +51,8 @@ export default function ExportarImportar() {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `exportacao_fiscalizacoes_${format(new Date(), 'yyyyMMdd_HHmmss')}.json`;
+            const prefix = exportAll ? 'backup_todos_dados_fiscalizacoes' : 'exportacao_fiscalizacoes';
+            a.download = `${prefix}_${format(new Date(), 'yyyyMMdd_HHmmss')}.json`;
             a.click();
             URL.revokeObjectURL(url);
 
@@ -54,6 +64,7 @@ export default function ExportarImportar() {
             setExportStatus({ tipo: 'erro', msg: `Erro na exportação: ${err.message}` });
         }
         setExportando(false);
+        setExportandoTudo(false);
     };
 
     // ========================
@@ -256,52 +267,80 @@ export default function ExportarImportar() {
                 <Alert className="mb-6 border-blue-200 bg-blue-50">
                     <Info className="h-4 w-4 text-blue-600" />
                     <AlertDescription className="text-blue-800 text-sm">
-                        A exportação gera um arquivo JSON com todas as fiscalizações <strong>finalizadas</strong> e seus dados relacionados. 
-                        Para migrar fotos, as imagens precisam ser re-uploadadas manualmente.
+                        A exportação gera um arquivo JSON com os dados e seus relacionamentos. 
+                        Para migrar fotos, as imagens precisam ser re-uploadadas no destino.
                     </AlertDescription>
                 </Alert>
 
                 {/* EXPORTAÇÃO */}
-                <Card className="mb-6">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                            <Download className="h-5 w-5 text-green-600" />
-                            Exportar Dados
+                <Card className="mb-6 shadow-sm border border-gray-200">
+                    <CardHeader className="pb-3">
+                        <CardTitle className="flex items-center gap-2 text-xl font-semibold text-gray-800">
+                            <Database className="h-5 w-5 text-indigo-600 animate-pulse" />
+                            Backup e Exportação de Dados
                         </CardTitle>
                         <CardDescription>
-                            Exporta todas as fiscalizações finalizadas em um arquivo JSON
+                            Exporte os dados das fiscalizações do servidor para backup ou migração
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-600 space-y-1">
-                            <p>O arquivo incluirá:</p>
-                            <ul className="list-disc list-inside space-y-0.5 text-xs mt-1">
-                                <li>Fiscalizações (status: finalizada)</li>
-                                <li>Unidades Fiscalizadas</li>
-                                <li>Respostas do Checklist</li>
-                                <li>Não Conformidades</li>
-                                <li>Determinações e Recomendações</li>
-                                <li>Constatações Manuais</li>
-                                <li>Termos de Notificação</li>
+                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-600 space-y-1">
+                            <p className="font-semibold text-gray-700">O arquivo gerado conterá:</p>
+                            <ul className="list-disc list-inside space-y-1 text-xs mt-1 pl-1">
+                                <li><strong>Fiscalizações</strong> (cabeçalho)</li>
+                                <li><strong>Unidades Fiscalizadas</strong> e suas vistorias</li>
+                                <li><strong>Respostas de Checklist</strong> e observações</li>
+                                <li><strong>Não Conformidades</strong> (NCs) geradas</li>
+                                <li><strong>Determinações</strong> e <strong>Recomendações</strong></li>
+                                <li><strong>Constatações Manuais</strong></li>
+                                <li><strong>Termos de Notificação</strong> (TN / RFP)</li>
                             </ul>
                         </div>
 
                         {exportStatus && (
-                            <Alert className={exportStatus.tipo === 'sucesso' ? 'border-green-200 bg-green-50' : exportStatus.tipo === 'aviso' ? 'border-yellow-200 bg-yellow-50' : 'border-red-200 bg-red-50'}>
-                                {exportStatus.tipo === 'sucesso' ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : <AlertCircle className="h-4 w-4 text-yellow-600" />}
-                                <AlertDescription className={exportStatus.tipo === 'sucesso' ? 'text-green-800' : 'text-yellow-800'}>
+                            <Alert className={
+                                exportStatus.tipo === 'sucesso' 
+                                    ? 'border-emerald-200 bg-emerald-50 text-emerald-900' 
+                                    : exportStatus.tipo === 'aviso' 
+                                    ? 'border-amber-200 bg-amber-50 text-amber-900' 
+                                    : 'border-rose-200 bg-rose-50 text-rose-900'
+                            }>
+                                {exportStatus.tipo === 'sucesso' ? (
+                                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                                ) : (
+                                    <AlertCircle className="h-4 w-4 text-amber-600" />
+                                )}
+                                <AlertDescription className="font-medium">
                                     {exportStatus.msg}
                                 </AlertDescription>
                             </Alert>
                         )}
 
-                        <Button onClick={exportarDados} disabled={exportando} className="w-full bg-green-600 hover:bg-green-700">
-                            {exportando ? (
-                                <><Loader2 className="h-4 w-4 animate-spin mr-2" />Exportando...</>
-                            ) : (
-                                <><Download className="h-4 w-4 mr-2" />Exportar Fiscalizações Finalizadas</>
-                            )}
-                        </Button>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+                            <Button 
+                                onClick={() => exportarDados(false)} 
+                                disabled={exportando || exportandoTudo} 
+                                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow hover:shadow-md transition-all flex items-center justify-center gap-2"
+                            >
+                                {exportando ? (
+                                    <><Loader2 className="h-4 w-4 animate-spin" />Exportando...</>
+                                ) : (
+                                    <><Download className="h-4 w-4" />Exportar Apenas Finalizadas</>
+                                )}
+                            </Button>
+                            
+                            <Button 
+                                onClick={() => exportarDados(true)} 
+                                disabled={exportando || exportandoTudo} 
+                                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow hover:shadow-md transition-all flex items-center justify-center gap-2"
+                            >
+                                {exportandoTudo ? (
+                                    <><Loader2 className="h-4 w-4 animate-spin" />Fazendo Backup...</>
+                                ) : (
+                                    <><Database className="h-4 w-4" />Backup Completo (Todas)</>
+                                )}
+                            </Button>
+                        </div>
                     </CardContent>
                 </Card>
 

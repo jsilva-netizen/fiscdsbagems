@@ -13,9 +13,25 @@ Deno.serve(async (req) => {
         // Usar asServiceRole para buscar TUDO de uma vez sem rate limit por ID
         const sr = base44.asServiceRole;
 
-        const fiscalizacoes = await sr.entities.Fiscalizacao.filter({ status: 'finalizada' }, null, 500);
+        let exportAll = false;
+        try {
+            const body = await req.json().catch(() => ({}));
+            exportAll = !!body?.exportAll;
+        } catch {
+            // ignorar
+        }
+
+        const fiscalizacoes = exportAll 
+            ? await sr.entities.Fiscalizacao.list(null, 500)
+            : await sr.entities.Fiscalizacao.filter({ status: 'finalizada' }, null, 500);
+
         if (fiscalizacoes.length === 0) {
-            return Response.json({ pacote: null, aviso: 'Nenhuma fiscalização finalizada encontrada.' });
+            return Response.json({ 
+                pacote: null, 
+                aviso: exportAll 
+                    ? 'Nenhuma fiscalização encontrada no servidor.' 
+                    : 'Nenhuma fiscalização finalizada encontrada.' 
+            });
         }
 
         const fiscIds = new Set(fiscalizacoes.map(f => f.id));
