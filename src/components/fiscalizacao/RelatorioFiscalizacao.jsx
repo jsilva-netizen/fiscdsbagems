@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, FileText, RefreshCcw } from 'lucide-react';
 import { db } from '@/lib/offline/db';
 
-export default function RelatorioFiscalizacao({ fiscalizacao }) {
+export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = false, showButtonsOnly = false }) {
     const queryClient = useQueryClient();
     const [isRequesting, setIsRequesting] = React.useState(false);
     const [isSyncingBeforeReport, setIsSyncingBeforeReport] = React.useState(false);
@@ -308,6 +308,80 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
         ? 'Conecte-se ao servidor para gerar/baixar relatório.'
         : null;
 
+    if (showStatusOnly) {
+        return (
+            <>
+                {error ? (
+                    <div className="text-sm text-red-700 bg-red-100 border border-red-200 rounded px-3 py-2 mb-2 w-full">
+                        {error}
+                    </div>
+                ) : null}
+                {msg ? (
+                    <div className="text-sm text-yellow-700 bg-yellow-100 border border-yellow-200 rounded px-3 py-2 mb-2 w-full">
+                        {msg}
+                    </div>
+                ) : null}
+                {job?.status ? (
+                    <div className="text-xs text-gray-600 mb-2 w-full">
+                        Status: {job.status}
+                        {typeof job.progress_unidades === 'number' ? ` | Unidades: ${job.progress_unidades}` : ''}
+                        {typeof job.progress_fotos === 'number' ? ` | Fotos: ${job.progress_fotos}` : ''}
+                    </div>
+                ) : null}
+            </>
+        );
+    }
+
+    if (showButtonsOnly) {
+        return (
+            <div className="flex gap-2 items-center">
+                <Button
+                    onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (isDone) {
+                            baixarJob(job.id);
+                            return;
+                        }
+                        solicitarGeracao();
+                    }}
+                    disabled={!isOnlineAndReady || isRequesting || isSyncingBeforeReport || isRunning}
+                    className="bg-blue-600 hover:bg-blue-700 h-9 rounded-xl font-medium"
+                    size="sm"
+                >
+                    {isRequesting || isSyncingBeforeReport || isRunning ? (
+                        <>
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            {isSyncingBeforeReport ? 'Sincronizando...' : 'Gerando...'}
+                        </>
+                    ) : (
+                        <>
+                            <FileText className="h-4 w-4 mr-2" />
+                            {isDone ? 'Baixar' : 'Gerar Relatório'}
+                        </>
+                    )}
+                </Button>
+
+                {isDone && (
+                    <Button
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            solicitarGeracao();
+                        }}
+                        disabled={!isOnlineAndReady || isRequesting || isSyncingBeforeReport || isRunning}
+                        variant="outline"
+                        className="text-orange-600 border-orange-200 hover:bg-orange-50 h-9 rounded-xl"
+                        size="sm"
+                        title="Gerar novo relatório com dados atuais"
+                    >
+                        <RefreshCcw className={`h-4 w-4 ${isRequesting || isRunning ? 'animate-spin' : ''}`} />
+                    </Button>
+                )}
+            </div>
+        );
+    }
+
     return (
         <>
             {error ? (
@@ -339,7 +413,7 @@ export default function RelatorioFiscalizacao({ fiscalizacao }) {
                         solicitarGeracao();
                     }}
                     disabled={!isOnlineAndReady || isRequesting || isSyncingBeforeReport || isRunning}
-                    className="h-9 rounded-xl font-medium"
+                    className="bg-blue-600 hover:bg-blue-700 h-9 rounded-xl font-medium"
                     size="sm"
                 >
                     {isRequesting || isSyncingBeforeReport || isRunning ? (

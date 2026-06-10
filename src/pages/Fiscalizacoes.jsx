@@ -389,13 +389,15 @@ export default function Fiscalizacoes() {
                                           
                                           {/* Ações da Fiscalização */}
                                           <div className="mt-4 pt-4 border-t border-gray-100 flex flex-col gap-2">
-                                              {/* Row with all buttons aligned horizontally */}
-                                              <div className="flex gap-2 items-center">
+                                              {/* Status text first */}
+                                              {isFinished && <RelatorioFiscalizacao fiscalizacao={fisc} showStatusOnly />}
+                                              {/* Row with all buttons aligned horizontally to left */}
+                                              <div className="flex gap-2 items-center justify-start">
                                                   <HistoricoFiscalizacao fiscalizacao={fisc} />
 
                                                   {isFinished ? (
                                                       <>
-                                                          <RelatorioFiscalizacao fiscalizacao={fisc} />
+                                                          <RelatorioFiscalizacao fiscalizacao={fisc} showButtonsOnly />
                                                           {podeDeleter && (
                                                               <Button
                                                                   variant="outline"
