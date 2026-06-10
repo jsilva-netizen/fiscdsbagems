@@ -21,6 +21,13 @@ type Entity =
 
 type MutationType = 'insert' | 'update' | 'delete' | 'finalize' | 'reopen'
 
+export type SyncProgress = {
+  message: string
+  current: number
+  total: number
+  isError?: boolean
+}
+
 const entityTableMap: Record<Entity, string> = {
   fiscalizacoes: 'fiscalizacoes',
   unidades: 'unidades_fiscalizadas',
@@ -1752,6 +1759,35 @@ async function repairMappedFiscalizacoesOnServer(): Promise<void> {
   }
 }
 
+async function pullFiscalizacaoById(fiscalizacaoId: string): Promise<void> {
+  const cols = selectColsForPull('fiscalizacoes')
+  const mapsArr = await db.id_map.where('entity').equals('fiscalizacoes').toArray()
+  const serverToLocal = new Map<string, string>()
+  const localToServer = new Map<string, string>()
+  for (const m of mapsArr) {
+    if (m.server_id && m.local_id) {
+      serverToLocal.set(String(m.server_id), String(m.local_id))
+      localToServer.set(String(m.local_id), String(m.server_id))
+    }
+  }
+  const serverId = localToServer.get(fiscalizacaoId) || fiscalizacaoId
+  const row = await withBackoff(() =>
+    withTimeout(async () => {
+      const { data, error } = await supabase
+        .from('fiscalizacoes')
+        .select(cols)
+        .eq('id', serverId as any)
+        .maybeSingle()
+      if (error) throw error
+      return data
+    }, 15000)
+  )
+  if (row) {
+    const local_id = serverToLocal.get(String((row as any).id)) || String((row as any).id)
+    await db.fiscalizacoes.put({ ...(row as any), id: local_id })
+  }
+}
+
 export async function syncDown(onProgress?: (msg: string, isError?: boolean) => void): Promise<void> {
   const log = (msg: string, isError = false) => { if (onProgress) onProgress(msg, isError) }
   const st = await db.estados_sync.get('global' as UUID)
@@ -2276,6 +2312,149 @@ async function runFullSyncInternal(onProgress?: (msg: string, isError?: boolean)
   const pending = await getOutboxCount()
   const { lastSyncAt } = await getLastSync()
   return { outbox: pending, lastSyncAt }
+}
+
+export async function syncUpForFiscalizacao(
+  fiscalizacaoId: string,
+  onProgress?: (progress: SyncProgress) => void
+): Promise<{ outbox: number }> {
+  const emit = (message: string, current: number, total: number, isError = false) =>
+    onProgress?.({ message, current, total, isError })
+
+  // Auth / connectivity check
+  const sessionRes = await supabase.auth.getSession().catch(() => null)
+  const session = sessionRes?.data?.session
+  const expiresAt = session?.expires_at || 0
+  const nowSeconds = Math.floor(Date.now() / 1000)
+  const hasValidSession = session && expiresAt - nowSeconds > 300
+
+  if (!hasValidSession) {
+    emit('Verificando conexão...', 0, 0)
+    const ok = await withTimeout(() => reachability(), 5000)
+    if (!ok) throw new Error('Servidor indisponível. Verifique a conexão.')
+    emit('Atualizando sessão...', 0, 0)
+    await withTimeout(() => authRefresh(), 15000)
+  }
+
+  emit('Preparando envio...', 0, 0)
+  await retryOutboxErrors(true)
+  try { await ensureBaseEntitiesEnqueued() } catch {}
+  try { await compactOutbox() } catch {}
+  try { await repairOutboxRespostasMissingId() } catch {}
+  try { await pruneOutboxOrphans() } catch {}
+
+  // Identify units for this fiscalização
+  const unidades = await db.unidades.where('fiscalizacao_id').equals(fiscalizacaoId as any).toArray()
+  const unidadeIds = new Set<string>(unidades.map((u: any) => String(u?.id || '')).filter(Boolean))
+  const unidadeToFisc = new Map<string, string>()
+  for (const u of unidades) unidadeToFisc.set(String(u.id), fiscalizacaoId)
+
+  const isFiscMutation = (m: any): boolean => {
+    const entity = String(m?.entity || '')
+    const p = m?.payload || {}
+    const pid = String(p?.id || '')
+    const pfisc = String(p?.fiscalizacao_id || '')
+    if (['fiscalizacoes', 'finalizacao_fiscalizacao', 'reabrir_fiscalizacao'].includes(entity))
+      return pid === fiscalizacaoId || pfisc === fiscalizacaoId
+    if (['unidades', 'finalizacao_unidade'].includes(entity)) {
+      if (pfisc === fiscalizacaoId) return true
+      const uid = pid || String(p?.unidade_fiscalizada_id || '')
+      return unidadeIds.has(uid)
+    }
+    if (['respostas', 'constatacoes_manuais', 'recomendacoes', 'determinacoes', 'fotos'].includes(entity))
+      return unidadeIds.has(String(p?.unidade_fiscalizada_id || ''))
+    return false
+  }
+
+  const allPending = await db.fila_mutacoes.where('status').equals('pending').toArray()
+  const depEntities = new Set(['prestadores', 'contratos', 'tipos_unidade', 'itens_checklist'])
+  const depMuts = allPending.filter((m: any) => depEntities.has(String(m?.entity || '')))
+  const fiscMuts = allPending.filter((m: any) => isFiscMutation(m))
+
+  // Detect reopen mutations so we can drop stale finalizations
+  const reabrirFiscIds = new Set<string>()
+  for (const m of fiscMuts as any[]) {
+    if (m.entity === 'reabrir_fiscalizacao' || m.tipo === 'reopen') {
+      const fid = String(m.payload?.id || m.payload?.fiscalizacao_id || '')
+      if (fid) reabrirFiscIds.add(fid)
+    }
+  }
+
+  const staleIds: any[] = []
+  const combined = [...depMuts, ...fiscMuts].filter((m: any) => {
+    if (m.entity === 'finalizacao_fiscalizacao') {
+      const fid = String(m.payload?.id || m.payload?.fiscalizacao_id || '')
+      if (reabrirFiscIds.has(fid)) { staleIds.push(m.id); return false }
+    }
+    if (m.entity === 'finalizacao_unidade') {
+      const uid = String(m.payload?.id || m.payload?.unidade_fiscalizada_id || '')
+      const fid = unidadeToFisc.get(uid)
+      if (fid && reabrirFiscIds.has(fid)) { staleIds.push(m.id); return false }
+    }
+    return true
+  })
+  if (staleIds.length > 0) await db.fila_mutacoes.bulkDelete(staleIds)
+
+  const sorted = combined.slice().sort((a, b) => {
+    const ai = orderForSyncUp.indexOf(a.entity as Entity)
+    const bi = orderForSyncUp.indexOf(b.entity as Entity)
+    const an = ai === -1 ? 999 : ai
+    const bn = bi === -1 ? 999 : bi
+    if (an !== bn) return an - bn
+    return (a.created_at || '').localeCompare(b.created_at || '')
+  })
+
+  const totalMuts = sorted.length
+  const pendingFotosCount = await db.fotos_local.filter((f: any) => !f?.syncedAt).count()
+  const grandTotal = totalMuts + pendingFotosCount
+  let grandCurrent = 0
+
+  emit(`Enviando dados (0/${totalMuts > 0 ? totalMuts : '?'})...`, grandCurrent, grandTotal)
+
+  const processOne = async (m: any) => {
+    try {
+      await pushOne(m.entity as Entity, m.tipo as MutationType, m.payload)
+      await db.fila_mutacoes.update(m.id, { status: 'done', lastError: '', nextRetryAt: undefined })
+    } catch (err: any) {
+      const attempts = ((m as any).attempts || 0) + 1
+      const retryable = isRetryableError(err)
+      const nextRetryAt = computeNextRetryAt(attempts, retryable)
+      await db.fila_mutacoes.update(m.id, { status: 'error', attempts, lastError: errorInfo(err).message, nextRetryAt })
+    }
+    grandCurrent++
+    emit(`Enviando dados (${grandCurrent}/${totalMuts})...`, grandCurrent, grandTotal)
+  }
+
+  const BATCH = 10
+  const recMuts = sorted.filter((m: any) => String(m?.entity) === 'recomendacoes')
+  const otherMuts = sorted.filter((m: any) => String(m?.entity) !== 'recomendacoes')
+
+  for (let i = 0; i < otherMuts.length; i += BATCH) {
+    await Promise.all(otherMuts.slice(i, i + BATCH).map(processOne))
+  }
+  for (const m of recMuts) await processOne(m)
+
+  if (pendingFotosCount > 0) {
+    emit(`Fotos (0/${pendingFotosCount})...`, grandCurrent, grandTotal)
+    const fotosUploaded = await syncFotosWithProgress((uploaded, fotoTotal) => {
+      emit(`Fotos (${uploaded}/${fotoTotal})...`, totalMuts + uploaded, totalMuts + fotoTotal)
+    })
+    grandCurrent = totalMuts + fotosUploaded
+  }
+
+  emit('Atualizando dados...', grandCurrent, grandTotal)
+  try { await pullFiscalizacaoById(fiscalizacaoId) } catch {}
+
+  const pending = await getOutboxCount()
+  await db.estados_sync.put({
+    id: 'global' as UUID,
+    entidade: 'global',
+    updated_at: now(),
+    pending_count: pending
+  })
+
+  emit('Concluído!', grandTotal, grandTotal)
+  return { outbox: pending }
 }
 
 const progressListeners = new Set<(msg: string, isError?: boolean) => void>()

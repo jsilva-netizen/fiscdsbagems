@@ -18,7 +18,7 @@ import ExportarPDFConsolidado from '@/components/fiscalizacao/ExportarPDFConsoli
 import RelatorioFiscalizacao from '@/components/fiscalizacao/RelatorioFiscalizacao';
 import HistoricoFiscalizacao from '@/components/fiscalizacao/HistoricoFiscalizacao';
 import { useSyncStatus } from '@/lib/SyncStatusContext.jsx';
-import { runFullSync } from '@/lib/offline/syncEngine';
+import { syncUpForFiscalizacao } from '@/lib/offline/syncEngine';
 
 export default function Fiscalizacoes() {
     const queryClient = useQueryClient();
@@ -33,6 +33,7 @@ export default function Fiscalizacoes() {
     const [mostrarFiltros, setMostrarFiltros] = useState(false);
     const [deleteConfirmation, setDeleteConfirmation] = useState({ open: false, fiscId: null, step: 1, inputValue: '' });
     const [mostrarConfirmacaoFinalizacao, setMostrarConfirmacaoFinalizacao] = useState({ open: false, fiscId: null });
+    const [syncProgress, setSyncProgress] = useState(null);
 
     const { data: fiscalizacoes = [], isLoading } = useQuery({
         queryKey: ['fiscalizacoes'],
@@ -62,10 +63,18 @@ export default function Fiscalizacoes() {
         mutationFn: async (fiscalizacaoId) => {
             await Repository.finalizarFiscalizacao(fiscalizacaoId);
         },
-        onSuccess: async () => {
+        onSuccess: async (_data, fiscalizacaoId) => {
             queryClient.invalidateQueries({ queryKey: ['fiscalizacoes'] });
             if (online && sessionValid) {
-                await runFullSync();
+                setSyncProgress({ message: 'Iniciando sincronização...', current: 0, total: 0 });
+                try {
+                    await syncUpForFiscalizacao(fiscalizacaoId, setSyncProgress);
+                    queryClient.invalidateQueries({ queryKey: ['fiscalizacoes'] });
+                } catch (err) {
+                    console.error('[SyncFiscalizacao]', err);
+                } finally {
+                    setSyncProgress(null);
+                }
             }
         },
         onError: (error) => {
@@ -512,6 +521,35 @@ export default function Fiscalizacoes() {
             <div className="py-5 text-center text-xs text-slate-400 bg-white border-t border-slate-200 mt-4">
                 AGEMS — Agência Estadual de Regulação de Serviços Públicos de MS
             </div>
+
+            {/* Sync progress overlay */}
+            {syncProgress && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl p-6 shadow-2xl w-full max-w-sm space-y-4">
+                        <div className="flex items-center gap-3">
+                            <Loader2 className="h-5 w-5 animate-spin text-indigo-500 flex-shrink-0" />
+                            <div className="min-w-0">
+                                <p className="text-sm font-semibold text-gray-800">Sincronizando fiscalização</p>
+                                <p className="text-xs text-gray-500 mt-0.5 truncate">{syncProgress.message}</p>
+                            </div>
+                        </div>
+                        {syncProgress.total > 0 && (
+                            <div className="space-y-1.5">
+                                <div className="flex justify-between text-xs text-gray-400">
+                                    <span>{syncProgress.current} de {syncProgress.total}</span>
+                                    <span>{Math.min(100, Math.round((syncProgress.current / syncProgress.total) * 100))}%</span>
+                                </div>
+                                <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-indigo-500 rounded-full transition-all duration-300"
+                                        style={{ width: `${Math.min(100, Math.round((syncProgress.current / syncProgress.total) * 100))}%` }}
+                                    />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

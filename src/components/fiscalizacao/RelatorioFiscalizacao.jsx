@@ -12,7 +12,16 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
     const [isRequesting, setIsRequesting] = React.useState(false);
     const [isSyncingBeforeReport, setIsSyncingBeforeReport] = React.useState(false);
     const [jobId, setJobId] = React.useState(null);
-    const [job, setJob] = React.useState(null);
+    const [job, setJob] = React.useState(() => {
+        // Carregar do localStorage imediatamente
+        try {
+            const key = `relatorio_last_job:${String(fiscalizacao.id)}`;
+            const stored = localStorage.getItem(`${key}:data`);
+            return stored ? JSON.parse(stored) : null;
+        } catch {
+            return null;
+        }
+    });
     const [error, setError] = React.useState(null);
     const [pendingLocal, setPendingLocal] = React.useState({ outboxCount: 0, fotosCount: 0 });
     const syncStatus = useSyncStatus?.() || { online: true, sessionValid: true, outboxCount: 0, lastSyncAt: undefined };
@@ -77,7 +86,10 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
                 ? await invokeEdgeFunction('relatorios_status', { job_id: lastJobId })
                 : await invokeEdgeFunction('relatorios_status', { fiscalizacao_id });
             if (st?.status === 'not_found') {
-                try { localStorage.removeItem(key); } catch {}
+                try { 
+                    localStorage.removeItem(key); 
+                    localStorage.removeItem(`${key}:data`); 
+                } catch {}
                 setJob(null);
                 setJobId(null);
                 setError(null);
@@ -91,10 +103,14 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
             if (st?.id) {
                 try {
                     localStorage.setItem(key, String(st.id));
+                    localStorage.setItem(`${key}:data`, JSON.stringify(st));
                 } catch {}
             }
             if (st.status === 'done' && !st?.signed_url) {
-                try { localStorage.removeItem(key); } catch {}
+                try { 
+                    localStorage.removeItem(key); 
+                    localStorage.removeItem(`${key}:data`); 
+                } catch {}
                 setJob(null);
                 setJobId(null);
                 return;
@@ -110,6 +126,7 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
                     const fiscalizacao_id = await resolveServerFiscalizacaoId();
                     const key = `relatorio_last_job:${String(fiscalizacao_id)}`;
                     localStorage.removeItem(key);
+                    localStorage.removeItem(`${key}:data`);
                 } catch {}
                 setJob(null);
                 setJobId(null);
@@ -180,12 +197,14 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
             if (!data?.job_id) throw new Error('Falha ao criar job');
             
             queryClient.invalidateQueries({ queryKey: ['fiscalizacoes'] });
+            const newJob = { status: 'queued', progress_unidades: 0, progress_fotos: 0, id: data.job_id };
             try {
                 localStorage.setItem(`relatorio_last_job:${String(fiscalizacao_id)}`, String(data.job_id));
+                localStorage.setItem(`relatorio_last_job:${String(fiscalizacao_id)}:data`, JSON.stringify(newJob));
             } catch {}
 
             setJobId(data.job_id);
-            setJob({ status: 'queued', progress_unidades: 0, progress_fotos: 0 });
+            setJob(newJob);
         } catch (err) {
             console.error('Erro ao solicitar relatório:', err);
             setError(err?.message || 'Erro ao solicitar relatório.');
@@ -205,6 +224,12 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
                 if (data?.status === 'not_found') {
                     stopped = true;
                     clearInterval(intervalId);
+                    try {
+                        const fiscalizacao_id = await resolveServerFiscalizacaoId();
+                        const key = `relatorio_last_job:${String(fiscalizacao_id)}`;
+                        localStorage.removeItem(key);
+                        localStorage.removeItem(`${key}:data`);
+                    } catch {}
                     setJobId(null);
                     setJob(null);
                     setError(null);
@@ -213,12 +238,28 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
                 if (data?.status === 'done' && !data?.signed_url) {
                     stopped = true;
                     clearInterval(intervalId);
+                    try {
+                        const fiscalizacao_id = await resolveServerFiscalizacaoId();
+                        const key = `relatorio_last_job:${String(fiscalizacao_id)}`;
+                        localStorage.removeItem(key);
+                        localStorage.removeItem(`${key}:data`);
+                    } catch {}
                     setJobId(null);
                     setJob(null);
                     setError(null);
                     return;
                 }
                 setJob(data);
+                // Salvar no localStorage
+                try {
+                    const fiscalizacao_id = await resolveServerFiscalizacaoId();
+                    const key = `relatorio_last_job:${String(fiscalizacao_id)}`;
+                    if (data?.id) {
+                        localStorage.setItem(key, String(data.id));
+                    }
+                    localStorage.setItem(`${key}:data`, JSON.stringify(data));
+                } catch {}
+                
                 if (data?.status === 'done' && data?.signed_url) {
                     stopped = true;
                     clearInterval(intervalId);
@@ -236,6 +277,12 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
                 if (String(msg).toLowerCase().includes('job_not_found')) {
                     stopped = true;
                     clearInterval(intervalId);
+                    try {
+                        const fiscalizacao_id = await resolveServerFiscalizacaoId();
+                        const key = `relatorio_last_job:${String(fiscalizacao_id)}`;
+                        localStorage.removeItem(key);
+                        localStorage.removeItem(`${key}:data`);
+                    } catch {}
                     setJobId(null);
                     setJob(null);
                     setError(null);
