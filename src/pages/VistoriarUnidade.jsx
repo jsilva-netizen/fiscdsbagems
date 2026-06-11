@@ -313,7 +313,13 @@ export default function VistoriarUnidade() {
             try {
                 const remotas = (unidade?.fotos_unidade || [])
                     .map(foto => typeof foto === 'string' ? { url: foto } : foto)
-                    .filter(foto => foto && foto.url && !isLocalUrl(foto.url));
+                    .filter(foto => {
+                        if (!foto) return false;
+                        // Aceita fotos com bucket+path mesmo sem url (formato do servidor)
+                        if (foto.bucket && foto.path) return true;
+                        // Aceita fotos com url não-local (http, storage://, etc.)
+                        return foto.url && !isLocalUrl(foto.url);
+                    });
                 const locais = await Repository.listLocalFotos(unidadeId).then(list =>
                     list.map(f => ({
                         localId: f.localId,
