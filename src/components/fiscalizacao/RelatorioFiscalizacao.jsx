@@ -312,7 +312,7 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
     React.useEffect(() => {
         if (!isOnlineAndReady) return;
         carregarUltimoJob();
-    }, [isOnlineAndReady, fiscalizacao?.id, fiscalizacao?.status]);
+    }, [isOnlineAndReady, fiscalizacao?.id]);
 
     React.useEffect(() => {
         let stopped = false;
