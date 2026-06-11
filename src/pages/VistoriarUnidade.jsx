@@ -1499,20 +1499,17 @@ export default function VistoriarUnidade() {
 
                         {/* Cabeçalho com botão de adicionar */}
                         {(unidade?.status !== 'finalizada' || modoEdicao) && (
-                            <div className="flex justify-end">
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                        setNovaRecomendacao('');
-                                        setShowAddRecomendacao(true);
-                                    }}
-                                    disabled={adicionarRecomendacaoMutation.isPending}
-                                >
-                                    <Plus className="h-4 w-4 mr-1" />
-                                    Adicionar
-                                </Button>
-                            </div>
+                            <Button
+                                onClick={() => {
+                                    setNovaRecomendacao('');
+                                    setShowAddRecomendacao(true);
+                                }}
+                                disabled={adicionarRecomendacaoMutation.isPending}
+                                className="w-full"
+                            >
+                                <Plus className="h-4 w-4 mr-2" />
+                                Adicionar Recomendação
+                            </Button>
                         )}
 
                         {recomendacoesOrdenadas.length === 0 ? (
