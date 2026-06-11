@@ -289,6 +289,25 @@ export default function VistoriarUnidade() {
         if (!unidadeMudou && fotosDirty) return;
 
         const isLocalUrl = (u) => /^blob:|^data:|^file:|^capacitor:/i.test(String(u || ''));
+        // Extrai bucket:path de uma URL (storage:// ou https pública)
+        const extractStoragePath = (f) => {
+            if (!f) return null;
+            const bucket = String(f.bucket || '').trim();
+            const path = String(f.path || '').trim();
+            if (bucket && path) return `${bucket}:${path}`;
+            const url = String(f.url || '').trim();
+            if (!url) return null;
+            // storage://bucket/path
+            if (url.startsWith('storage://')) {
+                const rem = url.slice('storage://'.length);
+                const slash = rem.indexOf('/');
+                if (slash !== -1) return `${rem.slice(0, slash)}:${rem.slice(slash + 1).split('?')[0]}`;
+            }
+            // https://.../storage/v1/object/public/bucket/path
+            const m = url.match(/\/storage\/v1\/object\/(?:public|sign)\/([^/]+)\/(.+?)(?:\?|$)/);
+            if (m) return `${m[1]}:${m[2]}`;
+            return null;
+        };
 
         const carregar = async () => {
             try {
@@ -307,29 +326,26 @@ export default function VistoriarUnidade() {
                 );
 
                 const merged = [];
-                const seenUrls = new Set();
-                const seenPaths = new Set();
+                const seenStoragePaths = new Set(); // dedup por bucket:path
                 const seenLocalIds = new Set();
 
                 const addFoto = (f) => {
                     if (!f) return;
-                    const url = String(f.url || '').trim();
-                    const path = String(f.path || '').trim();
                     const localId = String(f.localId || '').trim();
-
-                    if (url && seenUrls.has(url)) return;
-                    if (path && seenPaths.has(path)) return;
                     if (localId && seenLocalIds.has(localId)) return;
+                    const storagePath = extractStoragePath(f);
+                    if (storagePath && seenStoragePaths.has(storagePath)) return;
 
-                    if (url) seenUrls.add(url);
-                    if (path) seenPaths.add(path);
                     if (localId) seenLocalIds.add(localId);
+                    if (storagePath) seenStoragePaths.add(storagePath);
 
                     merged.push(f);
                 };
 
-                (remotas || []).forEach(addFoto);
+                // Locais primeiro (têm previewUrl/blob já carregado e são mais recentes)
                 (locais || []).forEach(addFoto);
+                // Remotas depois (pula duplicatas já adicionadas pelas locais)
+                (remotas || []).forEach(addFoto);
 
                 setFotos(merged);
                 fotosCarregadasRef.current = unidadeId;
@@ -1474,6 +1490,24 @@ export default function VistoriarUnidade() {
 
                     {/* Recomendações Tab */}
                     <TabsContent value="recomendacoes" className="mt-4 space-y-4">
+
+                        {/* Cabeçalho com botão de adicionar */}
+                        {(unidade?.status !== 'finalizada' || modoEdicao) && (
+                            <div className="flex justify-end">
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                        setNovaRecomendacao('');
+                                        setShowAddRecomendacao(true);
+                                    }}
+                                    disabled={adicionarRecomendacaoMutation.isPending}
+                                >
+                                    <Plus className="h-4 w-4 mr-1" />
+                                    Adicionar
+                                </Button>
+                            </div>
+                        )}
 
                         {recomendacoesOrdenadas.length === 0 ? (
                             <p className="text-center text-gray-500 text-sm py-4">
