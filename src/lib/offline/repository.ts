@@ -2039,11 +2039,14 @@ export const Repository = {
   },
   
   async finalizarFiscalizacao(fiscalizacaoId: string): Promise<void> {
+    // Atualiza localmente o status das unidades para 'finalizada'
+    // NÃO enfileira finalizacao_unidade pois a RPC finalizar_fiscalizacao
+    // já finaliza todas as unidades internamente via gerar_ncs_unidade(..., true).
+    // Enfileirar ambas causava deadlock no PostgreSQL.
     const unidades = await db.unidades.where('fiscalizacao_id').equals(fiscalizacaoId).toArray()
     for (const u of unidades) {
       if (u.status !== 'finalizada') {
         await db.unidades.update(u.id, { ...u, status: 'finalizada', updated_at: now() })
-        await enqueueMutation({ id: u.id }, 'finalize', 'finalizacao_unidade')
       }
     }
     const local = await db.fiscalizacoes.get(fiscalizacaoId as any)

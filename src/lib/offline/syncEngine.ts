@@ -358,6 +358,7 @@ function isRetryableError(err: any): boolean {
   if (status === 408 || status === 409 || status === 429) return true
   if (typeof status === 'number' && status >= 500) return true
   if (code && ['ECONNRESET', 'ETIMEDOUT', 'EAI_AGAIN', 'ENOTFOUND'].includes(code)) return true
+  if (code === '40P01' || msg.includes('deadlock')) return true
   if (msg.includes('timeout') || msg.includes('network') || msg.includes('failed to fetch')) return true
   return false
 }
@@ -1360,7 +1361,7 @@ export async function syncUp(onProgress?: (msg: string, isError?: boolean) => vo
     for (let i = 0; i < items.length; i += limit) {
       log(`Enviando ${entityName} (${Math.min(i + limit, items.length)} de ${items.length})...`)
       const chunk = items.slice(i, i + limit)
-      if (entity === 'recomendacoes' || entity === 'reabrir_fiscalizacao') {
+      if (entity === 'recomendacoes' || entity === 'reabrir_fiscalizacao' || entity === 'finalizacao_unidade' || entity === 'finalizacao_fiscalizacao') {
         for (const m of chunk) await processOne(m)
       } else {
         await Promise.all(chunk.map(processOne))
