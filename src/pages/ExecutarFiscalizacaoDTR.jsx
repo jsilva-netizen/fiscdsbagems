@@ -214,7 +214,7 @@ export default function ExecutarFiscalizacaoDTR() {
                                     fillOpacity={0.9}
                                 >
                                     <Popup className="text-slate-950 text-xs">
-                                        <strong>Ocorrência:</strong> {oc.tipo_ocorrencia || oc.nome_unidade}
+                                        <strong>Ocorrência:</strong> {oc.nome_unidade || oc.tipo_ocorrencia || '—'}
                                         <br />
                                         <strong>KM:</strong> {oc.km || '—'}
                                     </Popup>
@@ -282,14 +282,19 @@ export default function ExecutarFiscalizacaoDTR() {
                                             <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center font-bold text-xs">
                                                 #{index + 1}
                                             </div>
-                                            <div>
-                                                <h4 className="font-semibold text-gray-800 text-sm">
-                                                    {oc.tipo_ocorrencia || 'Ponto de Inspeção'}
-                                                </h4>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                    <h4 className="font-semibold text-gray-800 text-sm truncate">
+                                                        {oc.nome_unidade || oc.tipo_ocorrencia || 'Ponto de Inspeção'}
+                                                    </h4>
+                                                    {oc.tipo_ocorrencia === 'nc' && (
+                                                        <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200 flex-shrink-0">NC</span>
+                                                    )}
+                                                </div>
                                                 <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
                                                     <span className="font-mono bg-gray-100 px-1 py-0.5 rounded text-[11px]">KM {oc.km || '—'}</span>
                                                     <span className="opacity-60">•</span>
-                                                    <span className="truncate max-w-[150px]">{oc.trecho || 'Trecho Geral'}</span>
+                                                    <span className="truncate max-w-[130px]">{oc.per || oc.trecho || 'Trecho Geral'}</span>
                                                 </p>
                                             </div>
                                         </div>

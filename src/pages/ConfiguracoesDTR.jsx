@@ -13,60 +13,74 @@ import {
     AlertCircle, Loader2, RefreshCw, FileText, Trash2, Route
 } from 'lucide-react';
 
-// Colunas alinhadas com estrutura do PER:
-// Descrição → coluna DESCRIÇÃO nas constatações
-// Observações → coluna OBSERVAÇÃO em ambas (constatações e NCs)
+// Colunas da planilha de ocorrências DTR:
+// Frente → categoria principal da concessão
+// PER → item do Padrão de Execução do Rodovias (ex: 3.1.1 Pavimento)
+// Descrição → nome do item exibido no app e nas constatações
+// Não atendimento → cláusula do PER violada (preenchida se houver NC)
+// Prazo → prazo padrão em dias quando for NC
 const TEMPLATE_COLUNAS = [
-    'Nome da Ocorrência',
-    'Gera Não Conformidade (SIM/NAO)',
-    'Item do PER (ex: 3.1.6 Canteiro Central e Faixa de Domínio)',
-    'Texto de Não Atendimento (cláusula específica do PER violada)',
-    'Prazo Padrão NC (dias)',
-    'Descrição (coluna DESCRIÇÃO nas constatações)',
-    'Observações (aparece em constatações e NCs)'
+    'Frente',
+    'PER',
+    'Descrição',
+    'Não atendimento (NC)',
+    'Prazo (dias)'
 ];
 
 function downloadTemplate() {
     const ws = XLSX.utils.aoa_to_sheet([
         TEMPLATE_COLUNAS,
         [
-            'Buraco / Panela na pista',
-            'SIM',
+            'RECUPERAÇÃO E MANUTENÇÃO',
             '3.1.1 Pavimento',
+            'Exsudação',
+            '',
+            ''
+        ],
+        [
+            'RECUPERAÇÃO E MANUTENÇÃO',
+            '3.1.1 Pavimento',
+            'Elementos indesejáveis',
+            '',
+            ''
+        ],
+        [
+            'RECUPERAÇÃO E MANUTENÇÃO',
+            '3.1.1 Pavimento',
+            'Buraco / Panela na pista',
             '3.1.1 Ausência de defeitos no revestimento do pavimento do tipo panela, afundamento de trilha de roda, escorregamento, conforme parâmetros do PER.',
-            '3',
-            'Presença de buraco (panela) na pista de rolamento, com risco de dano a veículos e usuários.',
+            '3'
+        ],
+        [
+            'RECUPERAÇÃO E MANUTENÇÃO',
+            '3.1.1 Pavimento',
+            'Outros',
+            '',
             ''
         ],
         [
-            'Vegetação alta no acostamento / faixa de domínio',
-            'SIM',
+            'RECUPERAÇÃO E MANUTENÇÃO',
+            '3.1.2 Sinalização e Elementos de Proteção e Segurança',
+            'Sinalização vertical danificada ou ausente',
+            '',
+            '3'
+        ],
+        [
+            'RECUPERAÇÃO E MANUTENÇÃO',
             '3.1.6 Canteiro Central e Faixa de Domínio',
+            'Vegetação alta no acostamento / faixa de domínio',
             '3.1.6 Ausência total de vegetação rasteira com comprimento superior a 40,0 (quarenta) cm, em toda a extensão da faixa de domínio, numa largura mínima de 4,0 (quatro) metros a partir do bordo da drenagem e/ou do acostamento, de cada lado das rodovias.',
-            '15',
-            'Vegetação rasteira ultrapassando 40 cm de altura na faixa de domínio ou acostamento.',
-            ''
+            '15'
         ],
         [
-            'Ausência de ambulância / serviço médico de emergência',
-            'SIM',
+            'SERVIÇOS OPERACIONAIS',
             '3.4.5.1 Atendimento Médico de Emergência',
+            'Ausência de ambulância / serviço médico',
             '3.4.5.1. Disponibilização de serviço de atendimento médico de emergência 24:00 horas por dia, inclusive sábados, domingos e feriados, conforme Anexo B.',
-            '1',
-            'Ambulância ou equipe de atendimento médico de emergência indisponível na base operacional.',
-            'Verificar escala de plantão e confirmar responsável pela cobertura.'
-        ],
-        [
-            'Outro',
-            'NAO',
-            '',
-            '',
-            '',
-            'Ocorrência não enquadrada nos demais tipos.',
-            'Descrever detalhadamente no campo observação da fiscalização.'
+            '1'
         ]
     ]);
-    ws['!cols'] = [{ wch: 45 }, { wch: 30 }, { wch: 55 }, { wch: 80 }, { wch: 22 }, { wch: 60 }, { wch: 60 }];
+    ws['!cols'] = [{ wch: 55 }, { wch: 55 }, { wch: 45 }, { wch: 90 }, { wch: 14 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Tipos de Ocorrência DTR');
     XLSX.writeFile(wb, 'template_tipos_ocorrencia_dtr.xlsx');
@@ -83,15 +97,22 @@ function parseSpreadsheet(file) {
                 // Pular cabeçalho (linha 0)
                 const tipos = rows.slice(1)
                     .filter(r => r[0] && String(r[0]).trim())
-                    .map(r => ({
-                        nome: String(r[0] || '').trim(),
-                        gera_nc: String(r[1] || '').trim().toUpperCase() === 'SIM',
-                        item_contrato: String(r[2] || '').trim() || null,
-                        nao_atendimento: String(r[3] || '').trim() || null,
-                        prazo_dias_padrao: r[4] ? parseInt(String(r[4]).trim(), 10) || null : null,
-                        descricao: String(r[5] || '').trim() || null,
-                        observacoes: String(r[6] || '').trim() || null
-                    }));
+                    .map(r => {
+                        const frente = String(r[0] || '').trim();
+                        const item_contrato = String(r[1] || '').trim() || null;
+                        const descricao = String(r[2] || '').trim() || null;
+                        const nao_atendimento = String(r[3] || '').trim() || null;
+                        const prazo_dias_padrao = r[4] ? parseInt(String(r[4]).trim(), 10) || null : null;
+                        return {
+                            frente,
+                            item_contrato,
+                            descricao,
+                            nome: descricao, // compatibilidade com código existente
+                            nao_atendimento,
+                            prazo_dias_padrao,
+                            gera_nc: !!nao_atendimento
+                        };
+                    });
                 resolve(tipos);
             } catch (err) {
                 reject(new Error('Erro ao ler planilha: ' + err.message));
@@ -208,10 +229,11 @@ function TabTipos() {
                             {preview.map((t, i) => (
                                 <div key={i} className="text-xs bg-white rounded-lg px-3 py-2 border border-amber-100 space-y-0.5">
                                     <div className="flex items-center gap-2">
-                                        <span className="flex-1 font-medium text-gray-800">{t.nome}</span>
-                                        {t.gera_nc && <Badge className="text-[10px] py-0 h-4 bg-rose-100 text-rose-700 border-rose-200">NC</Badge>}
+                                        <span className="flex-1 font-medium text-gray-800">{t.descricao || t.nome}</span>
+                                        {t.nao_atendimento && <Badge className="text-[10px] py-0 h-4 bg-rose-100 text-rose-700 border-rose-200">NC</Badge>}
                                         {t.prazo_dias_padrao && <span className="text-gray-400 whitespace-nowrap">{t.prazo_dias_padrao}d</span>}
                                     </div>
+                                    {t.frente && <p className="text-gray-400 text-[10px] truncate">{t.frente}</p>}
                                     {t.item_contrato && <p className="text-indigo-500 text-[10px]">{t.item_contrato}</p>}
                                 </div>
                             ))}
@@ -256,36 +278,24 @@ function TabTipos() {
                     </div>
                 ) : (
                     <div className="space-y-1.5">
-                        {tipos.map(t => (
-                            <div key={t.id} className="bg-white rounded-xl border border-gray-200 px-3 py-2.5 shadow-sm space-y-1">
+                        {tipos.map((t, i) => (
+                            <div key={t.id ?? i} className="bg-white rounded-xl border border-gray-200 px-3 py-2.5 shadow-sm space-y-1">
                                 <div className="flex items-center gap-3">
-                                    <p className="text-sm font-medium text-gray-800 flex-1 truncate">{t.nome}</p>
-                                    {t.gera_nc && (
+                                    <p className="text-sm font-medium text-gray-800 flex-1 truncate">{t.descricao || t.nome}</p>
+                                    {t.nao_atendimento && (
                                         <Badge className="text-[10px] py-0 h-5 bg-rose-50 text-rose-600 border border-rose-200 flex-shrink-0">
-                                            Gera NC
+                                            NC
                                         </Badge>
                                     )}
                                     {t.prazo_dias_padrao && (
                                         <span className="text-[10px] text-gray-400 flex-shrink-0">{t.prazo_dias_padrao}d</span>
                                     )}
-                                    {!t.ativo && (
-                                        <Badge className="text-[10px] py-0 h-5 bg-gray-100 text-gray-400 border border-gray-200 flex-shrink-0">
-                                            Inativo
-                                        </Badge>
-                                    )}
                                 </div>
+                                {t.frente && (
+                                    <p className="text-[10px] text-gray-400 truncate">{t.frente}</p>
+                                )}
                                 {t.item_contrato && (
                                     <p className="text-[11px] text-indigo-500 truncate">{t.item_contrato}</p>
-                                )}
-                                {t.descricao && (
-                                    <p className="text-[10px] text-gray-500 line-clamp-1">
-                                        <span className="font-semibold text-gray-400">Desc: </span>{t.descricao}
-                                    </p>
-                                )}
-                                {t.observacoes && (
-                                    <p className="text-[10px] text-teal-600 line-clamp-1">
-                                        <span className="font-semibold">Obs: </span>{t.observacoes}
-                                    </p>
                                 )}
                                 {t.nao_atendimento && (
                                     <p className="text-[10px] text-amber-600 line-clamp-2 leading-relaxed">{t.nao_atendimento}</p>
