@@ -6,32 +6,34 @@ import { Repository } from '@/lib/offline/repository';
 import { snapToHighway } from '@/utils/rodoviasGeoJSON';
 import PhotoGrid from '@/components/fiscalizacao/PhotoGrid';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, Loader2, Save, MapPin, Compass, AlertCircle, FileText, AlertTriangle } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import {
+    ArrowLeft, Loader2, Save, AlertCircle, FileText,
+    AlertTriangle, ChevronRight, Check
+} from 'lucide-react';
 
-// Fallback estático caso o banco não tenha tipos cadastrados
 const TIPOS_OCORRENCIA_FALLBACK = [
-    { nome: 'Buraco na pista',                 gera_nc: true,  item_contrato: null },
-    { nome: 'Rachaduras no asfalto',            gera_nc: false, item_contrato: null },
-    { nome: 'Vegetação alta no acostamento',    gera_nc: true,  item_contrato: null },
-    { nome: 'Sinalização vertical danificada',  gera_nc: true,  item_contrato: null },
-    { nome: 'Sinalização horizontal apagada',   gera_nc: true,  item_contrato: null },
-    { nome: 'Lixo ou entulho na via',           gera_nc: false, item_contrato: null },
-    { nome: 'Defeito na defensa metálica',      gera_nc: true,  item_contrato: null },
-    { nome: 'Drenagem obstruída',               gera_nc: true,  item_contrato: null },
-    { nome: 'Outro',                            gera_nc: false, item_contrato: null }
+    { nome: 'Buraco / Panela na pista',                       gera_nc: true,  item_contrato: '3.1.1 Pavimento',                                           nao_atendimento: null, prazo_dias_padrao: 3  },
+    { nome: 'Afundamento de trilha de roda',                  gera_nc: true,  item_contrato: '3.1.1 Pavimento',                                           nao_atendimento: null, prazo_dias_padrao: 15 },
+    { nome: 'Trincas no pavimento (FC-2 / FC-3)',             gera_nc: false, item_contrato: '3.1.1 Pavimento',                                           nao_atendimento: null, prazo_dias_padrao: null },
+    { nome: 'Vegetação alta no acostamento / faixa de domínio', gera_nc: true, item_contrato: '3.1.6 Canteiro Central e Faixa de Domínio',               nao_atendimento: '3.1.6 Ausência total de vegetação rasteira com comprimento superior a 40,0 cm em toda a extensão da faixa de domínio.', prazo_dias_padrao: 15 },
+    { nome: 'Sinalização vertical danificada ou ausente',     gera_nc: true,  item_contrato: '3.1.2 Sinalização e Elementos de Proteção e Segurança',    nao_atendimento: null, prazo_dias_padrao: 3  },
+    { nome: 'Sinalização horizontal apagada ou desgastada',   gera_nc: true,  item_contrato: '3.1.2 Sinalização e Elementos de Proteção e Segurança',    nao_atendimento: null, prazo_dias_padrao: 15 },
+    { nome: 'Defensa metálica danificada ou ausente',         gera_nc: true,  item_contrato: '3.1.2 Sinalização e Elementos de Proteção e Segurança',    nao_atendimento: null, prazo_dias_padrao: 7  },
+    { nome: 'Drenagem obstruída ou assoreada',                gera_nc: true,  item_contrato: '3.1.4 Sistema de Drenagem e Obras de Arte Correntes',      nao_atendimento: null, prazo_dias_padrao: 15 },
+    { nome: 'Ausência de ambulância / serviço médico',        gera_nc: true,  item_contrato: '3.4.5.1 Atendimento Médico de Emergência',                 nao_atendimento: '3.4.5.1. Disponibilização de serviço de atendimento médico de emergência 24:00 horas por dia, inclusive sábados, domingos e feriados.', prazo_dias_padrao: 1 },
+    { nome: 'Outro',                                          gera_nc: false, item_contrato: null,                                                        nao_atendimento: null, prazo_dias_padrao: null },
 ];
 
 const GRAVIDADES = [
-    { value: 'leve', label: 'Leve (Monitoramento)' },
-    { value: 'media', label: 'Média (Atenção)' },
-    { value: 'grave', label: 'Grave (Urgente)' },
+    { value: 'leve',       label: 'Leve (Monitoramento)' },
+    { value: 'media',      label: 'Média (Atenção)' },
+    { value: 'grave',      label: 'Grave (Urgente)' },
     { value: 'gravissima', label: 'Gravíssima (Crítico / Risco de Vida)' }
 ];
 
@@ -41,11 +43,14 @@ export default function VistoriarOcorrenciaDTR() {
     const loc = useLocation();
     const searchParams = new URLSearchParams(loc.search);
     const fiscId = searchParams.get('fiscId');
-    const occurrenceId = searchParams.get('id'); // null se estiver criando
+    const occurrenceId = searchParams.get('id');
+
+    // 'main' = formulário principal | 'select-type' = tela de seleção de tipo
+    const [step, setStep] = useState('main');
 
     const [location, setLocation] = useState(null);
     const [gettingLocation, setGettingLocation] = useState(false);
-    
+
     const [formData, setFormData] = useState({
         rodovia: '',
         trecho: '',
@@ -58,13 +63,13 @@ export default function VistoriarOcorrenciaDTR() {
 
     const [requerDeterminacao, setRequerDeterminacao] = useState(false);
     const [textoDeterminacao, setTextoDeterminacao] = useState('');
-    const [prazoDeterminacao, setPrazoDeterminacao] = useState('30'); // Dias
+    const [prazoDeterminacao, setPrazoDeterminacao] = useState('30');
 
     const [fotos, setFotos] = useState([]);
     const [fotosDirty, setFotosDirty] = useState(false);
     const fotosCarregadasRef = useRef(null);
 
-    // 0. Carregar tipos de ocorrência do banco (com fallback)
+    // Tipos de ocorrência (banco ou fallback)
     const { data: tiposDB = [] } = useQuery({
         queryKey: ['tipos_ocorrencia_dtr'],
         queryFn: () => Repository.listTiposOcorrenciaDTR(),
@@ -73,28 +78,28 @@ export default function VistoriarOcorrenciaDTR() {
     const tiposOcorrencia = tiposDB.length > 0 ? tiposDB : TIPOS_OCORRENCIA_FALLBACK;
     const tipoSelecionado = tiposOcorrencia.find(t => t.nome === formData.tipo_ocorrencia) ?? null;
 
-    // 1. Carregar fiscalização principal
+    // Fiscalização
     const { data: fisc } = useQuery({
         queryKey: ['fiscalizacao', fiscId],
         queryFn: async () => await Repository.getFiscalizacaoById(fiscId),
         enabled: !!fiscId
     });
 
-    // 2. Carregar ocorrência se for edição
-    const { data: ocorrencia, isLoading: loadingOcorrencia } = useQuery({
+    // Ocorrência (edição)
+    const { data: ocorrencia } = useQuery({
         queryKey: ['unidade', occurrenceId],
         queryFn: async () => await Repository.getUnidadeById(occurrenceId),
         enabled: !!occurrenceId
     });
 
-    // 3. Carregar determinação existente se houver
+    // Determinações existentes
     const { data: determinacoes = [] } = useQuery({
         queryKey: ['determinacoes', occurrenceId],
         queryFn: async () => await Repository.listDeterminacoesByUnidade(occurrenceId),
         enabled: !!occurrenceId
     });
 
-    // Carregar coordenadas e preencher dados
+    // Preencher form na edição / inicializar GPS
     useEffect(() => {
         if (occurrenceId && ocorrencia) {
             setFormData({
@@ -104,17 +109,11 @@ export default function VistoriarOcorrenciaDTR() {
                 sentido: ocorrencia.sentido || '',
                 tipo_ocorrencia: ocorrencia.tipo_ocorrencia || ocorrencia.nome_unidade || '',
                 gravidade: ocorrencia.gravidade || 'media',
-                observacao: ocorrencia.endereco || '' // Reutiliza campo endereço para observação longa
+                observacao: ocorrencia.endereco || ''
             });
-
             if (ocorrencia.latitude && ocorrencia.longitude) {
-                setLocation({
-                    lat: ocorrencia.latitude,
-                    lng: ocorrencia.longitude
-                });
+                setLocation({ lat: ocorrencia.latitude, lng: ocorrencia.longitude });
             }
-
-            // Checar determinação
             const det = determinacoes.find(d => d.origem === 'dtr_determination');
             if (det) {
                 setRequerDeterminacao(true);
@@ -122,83 +121,47 @@ export default function VistoriarOcorrenciaDTR() {
                 setPrazoDeterminacao(String(det.prazo_dias || '30'));
             }
         } else if (fisc && !occurrenceId) {
-            setFormData(prev => ({
-                ...prev,
-                rodovia: fisc.rodovia || ''
-            }));
-            
-            // Se for novo ponto, pegar GPS imediatamente e snappar à rodovia
+            setFormData(prev => ({ ...prev, rodovia: fisc.rodovia || '' }));
             setGettingLocation(true);
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
                     const lat = pos.coords.latitude;
                     const lng = pos.coords.longitude;
                     setLocation({ lat, lng });
-
                     const snapped = snapToHighway(lat, lng, fisc.rodovia);
-                    setFormData(prev => ({
-                        ...prev,
-                        km: snapped.km,
-                        trecho: snapped.trecho
-                    }));
+                    setFormData(prev => ({ ...prev, km: snapped.km, trecho: snapped.trecho }));
                     setGettingLocation(false);
                 },
-                () => {
-                    setGettingLocation(false);
-                },
+                () => setGettingLocation(false),
                 { enableHighAccuracy: true, timeout: 10000 }
             );
         }
     }, [occurrenceId, ocorrencia, fisc, determinacoes]);
 
-    // Carregar Fotos
+    // Carregar fotos na edição
     useEffect(() => {
         if (!occurrenceId) return;
         if (fotosCarregadasRef.current === occurrenceId) return;
 
         const isLocalUrl = (u) => /^blob:|^data:|^file:|^capacitor:/i.test(String(u || ''));
-
         const carregarFotos = async () => {
             try {
                 const remotas = (Array.isArray(ocorrencia?.fotos_unidade) ? ocorrencia.fotos_unidade : [])
-                    .map(foto => typeof foto === 'string' ? { url: foto } : foto)
-                    .filter(foto => foto && foto.url && !isLocalUrl(foto.url));
+                    .map(f => typeof f === 'string' ? { url: f } : f)
+                    .filter(f => f && f.url && !isLocalUrl(f.url));
                 const locais = await Repository.listLocalFotos(occurrenceId).then(list =>
-                    list.map(f => ({
-                        localId: f.localId,
-                        url: f.url || '',
-                        legenda: f.legenda || '',
-                        mimeType: f.mimeType,
-                        width: f.width,
-                        height: f.height
-                    }))
+                    list.map(f => ({ localId: f.localId, url: f.url || '', legenda: f.legenda || '', mimeType: f.mimeType, width: f.width, height: f.height }))
                 );
-
                 const merged = [];
-                const seenUrls = new Set();
-                const seenPaths = new Set();
-                const seenLocalIds = new Set();
-
-                const addFoto = (f) => {
-                    if (!f) return;
-                    const url = String(f.url || '').trim();
-                    const path = String(f.path || '').trim();
-                    const localId = String(f.localId || '').trim();
-
-                    if (url && seenUrls.has(url)) return;
-                    if (path && seenPaths.has(path)) return;
-                    if (localId && seenLocalIds.has(localId)) return;
-
-                    if (url) seenUrls.add(url);
-                    if (path) seenPaths.add(path);
-                    if (localId) seenLocalIds.add(localId);
-
+                const seen = new Set();
+                const add = (f) => {
+                    const key = f.localId || f.path || f.url || '';
+                    if (key && seen.has(key)) return;
+                    if (key) seen.add(key);
                     merged.push(f);
                 };
-
-                (remotas || []).forEach(addFoto);
-                (locais || []).forEach(addFoto);
-
+                remotas.forEach(add);
+                locais.forEach(add);
                 setFotos(merged);
                 fotosCarregadasRef.current = occurrenceId;
                 setFotosDirty(false);
@@ -206,15 +169,13 @@ export default function VistoriarOcorrenciaDTR() {
                 console.error('[Fotos DTR]', err);
             }
         };
-
         carregarFotos();
     }, [occurrenceId, ocorrencia, fotosDirty]);
 
-    // Salvar Ocorrência
+    // Salvar ocorrência
     const salvarMutation = useMutation({
         mutationFn: async () => {
             let uId = occurrenceId;
-
             const unitPayload = {
                 fiscalizacao_id: fiscId,
                 tipo_unidade_id: null,
@@ -232,70 +193,46 @@ export default function VistoriarOcorrenciaDTR() {
                 gravidade: formData.gravidade,
                 status: 'finalizada'
             };
-
             if (occurrenceId) {
-                // Atualizar
                 await Repository.updateUnidadeDTR(occurrenceId, unitPayload);
             } else {
-                // Criar
                 const res = await Repository.createUnidade(unitPayload);
                 uId = res.id;
             }
-
-            // Salvar fotos vinculadas
-            const fotosCompletas = fotos.map(f => {
-                if (typeof f === 'string') return { url: f, legenda: '', mimeType: undefined, width: undefined, height: undefined };
-                return {
-                    url: f.url,
-                    bucket: f.bucket,
-                    path: f.path,
-                    legenda: f.legenda || '',
-                    mimeType: f.mimeType,
-                    width: f.width,
-                    height: f.height,
-                    localId: f.localId
-                };
-            });
+            const fotosCompletas = fotos.map(f => typeof f === 'string'
+                ? { url: f, legenda: '', mimeType: undefined, width: undefined, height: undefined }
+                : { url: f.url, bucket: f.bucket, path: f.path, legenda: f.legenda || '', mimeType: f.mimeType, width: f.width, height: f.height, localId: f.localId }
+            );
             await Repository.updateUnidadeFotos(uId, fotosCompletas);
-
-            // Salvar determinação se requerida
             if (requerDeterminacao && textoDeterminacao.trim()) {
-                await Repository.upsertDeterminacaoByOrigem(
-                    uId, 
-                    'dtr_determination', 
-                    textoDeterminacao, 
-                    parseInt(prazoDeterminacao, 10)
-                );
+                await Repository.upsertDeterminacaoByOrigem(uId, 'dtr_determination', textoDeterminacao, parseInt(prazoDeterminacao, 10));
             } else {
-                // Remover determinação se foi desmarcada
                 await Repository.upsertDeterminacaoByOrigem(uId, 'dtr_determination', null);
             }
-
             return uId;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['unidades', fiscId] });
             queryClient.invalidateQueries({ queryKey: ['unidade', occurrenceId] });
-            queryClient.invalidateQueries({ queryKey: ['determinacoes', occurrenceId] });
             setFotosDirty(false);
             navigate(createPageUrl('ExecutarFiscalizacaoDTR') + `?id=${fiscId}`);
         },
-        onError: (err) => {
-            alert(err.message || 'Falha ao salvar ocorrência.');
-        }
+        onError: (err) => alert(err.message || 'Falha ao salvar ocorrência.')
     });
 
-    const handleAddFoto = async (fotoData) => {
+    const handleAddFoto = (fotoData) => {
         setFotos(prev => [...prev, fotoData]);
         setFotosDirty(true);
+        // Abre seleção de tipo automaticamente se ainda não escolheu
+        if (!formData.tipo_ocorrencia) {
+            setStep('select-type');
+        }
     };
 
     const handleRemoveFoto = (index) => {
         setFotos(prev => {
             const alvo = prev[index];
-            if (alvo?.localId) {
-                Repository.deleteLocalFoto(alvo.localId).catch(() => {});
-            }
+            if (alvo?.localId) Repository.deleteLocalFoto(alvo.localId).catch(() => {});
             return prev.filter((_, i) => i !== index);
         });
         setFotosDirty(true);
@@ -303,31 +240,82 @@ export default function VistoriarOcorrenciaDTR() {
 
     const handleUpdateLegenda = (index, legenda) => {
         setFotos(prev => {
-            const novasFotos = [...prev];
-            const alvo = novasFotos[index];
+            const next = [...prev];
+            const alvo = next[index];
             if (!alvo) return prev;
-            if (typeof alvo === 'string') {
-                novasFotos[index] = { url: alvo, legenda };
-            } else {
-                novasFotos[index] = { ...alvo, legenda };
-            }
-            if (alvo?.localId) {
-                Repository.updateLocalFotoLegenda(alvo.localId, legenda).catch(() => {});
-            }
-            return novasFotos;
+            next[index] = typeof alvo === 'string' ? { url: alvo, legenda } : { ...alvo, legenda };
+            if (alvo?.localId) Repository.updateLocalFotoLegenda(alvo.localId, legenda).catch(() => {});
+            return next;
         });
         setFotosDirty(true);
     };
 
-    const handleReorderFotos = (nextFotos) => {
-        setFotos(nextFotos);
-        setFotosDirty(true);
-    };
+    const handleReorderFotos = (next) => { setFotos(next); setFotosDirty(true); };
 
-    const isEditable = !ocorrencia || ocorrencia.status !== 'finalizada' || true; // Em vistorias DTR sempre permitimos editar antes do fechamento geral
+    const isEditable = true;
 
+    // ─── Tela de seleção de tipo ────────────────────────────────────────────────
+    if (step === 'select-type') {
+        return (
+            <div className="min-h-screen bg-white flex flex-col">
+                {/* Header */}
+                <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md sticky top-0 z-10">
+                    <div className="max-w-md mx-auto px-4 py-4 flex items-center gap-3">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-white hover:bg-white/10 rounded-full"
+                            onClick={() => setStep('main')}
+                        >
+                            <ArrowLeft className="h-5 w-5" />
+                        </Button>
+                        <div>
+                            <h1 className="text-sm font-bold">Tipo de Ocorrência</h1>
+                            <p className="text-indigo-200 text-[10px]">Selecione o que foi constatado</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Lista de tipos */}
+                <div className="flex-1 overflow-y-auto max-w-md w-full mx-auto divide-y divide-gray-100">
+                    {tiposOcorrencia.map(t => (
+                        <button
+                            key={t.nome}
+                            type="button"
+                            onClick={() => {
+                                setFormData(prev => ({ ...prev, tipo_ocorrencia: t.nome }));
+                                if (t.gera_nc && t.prazo_dias_padrao) {
+                                    setPrazoDeterminacao(String(t.prazo_dias_padrao));
+                                }
+                                setStep('main');
+                            }}
+                            className={`w-full text-left px-4 py-4 hover:bg-blue-50 active:bg-blue-100 transition-colors flex items-center gap-3 ${formData.tipo_ocorrencia === t.nome ? 'bg-indigo-50' : ''}`}
+                        >
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-sm font-semibold text-gray-800">{t.nome}</span>
+                                    {t.gera_nc && (
+                                        <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200 flex-shrink-0">NC</span>
+                                    )}
+                                </div>
+                                {t.item_contrato && (
+                                    <p className="text-[11px] text-indigo-500 mt-0.5 truncate">{t.item_contrato}</p>
+                                )}
+                            </div>
+                            {formData.tipo_ocorrencia === t.nome
+                                ? <Check className="h-5 w-5 text-indigo-600 flex-shrink-0" />
+                                : <ChevronRight className="h-4 w-4 text-gray-300 flex-shrink-0" />
+                            }
+                        </button>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
+    // ─── Formulário principal ────────────────────────────────────────────────────
     return (
-        <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col justify-between">
+        <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col">
             {/* Header */}
             <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
                 <div className="max-w-md mx-auto px-4 py-4 flex items-center justify-between">
@@ -342,158 +330,163 @@ export default function VistoriarOcorrenciaDTR() {
                                 {occurrenceId ? 'Editar Ocorrência' : 'Nova Ocorrência'}
                             </h1>
                             <p className="text-indigo-200 text-[10px]">
-                                {occurrenceId ? `ID: ${occurrenceId.substring(0,8).toUpperCase()}` : 'Cadastro de Não Conformidade'}
+                                {formData.rodovia || 'DTR — Fiscalização de Rodovias'}
                             </p>
                         </div>
                     </div>
-                    <Button 
-                        size="sm" 
+                    <Button
+                        size="sm"
                         className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8 px-3 rounded-lg"
                         onClick={() => salvarMutation.mutate()}
-                        disabled={salvarMutation.isPending || !formData.tipo_target_name && !formData.tipo_ocorrencia}
+                        disabled={salvarMutation.isPending}
                     >
-                        {salvarMutation.isPending ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                            <>
-                                <Save className="h-4 w-4 mr-1" /> Salvar
-                            </>
-                        )}
+                        {salvarMutation.isPending
+                            ? <Loader2 className="h-4 w-4 animate-spin" />
+                            : <><Save className="h-4 w-4 mr-1" /> Salvar</>
+                        }
                     </Button>
                 </div>
             </div>
 
-            {/* Form */}
-            <div className="flex-1 max-w-md w-full mx-auto px-4 py-5 space-y-5 overflow-y-auto">
-                {/* Georeferencing Snapping Panel */}
-                <Card className="bg-white border border-gray-200 shadow-sm">
-                    <CardContent className="p-4 space-y-3">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-xs font-bold text-gray-500 flex items-center gap-1.5 uppercase tracking-wider">
-                                <Compass className="h-4 w-4 text-indigo-400" /> Georeferenciamento DTR
-                            </h3>
-                            {gettingLocation && (
-                                <span className="text-[10px] text-indigo-500 flex items-center gap-1">
-                                    <Loader2 className="h-3 w-3 animate-spin" /> Snapping ativo...
-                                </span>
-                            )}
-                        </div>
+            {/* Body */}
+            <div className="flex-1 max-w-md w-full mx-auto px-4 py-4 space-y-3 overflow-y-auto">
 
-                        <div className="grid grid-cols-3 gap-3">
-                            <div className="space-y-1">
-                                <Label className="text-xs text-gray-500 font-semibold">KM *</Label>
-                                <Input
-                                    value={formData.km}
-                                    onChange={e => setFormData({...formData, km: e.target.value})}
-                                    placeholder="Ex: 142.5"
-                                    className="h-10 rounded-xl bg-white border-gray-200 font-mono text-sm"
-                                />
-                            </div>
-                            <div className="space-y-1">
-                                <Label className="text-xs text-gray-500 font-semibold">Sentido *</Label>
-                                <Select
-                                    value={formData.sentido}
-                                    onValueChange={val => setFormData({...formData, sentido: val})}
-                                >
-                                    <SelectTrigger className="h-10 rounded-xl bg-white border-gray-200 text-gray-800 text-xs">
-                                        <SelectValue placeholder="—" />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-white border-gray-200 text-gray-800">
-                                        <SelectItem value="N">N (Norte / Crescente)</SelectItem>
-                                        <SelectItem value="S">S (Sul / Decrescente)</SelectItem>
-                                        <SelectItem value="N/S">N/S (Ambos)</SelectItem>
-                                        <SelectItem value="L">L (Leste)</SelectItem>
-                                        <SelectItem value="O">O (Oeste)</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-1">
-                                <Label className="text-xs text-gray-500 font-semibold">Trecho</Label>
-                                <Input
-                                    value={formData.trecho}
-                                    onChange={e => setFormData({...formData, trecho: e.target.value})}
-                                    placeholder="Trecho"
-                                    className="h-10 rounded-xl bg-white border-gray-200 text-xs"
-                                />
-                            </div>
-                        </div>
-
-                        {location && (
-                            <div className="flex items-center gap-1.5 text-[10px] text-gray-400 font-mono">
-                                <MapPin className="h-3.5 w-3.5 text-gray-400" />
-                                {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-
-                {/* Main Occurrence Details */}
-                <div className="space-y-4 bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
-                    {/* Tipo de Ocorrência */}
-                    <div className="space-y-2">
-                        <Label className="text-xs font-semibold text-gray-600">Tipo de Ocorrência *</Label>
+                {/* KM / Sentido / Trecho */}
+                <div className="grid grid-cols-3 gap-2">
+                    <div className="space-y-1">
+                        <Label className="text-xs text-gray-500 font-semibold">KM</Label>
+                        <Input
+                            value={formData.km}
+                            onChange={e => setFormData(p => ({ ...p, km: e.target.value }))}
+                            placeholder="142.5"
+                            className="h-9 rounded-xl bg-white border-gray-200 font-mono text-sm"
+                        />
+                    </div>
+                    <div className="space-y-1">
+                        <Label className="text-xs text-gray-500 font-semibold">Sentido</Label>
                         <Select
-                            value={formData.tipo_ocorrencia}
-                            onValueChange={val => setFormData({...formData, tipo_ocorrencia: val})}
+                            value={formData.sentido}
+                            onValueChange={val => setFormData(p => ({ ...p, sentido: val }))}
                         >
-                            <SelectTrigger className="bg-white border-gray-200 text-gray-800 text-sm h-11 rounded-xl">
-                                <SelectValue placeholder="Selecione o tipo..." />
+                            <SelectTrigger className="h-9 rounded-xl bg-white border-gray-200 text-gray-800 text-xs">
+                                <SelectValue placeholder="—" />
                             </SelectTrigger>
                             <SelectContent className="bg-white border-gray-200 text-gray-800">
-                                {tiposOcorrencia.map(t => (
-                                    <SelectItem key={t.nome} value={t.nome}>
-                                        <span className="flex items-center gap-2">
-                                            {t.nome}
-                                            {t.gera_nc && (
-                                                <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-1 rounded border border-rose-200">NC</span>
-                                            )}
-                                        </span>
-                                    </SelectItem>
-                                ))}
+                                <SelectItem value="N">N (Norte / Crescente)</SelectItem>
+                                <SelectItem value="S">S (Sul / Decrescente)</SelectItem>
+                                <SelectItem value="N/S">N/S (Ambos)</SelectItem>
+                                <SelectItem value="L">L (Leste)</SelectItem>
+                                <SelectItem value="O">O (Oeste)</SelectItem>
                             </SelectContent>
                         </Select>
+                    </div>
+                    <div className="space-y-1">
+                        <Label className="text-xs text-gray-500 font-semibold">Trecho</Label>
+                        <Input
+                            value={formData.trecho}
+                            onChange={e => setFormData(p => ({ ...p, trecho: e.target.value }))}
+                            placeholder="Trecho"
+                            className="h-9 rounded-xl bg-white border-gray-200 text-xs"
+                        />
+                    </div>
+                </div>
 
-                        {/* Metadados do tipo selecionado */}
-                        {tipoSelecionado && (
-                            <div className="space-y-1.5 pt-1">
-                                {tipoSelecionado.gera_nc && (
-                                    <div className="flex items-center gap-1.5 text-xs text-rose-600 bg-rose-50 border border-rose-100 rounded-lg px-2.5 py-1.5">
-                                        <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
-                                        <span className="font-semibold">Este tipo gera Não Conformidade automática.</span>
-                                    </div>
-                                )}
-                                {tipoSelecionado.item_contrato && (
-                                    <div className="flex items-start gap-1.5 text-xs text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-lg px-2.5 py-1.5">
-                                        <FileText className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
-                                        <span className="font-semibold">{tipoSelecionado.item_contrato}</span>
-                                    </div>
-                                )}
-                                {tipoSelecionado.nao_atendimento && (
-                                    <div className="flex items-start gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-2">
-                                        <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
-                                        <div>
-                                            <span className="font-semibold text-amber-800 block mb-0.5">Não Atendimento (PER):</span>
-                                            <span className="leading-relaxed">{tipoSelecionado.nao_atendimento}</span>
-                                        </div>
-                                    </div>
-                                )}
-                                {tipoSelecionado.prazo_dias_padrao && (
-                                    <div className="text-[10px] text-gray-400 pl-1">
-                                        Prazo padrão para NC: <span className="font-bold text-gray-500">{tipoSelecionado.prazo_dias_padrao} {tipoSelecionado.prazo_dias_padrao === 1 ? 'dia' : 'dias'}</span>
-                                    </div>
+                {/* Foto */}
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden p-3">
+                    <PhotoGrid
+                        fotos={fotos}
+                        minFotos={1}
+                        bigButton={true}
+                        titulo={fotos.length > 0 ? 'Evidências Fotográficas' : ''}
+                        onAddFoto={handleAddFoto}
+                        onRemoveFoto={handleRemoveFoto}
+                        onUpdateLegenda={handleUpdateLegenda}
+                        onReorderFotos={handleReorderFotos}
+                        fiscalizacaoId={fiscId}
+                        unidadeId={occurrenceId || 'novo-ponto'}
+                        isEditable={isEditable}
+                    />
+                </div>
+
+                {/* Tipo de ocorrência — botão que abre a tela de seleção */}
+                <button
+                    type="button"
+                    onClick={() => setStep('select-type')}
+                    className={`w-full text-left rounded-2xl border shadow-sm px-4 py-3 transition-colors ${
+                        formData.tipo_ocorrencia
+                            ? 'bg-white border-indigo-200 hover:bg-indigo-50'
+                            : 'bg-white border-dashed border-2 border-indigo-200 hover:bg-indigo-50'
+                    }`}
+                >
+                    {formData.tipo_ocorrencia ? (
+                        <div className="flex items-center gap-3">
+                            <div className="flex-1 min-w-0">
+                                <p className="text-[10px] font-semibold text-indigo-500 uppercase tracking-wide mb-0.5">Tipo de Ocorrência</p>
+                                <p className="text-sm font-bold text-gray-800">{formData.tipo_ocorrencia}</p>
+                                {tipoSelecionado?.item_contrato && (
+                                    <p className="text-[11px] text-indigo-400 mt-0.5 truncate">{tipoSelecionado.item_contrato}</p>
                                 )}
                             </div>
-                        )}
-                    </div>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                                {tipoSelecionado?.gera_nc && (
+                                    <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">NC</span>
+                                )}
+                                <ChevronRight className="h-4 w-4 text-gray-300" />
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="flex items-center justify-between gap-2 py-1">
+                            <div>
+                                <p className="text-sm font-semibold text-indigo-500">Selecionar Tipo de Ocorrência</p>
+                                <p className="text-xs text-indigo-300 mt-0.5">Toque para escolher na lista</p>
+                            </div>
+                            <ChevronRight className="h-5 w-5 text-indigo-300 flex-shrink-0" />
+                        </div>
+                    )}
+                </button>
 
-                    {/* Gravidade */}
-                    <div className="space-y-2">
-                        <Label className="text-xs font-semibold text-gray-600">Gravidade / Risco *</Label>
+                {/* Alertas do tipo selecionado */}
+                {tipoSelecionado?.gera_nc && (
+                    <div className="flex items-center gap-2 bg-rose-50 border border-rose-100 rounded-xl px-3 py-2.5 text-xs text-rose-600">
+                        <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                        <span className="font-semibold">Este tipo gera Não Conformidade automática.</span>
+                    </div>
+                )}
+                {tipoSelecionado?.nao_atendimento && (
+                    <div className="bg-amber-50 border border-amber-100 rounded-xl px-3 py-2.5 text-xs text-amber-700">
+                        <div className="flex items-start gap-1.5">
+                            <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+                            <div>
+                                <span className="font-semibold text-amber-800 block mb-0.5">Não Atendimento (PER):</span>
+                                <span className="leading-relaxed">{tipoSelecionado.nao_atendimento}</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                {tipoSelecionado?.prazo_dias_padrao && (
+                    <p className="text-[10px] text-gray-400 pl-1">
+                        Prazo padrão para NC: <span className="font-bold text-gray-500">{tipoSelecionado.prazo_dias_padrao} {tipoSelecionado.prazo_dias_padrao === 1 ? 'dia' : 'dias'}</span>
+                    </p>
+                )}
+
+                {/* Observações + Gravidade */}
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 space-y-4">
+                    <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold text-gray-600">Observações</Label>
+                        <Textarea
+                            value={formData.observacao}
+                            onChange={e => setFormData(p => ({ ...p, observacao: e.target.value }))}
+                            placeholder="Descreva as condições encontradas..."
+                            className="bg-white border-gray-200 text-gray-800 text-xs min-h-[72px] rounded-xl"
+                        />
+                    </div>
+                    <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold text-gray-600">Gravidade / Risco</Label>
                         <Select
                             value={formData.gravidade}
-                            onValueChange={val => setFormData({...formData, gravidade: val})}
+                            onValueChange={val => setFormData(p => ({ ...p, gravidade: val }))}
                         >
-                            <SelectTrigger className="bg-white border-gray-200 text-gray-800 text-sm h-11 rounded-xl">
+                            <SelectTrigger className="bg-white border-gray-200 text-gray-800 text-sm h-10 rounded-xl">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="bg-white border-gray-200 text-gray-800">
@@ -503,36 +496,9 @@ export default function VistoriarOcorrenciaDTR() {
                             </SelectContent>
                         </Select>
                     </div>
-
-                    {/* Observação */}
-                    <div className="space-y-2">
-                        <Label className="text-xs font-semibold text-gray-600">Descrição Detalhada</Label>
-                        <Textarea
-                            value={formData.observacao}
-                            onChange={e => setFormData({...formData, observacao: e.target.value})}
-                            placeholder="Descreva as condições da pista, acostamento ou sinalização..."
-                            className="bg-white border-gray-200 text-gray-800 text-xs min-h-[80px] rounded-xl"
-                        />
-                    </div>
                 </div>
 
-                {/* Photo Grid Section */}
-                <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
-                    <PhotoGrid
-                        fotos={fotos}
-                        minFotos={1}
-                        onAddFoto={handleAddFoto}
-                        onRemoveFoto={handleRemoveFoto}
-                        onUpdateLegenda={handleUpdateLegenda}
-                        onReorderFotos={handleReorderFotos}
-                        titulo="Evidências Fotográficas"
-                        fiscalizacaoId={fiscId}
-                        unidadeId={occurrenceId || 'novo-ponto'}
-                        isEditable={isEditable}
-                    />
-                </div>
-
-                {/* Determination */}
+                {/* Determinação */}
                 <Card className="bg-white border border-gray-200 shadow-sm rounded-2xl">
                     <CardContent className="p-4 space-y-4">
                         <div className="flex items-center justify-between">
@@ -548,7 +514,7 @@ export default function VistoriarOcorrenciaDTR() {
                                     setRequerDeterminacao(val);
                                     if (val) {
                                         if (!textoDeterminacao) {
-                                            setTextoDeterminacao(`Sanar a ocorrência de ${formData.tipo_ocorrencia || 'irregularidade'} identificada no KM ${formData.km || ''} da rodovia ${formData.rodovia || ''}${formData.sentido ? `, sentido ${formData.sentido}` : ''};`);
+                                            setTextoDeterminacao(`Sanar a ocorrência de ${formData.tipo_ocorrencia || 'irregularidade'} identificada no KM ${formData.km || ''}${formData.sentido ? `, sentido ${formData.sentido}` : ''}, na rodovia ${formData.rodovia || ''};`);
                                         }
                                         if (tipoSelecionado?.prazo_dias_padrao) {
                                             setPrazoDeterminacao(String(tipoSelecionado.prazo_dias_padrao));
@@ -565,7 +531,6 @@ export default function VistoriarOcorrenciaDTR() {
                                     <Textarea
                                         value={textoDeterminacao}
                                         onChange={e => setTextoDeterminacao(e.target.value)}
-                                        placeholder="Ex: Corrigir defeito asfáltico no prazo estabelecido..."
                                         className="bg-white border-gray-200 text-gray-800 text-xs min-h-[70px] rounded-xl"
                                     />
                                 </div>
@@ -588,10 +553,11 @@ export default function VistoriarOcorrenciaDTR() {
                         )}
                     </CardContent>
                 </Card>
+
             </div>
 
             {/* Footer */}
-            <div className="py-4 text-center text-xs text-gray-400 bg-white border-t border-gray-200">
+            <div className="py-3 text-center text-xs text-gray-400 bg-white border-t border-gray-200">
                 AGEMS — Diretoria de Transportes Rodoviários
             </div>
         </div>

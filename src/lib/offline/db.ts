@@ -79,7 +79,10 @@ export type TipoOcorrenciaDTR = {
   item_contrato?: string
   nao_atendimento?: string
   prazo_dias_padrao?: number
+  /** Texto para a coluna DESCRIÇÃO do relatório de constatações */
   descricao?: string
+  /** Observação-padrão que aparece em ambas as tabelas (constatações e NCs) */
+  observacoes?: string
   ativo: boolean
   created_at?: string
   updated_at?: string

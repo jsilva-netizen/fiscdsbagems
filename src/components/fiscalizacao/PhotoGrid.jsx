@@ -9,17 +9,18 @@ import OptimizedImage from '@/components/fiscalizacao/OptimizedImage.jsx';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Loader2, Image as ImageIcon, Camera as CameraIcon, Trash2, Save, Edit2, X, Clock, GripVertical } from 'lucide-react';
 
-export default function PhotoGrid({ 
-    fotos = [], 
-    minFotos = 2, 
-    onAddFoto, 
+export default function PhotoGrid({
+    fotos = [],
+    minFotos = 2,
+    onAddFoto,
     onRemoveFoto,
     onUpdateLegenda,
     onReorderFotos,
     titulo = "Fotos da Unidade",
     fiscalizacaoId,
     unidadeId,
-    isEditable = true
+    isEditable = true,
+    bigButton = false
 }) {
     const fotosList = useMemo(() => {
         return (Array.isArray(fotos) ? fotos : []).map((f) => (typeof f === 'string' ? { url: f, legenda: '' } : f)).filter(Boolean);
@@ -297,67 +298,69 @@ export default function PhotoGrid({
 
     return (
         <div className="space-y-4">
-            <div className="flex justify-between items-center">
-                <h4 className="font-medium">{titulo}</h4>
-                <div className="flex gap-2">
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        onChange={handleFileSelect}
-                        className="hidden"
-                    />
-                    <input
-                        ref={cameraInputRef}
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        onChange={handleFileSelect}
-                        className="hidden"
-                    />
-                    <Button 
-                        onClick={() => fileInputRef.current?.click()} 
-                        size="sm"
-                        variant="outline"
-                        disabled={isUploading || isCapturing || !isEditable}
-                    >
-                        {isUploading ? (
-                            <>
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                {uploadProgress}/{totalUploads}
-                            </>
-                        ) : (
-                            <>
-                                <ImageIcon className="h-4 w-4 mr-2" />
-                                Galeria
-                            </>
-                        )}
-                    </Button>
-                    <Button 
-                        onClick={() => void openWithGpsGate(cameraInputRef)} 
-                        size="sm"
-                        disabled={isUploading || isCapturing || !isEditable}
-                    >
-                        {isUploading ? (
-                            <>
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                Enviando...
-                            </>
-                        ) : isCapturing ? (
-                            <>
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                Abrindo câmera...
-                            </>
-                        ) : (
-                            <>
-                                <CameraIcon className="h-4 w-4 mr-2" />
-                                Câmera
-                            </>
-                        )}
-                    </Button>
+            {/* Hidden inputs always present */}
+            <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleFileSelect} className="hidden" />
+            <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleFileSelect} className="hidden" />
+
+            {/* Big empty-state button (modo DTR) */}
+            {bigButton && fotosList.length === 0 && isEditable && (
+                <button
+                    type="button"
+                    onClick={() => void openWithGpsGate(cameraInputRef)}
+                    disabled={isUploading || isCapturing}
+                    className="w-full py-16 rounded-2xl border-2 border-dashed border-blue-300 bg-blue-50 hover:bg-blue-100 active:bg-blue-200 transition-colors flex flex-col items-center justify-center gap-3 disabled:opacity-60"
+                >
+                    {(isUploading || isCapturing) ? (
+                        <>
+                            <Loader2 className="h-12 w-12 text-blue-400 animate-spin" />
+                            <span className="text-sm font-semibold text-blue-500">
+                                {isCapturing ? 'Aguardando GPS e câmera...' : `Salvando... ${uploadProgress}/${totalUploads}`}
+                            </span>
+                        </>
+                    ) : (
+                        <>
+                            <CameraIcon className="h-14 w-14 text-blue-400" />
+                            <span className="text-lg font-bold text-blue-600">Registrar Imagem</span>
+                            <span className="text-xs text-blue-400">Toque para abrir a câmera</span>
+                        </>
+                    )}
+                </button>
+            )}
+
+            {/* Header padrão (exibido quando NÃO é bigButton vazio) */}
+            {!(bigButton && fotosList.length === 0) && (
+                <div className="flex justify-between items-center">
+                    <h4 className="font-medium">{titulo}</h4>
+                    <div className="flex gap-2">
+                        <Button
+                            onClick={() => fileInputRef.current?.click()}
+                            size="sm"
+                            variant="outline"
+                            disabled={isUploading || isCapturing || !isEditable}
+                        >
+                            {isUploading ? (
+                                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />{uploadProgress}/{totalUploads}</>
+                            ) : (
+                                <><ImageIcon className="h-4 w-4 mr-2" />Galeria</>
+                            )}
+                        </Button>
+                        <Button
+                            onClick={() => void openWithGpsGate(cameraInputRef)}
+                            size="sm"
+                            disabled={isUploading || isCapturing || !isEditable}
+                        >
+                            {isUploading ? (
+                                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Enviando...</>
+                            ) : isCapturing ? (
+                                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Abrindo câmera...</>
+                            ) : (
+                                <><CameraIcon className="h-4 w-4 mr-2" />Câmera</>
+                            )}
+                        </Button>
+                    </div>
                 </div>
-            </div>
+            )}
+
 
             {/* Grid de fotos */}
             {fotosList.length > 0 && (

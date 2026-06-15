@@ -13,14 +13,17 @@ import {
     AlertCircle, Loader2, RefreshCw, FileText, Trash2, Route
 } from 'lucide-react';
 
-// Colunas do template alinhadas com estrutura do PER
+// Colunas alinhadas com estrutura do PER:
+// Descrição → coluna DESCRIÇÃO nas constatações
+// Observações → coluna OBSERVAÇÃO em ambas (constatações e NCs)
 const TEMPLATE_COLUNAS = [
     'Nome da Ocorrência',
     'Gera Não Conformidade (SIM/NAO)',
     'Item do PER (ex: 3.1.6 Canteiro Central e Faixa de Domínio)',
     'Texto de Não Atendimento (cláusula específica do PER violada)',
     'Prazo Padrão NC (dias)',
-    'Descrição/Observações'
+    'Descrição (coluna DESCRIÇÃO nas constatações)',
+    'Observações (aparece em constatações e NCs)'
 ];
 
 function downloadTemplate() {
@@ -32,7 +35,8 @@ function downloadTemplate() {
             '3.1.1 Pavimento',
             '3.1.1 Ausência de defeitos no revestimento do pavimento do tipo panela, afundamento de trilha de roda, escorregamento, conforme parâmetros do PER.',
             '3',
-            'Depressão ou cavidade na camada asfáltica com risco de dano a veículos.'
+            'Presença de buraco (panela) na pista de rolamento, com risco de dano a veículos e usuários.',
+            ''
         ],
         [
             'Vegetação alta no acostamento / faixa de domínio',
@@ -40,6 +44,7 @@ function downloadTemplate() {
             '3.1.6 Canteiro Central e Faixa de Domínio',
             '3.1.6 Ausência total de vegetação rasteira com comprimento superior a 40,0 (quarenta) cm, em toda a extensão da faixa de domínio, numa largura mínima de 4,0 (quatro) metros a partir do bordo da drenagem e/ou do acostamento, de cada lado das rodovias.',
             '15',
+            'Vegetação rasteira ultrapassando 40 cm de altura na faixa de domínio ou acostamento.',
             ''
         ],
         [
@@ -48,7 +53,8 @@ function downloadTemplate() {
             '3.4.5.1 Atendimento Médico de Emergência',
             '3.4.5.1. Disponibilização de serviço de atendimento médico de emergência 24:00 horas por dia, inclusive sábados, domingos e feriados, conforme Anexo B.',
             '1',
-            ''
+            'Ambulância ou equipe de atendimento médico de emergência indisponível na base operacional.',
+            'Verificar escala de plantão e confirmar responsável pela cobertura.'
         ],
         [
             'Outro',
@@ -56,10 +62,11 @@ function downloadTemplate() {
             '',
             '',
             '',
-            'Ocorrências não enquadradas nos demais tipos. Descrever no campo observação.'
+            'Ocorrência não enquadrada nos demais tipos.',
+            'Descrever detalhadamente no campo observação da fiscalização.'
         ]
     ]);
-    ws['!cols'] = [{ wch: 45 }, { wch: 30 }, { wch: 55 }, { wch: 80 }, { wch: 22 }, { wch: 50 }];
+    ws['!cols'] = [{ wch: 45 }, { wch: 30 }, { wch: 55 }, { wch: 80 }, { wch: 22 }, { wch: 60 }, { wch: 60 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Tipos de Ocorrência DTR');
     XLSX.writeFile(wb, 'template_tipos_ocorrencia_dtr.xlsx');
@@ -82,7 +89,8 @@ function parseSpreadsheet(file) {
                         item_contrato: String(r[2] || '').trim() || null,
                         nao_atendimento: String(r[3] || '').trim() || null,
                         prazo_dias_padrao: r[4] ? parseInt(String(r[4]).trim(), 10) || null : null,
-                        descricao: String(r[5] || '').trim() || null
+                        descricao: String(r[5] || '').trim() || null,
+                        observacoes: String(r[6] || '').trim() || null
                     }));
                 resolve(tipos);
             } catch (err) {
@@ -268,6 +276,16 @@ function TabTipos() {
                                 </div>
                                 {t.item_contrato && (
                                     <p className="text-[11px] text-indigo-500 truncate">{t.item_contrato}</p>
+                                )}
+                                {t.descricao && (
+                                    <p className="text-[10px] text-gray-500 line-clamp-1">
+                                        <span className="font-semibold text-gray-400">Desc: </span>{t.descricao}
+                                    </p>
+                                )}
+                                {t.observacoes && (
+                                    <p className="text-[10px] text-teal-600 line-clamp-1">
+                                        <span className="font-semibold">Obs: </span>{t.observacoes}
+                                    </p>
                                 )}
                                 {t.nao_atendimento && (
                                     <p className="text-[10px] text-amber-600 line-clamp-2 leading-relaxed">{t.nao_atendimento}</p>

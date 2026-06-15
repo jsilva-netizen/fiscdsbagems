@@ -296,7 +296,7 @@ export const Repository = {
     }
   },
 
-  async upsertTiposOcorrenciaDTR(tipos: Array<{ nome: string; gera_nc: boolean; item_contrato?: string; nao_atendimento?: string; prazo_dias_padrao?: number; descricao?: string }>): Promise<void> {
+  async upsertTiposOcorrenciaDTR(tipos: Array<{ nome: string; gera_nc: boolean; item_contrato?: string; nao_atendimento?: string; prazo_dias_padrao?: number; descricao?: string; observacoes?: string }>): Promise<void> {
     if (!tipos || tipos.length === 0) return
 
     const rows = tipos.map(t => ({
@@ -307,6 +307,7 @@ export const Repository = {
       nao_atendimento: t.nao_atendimento || null,
       prazo_dias_padrao: t.prazo_dias_padrao ? Number(t.prazo_dias_padrao) : null,
       descricao: t.descricao || null,
+      observacoes: t.observacoes || null,
       ativo: true,
       created_at: now(),
       updated_at: now()
