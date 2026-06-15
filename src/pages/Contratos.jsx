@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Plus, Edit2, Trash2, AlertTriangle, Eye, Loader2, Link2, MapPin } from 'lucide-react';
+import { ArrowLeft, Plus, Edit2, Trash2, AlertTriangle, Eye, Loader2, Link2, MapPin, Settings2 } from 'lucide-react';
 
 export default function Contratos() {
     const queryClient = useQueryClient();
@@ -140,10 +140,18 @@ export default function Contratos() {
                         <div className="text-sm text-slate-500 font-medium bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
                             Total de Contratos: <span className="text-slate-800 font-bold">{contratos.length}</span>
                         </div>
-                        <Button onClick={() => { resetForm(); setShowForm(true); }} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow transition-all">
-                            <Plus className="h-4 w-4 mr-2" />
-                            Novo Contrato
-                        </Button>
+                        <div className="flex gap-2">
+                            <Link to={createPageUrl('ConfiguracoesDTR')}>
+                                <Button variant="outline" className="border-indigo-200 text-indigo-700 hover:bg-indigo-50 rounded-xl gap-1.5">
+                                    <Settings2 className="h-4 w-4" />
+                                    Config. DTR
+                                </Button>
+                            </Link>
+                            <Button onClick={() => { resetForm(); setShowForm(true); }} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow transition-all">
+                                <Plus className="h-4 w-4 mr-2" />
+                                Novo Contrato
+                            </Button>
+                        </div>
                     </div>
 
                     {isLoadingContratos || isLoadingConcess ? (

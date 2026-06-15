@@ -78,6 +78,84 @@ export const RODOVIAS_TRACKS = {
 };
 
 /**
+ * Analisa um arquivo KML e extrai o primeiro LineString de coordenadas encontrado.
+ * Retorna um array de [lng, lat] para uso com Turf.js (mesmo formato de RODOVIAS_TRACKS).
+ *
+ * @param {string} kmlText - Conteúdo textual do arquivo KML
+ * @returns {[number, number][] | null} Array de coordenadas [lng, lat] ou null se inválido
+ */
+export function parseKMLCoordinates(kmlText) {
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(kmlText, 'application/xml');
+
+    // Aceita <coordinates> dentro de <LineString> ou <LinearRing>
+    const coordNodes = doc.querySelectorAll('LineString > coordinates, LinearRing > coordinates');
+    if (coordNodes.length === 0) return null;
+
+    const raw = coordNodes[0].textContent.trim();
+    const coords = raw
+      .split(/\s+/)
+      .map(token => {
+        const parts = token.split(',').map(Number);
+        // KML usa lon,lat,alt — descartamos altitude
+        if (parts.length >= 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+          return [parts[0], parts[1]];
+        }
+        return null;
+      })
+      .filter(Boolean);
+
+    return coords.length >= 2 ? coords : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Faz snap de um ponto GPS ao traçado de uma rodovia, preferindo coordenadas
+ * carregadas de KML (passadas como parâmetro) sobre as hardcoded em RODOVIAS_TRACKS.
+ *
+ * @param {number} lat
+ * @param {number} lng
+ * @param {string} rodoviaId
+ * @param {[number, number][] | null} kmlCoords - Coordenadas do KML (opcional)
+ */
+export function snapToHighwayWithKML(lat, lng, rodoviaId, kmlCoords) {
+  const rodovia = RODOVIAS_TRACKS[rodoviaId];
+  const coordinates = (kmlCoords && kmlCoords.length >= 2) ? kmlCoords : (rodovia?.coordinates ?? null);
+  if (!coordinates) {
+    return { km: '', trecho: '', distanceToLineMeters: 0, latitude: lat, longitude: lng };
+  }
+  const tempRodovia = {
+    ...rodovia,
+    coordinates,
+    // Se veio do KML não temos trechos mapeados; retornar a rodovia completa
+    trechos: rodovia?.trechos ?? [{ maxKm: 9999, nome: rodoviaId }]
+  };
+  try {
+    const highwayLine = lineString(tempRodovia.coordinates);
+    const userPoint = point([lng, lat]);
+    const snapped = nearestPointOnLine(highwayLine, userPoint);
+    const distanceKm = snapped.properties.dist ?? 0;
+    const rawLocationKm = snapped.properties.location ?? 0;
+    const geomLength = length(highwayLine);
+    const officialLength = tempRodovia.oficialLengthKm ?? geomLength;
+    const finalKm = rawLocationKm * (officialLength / geomLength);
+    const trechoObj = tempRodovia.trechos.find(t => finalKm <= t.maxKm) ?? tempRodovia.trechos[tempRodovia.trechos.length - 1];
+    return {
+      km: finalKm.toFixed(1),
+      trecho: trechoObj?.nome ?? '',
+      distanceToLineMeters: Math.round(distanceKm * 1000),
+      latitude: snapped.geometry.coordinates[1],
+      longitude: snapped.geometry.coordinates[0]
+    };
+  } catch {
+    return { km: '', trecho: '', distanceToLineMeters: 0, latitude: lat, longitude: lng };
+  }
+}
+
+/**
  * Cruza a coordenada GPS com o traçado da rodovia selecionada usando Turf.js.
  * Retorna o KM snappeado, a distância do GPS à rodovia (em metros) e o trecho estimado.
  * 

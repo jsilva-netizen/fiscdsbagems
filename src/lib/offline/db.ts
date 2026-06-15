@@ -67,6 +67,20 @@ export type Contrato = {
   prestador_servico_id: UUID
   rodovia: string
   ativo: boolean
+  kml_url?: string
+  created_at?: string
+  updated_at?: string
+}
+
+export type TipoOcorrenciaDTR = {
+  id: UUID
+  nome: string
+  gera_nc: boolean
+  item_contrato?: string
+  nao_atendimento?: string
+  prazo_dias_padrao?: number
+  descricao?: string
+  ativo: boolean
   created_at?: string
   updated_at?: string
 }
@@ -114,6 +128,7 @@ export type Unidade = {
   rodovia?: string
   trecho?: string
   km?: string
+  sentido?: string
   tipo_ocorrencia?: string
   gravidade?: string
 }
@@ -218,6 +233,7 @@ export class AppDB extends Dexie {
   municipios!: Table<Municipio, UUID>
   prestadores!: Table<Prestador, UUID>
   contratos!: Table<Contrato, UUID>
+  tipos_ocorrencia_dtr!: Table<TipoOcorrenciaDTR, UUID>
   tipos_unidade!: Table<{ id: UUID; nome: string; codigo?: string; servicos_aplicaveis?: string[]; ativo?: boolean; updated_at?: string; created_at?: string }, UUID>
   fiscalizacoes!: Table<Fiscalizacao, UUID>
   unidades!: Table<Unidade, UUID>
@@ -388,6 +404,13 @@ export class AppDB extends Dexie {
           await table.put(p)
         }
       }
+    })
+    this.version(12).stores({
+      tipos_ocorrencia_dtr: 'id, nome, gera_nc, ativo, updated_at'
+    })
+    this.version(13).stores({
+      // sentido adicionado em unidades; tipos_ocorrencia_dtr sem mudanças de índice
+      unidades: 'id, fiscalizacao_id, ordem, tipo_unidade_id, status, codigo_unidade, nome_unidade, rodovia, sentido, created_at, updated_at'
     })
   }
 }

@@ -74,6 +74,7 @@ import VistoriarUnidade from './pages/VistoriarUnidade';
 import PortalPrestadorHome from './pages/PortalPrestadorHome';
 import ResponderTermo from './pages/ResponderTermo';
 import Contratos from './pages/Contratos';
+import ConfiguracoesDTR from './pages/ConfiguracoesDTR';
 import __Layout from './Layout.jsx';
 
 
@@ -105,6 +106,7 @@ export const PAGES = {
     "PortalPrestadorHome": PortalPrestadorHome,
     "ResponderTermo": ResponderTermo,
     "Contratos": Contratos,
+    "ConfiguracoesDTR": ConfiguracoesDTR,
 }
 
 export const pagesConfig = {

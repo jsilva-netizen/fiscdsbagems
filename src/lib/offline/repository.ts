@@ -259,6 +259,109 @@ export const Repository = {
     await db.contratos.delete(id as any)
     await enqueueMutation({ id }, 'delete', 'contratos')
   },
+
+  // --- Tipos de Ocorrência DTR ---
+
+  async listTiposOcorrenciaDTR(): Promise<import('./db').TipoOcorrenciaDTR[]> {
+    const local = await db.tipos_ocorrencia_dtr.filter(t => t.ativo !== false).toArray()
+    if (local.length > 0) return local.slice().sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+
+    // Fallback: buscar do Supabase e armazenar localmente
+    try {
+      const { data, error } = await supabase
+        .from('tipos_ocorrencia_dtr')
+        .select('*')
+        .eq('ativo', true)
+        .order('nome')
+      if (error || !data) return []
+      await db.tipos_ocorrencia_dtr.bulkPut(data as any)
+      return data as any
+    } catch {
+      return []
+    }
+  },
+
+  async syncTiposOcorrenciaDTR(): Promise<number> {
+    try {
+      const { data, error } = await supabase
+        .from('tipos_ocorrencia_dtr')
+        .select('*')
+        .order('nome')
+      if (error || !data) return 0
+      await db.tipos_ocorrencia_dtr.clear()
+      await db.tipos_ocorrencia_dtr.bulkPut(data as any)
+      return data.length
+    } catch {
+      return 0
+    }
+  },
+
+  async upsertTiposOcorrenciaDTR(tipos: Array<{ nome: string; gera_nc: boolean; item_contrato?: string; nao_atendimento?: string; prazo_dias_padrao?: number; descricao?: string }>): Promise<void> {
+    if (!tipos || tipos.length === 0) return
+
+    const rows = tipos.map(t => ({
+      id: uid(),
+      nome: (t.nome || '').trim(),
+      gera_nc: !!t.gera_nc,
+      item_contrato: t.item_contrato || null,
+      nao_atendimento: t.nao_atendimento || null,
+      prazo_dias_padrao: t.prazo_dias_padrao ? Number(t.prazo_dias_padrao) : null,
+      descricao: t.descricao || null,
+      ativo: true,
+      created_at: now(),
+      updated_at: now()
+    })).filter(r => r.nome)
+
+    // Limpar e reinserir no Supabase
+    const { error: delErr } = await supabase.from('tipos_ocorrencia_dtr').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+    if (delErr) throw new Error('Falha ao limpar tipos antigos: ' + delErr.message)
+
+    const { error: insErr } = await supabase.from('tipos_ocorrencia_dtr').insert(rows)
+    if (insErr) throw new Error('Falha ao inserir tipos: ' + insErr.message)
+
+    // Sincronizar localmente
+    await db.tipos_ocorrencia_dtr.clear()
+    await db.tipos_ocorrencia_dtr.bulkPut(rows as any)
+  },
+
+  // --- KML por Contrato/Rodovia ---
+
+  async uploadKMLForContrato(contratoId: string, kmlText: string, rodoviaName: string): Promise<string> {
+    const path = `${rodoviaName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${contratoId.substring(0, 8)}.kml`
+    const blob = new Blob([kmlText], { type: 'application/vnd.google-earth.kml+xml' })
+    const { error: upErr } = await supabase.storage.from('kml-rodovias').upload(path, blob, { upsert: true })
+    if (upErr) throw new Error('Falha ao enviar KML: ' + upErr.message)
+
+    const kmlUrl = `storage://kml-rodovias/${path}`
+
+    const cur = await db.contratos.get(contratoId as any)
+    if (cur) {
+      await db.contratos.update(contratoId as any, { ...cur, kml_url: kmlUrl, updated_at: now() })
+    }
+
+    const { error: updErr } = await supabase.from('contratos').update({ kml_url: kmlUrl }).eq('id', contratoId)
+    if (updErr) throw new Error('Falha ao salvar URL do KML no contrato: ' + updErr.message)
+
+    return kmlUrl
+  },
+
+  async downloadKMLForRodovia(rodovia: string): Promise<string | null> {
+    try {
+      const contratos = await db.contratos.where('rodovia').equals(rodovia).toArray()
+      const contrato = contratos[0]
+      if (!contrato?.kml_url) return null
+
+      const parsed = Repository.parseStorageUrl(contrato.kml_url)
+      if (!parsed) return null
+
+      const { data, error } = await supabase.storage.from(parsed.bucket).download(parsed.path)
+      if (error || !data) return null
+
+      return await data.text()
+    } catch {
+      return null
+    }
+  },
   
   async listTiposUnidade(): Promise<{ id: string; nome: string; codigo?: string; servicos_aplicaveis?: string[]; ativo?: boolean }[]> {
     const list = await db.tipos_unidade.toArray()
@@ -2030,7 +2133,7 @@ export const Repository = {
     await enqueueMutation({ id: unidadeId, coordenadas, updated_at: now() }, 'update', 'unidades')
   },
 
-  async updateUnidadeDTR(unidadeId: string, changes: { rodovia?: string; trecho?: string; km?: string; tipo_ocorrencia?: string; latitude?: number | null; longitude?: number | null; status?: string }): Promise<void> {
+  async updateUnidadeDTR(unidadeId: string, changes: { rodovia?: string; trecho?: string; km?: string; sentido?: string; tipo_ocorrencia?: string; latitude?: number | null; longitude?: number | null; status?: string; gravidade?: string; endereco?: string }): Promise<void> {
     const u = await db.unidades.get(unidadeId)
     if (u) {
       await db.unidades.update(unidadeId, { ...u, ...changes, updated_at: now() })

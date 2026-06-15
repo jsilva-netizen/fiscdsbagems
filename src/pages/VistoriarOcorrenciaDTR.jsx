@@ -7,23 +7,25 @@ import { snapToHighway } from '@/utils/rodoviasGeoJSON';
 import PhotoGrid from '@/components/fiscalizacao/PhotoGrid';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, Loader2, Save, MapPin, Compass, AlertCircle, FileText } from 'lucide-react';
+import { ArrowLeft, Loader2, Save, MapPin, Compass, AlertCircle, FileText, AlertTriangle } from 'lucide-react';
 
-const TIPOS_OCORRENCIA = [
-    'Buraco na pista',
-    'Rachaduras no asfalto',
-    'Vegetação alta no acostamento',
-    'Sinalização vertical danificada',
-    'Sinalização horizontal apagada',
-    'Lixo ou entulho na via',
-    'Defeito na defensa metálica',
-    'Drenagem obstruída',
-    'Outro'
+// Fallback estático caso o banco não tenha tipos cadastrados
+const TIPOS_OCORRENCIA_FALLBACK = [
+    { nome: 'Buraco na pista',                 gera_nc: true,  item_contrato: null },
+    { nome: 'Rachaduras no asfalto',            gera_nc: false, item_contrato: null },
+    { nome: 'Vegetação alta no acostamento',    gera_nc: true,  item_contrato: null },
+    { nome: 'Sinalização vertical danificada',  gera_nc: true,  item_contrato: null },
+    { nome: 'Sinalização horizontal apagada',   gera_nc: true,  item_contrato: null },
+    { nome: 'Lixo ou entulho na via',           gera_nc: false, item_contrato: null },
+    { nome: 'Defeito na defensa metálica',      gera_nc: true,  item_contrato: null },
+    { nome: 'Drenagem obstruída',               gera_nc: true,  item_contrato: null },
+    { nome: 'Outro',                            gera_nc: false, item_contrato: null }
 ];
 
 const GRAVIDADES = [
@@ -48,6 +50,7 @@ export default function VistoriarOcorrenciaDTR() {
         rodovia: '',
         trecho: '',
         km: '',
+        sentido: '',
         tipo_ocorrencia: '',
         gravidade: 'media',
         observacao: ''
@@ -60,6 +63,15 @@ export default function VistoriarOcorrenciaDTR() {
     const [fotos, setFotos] = useState([]);
     const [fotosDirty, setFotosDirty] = useState(false);
     const fotosCarregadasRef = useRef(null);
+
+    // 0. Carregar tipos de ocorrência do banco (com fallback)
+    const { data: tiposDB = [] } = useQuery({
+        queryKey: ['tipos_ocorrencia_dtr'],
+        queryFn: () => Repository.listTiposOcorrenciaDTR(),
+        staleTime: 5 * 60 * 1000
+    });
+    const tiposOcorrencia = tiposDB.length > 0 ? tiposDB : TIPOS_OCORRENCIA_FALLBACK;
+    const tipoSelecionado = tiposOcorrencia.find(t => t.nome === formData.tipo_ocorrencia) ?? null;
 
     // 1. Carregar fiscalização principal
     const { data: fisc } = useQuery({
@@ -89,6 +101,7 @@ export default function VistoriarOcorrenciaDTR() {
                 rodovia: ocorrencia.rodovia || fisc?.rodovia || '',
                 trecho: ocorrencia.trecho || '',
                 km: ocorrencia.km || '',
+                sentido: ocorrencia.sentido || '',
                 tipo_ocorrencia: ocorrencia.tipo_ocorrencia || ocorrencia.nome_unidade || '',
                 gravidade: ocorrencia.gravidade || 'media',
                 observacao: ocorrencia.endereco || '' // Reutiliza campo endereço para observação longa
@@ -204,19 +217,20 @@ export default function VistoriarOcorrenciaDTR() {
 
             const unitPayload = {
                 fiscalizacao_id: fiscId,
-                tipo_unidade_id: null, // No specific unit type for DTR occurrences
+                tipo_unidade_id: null,
                 tipo_unidade_name: 'Ocorrência',
                 nome_unidade: formData.tipo_ocorrencia,
                 codigo_unidade: '',
-                endereco: formData.observacao, // Usa endereço para notas textuais
+                endereco: formData.observacao,
                 latitude: location?.lat ?? null,
                 longitude: location?.lng ?? null,
                 rodovia: formData.rodovia,
                 trecho: formData.trecho,
                 km: formData.km,
+                sentido: formData.sentido || null,
                 tipo_ocorrencia: formData.tipo_ocorrencia,
                 gravidade: formData.gravidade,
-                status: 'finalizada' // Sempre marca como finalizado para facilitar o fechamento
+                status: 'finalizada'
             };
 
             if (occurrenceId) {
@@ -365,10 +379,10 @@ export default function VistoriarOcorrenciaDTR() {
                             )}
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-3 gap-3">
                             <div className="space-y-1">
                                 <Label className="text-xs text-gray-500 font-semibold">KM *</Label>
-                                <Input 
+                                <Input
                                     value={formData.km}
                                     onChange={e => setFormData({...formData, km: e.target.value})}
                                     placeholder="Ex: 142.5"
@@ -376,11 +390,29 @@ export default function VistoriarOcorrenciaDTR() {
                                 />
                             </div>
                             <div className="space-y-1">
-                                <Label className="text-xs text-gray-500 font-semibold">Trecho *</Label>
-                                <Input 
+                                <Label className="text-xs text-gray-500 font-semibold">Sentido *</Label>
+                                <Select
+                                    value={formData.sentido}
+                                    onValueChange={val => setFormData({...formData, sentido: val})}
+                                >
+                                    <SelectTrigger className="h-10 rounded-xl bg-white border-gray-200 text-gray-800 text-xs">
+                                        <SelectValue placeholder="—" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-white border-gray-200 text-gray-800">
+                                        <SelectItem value="N">N (Norte / Crescente)</SelectItem>
+                                        <SelectItem value="S">S (Sul / Decrescente)</SelectItem>
+                                        <SelectItem value="N/S">N/S (Ambos)</SelectItem>
+                                        <SelectItem value="L">L (Leste)</SelectItem>
+                                        <SelectItem value="O">O (Oeste)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-1">
+                                <Label className="text-xs text-gray-500 font-semibold">Trecho</Label>
+                                <Input
                                     value={formData.trecho}
                                     onChange={e => setFormData({...formData, trecho: e.target.value})}
-                                    placeholder="Ex: Sonora - Pedro Gomes"
+                                    placeholder="Trecho"
                                     className="h-10 rounded-xl bg-white border-gray-200 text-xs"
                                 />
                             </div>
@@ -408,11 +440,50 @@ export default function VistoriarOcorrenciaDTR() {
                                 <SelectValue placeholder="Selecione o tipo..." />
                             </SelectTrigger>
                             <SelectContent className="bg-white border-gray-200 text-gray-800">
-                                {TIPOS_OCORRENCIA.map(t => (
-                                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                                {tiposOcorrencia.map(t => (
+                                    <SelectItem key={t.nome} value={t.nome}>
+                                        <span className="flex items-center gap-2">
+                                            {t.nome}
+                                            {t.gera_nc && (
+                                                <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-1 rounded border border-rose-200">NC</span>
+                                            )}
+                                        </span>
+                                    </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
+
+                        {/* Metadados do tipo selecionado */}
+                        {tipoSelecionado && (
+                            <div className="space-y-1.5 pt-1">
+                                {tipoSelecionado.gera_nc && (
+                                    <div className="flex items-center gap-1.5 text-xs text-rose-600 bg-rose-50 border border-rose-100 rounded-lg px-2.5 py-1.5">
+                                        <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
+                                        <span className="font-semibold">Este tipo gera Não Conformidade automática.</span>
+                                    </div>
+                                )}
+                                {tipoSelecionado.item_contrato && (
+                                    <div className="flex items-start gap-1.5 text-xs text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-lg px-2.5 py-1.5">
+                                        <FileText className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+                                        <span className="font-semibold">{tipoSelecionado.item_contrato}</span>
+                                    </div>
+                                )}
+                                {tipoSelecionado.nao_atendimento && (
+                                    <div className="flex items-start gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-2">
+                                        <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+                                        <div>
+                                            <span className="font-semibold text-amber-800 block mb-0.5">Não Atendimento (PER):</span>
+                                            <span className="leading-relaxed">{tipoSelecionado.nao_atendimento}</span>
+                                        </div>
+                                    </div>
+                                )}
+                                {tipoSelecionado.prazo_dias_padrao && (
+                                    <div className="text-[10px] text-gray-400 pl-1">
+                                        Prazo padrão para NC: <span className="font-bold text-gray-500">{tipoSelecionado.prazo_dias_padrao} {tipoSelecionado.prazo_dias_padrao === 1 ? 'dia' : 'dias'}</span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     {/* Gravidade */}
@@ -475,8 +546,13 @@ export default function VistoriarOcorrenciaDTR() {
                                 checked={requerDeterminacao}
                                 onCheckedChange={(val) => {
                                     setRequerDeterminacao(val);
-                                    if (val && !textoDeterminacao) {
-                                        setTextoDeterminacao(`Sanar a ocorrência de ${formData.tipo_ocorrencia || 'irregularidade'} identificada no KM ${formData.km || ''} da rodovia ${formData.rodovia || ''};`);
+                                    if (val) {
+                                        if (!textoDeterminacao) {
+                                            setTextoDeterminacao(`Sanar a ocorrência de ${formData.tipo_ocorrencia || 'irregularidade'} identificada no KM ${formData.km || ''} da rodovia ${formData.rodovia || ''}${formData.sentido ? `, sentido ${formData.sentido}` : ''};`);
+                                        }
+                                        if (tipoSelecionado?.prazo_dias_padrao) {
+                                            setPrazoDeterminacao(String(tipoSelecionado.prazo_dias_padrao));
+                                        }
                                     }
                                 }}
                             />
