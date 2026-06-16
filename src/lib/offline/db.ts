@@ -132,8 +132,12 @@ export type Unidade = {
   trecho?: string
   km?: string
   sentido?: string
+  per?: string
+  frente?: string
   tipo_ocorrencia?: string
   gravidade?: string
+  nao_atendimento?: string
+  prazo_dias_nc?: number | null
 }
 
 export type ItemChecklist = {

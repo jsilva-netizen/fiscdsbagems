@@ -95,8 +95,13 @@ function serializePayload(entity: Entity, type: MutationType, payload: any): any
         'rodovia',
         'trecho',
         'km',
+        'sentido',
+        'per',
+        'frente',
         'tipo_ocorrencia',
-        'gravidade'
+        'gravidade',
+        'nao_atendimento',
+        'prazo_dias_nc'
       ])
     case 'respostas':
       return pick(payload, [

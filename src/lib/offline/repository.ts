@@ -478,7 +478,7 @@ export const Repository = {
     })
   },
   
-  async createUnidade(data: { fiscalizacao_id: string; tipo_unidade_id: string; codigo_unidade?: string; nome_unidade?: string; endereco?: string; latitude?: number | null; longitude?: number | null; data_hora_vistoria?: string; rodovia?: string; trecho?: string; km?: string; tipo_ocorrencia?: string; gravidade?: string }): Promise<Unidade> {
+  async createUnidade(data: { fiscalizacao_id: string; tipo_unidade_id: string; codigo_unidade?: string; nome_unidade?: string; endereco?: string; latitude?: number | null; longitude?: number | null; data_hora_vistoria?: string; rodovia?: string; trecho?: string; km?: string; sentido?: string; per?: string; frente?: string; tipo_ocorrencia?: string; gravidade?: string; nao_atendimento?: string; prazo_dias_nc?: number | null }): Promise<Unidade> {
     const id = uid()
     const all = await db.unidades.where('fiscalizacao_id').equals(data.fiscalizacao_id).toArray()
     const maxOrdem = (all || []).reduce((acc: number, u: any) => Math.max(acc, Number(u?.ordem) || 0), 0)
@@ -497,8 +497,13 @@ export const Repository = {
       rodovia: data.rodovia || undefined,
       trecho: data.trecho || undefined,
       km: data.km || undefined,
+      sentido: data.sentido || undefined,
+      per: data.per || undefined,
+      frente: data.frente || undefined,
       tipo_ocorrencia: data.tipo_ocorrencia || undefined,
       gravidade: data.gravidade || undefined,
+      nao_atendimento: data.nao_atendimento || undefined,
+      prazo_dias_nc: data.prazo_dias_nc ?? null,
       created_at: now(),
       updated_at: now()
     }

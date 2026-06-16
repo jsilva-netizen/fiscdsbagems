@@ -781,319 +781,290 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
     }
   }
 
-  // Cover Page
-  drawRectTop(0, firstPageTopPadding, pageWidth, mm2pt(40), rgb255(25, 75, 145), false)
-  const titulo = fisc.numero_termo ? `RELATÓRIO DE FISCALIZAÇÃO AGEMS/DTR Nº ${fisc.numero_termo}` : 'RELATÓRIO DE FISCALIZAÇÃO DE RODOVIA'
-  drawTextCenteredAt(titulo, pageWidth / 2, firstPageTopPadding + mm2pt(15), 18, { bold: true, color: rgb255(255, 255, 255) })
-  drawTextCenteredAt('DIRETORIA DE TRANSPORTES, RODOVIAS, FERROVIAS, PORTOS E AEROPORTOS (DTR)', pageWidth / 2, firstPageTopPadding + mm2pt(25), 9, { color: rgb255(255, 255, 255) })
-  drawTextCenteredAt(`Rodovia Vistoriada: ${fisc.rodovia || 'Geral'}`, pageWidth / 2, firstPageTopPadding + mm2pt(33), 11, { color: rgb255(255, 255, 255) })
+  // ── Reset position — smaller top margin for first section ────────────────
+  yPos = mm2pt(12)
 
-  yPos = firstPageTopPadding + mm2pt(45)
-  drawTextAt('INFORMAÇÕES DA FISCALIZAÇÃO', margin, yPos, 12, { bold: true })
-  yPos += mm2pt(7)
-  drawTextAt(`Rodovia principal: ${fisc.rodovia || '-'}`, margin + mm2pt(2), yPos, 10)
-  yPos += mm2pt(6)
-  drawTextAt(`Concessionária: ${prestadorNome || '-'}`, margin + mm2pt(2), yPos, 10)
-  yPos += mm2pt(6)
-  
-  if (fisc.data_inicio) {
-    drawTextAt(`Data Início: ${formatDateTimeBR(fisc.data_inicio)}`, margin + mm2pt(2), yPos, 10)
-    yPos += mm2pt(6)
-  }
-  if (fisc.data_fim) {
-    drawTextAt(`Data Fim: ${formatDateTimeBR(fisc.data_fim)}`, margin + mm2pt(2), yPos, 10)
-    yPos += mm2pt(6)
-  }
-  if (fisc.fiscal_nome) {
-    drawTextAt(`Fiscal Responsável: ${fisc.fiscal_nome}`, margin + mm2pt(2), yPos, 10)
-    yPos += mm2pt(6)
-  }
-  yPos += mm2pt(14)
+  // ── Multi-line cell helpers ───────────────────────────────────────────────
+  const CPAD_X = mm2pt(1.5)
+  const CPAD_Y = mm2pt(1.5)
+  const FS = 7.5
+  const LH = mm2pt(4.2)
+  const MIN_H = mm2pt(7)
 
-  // Resumo Executivo
-  drawRectTop(margin, yPos, tableWidth, mm2pt(8), rgb255(25, 75, 145), false)
-  drawRectTop(margin, yPos, tableWidth, mm2pt(8), undefined, true)
-  drawTextAt('RESUMO EXECUTIVO', margin + mm2pt(2), yPos + mm2pt(5.5), 12, { bold: true, color: rgb255(255, 255, 255) })
-  yPos += mm2pt(14)
-
-  const totalOcorrencias = (unidades || []).length
-  const countsByGravidade = { leve: 0, media: 0, grave: 0, gravissima: 0 }
-  const countsByTipo = new Map<string, number>()
-
-  for (const u of unidades || []) {
-    const grav = String(u.gravidade || 'media').toLowerCase()
-    if (grav in countsByGravidade) {
-      countsByGravidade[grav as keyof typeof countsByGravidade]++
-    } else {
-      countsByGravidade.media++
-    }
-    const tipo = String(u.tipo_ocorrencia || u.nome_unidade || 'Outro')
-    countsByTipo.set(tipo, (countsByTipo.get(tipo) || 0) + 1)
+  const calcH = (text: string, colW: number, size = FS): number => {
+    const s = String(text || '')
+    if (!s) return MIN_H
+    const lines = wrapText(s, colW - 2 * CPAD_X, font, size)
+    return Math.max(MIN_H, lines.length * LH + 2 * CPAD_Y)
   }
 
-  drawTextAt(`• Total de Ocorrências Registradas: ${totalOcorrencias}`, margin + mm2pt(2), yPos, 10)
-  yPos += mm2pt(6)
-  drawTextAt(`• Gravidade Leve (Monitoramento): ${countsByGravidade.leve}`, margin + mm2pt(2), yPos, 10)
-  yPos += mm2pt(6)
-  drawTextAt(`• Gravidade Média (Atenção): ${countsByGravidade.media}`, margin + mm2pt(2), yPos, 10)
-  yPos += mm2pt(6)
-  drawTextAt(`• Gravidade Grave (Urgente): ${countsByGravidade.grave}`, margin + mm2pt(2), yPos, 10)
-  yPos += mm2pt(6)
-  drawTextAt(`• Gravidade Gravíssima (Crítico): ${countsByGravidade.gravissima}`, margin + mm2pt(2), yPos, 10)
-  yPos += mm2pt(10)
-
-  if (totalOcorrencias === 0) {
-    yPos += mm2pt(5)
-    drawTextAt('Nota: Nenhuma irregularidade ou não conformidade foi identificada na rodovia durante esta vistoria.', margin + mm2pt(2), yPos, 10, { bold: true })
-    yPos += mm2pt(10)
-  }
-
-  if (countsByTipo.size > 0) {
-    drawTextAt('OCORRÊNCIAS POR TIPO', margin, yPos, 11, { bold: true })
-    yPos += mm2pt(6)
-    
-    drawCell('Tipo de Ocorrência', margin, yPos, tableWidth * 0.7, rowHeight, true, false, [220, 220, 220])
-    drawCell('Quantidade', margin + tableWidth * 0.7, yPos, tableWidth * 0.3, rowHeight, true, true, [220, 220, 220])
-    yPos += rowHeight
-
-    const entries = Array.from(countsByTipo.entries())
-    for (const entry of entries) {
-      const tipo = entry[0]
-      const count = entry[1]
-      if (yPos + rowHeight > pageHeight - bottomMargin) {
-        addPage()
+  const drawCell2 = (
+    text: string, x: number, yTop: number, w: number, h: number,
+    opts?: { bold?: boolean; center?: boolean; fill?: number[]; size?: number }
+  ) => {
+    const fillColor = opts?.fill ? rgb255(opts.fill[0], opts.fill[1], opts.fill[2]) : undefined
+    drawRectTop(x, yTop, w, h, fillColor, true)
+    const size = opts?.size ?? FS
+    const f = opts?.bold ? fontBold : font
+    const lines = wrapText(String(text || ''), w - 2 * CPAD_X, f, size)
+    let ty = yTop + CPAD_Y + LH * 0.85
+    for (const ln of lines) {
+      if (opts?.center) {
+        const lw = f.widthOfTextAtSize(ln, size)
+        drawTextAt(ln, x + (w - lw) / 2, ty, size, { bold: opts?.bold })
+      } else {
+        drawTextAt(ln, x + CPAD_X, ty, size, { bold: opts?.bold })
       }
-      drawCell(tipo, margin, yPos, tableWidth * 0.7, rowHeight, false, false)
-      drawCell(String(count), margin + tableWidth * 0.7, yPos, tableWidth * 0.3, rowHeight, false, true)
-      yPos += rowHeight
+      ty += LH
     }
   }
 
-  let offsetGlobalFiguras = 0
-  let processedFotos = 0
-  const PHOTO_PREP_CONCURRENCY = 4
-  const PHOTO_CHUNK_SIZE = 8
+  const drawSecHeader = (title: string) => {
+    const h = mm2pt(9)
+    if (yPos + h > pageHeight - bottomMargin) addPage()
+    drawRectTop(margin, yPos, tableWidth, h, rgb255(25, 75, 145), false)
+    drawRectTop(margin, yPos, tableWidth, h, undefined, true)
+    drawTextAt(title, margin + mm2pt(2), yPos + mm2pt(6.2), 11, { bold: true, color: rgb255(255, 255, 255) })
+    yPos += h
+  }
 
-  const updateProgress = async (unidadesProcessadas: number, fotosProcessadas: number) => {
-    try {
-      await updateJob(adminClient, job.id, {
-        progress_unidades: unidadesProcessadas,
-        progress_fotos: fotosProcessadas
+  type ColDef2 = { label: string; w: number; center?: boolean }
+
+  const drawHdrRow = (cols: ColDef2[]) => {
+    const h = mm2pt(9)
+    if (yPos + h > pageHeight - bottomMargin) addPage()
+    let x = margin
+    for (const col of cols) {
+      drawCell2(col.label, x, yPos, col.w, h, { bold: true, center: true, fill: [220, 220, 220], size: FS })
+      x += col.w
+    }
+    yPos += h
+  }
+
+  let gFotoNum = 0
+
+  const embedImg = async (bytes: Uint8Array) => {
+    try { return await pdfDoc.embedJpg(bytes) } catch {}
+    try { return await pdfDoc.embedPng(bytes) } catch {}
+    return null
+  }
+
+  const drawFotos = async (fotosRaw: any[]) => {
+    if (!fotosRaw.length) return
+
+    const IMG_W = (tableWidth - mm2pt(2)) / 2
+    const IMG_H = mm2pt(70)
+    const CAP_H = mm2pt(7)
+    const CELL_H = IMG_H + CAP_H
+
+    const prepared: { bytes: Uint8Array }[] = []
+    for (let s = 0; s < fotosRaw.length; s += 8) {
+      const chunk = fotosRaw.slice(s, s + 8)
+      const res = await mapWithConcurrency(chunk, 4, async (f: any) => {
+        const bytes = await preparePhotoBytes(f)
+        return bytes ? { bytes } : null
       })
-    } catch {}
-  }
-
-  for (let idx = 0; idx < unidades.length; idx++) {
-    const u = unidades[idx]
-    const uDets = todasDeterminacoes.filter((d: any) => d.unidade_fiscalizada_id === u.id)
-    const fotosRaw = Array.isArray(u.fotos_unidade) ? u.fotos_unidade : []
-
-    addPage()
-
-    drawRectTop(margin, yPos, tableWidth, rowHeight, rgb255(189, 214, 238), false)
-    drawRectTop(margin, yPos, tableWidth, rowHeight, undefined, true)
-    const labelOcorr = `REGISTRO DE OCORRÊNCIA #${idx + 1}`
-    drawTextCenteredAt(labelOcorr, pageWidth / 2, yPos + mm2pt(4.5), 11, { bold: true })
-    yPos += rowHeight
-
-    drawCell(`Tipo de Ocorrência: ${u.tipo_ocorrencia || u.nome_unidade || '-'}`, margin, yPos, tableWidth, rowHeight, true)
-    yPos += rowHeight
-    drawCell(`Rodovia: ${u.rodovia || fisc.rodovia || '-'}  |  KM: ${u.km || '-'}  |  Trecho: ${u.trecho || '-'}`, margin, yPos, tableWidth, rowHeight, true)
-    yPos += rowHeight
-
-    const firstCapture = await findFirstCaptureFromFotos(fotosRaw)
-    const coordsTxt = String((u as any).coordenadas || '').trim()
-    const coordsFinal = (() => {
-      if (coordsTxt) {
-        const isLikelyDms = /[°º]/.test(coordsTxt) && /[NSEW]/i.test(coordsTxt)
-        if (isLikelyDms) return forceSouthWestDmsText(coordsTxt)
-        const parsed = tryParseDecimalCoordsPair(coordsTxt)
-        if (parsed) return formatCoordsDms(parsed.lat, parsed.lon)
-        return coordsTxt
-      }
-      if (firstCapture && Number.isFinite(firstCapture.latitude) && Number.isFinite(firstCapture.longitude)) {
-        return formatCoordsDms(Number(firstCapture.latitude), Number(firstCapture.longitude))
-      }
-      return ''
-    })()
-
-    if (coordsFinal) {
-      drawCell(`Coordenadas: ${coordsFinal}`, margin, yPos, tableWidth, rowHeight, true)
-      yPos += rowHeight
+      for (const r of res) { if (r) prepared.push(r as any) }
     }
 
-    const vistoriaAt = firstCapture?.takenAt
-      ? formatDateTimeBR(firstCapture.takenAt)
-      : u.data_hora_vistoria
-        ? formatDateTimeBR(u.data_hora_vistoria)
-        : '-'
-    drawCell(`Data/Hora da Vistoria: ${vistoriaAt}`, margin, yPos, tableWidth, rowHeight, true)
-    yPos += rowHeight
+    for (let i = 0; i < prepared.length; i += 2) {
+      if (yPos + CELL_H > pageHeight - bottomMargin) addPage()
 
-    const gravLabel = formatGravidadeLabel(u.gravidade)
-    drawCell(`Gravidade / Nível de Risco: ${gravLabel}`, margin, yPos, tableWidth, rowHeight, true)
-    yPos += rowHeight
+      const lX = margin
+      const rX = margin + IMG_W + mm2pt(2)
 
-    drawCell('Descrição da Irregularidade', margin, yPos, tableWidth, rowHeight, true, true, [189, 214, 238])
-    yPos += rowHeight
-
-    const descTexto = String(u.endereco || 'Nenhuma descrição adicional informada.').trim()
-    const descLines = wrapText(descTexto, mm2pt(210 - 2 * 10 - 15), font, 9)
-    const descCellHeight = Math.max(rowHeight, descLines.length * mm2pt(5) + mm2pt(4))
-
-    if (yPos + descCellHeight > pageHeight - bottomMargin) addPage()
-    drawRectTop(margin, yPos, tableWidth, descCellHeight, undefined, true)
-    drawLinesAt(descLines, margin + mm2pt(5), yPos + mm2pt(5), mm2pt(210 - 2 * 10 - 15), 9, mm2pt(5), { justify: true })
-    yPos += descCellHeight
-
-    if (uDets.length > 0) {
-      if (yPos + rowHeight > pageHeight - bottomMargin) addPage()
-      drawCell('Determinações e Prazos Corretivos', margin, yPos, tableWidth, rowHeight, true, true, [189, 214, 238])
-      yPos += rowHeight
-
-      for (const d of uDets) {
-        let textoDet = String(d.descricao || '').trim()
-        if (!textoDet.endsWith('.')) textoDet = `${textoDet}.`
-        const prazoDias = Number(d.prazo_dias)
-        if (Number.isFinite(prazoDias) && prazoDias > 0) {
-          textoDet = `${textoDet} Prazo: ${prazoDias} dias.`
-        }
-        
-        const detLines = wrapText(textoDet, mm2pt(210 - 2 * 10 - 15), font, 9)
-        const detCellHeight = Math.max(rowHeight, detLines.length * mm2pt(5) + mm2pt(4))
-
-        if (yPos + detCellHeight > pageHeight - bottomMargin) addPage()
-        drawRectTop(margin, yPos, tableWidth, detCellHeight, undefined, true)
-        drawLinesAt(detLines, margin + mm2pt(5), yPos + mm2pt(5), mm2pt(210 - 2 * 10 - 15), 9, mm2pt(5), { justify: true })
-        yPos += detCellHeight
-      }
-    }
-
-    if (fotosRaw.length > 0) {
-      if (yPos + rowHeight > pageHeight - bottomMargin) addPage()
-      drawCell('Registros Fotográficos', margin, yPos, tableWidth, rowHeight, true, true, [189, 214, 238])
-      yPos += rowHeight
-
-      const cellPadding = mm2pt(2)
-      const imgCellWidth = (tableWidth - cellPadding) / 2
-      const imgWidth = imgCellWidth - mm2pt(4)
-      const imgHeight = mm2pt(70)
-      const captionHeight = mm2pt(8)
-      const totalCellHeight = imgHeight + captionHeight
-
-      const embedAnyImage = async (bytes: Uint8Array) => {
+      // left photo
+      drawRectTop(lX, yPos, IMG_W, CELL_H, undefined, true)
+      if (prepared[i]?.bytes) {
         try {
-          return await pdfDoc.embedJpg(bytes)
-        } catch {
-          try {
-            return await pdfDoc.embedPng(bytes)
-          } catch {
-            return null
+          const emb = await embedImg(prepared[i].bytes)
+          if (emb) {
+            const avW = IMG_W - mm2pt(2), avH = IMG_H - mm2pt(2)
+            const scale = Math.min(avW / (emb as any).width, avH / (emb as any).height)
+            const dw = (emb as any).width * scale, dh = (emb as any).height * scale
+            page.drawImage(emb, {
+              x: lX + mm2pt(1) + (avW - dw) / 2,
+              y: pageHeight - (yPos + mm2pt(1) + (avH - dh) / 2 + dh),
+              width: dw, height: dh
+            })
           }
-        }
+        } catch {}
+        gFotoNum++
+        const cap = `Foto ${gFotoNum}`
+        drawTextAt(cap, lX + (IMG_W - font.widthOfTextAtSize(cap, 7)) / 2, yPos + IMG_H + mm2pt(5), 7)
       }
 
-      const fotosOk: any[] = []
-      for (let chunkStart = 0; chunkStart < fotosRaw.length; chunkStart += PHOTO_CHUNK_SIZE) {
-        const chunk = fotosRaw.slice(chunkStart, chunkStart + PHOTO_CHUNK_SIZE)
-        const prepared = await mapWithConcurrency(chunk, PHOTO_PREP_CONCURRENCY, async (foto) => {
-          const legenda = typeof foto === 'object' ? String((foto as any)?.legenda || '') : ''
-          const bytes = await preparePhotoBytes(foto)
-          return { bytes, legenda }
-        })
-
-        for (const p of prepared) {
-          if (p?.bytes) fotosOk.push(p)
-        }
-        processedFotos += chunk.length
-        await updateProgress(idx + 1, processedFotos)
-      }
-
-      for (let i = 0; i < fotosOk.length; i += 2) {
-        if (yPos + totalCellHeight + mm2pt(10) > pageHeight - bottomMargin) addPage()
-        const leftX = margin
-        const rightX = margin + imgCellWidth
-
-        drawRectTop(leftX, yPos, imgCellWidth, totalCellHeight, undefined, true)
-        if (fotosOk[i]?.bytes) {
+      // right photo
+      if (prepared[i + 1]) {
+        drawRectTop(rX, yPos, IMG_W, CELL_H, undefined, true)
+        if (prepared[i + 1]?.bytes) {
           try {
-            const embedded = await embedAnyImage(fotosOk[i].bytes)
-            if (!embedded) throw new Error('Formato de imagem não suportado')
-            const pad = mm2pt(2)
-            const iw = (embedded as any).width
-            const ih = (embedded as any).height
-            const scale = Math.min(imgWidth / iw, imgHeight / ih)
-            const drawW = iw * scale
-            const drawH = ih * scale
-            page.drawImage(embedded, {
-              x: leftX + pad + (imgWidth - drawW) / 2,
-              y: pageHeight - (yPos + pad + (imgHeight - drawH) / 2 + drawH),
-              width: drawW,
-              height: drawH
-            })
-            const numFigura = offsetGlobalFiguras + i + 1
-            const fallbackNome = u.tipo_unidade_name || u.tipo_ocorrencia || u.nome_unidade || 'Ocorrência'
-            const legendaPrincipal = fotosOk[i].legenda && String(fotosOk[i].legenda).trim() ? String(fotosOk[i].legenda).trim() : String(fallbackNome)
-            const legenda = formatLegendaFigura(numFigura, legendaPrincipal)
-            const lines = wrapText(legenda, imgCellWidth - mm2pt(4), font, 7)
-            let yLine = yPos + imgHeight + mm2pt(5)
-            for (const ln of lines) {
-              drawTextCenteredAt(ln, leftX + imgCellWidth / 2, yLine, 7)
-              yLine += mm2pt(3)
+            const emb = await embedImg(prepared[i + 1].bytes)
+            if (emb) {
+              const avW = IMG_W - mm2pt(2), avH = IMG_H - mm2pt(2)
+              const scale = Math.min(avW / (emb as any).width, avH / (emb as any).height)
+              const dw = (emb as any).width * scale, dh = (emb as any).height * scale
+              page.drawImage(emb, {
+                x: rX + mm2pt(1) + (avW - dw) / 2,
+                y: pageHeight - (yPos + mm2pt(1) + (avH - dh) / 2 + dh),
+                width: dw, height: dh
+              })
             }
           } catch {}
+          gFotoNum++
+          const cap = `Foto ${gFotoNum}`
+          drawTextAt(cap, rX + (IMG_W - font.widthOfTextAtSize(cap, 7)) / 2, yPos + IMG_H + mm2pt(5), 7)
         }
-
-        drawRectTop(rightX, yPos, imgCellWidth, totalCellHeight, undefined, true)
-        if (fotosOk[i + 1]?.bytes) {
-          try {
-            const embedded = await embedAnyImage(fotosOk[i + 1].bytes)
-            if (!embedded) throw new Error('Formato de imagem não suportado')
-            const pad = mm2pt(2)
-            const iw = (embedded as any).width
-            const ih = (embedded as any).height
-            const scale = Math.min(imgWidth / iw, imgHeight / ih)
-            const drawW = iw * scale
-            const drawH = ih * scale
-            page.drawImage(embedded, {
-              x: rightX + pad + (imgWidth - drawW) / 2,
-              y: pageHeight - (yPos + pad + (imgHeight - drawH) / 2 + drawH),
-              width: drawW,
-              height: drawH
-            })
-            const numFigura = offsetGlobalFiguras + i + 2
-            const fallbackNome = u.tipo_unidade_name || u.tipo_ocorrencia || u.nome_unidade || 'Ocorrência'
-            const legendaPrincipal =
-              fotosOk[i + 1].legenda && String(fotosOk[i + 1].legenda).trim() ? String(fotosOk[i + 1].legenda).trim() : String(fallbackNome)
-            const legenda = formatLegendaFigura(numFigura, legendaPrincipal)
-            const lines = wrapText(legenda, imgCellWidth - mm2pt(4), font, 7)
-            let yLine = yPos + imgHeight + mm2pt(5)
-            for (const ln of lines) {
-              drawTextCenteredAt(ln, rightX + imgCellWidth / 2, yLine, 7)
-              yLine += mm2pt(3)
-            }
-          } catch {}
-        }
-
-        yPos += totalCellHeight
       }
-      offsetGlobalFiguras += fotosOk.length
+
+      yPos += CELL_H
     }
-
-    await updateProgress(idx + 1, processedFotos)
   }
 
-  const pages = pdfDoc.getPages()
-  const totalPages = pages.length
-  const footerSize = 8
-  const footerPaddingY = mm2pt(6)
+  // ── Sort by PER (item_contrato) ───────────────────────────────────────────
+  const perSort = (a: any, b: any) =>
+    String(a.per || a.item_contrato || '').localeCompare(String(b.per || b.item_contrato || ''))
+
+  const constatacoes = (unidades as any[]).filter((u: any) => u.tipo_ocorrencia === 'constatacao').sort(perSort)
+  const naoConformidades = (unidades as any[]).filter((u: any) => u.tipo_ocorrencia === 'nc').sort(perSort)
+
+  // ── Column widths — portrait A4 (190 mm usable) ──────────────────────────
+  const TW = tableWidth
+
+  // CONSTATAÇÕES: ITEM | PER | DESCRIÇÃO | KM | SENTIDO | RODOVIA | OBSERVAÇÃO
+  const CI  = mm2pt(10)
+  const CP  = mm2pt(40)
+  const CD  = mm2pt(50)
+  const CK  = mm2pt(20)
+  const CS  = mm2pt(15)
+  const CR  = mm2pt(22)
+  const CO  = TW - CI - CP - CD - CK - CS - CR
+
+  const cCols: ColDef2[] = [
+    { label: 'ITEM',        w: CI,  center: true },
+    { label: 'PER',         w: CP },
+    { label: 'DESCRIÇÃO',   w: CD },
+    { label: 'KM',          w: CK,  center: true },
+    { label: 'SENTIDO',     w: CS,  center: true },
+    { label: 'RODOVIA',     w: CR,  center: true },
+    { label: 'OBSERVAÇÃO',  w: CO },
+  ]
+
+  // NÃO CONFORMIDADES: ITEM | PER | NÃO CONFORMIDADE | NÃO ATENDIMENTO | KM | SENTIDO | RODOVIA | PRAZO | OBSERVAÇÕES
+  const NI   = mm2pt(10)
+  const NP   = mm2pt(28)
+  const NN   = mm2pt(32)
+  const NA   = mm2pt(48)
+  const NK   = mm2pt(14)
+  const NSe  = mm2pt(11)
+  const NR   = mm2pt(15)
+  const NPr  = mm2pt(11)
+  const NO   = TW - NI - NP - NN - NA - NK - NSe - NR - NPr
+
+  const ncCols: ColDef2[] = [
+    { label: 'ITEM',             w: NI,  center: true },
+    { label: 'PER',              w: NP },
+    { label: 'NÃO CONFORMIDADE', w: NN },
+    { label: 'NÃO ATENDIMENTO',  w: NA },
+    { label: 'KM',               w: NK,  center: true },
+    { label: 'SENTIDO',          w: NSe, center: true },
+    { label: 'RODOVIA',          w: NR,  center: true },
+    { label: 'PRAZO',            w: NPr, center: true },
+    { label: 'OBSERVAÇÕES',      w: NO },
+  ]
+
+  // ── VIII — CONSTATAÇÕES ──────────────────────────────────────────────────
+  drawSecHeader('VIII – CONSTATAÇÕES')
+  drawHdrRow(cCols)
+
+  let progCount = 0
+
+  for (let i = 0; i < constatacoes.length; i++) {
+    const u = constatacoes[i]
+    const vals = [
+      { v: String(i + 1),                                   c: true  },
+      { v: String(u.per || u.item_contrato || '-'),          c: false },
+      { v: String(u.nome_unidade || '-'),                    c: false },
+      { v: String(u.km || '-'),                              c: true  },
+      { v: String(u.sentido || '-'),                         c: true  },
+      { v: String(u.rodovia || fisc.rodovia || '-'),         c: true  },
+      { v: String(u.endereco || '-'),                        c: false },
+    ]
+
+    const rowH = Math.max(...vals.map((v, ci) => calcH(v.v, cCols[ci].w)))
+    if (yPos + rowH > pageHeight - bottomMargin) {
+      addPage()
+      drawHdrRow(cCols)
+    }
+
+    const fillArr: number[] | undefined = i % 2 === 1 ? [245, 245, 245] : undefined
+    let x = margin
+    for (let ci = 0; ci < cCols.length; ci++) {
+      drawCell2(vals[ci].v, x, yPos, cCols[ci].w, rowH, { center: vals[ci].c, fill: fillArr })
+      x += cCols[ci].w
+    }
+    yPos += rowH
+
+    const fotosRaw = Array.isArray(u.fotos_unidade) ? u.fotos_unidade : []
+    await drawFotos(fotosRaw)
+    progCount++
+    try { await updateJob(adminClient, job.id, { progress_unidades: progCount, progress_fotos: gFotoNum }) } catch {}
+  }
+
+  yPos += mm2pt(8)
+  if (yPos > pageHeight - bottomMargin - mm2pt(40)) addPage()
+
+  // ── IX — NÃO CONFORMIDADES ───────────────────────────────────────────────
+  drawSecHeader('IX – NÃO CONFORMIDADES')
+  drawHdrRow(ncCols)
+
+  for (let i = 0; i < naoConformidades.length; i++) {
+    const u = naoConformidades[i]
+    const vals = [
+      { v: String(i + 1),                                                          c: true  },
+      { v: String(u.per || u.item_contrato || '-'),                                 c: false },
+      { v: String(u.nome_unidade || '-'),                                           c: false },
+      { v: String(u.nao_atendimento || '-'),                                        c: false },
+      { v: String(u.km || '-'),                                                     c: true  },
+      { v: String(u.sentido || '-'),                                                c: true  },
+      { v: String(u.rodovia || fisc.rodovia || '-'),                                c: true  },
+      { v: u.prazo_dias_nc != null ? String(u.prazo_dias_nc) + ' dias' : '-',      c: true  },
+      { v: String(u.endereco || '-'),                                               c: false },
+    ]
+
+    const rowH = Math.max(...vals.map((v, ci) => calcH(v.v, ncCols[ci].w)))
+    if (yPos + rowH > pageHeight - bottomMargin) {
+      addPage()
+      drawHdrRow(ncCols)
+    }
+
+    const fillArr: number[] | undefined = i % 2 === 1 ? [245, 245, 245] : undefined
+    let x = margin
+    for (let ci = 0; ci < ncCols.length; ci++) {
+      drawCell2(vals[ci].v, x, yPos, ncCols[ci].w, rowH, { center: vals[ci].c, fill: fillArr })
+      x += ncCols[ci].w
+    }
+    yPos += rowH
+
+    const fotosRaw = Array.isArray(u.fotos_unidade) ? u.fotos_unidade : []
+    await drawFotos(fotosRaw)
+    progCount++
+    try { await updateJob(adminClient, job.id, { progress_unidades: progCount, progress_fotos: gFotoNum }) } catch {}
+  }
+
+  // ── Page numbers ─────────────────────────────────────────────────────────
+  const allPages = pdfDoc.getPages()
+  const totalPages = allPages.length
   for (let i = 0; i < totalPages; i++) {
-    const page = pages[i]
+    const pg = allPages[i]
     const label = `Página ${i + 1} de ${totalPages}`
-    const textW = font.widthOfTextAtSize(label, footerSize)
-    const x = pageWidth - margin - textW
-    const y = footerPaddingY
-    page.drawText(label, { x, y, size: footerSize, font, color: rgb(0.35, 0.35, 0.35) })
+    const textW = font.widthOfTextAtSize(label, 7)
+    pg.drawText(label, {
+      x: pageWidth - margin - textW,
+      y: mm2pt(6),
+      size: 7, font,
+      color: rgb(0.4, 0.4, 0.4)
+    })
   }
 
   return await pdfDoc.save()
