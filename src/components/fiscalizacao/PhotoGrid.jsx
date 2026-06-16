@@ -135,9 +135,6 @@ export default function PhotoGrid({
         if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
             throw new Error('Coordenadas GPS indisponíveis. Aguarde o sinal e tente novamente.');
         }
-        if (!Number.isFinite(accuracy) || accuracy > MAX_GPS_ACCURACY_M) {
-            throw new Error(`Precisão do GPS insuficiente (${Math.round(accuracy)}m). Aguarde melhorar o sinal.`);
-        }
         return { latitude, longitude, accuracy, takenAt: new Date().toISOString() };
     };
 
@@ -146,7 +143,6 @@ export default function PhotoGrid({
         if (!fix) return null;
         const age = Date.now() - (lastGpsFixAtRef.current || 0);
         if (age > GPS_FIX_MAX_AGE_MS) return null;
-        if (typeof fix.accuracy === 'number' && Number.isFinite(fix.accuracy) && fix.accuracy > MAX_GPS_ACCURACY_M) return null;
         if (typeof fix.latitude !== 'number' || !Number.isFinite(fix.latitude)) return null;
         if (typeof fix.longitude !== 'number' || !Number.isFinite(fix.longitude)) return null;
         return fix;
@@ -248,9 +244,6 @@ export default function PhotoGrid({
                             let capture = null;
                             if (isGallery) {
                                 capture = await extractCaptureFromImageFile(file);
-                                if (capture && typeof capture.accuracyM === 'number' && Number.isFinite(capture.accuracyM) && capture.accuracyM > MAX_GPS_ACCURACY_M) {
-                                    throw new Error(`Precisão do GPS da foto insuficiente (${Math.round(capture.accuracyM)}m).`);
-                                }
                             } else {
                                 capture = { latitude: gpsFix.latitude, longitude: gpsFix.longitude, takenAt: new Date().toISOString() };
                             }
