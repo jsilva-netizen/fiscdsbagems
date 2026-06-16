@@ -1959,6 +1959,10 @@ export const Repository = {
     return list.map((f) => ({ ...f, url: localFotoPreviewUrl(f) } as any))
   },
 
+  async reassignLocalFotos(fromId: string, toId: string): Promise<void> {
+    await db.fotos_local.where('unidadeLocalId').equals(fromId).modify({ unidadeLocalId: toId })
+  },
+
   async updateLocalFotoLegenda(localId: string, legenda: string): Promise<void> {
     const item = await db.fotos_local.get(localId as any)
     if (item) {

@@ -206,6 +206,7 @@ export default function VistoriarOcorrenciaDTR() {
             } else {
                 const res = await Repository.createUnidade(payload);
                 uId = res.id;
+                await Repository.reassignLocalFotos('novo-ponto', uId);
             }
             const fotosCompletas = fotos.map(f => typeof f === 'string'
                 ? { url: f, legenda: '', mimeType: undefined, width: undefined, height: undefined }
