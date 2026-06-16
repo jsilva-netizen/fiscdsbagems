@@ -218,6 +218,20 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
     : { data: [], error: null }
   if (detErr) throw new Error(detErr.message)
 
+  // Lookup tipos para fallback de nao_atendimento e prazo quando o campo na unidade está vazio
+  const { data: tiposOcorrenciaDTR } = await adminClient
+    .from('tipos_ocorrencia_dtr')
+    .select('nome, descricao, nao_atendimento, prazo_dias_padrao, item_contrato')
+  const tipoByKey = new Map<string, any>()
+  for (const t of tiposOcorrenciaDTR || []) {
+    const nome = String(t.nome || t.descricao || '').trim().toLowerCase()
+    const per = String(t.item_contrato || '').trim().toLowerCase()
+    if (nome) {
+      tipoByKey.set(`${nome}|${per}`, t)
+      if (!tipoByKey.has(nome)) tipoByKey.set(nome, t)
+    }
+  }
+
   const decimalToDms = (value: number, positiveRef: string, negativeRef: string) => {
     const ref = value >= 0 ? positiveRef : negativeRef
     const abs = Math.abs(value)
@@ -797,6 +811,23 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
     return Math.max(MIN_H, lines.length * LH + 2 * CPAD_Y)
   }
 
+  // Fallback: se a unidade não tem nao_atendimento preenchido, busca no tipo correspondente
+  const getNaoAtendimento = (u: any): string => {
+    if (u.nao_atendimento) return u.nao_atendimento
+    const nome = String(u.nome_unidade || '').trim().toLowerCase()
+    const per = String(u.per || u.item_contrato || '').trim().toLowerCase()
+    const t = tipoByKey.get(`${nome}|${per}`) || tipoByKey.get(nome)
+    return t?.nao_atendimento || '-'
+  }
+
+  const getPrazoDiasNc = (u: any): string => {
+    if (u.prazo_dias_nc != null) return String(u.prazo_dias_nc) + ' dias'
+    const nome = String(u.nome_unidade || '').trim().toLowerCase()
+    const per = String(u.per || u.item_contrato || '').trim().toLowerCase()
+    const t = tipoByKey.get(`${nome}|${per}`) || tipoByKey.get(nome)
+    return t?.prazo_dias_padrao != null ? String(t.prazo_dias_padrao) + ' dias' : '-'
+  }
+
   const drawCell2 = (
     text: string, x: number, yTop: number, w: number, h: number,
     opts?: { bold?: boolean; center?: boolean; fill?: number[]; size?: number; justify?: boolean }
@@ -1036,11 +1067,11 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
       { v: String(i + 1),                                                          c: true  },
       { v: String(u.per || u.item_contrato || '-'),                                 c: false },
       { v: String(u.nome_unidade || '-'),                                           c: false },
-      { v: String(u.nao_atendimento || '-'),                                        c: false },
+      { v: getNaoAtendimento(u),                                                     c: false },
       { v: String(u.km || '-'),                                                     c: true  },
       { v: String(u.sentido || '-'),                                                c: true  },
       { v: String(u.rodovia || fisc.rodovia || '-'),                                c: true  },
-      { v: u.prazo_dias_nc != null ? String(u.prazo_dias_nc) + ' dias' : '-',      c: true  },
+      { v: getPrazoDiasNc(u),                                                       c: true  },
       { v: String(u.endereco || '-'),                                               c: false },
     ]
 

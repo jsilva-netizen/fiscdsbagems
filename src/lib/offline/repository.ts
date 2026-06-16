@@ -2168,7 +2168,7 @@ export const Repository = {
     await enqueueMutation({ id: unidadeId, coordenadas, updated_at: now() }, 'update', 'unidades')
   },
 
-  async updateUnidadeDTR(unidadeId: string, changes: { rodovia?: string; trecho?: string; km?: string; sentido?: string; tipo_ocorrencia?: string; latitude?: number | null; longitude?: number | null; status?: string; gravidade?: string; endereco?: string }): Promise<void> {
+  async updateUnidadeDTR(unidadeId: string, changes: { rodovia?: string; trecho?: string; km?: string; sentido?: string; tipo_ocorrencia?: string; latitude?: number | null; longitude?: number | null; status?: string; gravidade?: string; endereco?: string; nome_unidade?: string; per?: string; frente?: string; nao_atendimento?: string | null; prazo_dias_nc?: number | null }): Promise<void> {
     const u = await db.unidades.get(unidadeId)
     if (u) {
       await db.unidades.update(unidadeId, { ...u, ...changes, updated_at: now() })
