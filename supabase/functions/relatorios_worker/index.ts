@@ -799,18 +799,35 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
 
   const drawCell2 = (
     text: string, x: number, yTop: number, w: number, h: number,
-    opts?: { bold?: boolean; center?: boolean; fill?: number[]; size?: number }
+    opts?: { bold?: boolean; center?: boolean; fill?: number[]; size?: number; justify?: boolean }
   ) => {
     const fillColor = opts?.fill ? rgb255(opts.fill[0], opts.fill[1], opts.fill[2]) : undefined
     drawRectTop(x, yTop, w, h, fillColor, true)
     const size = opts?.size ?? FS
     const f = opts?.bold ? fontBold : font
-    const lines = wrapText(String(text || ''), w - 2 * CPAD_X, f, size)
+    const availW = w - 2 * CPAD_X
+    const lines = wrapText(String(text || ''), availW, f, size)
     let ty = yTop + CPAD_Y + LH * 0.85
-    for (const ln of lines) {
+    for (let li = 0; li < lines.length; li++) {
+      const ln = lines[li]
+      const isLast = li === lines.length - 1
       if (opts?.center) {
         const lw = f.widthOfTextAtSize(ln, size)
         drawTextAt(ln, x + (w - lw) / 2, ty, size, { bold: opts?.bold })
+      } else if (opts?.justify && !isLast) {
+        // Full justification: distribute space evenly between words
+        const words = ln.split(' ').filter((ww: string) => ww.length > 0)
+        if (words.length > 1) {
+          const totalWordW = words.reduce((acc: number, ww: string) => acc + f.widthOfTextAtSize(ww, size), 0)
+          const gapW = (availW - totalWordW) / (words.length - 1)
+          let wx = x + CPAD_X
+          for (const word of words) {
+            page.drawText(word, { x: wx, y: pageHeight - ty, size, font: f, color: rgb(0, 0, 0) })
+            wx += f.widthOfTextAtSize(word, size) + gapW
+          }
+        } else {
+          drawTextAt(ln, x + CPAD_X, ty, size, { bold: opts?.bold })
+        }
       } else {
         drawTextAt(ln, x + CPAD_X, ty, size, { bold: opts?.bold })
       }
@@ -926,13 +943,13 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
   // ── Column widths — portrait A4 (190 mm usable) ──────────────────────────
   const TW = tableWidth
 
-  // CONSTATAÇÕES: ITEM(10) | PER(40) | DESCRIÇÃO(52) | KM(20) | SENTIDO(14) | RODOVIA(22) | OBSERVAÇÃO(32)
+  // CONSTATAÇÕES: ITEM(10) | PER(30) | DESCRIÇÃO(42) | KM(18) | SENTIDO(13) | RODOVIA(20) | OBSERVAÇÃO(57)
   const CI  = mm2pt(10)
-  const CP  = mm2pt(40)
-  const CD  = mm2pt(52)
-  const CK  = mm2pt(20)
-  const CS  = mm2pt(14)
-  const CR  = mm2pt(22)
+  const CP  = mm2pt(30)
+  const CD  = mm2pt(42)
+  const CK  = mm2pt(18)
+  const CS  = mm2pt(13)
+  const CR  = mm2pt(20)
   const CO  = TW - CI - CP - CD - CK - CS - CR
 
   const cCols: ColDef2[] = [
@@ -945,11 +962,11 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
     { label: 'OBSERVAÇÃO',  w: CO },
   ]
 
-  // NÃO CONFORMIDADES: ITEM(7) | PER(28) | NC(28) | NA(48) | KM(13) | SENTIDO(15) | RODOVIA(17) | PRAZO(12) | OBS(22)
-  const NI   = mm2pt(7)
-  const NP   = mm2pt(28)
-  const NN   = mm2pt(28)
-  const NA   = mm2pt(48)
+  // NÃO CONFORMIDADES: ITEM(10) | PER(25) | NC(27) | NA(46) | KM(13) | SENTIDO(15) | RODOVIA(17) | PRAZO(12) | OBS(25)
+  const NI   = mm2pt(10)
+  const NP   = mm2pt(25)
+  const NN   = mm2pt(27)
+  const NA   = mm2pt(46)
   const NK   = mm2pt(13)
   const NSe  = mm2pt(15)
   const NR   = mm2pt(17)
@@ -995,7 +1012,7 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
     const fillArr: number[] | undefined = i % 2 === 1 ? [245, 245, 245] : undefined
     let x = margin
     for (let ci = 0; ci < cCols.length; ci++) {
-      drawCell2(vals[ci].v, x, yPos, cCols[ci].w, rowH, { center: vals[ci].c, fill: fillArr })
+      drawCell2(vals[ci].v, x, yPos, cCols[ci].w, rowH, { center: vals[ci].c, fill: fillArr, justify: !vals[ci].c })
       x += cCols[ci].w
     }
     yPos += rowH
@@ -1036,7 +1053,7 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
     const fillArr: number[] | undefined = i % 2 === 1 ? [245, 245, 245] : undefined
     let x = margin
     for (let ci = 0; ci < ncCols.length; ci++) {
-      drawCell2(vals[ci].v, x, yPos, ncCols[ci].w, rowH, { center: vals[ci].c, fill: fillArr })
+      drawCell2(vals[ci].v, x, yPos, ncCols[ci].w, rowH, { center: vals[ci].c, fill: fillArr, justify: !vals[ci].c })
       x += ncCols[ci].w
     }
     yPos += rowH

@@ -336,6 +336,7 @@ export default function VistoriarOcorrenciaDTR() {
                         onUpdateLegenda={updateLegenda}
                         onReorderFotos={(n) => { setFotos(n); setFotosDirty(true); }}
                         fiscalizacaoId={fiscId} unidadeId={occurrenceId || 'novo-ponto'} isEditable={true}
+                        enableLegenda={false}
                     />
                 </div>
             </div>

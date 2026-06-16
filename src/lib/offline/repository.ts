@@ -1919,38 +1919,47 @@ export const Repository = {
       typeof capture.longitude === 'number' &&
       Number.isFinite(capture.longitude)
 
+    // Lookup fiscalização upfront — needed for watermark logic in both GPS branches
+    let fiscTipoModulo = ''
+    let municipioNome = ''
+    let codigoUnidade = String(unidade?.codigo_unidade || '').trim()
+    if (!codigoUnidade) codigoUnidade = String(unidade?.nome_unidade || '').trim()
+    if (!codigoUnidade) codigoUnidade = 'SEM CÓDIGO'
+    if (unidade?.fiscalizacao_id) {
+      const fisc = await db.fiscalizacoes.get(unidade.fiscalizacao_id as any)
+      fiscTipoModulo = String(fisc?.tipo_modulo || '')
+      municipioNome = String(fisc?.municipio_nome || '').trim()
+      if (!municipioNome && fisc?.municipio_id) {
+        const m = await db.municipios.get(fisc.municipio_id as any)
+        municipioNome = String(m?.nome || '').trim()
+      }
+    }
+    if (!municipioNome) municipioNome = 'SEM MUNICÍPIO'
+    const isDtrFisc = ['rodovias_dtr', 'transportes_dtr', 'fiscal_dtr'].includes(fiscTipoModulo)
+
     let processed: Awaited<ReturnType<typeof compressFileToBlob>>
     if (hasCapture) {
-      let codigoUnidade = String(unidade?.codigo_unidade || '').trim()
-      if (!codigoUnidade) codigoUnidade = String(unidade?.nome_unidade || '').trim()
-      if (!codigoUnidade) codigoUnidade = 'SEM CÓDIGO'
-      let municipioNome = ''
-      let fiscTipoModulo = ''
-      if (unidade?.fiscalizacao_id) {
-        const fisc = await db.fiscalizacoes.get(unidade.fiscalizacao_id as any)
-        fiscTipoModulo = String(fisc?.tipo_modulo || '')
-        municipioNome = String(fisc?.municipio_nome || '').trim()
-        if (!municipioNome && fisc?.municipio_id) {
-          const m = await db.municipios.get(fisc.municipio_id as any)
-          municipioNome = String(m?.nome || '').trim()
-        }
-      }
-      if (!municipioNome) municipioNome = 'SEM MUNICÍPIO'
-      const takenAt = capture.takenAt ? new Date(capture.takenAt) : file.lastModified ? new Date(file.lastModified) : new Date()
-      const exifData = { latitude: capture.latitude, longitude: capture.longitude, takenAt }
-      const isDtrFisc = ['rodovias_dtr', 'transportes_dtr', 'fiscal_dtr'].includes(fiscTipoModulo)
+      const takenAt = capture!.takenAt ? new Date(capture!.takenAt) : file.lastModified ? new Date(file.lastModified) : new Date()
+      const exifData = { latitude: capture!.latitude, longitude: capture!.longitude, takenAt }
+      const coordsText = `${capture!.latitude.toFixed(6)}, ${capture!.longitude.toFixed(6)}`
       if (isDtrFisc) {
-        // DTR photos: apenas data/hora e coordenadas, sem código/município
-        const coordsText = `${capture.latitude.toFixed(6)}, ${capture.longitude.toFixed(6)}`
+        // DTR: data/hora + coordenadas, sem código/município
         const watermarkLines = [`${formatDateBR(takenAt)} ${formatTimeBR(takenAt)}`, coordsText]
         processed = await compressFileToBlob(file, MAX_DIMENSION, JPEG_QUALITY, { watermarkLines, exif: exifData })
       } else {
-        const coordsText = `${capture.latitude.toFixed(6)}, ${capture.longitude.toFixed(6)}`
         const watermarkLines = [`${codigoUnidade}, ${municipioNome} - MS`, `${formatDateBR(takenAt)} ${formatTimeBR(takenAt)}`, coordsText]
         processed = await compressFileToBlob(file, MAX_DIMENSION, JPEG_QUALITY, { watermarkLines, exif: exifData })
       }
     } else {
-      processed = await compressFileToBlob(file, MAX_DIMENSION, JPEG_QUALITY)
+      if (isDtrFisc) {
+        // DTR sem GPS: apenas data/hora
+        const takenAt = file.lastModified ? new Date(file.lastModified) : new Date()
+        processed = await compressFileToBlob(file, MAX_DIMENSION, JPEG_QUALITY, {
+          watermarkLines: [`${formatDateBR(takenAt)} ${formatTimeBR(takenAt)}`]
+        })
+      } else {
+        processed = await compressFileToBlob(file, MAX_DIMENSION, JPEG_QUALITY)
+      }
     }
     if (processed.byteLength > MAX_PHOTO_BYTES) {
       throw new Error(`Foto após compressão excede ${Math.round(MAX_PHOTO_BYTES / 1024 / 1024)}MB`)

@@ -20,7 +20,8 @@ export default function PhotoGrid({
     fiscalizacaoId,
     unidadeId,
     isEditable = true,
-    bigButton = false
+    bigButton = false,
+    enableLegenda = true
 }) {
     const fotosList = useMemo(() => {
         return (Array.isArray(fotos) ? fotos : []).map((f) => (typeof f === 'string' ? { url: f, legenda: '' } : f)).filter(Boolean);
@@ -409,7 +410,7 @@ export default function PhotoGrid({
                                                             </Button>
                                                         </div>
                                                     )}
-                                                    {isEditable ? (
+                                                    {enableLegenda && (isEditable ? (
                                                         <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-1 flex gap-1">
                                                             <Input
                                                                 placeholder="Legenda..."
@@ -453,7 +454,7 @@ export default function PhotoGrid({
                                                                 <p className="px-1">{foto.legenda}</p>
                                                             </div>
                                                         )
-                                                    )}
+                                                    ))}
 
                                                 </div>
                                             )}
