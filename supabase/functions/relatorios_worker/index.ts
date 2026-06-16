@@ -781,19 +781,18 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
     }
   }
 
-  // ── Reset position — smaller top margin for first section ────────────────
+  // ── Reset position ────────────────────────────────────────────────────────
   yPos = mm2pt(12)
 
-  // ── Multi-line cell helpers ───────────────────────────────────────────────
-  const CPAD_X = mm2pt(1.5)
+  const CPAD_X = mm2pt(2)
   const CPAD_Y = mm2pt(1.5)
-  const FS = 7.5
-  const LH = mm2pt(4.2)
-  const MIN_H = mm2pt(7)
+  const FS = 8
+  const LH = mm2pt(4.5)
+  const MIN_H = mm2pt(7.5)
 
   const calcH = (text: string, colW: number, size = FS): number => {
     const s = String(text || '')
-    if (!s) return MIN_H
+    if (!s || s === '-') return MIN_H
     const lines = wrapText(s, colW - 2 * CPAD_X, font, size)
     return Math.max(MIN_H, lines.length * LH + 2 * CPAD_Y)
   }
@@ -819,12 +818,11 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
     }
   }
 
-  const drawSecHeader = (title: string) => {
-    const h = mm2pt(9)
+  // Plain bold text above the table — no coloured background
+  const drawSectionTitle = (title: string) => {
+    const h = mm2pt(10)
     if (yPos + h > pageHeight - bottomMargin) addPage()
-    drawRectTop(margin, yPos, tableWidth, h, rgb255(25, 75, 145), false)
-    drawRectTop(margin, yPos, tableWidth, h, undefined, true)
-    drawTextAt(title, margin + mm2pt(2), yPos + mm2pt(6.2), 11, { bold: true, color: rgb255(255, 255, 255) })
+    drawTextAt(title, margin, yPos + mm2pt(7.5), 12, { bold: true })
     yPos += h
   }
 
@@ -835,7 +833,7 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
     if (yPos + h > pageHeight - bottomMargin) addPage()
     let x = margin
     for (const col of cols) {
-      drawCell2(col.label, x, yPos, col.w, h, { bold: true, center: true, fill: [220, 220, 220], size: FS })
+      drawCell2(col.label, x, yPos, col.w, h, { bold: true, center: true, fill: [220, 220, 220], size: 7.5 })
       x += col.w
     }
     yPos += h
@@ -849,13 +847,13 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
     return null
   }
 
-  const drawFotos = async (fotosRaw: any[]) => {
+  // Photos as full-width rows INSIDE the table — single bordered cell per pair
+  const drawPhotoRows = async (fotosRaw: any[]) => {
     if (!fotosRaw.length) return
 
-    const IMG_W = (tableWidth - mm2pt(2)) / 2
-    const IMG_H = mm2pt(70)
-    const CAP_H = mm2pt(7)
-    const CELL_H = IMG_H + CAP_H
+    const PHOTO_H = mm2pt(70)
+    const CAP_H   = mm2pt(7)
+    const ROW_H   = PHOTO_H + CAP_H + mm2pt(2)
 
     const prepared: { bytes: Uint8Array }[] = []
     for (let s = 0; s < fotosRaw.length; s += 8) {
@@ -868,56 +866,51 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
     }
 
     for (let i = 0; i < prepared.length; i += 2) {
-      if (yPos + CELL_H > pageHeight - bottomMargin) addPage()
+      if (yPos + ROW_H > pageHeight - bottomMargin) addPage()
 
-      const lX = margin
-      const rX = margin + IMG_W + mm2pt(2)
+      const hasBoth = !!prepared[i + 1]
+      const halfW   = tableWidth / 2
 
-      // left photo
-      drawRectTop(lX, yPos, IMG_W, CELL_H, undefined, true)
-      if (prepared[i]?.bytes) {
+      // Single full-width border — visually part of the same table
+      drawRectTop(margin, yPos, tableWidth, ROW_H, undefined, true)
+
+      if (hasBoth) {
+        page.drawLine({
+          start: { x: margin + halfW, y: pageHeight - yPos },
+          end:   { x: margin + halfW, y: pageHeight - (yPos + ROW_H) },
+          thickness: 0.5,
+          color: rgb(0, 0, 0)
+        })
+      }
+
+      const snapY = yPos
+
+      const drawOnePhoto = async (photo: { bytes: Uint8Array }, cellX: number, cellW: number) => {
+        const avW = cellW - mm2pt(4)
+        const avH = PHOTO_H - mm2pt(2)
         try {
-          const emb = await embedImg(prepared[i].bytes)
+          const emb = await embedImg(photo.bytes)
           if (emb) {
-            const avW = IMG_W - mm2pt(2), avH = IMG_H - mm2pt(2)
             const scale = Math.min(avW / (emb as any).width, avH / (emb as any).height)
-            const dw = (emb as any).width * scale, dh = (emb as any).height * scale
+            const dw = (emb as any).width * scale
+            const dh = (emb as any).height * scale
             page.drawImage(emb, {
-              x: lX + mm2pt(1) + (avW - dw) / 2,
-              y: pageHeight - (yPos + mm2pt(1) + (avH - dh) / 2 + dh),
+              x: cellX + mm2pt(2) + (avW - dw) / 2,
+              y: pageHeight - (snapY + mm2pt(1) + (avH - dh) / 2 + dh),
               width: dw, height: dh
             })
           }
         } catch {}
         gFotoNum++
         const cap = `Foto ${gFotoNum}`
-        drawTextAt(cap, lX + (IMG_W - font.widthOfTextAtSize(cap, 7)) / 2, yPos + IMG_H + mm2pt(5), 7)
+        const capW = font.widthOfTextAtSize(cap, 7)
+        drawTextAt(cap, cellX + (cellW - capW) / 2, snapY + PHOTO_H + mm2pt(5), 7)
       }
 
-      // right photo
-      if (prepared[i + 1]) {
-        drawRectTop(rX, yPos, IMG_W, CELL_H, undefined, true)
-        if (prepared[i + 1]?.bytes) {
-          try {
-            const emb = await embedImg(prepared[i + 1].bytes)
-            if (emb) {
-              const avW = IMG_W - mm2pt(2), avH = IMG_H - mm2pt(2)
-              const scale = Math.min(avW / (emb as any).width, avH / (emb as any).height)
-              const dw = (emb as any).width * scale, dh = (emb as any).height * scale
-              page.drawImage(emb, {
-                x: rX + mm2pt(1) + (avW - dw) / 2,
-                y: pageHeight - (yPos + mm2pt(1) + (avH - dh) / 2 + dh),
-                width: dw, height: dh
-              })
-            }
-          } catch {}
-          gFotoNum++
-          const cap = `Foto ${gFotoNum}`
-          drawTextAt(cap, rX + (IMG_W - font.widthOfTextAtSize(cap, 7)) / 2, yPos + IMG_H + mm2pt(5), 7)
-        }
-      }
+      await drawOnePhoto(prepared[i], margin, hasBoth ? halfW : tableWidth)
+      if (hasBoth) await drawOnePhoto(prepared[i + 1], margin + halfW, halfW)
 
-      yPos += CELL_H
+      yPos += ROW_H
     }
   }
 
@@ -931,12 +924,12 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
   // ── Column widths — portrait A4 (190 mm usable) ──────────────────────────
   const TW = tableWidth
 
-  // CONSTATAÇÕES: ITEM | PER | DESCRIÇÃO | KM | SENTIDO | RODOVIA | OBSERVAÇÃO
+  // CONSTATAÇÕES: ITEM(10) | PER(40) | DESCRIÇÃO(52) | KM(20) | SENTIDO(14) | RODOVIA(22) | OBSERVAÇÃO(32)
   const CI  = mm2pt(10)
   const CP  = mm2pt(40)
-  const CD  = mm2pt(50)
+  const CD  = mm2pt(52)
   const CK  = mm2pt(20)
-  const CS  = mm2pt(15)
+  const CS  = mm2pt(14)
   const CR  = mm2pt(22)
   const CO  = TW - CI - CP - CD - CK - CS - CR
 
@@ -950,15 +943,15 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
     { label: 'OBSERVAÇÃO',  w: CO },
   ]
 
-  // NÃO CONFORMIDADES: ITEM | PER | NÃO CONFORMIDADE | NÃO ATENDIMENTO | KM | SENTIDO | RODOVIA | PRAZO | OBSERVAÇÕES
-  const NI   = mm2pt(10)
-  const NP   = mm2pt(28)
-  const NN   = mm2pt(32)
-  const NA   = mm2pt(48)
-  const NK   = mm2pt(14)
-  const NSe  = mm2pt(11)
-  const NR   = mm2pt(15)
-  const NPr  = mm2pt(11)
+  // NÃO CONFORMIDADES: ITEM(8) | PER(26) | NC(27) | NA(55) | KM(15) | SENTIDO(10) | RODOVIA(13) | PRAZO(10) | OBS(26)
+  const NI   = mm2pt(8)
+  const NP   = mm2pt(26)
+  const NN   = mm2pt(27)
+  const NA   = mm2pt(55)
+  const NK   = mm2pt(15)
+  const NSe  = mm2pt(10)
+  const NR   = mm2pt(13)
+  const NPr  = mm2pt(10)
   const NO   = TW - NI - NP - NN - NA - NK - NSe - NR - NPr
 
   const ncCols: ColDef2[] = [
@@ -974,7 +967,7 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
   ]
 
   // ── VIII — CONSTATAÇÕES ──────────────────────────────────────────────────
-  drawSecHeader('VIII – CONSTATAÇÕES')
+  drawSectionTitle('VIII – CONSTATAÇÕES')
   drawHdrRow(cCols)
 
   let progCount = 0
@@ -1006,7 +999,7 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
     yPos += rowH
 
     const fotosRaw = Array.isArray(u.fotos_unidade) ? u.fotos_unidade : []
-    await drawFotos(fotosRaw)
+    await drawPhotoRows(fotosRaw)
     progCount++
     try { await updateJob(adminClient, job.id, { progress_unidades: progCount, progress_fotos: gFotoNum }) } catch {}
   }
@@ -1015,7 +1008,7 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
   if (yPos > pageHeight - bottomMargin - mm2pt(40)) addPage()
 
   // ── IX — NÃO CONFORMIDADES ───────────────────────────────────────────────
-  drawSecHeader('IX – NÃO CONFORMIDADES')
+  drawSectionTitle('IX – NÃO CONFORMIDADES')
   drawHdrRow(ncCols)
 
   for (let i = 0; i < naoConformidades.length; i++) {
@@ -1047,7 +1040,7 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
     yPos += rowH
 
     const fotosRaw = Array.isArray(u.fotos_unidade) ? u.fotos_unidade : []
-    await drawFotos(fotosRaw)
+    await drawPhotoRows(fotosRaw)
     progCount++
     try { await updateJob(adminClient, job.id, { progress_unidades: progCount, progress_fotos: gFotoNum }) } catch {}
   }

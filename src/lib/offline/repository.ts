@@ -1917,8 +1917,10 @@ export const Repository = {
       if (!codigoUnidade) codigoUnidade = String(unidade?.nome_unidade || '').trim()
       if (!codigoUnidade) codigoUnidade = 'SEM CÓDIGO'
       let municipioNome = ''
+      let fiscTipoModulo = ''
       if (unidade?.fiscalizacao_id) {
         const fisc = await db.fiscalizacoes.get(unidade.fiscalizacao_id as any)
+        fiscTipoModulo = String(fisc?.tipo_modulo || '')
         municipioNome = String(fisc?.municipio_nome || '').trim()
         if (!municipioNome && fisc?.municipio_id) {
           const m = await db.municipios.get(fisc.municipio_id as any)
@@ -1927,12 +1929,16 @@ export const Repository = {
       }
       if (!municipioNome) municipioNome = 'SEM MUNICÍPIO'
       const takenAt = capture.takenAt ? new Date(capture.takenAt) : file.lastModified ? new Date(file.lastModified) : new Date()
-      const coordsText = `${capture.latitude.toFixed(6)}, ${capture.longitude.toFixed(6)}`
-      const watermarkLines = [`${codigoUnidade}, ${municipioNome} - MS`, `${formatDateBR(takenAt)} ${formatTimeBR(takenAt)}`, coordsText]
-      processed = await compressFileToBlob(file, MAX_DIMENSION, JPEG_QUALITY, {
-        watermarkLines,
-        exif: { latitude: capture.latitude, longitude: capture.longitude, takenAt }
-      })
+      const exifData = { latitude: capture.latitude, longitude: capture.longitude, takenAt }
+      const isDtrFisc = ['rodovias_dtr', 'transportes_dtr', 'fiscal_dtr'].includes(fiscTipoModulo)
+      if (isDtrFisc) {
+        // DTR photos: EXIF metadata only, no text overlay
+        processed = await compressFileToBlob(file, MAX_DIMENSION, JPEG_QUALITY, { exif: exifData })
+      } else {
+        const coordsText = `${capture.latitude.toFixed(6)}, ${capture.longitude.toFixed(6)}`
+        const watermarkLines = [`${codigoUnidade}, ${municipioNome} - MS`, `${formatDateBR(takenAt)} ${formatTimeBR(takenAt)}`, coordsText]
+        processed = await compressFileToBlob(file, MAX_DIMENSION, JPEG_QUALITY, { watermarkLines, exif: exifData })
+      }
     } else {
       processed = await compressFileToBlob(file, MAX_DIMENSION, JPEG_QUALITY)
     }
