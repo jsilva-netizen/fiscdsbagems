@@ -1974,11 +1974,17 @@ export async function syncFotosWithProgress(onProgress?: (uploaded: number, tota
     unitCursor++
     return entries[i]
   }
+  const isValidUuid = (v: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)
   const unitWorker = async () => {
     while (true) {
       const pair = nextUnit()
       if (!pair) break
       const [unidadeId, fotos_unidade] = pair
+      if (!isValidUuid(unidadeId)) {
+        // Placeholder ID (ex: 'novo-ponto') — limpa e ignora
+        await db.fotos_local.where('unidadeLocalId').equals(unidadeId).delete()
+        continue
+      }
       const doUpdate = async () => {
         const map = await db.id_map.where('local_id').equals(unidadeId as any).and((m) => m.entity === 'unidades').first()
         const serverId = map?.server_id || unidadeId
