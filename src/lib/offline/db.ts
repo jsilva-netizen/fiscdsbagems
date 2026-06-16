@@ -83,6 +83,8 @@ export type TipoOcorrenciaDTR = {
   descricao?: string
   /** Observação-padrão que aparece em ambas as tabelas (constatações e NCs) */
   observacoes?: string
+  /** Rodovia específica (ex: "112"). NULL = aplica-se a todas as rodovias. */
+  rodovia?: string | null
   ativo: boolean
   created_at?: string
   updated_at?: string

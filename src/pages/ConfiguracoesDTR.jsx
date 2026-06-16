@@ -14,12 +14,14 @@ import {
 } from 'lucide-react';
 
 // Colunas da planilha de ocorrências DTR:
+// Rodovia → opcional; deixar vazio = aplica-se a todas as rodovias
 // Frente → categoria principal da concessão
-// PER → item do Padrão de Execução do Rodovias (ex: 3.1.1 Pavimento)
+// PER → item do Programa de Exploração da Rodovia (ex: 3.1.1 Pavimento)
 // Descrição → nome do item exibido no app e nas constatações
 // Não atendimento → cláusula do PER violada (preenchida se houver NC)
 // Prazo → prazo padrão em dias quando for NC
 const TEMPLATE_COLUNAS = [
+    'Rodovia',
     'Frente',
     'PER',
     'Descrição',
@@ -31,6 +33,7 @@ function downloadTemplate() {
     const ws = XLSX.utils.aoa_to_sheet([
         TEMPLATE_COLUNAS,
         [
+            '',
             'RECUPERAÇÃO E MANUTENÇÃO',
             '3.1.1 Pavimento',
             'Exsudação',
@@ -38,6 +41,7 @@ function downloadTemplate() {
             ''
         ],
         [
+            '',
             'RECUPERAÇÃO E MANUTENÇÃO',
             '3.1.1 Pavimento',
             'Elementos indesejáveis',
@@ -45,6 +49,7 @@ function downloadTemplate() {
             ''
         ],
         [
+            '40',
             'RECUPERAÇÃO E MANUTENÇÃO',
             '3.1.1 Pavimento',
             'Buraco / Panela na pista',
@@ -52,6 +57,7 @@ function downloadTemplate() {
             '3'
         ],
         [
+            '',
             'RECUPERAÇÃO E MANUTENÇÃO',
             '3.1.1 Pavimento',
             'Outros',
@@ -59,6 +65,7 @@ function downloadTemplate() {
             ''
         ],
         [
+            '',
             'RECUPERAÇÃO E MANUTENÇÃO',
             '3.1.2 Sinalização e Elementos de Proteção e Segurança',
             'Sinalização vertical danificada ou ausente',
@@ -66,6 +73,7 @@ function downloadTemplate() {
             '3'
         ],
         [
+            '',
             'RECUPERAÇÃO E MANUTENÇÃO',
             '3.1.6 Canteiro Central e Faixa de Domínio',
             'Vegetação alta no acostamento / faixa de domínio',
@@ -73,6 +81,7 @@ function downloadTemplate() {
             '15'
         ],
         [
+            '',
             'SERVIÇOS OPERACIONAIS',
             '3.4.5.1 Atendimento Médico de Emergência',
             'Ausência de ambulância / serviço médico',
@@ -80,7 +89,7 @@ function downloadTemplate() {
             '1'
         ]
     ]);
-    ws['!cols'] = [{ wch: 55 }, { wch: 55 }, { wch: 45 }, { wch: 90 }, { wch: 14 }];
+    ws['!cols'] = [{ wch: 12 }, { wch: 50 }, { wch: 50 }, { wch: 45 }, { wch: 90 }, { wch: 14 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Tipos de Ocorrência DTR');
     XLSX.writeFile(wb, 'template_tipos_ocorrencia_dtr.xlsx');
@@ -96,14 +105,16 @@ function parseSpreadsheet(file) {
                 const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
                 // Pular cabeçalho (linha 0)
                 const tipos = rows.slice(1)
-                    .filter(r => r[0] && String(r[0]).trim())
+                    .filter(r => r[1] && String(r[1]).trim())
                     .map(r => {
-                        const frente = String(r[0] || '').trim();
-                        const item_contrato = String(r[1] || '').trim() || null;
-                        const descricao = String(r[2] || '').trim() || null;
-                        const nao_atendimento = String(r[3] || '').trim() || null;
-                        const prazo_dias_padrao = r[4] ? parseInt(String(r[4]).trim(), 10) || null : null;
+                        const rodovia = String(r[0] || '').trim() || null;
+                        const frente = String(r[1] || '').trim();
+                        const item_contrato = String(r[2] || '').trim() || null;
+                        const descricao = String(r[3] || '').trim() || null;
+                        const nao_atendimento = String(r[4] || '').trim() || null;
+                        const prazo_dias_padrao = r[5] ? parseInt(String(r[5]).trim(), 10) || null : null;
                         return {
+                            rodovia,
                             frente,
                             item_contrato,
                             descricao,

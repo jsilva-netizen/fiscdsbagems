@@ -262,9 +262,16 @@ export const Repository = {
 
   // --- Tipos de Ocorrência DTR ---
 
-  async listTiposOcorrenciaDTR(): Promise<import('./db').TipoOcorrenciaDTR[]> {
+  async listTiposOcorrenciaDTR(rodovia?: string | null): Promise<import('./db').TipoOcorrenciaDTR[]> {
     const local = await db.tipos_ocorrencia_dtr.filter(t => t.ativo !== false).toArray()
-    if (local.length > 0) return local.slice().sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+    const byRodovia = (list: import('./db').TipoOcorrenciaDTR[]) => {
+      if (!rodovia) return list
+      return list.filter(t => {
+        if (!t.rodovia) return true
+        return t.rodovia.split('/').map(r => r.trim()).includes(rodovia)
+      })
+    }
+    if (local.length > 0) return byRodovia(local).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
 
     // Fallback: buscar do Supabase e armazenar localmente
     try {
@@ -275,7 +282,7 @@ export const Repository = {
         .order('nome')
       if (error || !data) return []
       await db.tipos_ocorrencia_dtr.bulkPut(data as any)
-      return data as any
+      return byRodovia(data as any)
     } catch {
       return []
     }
@@ -296,7 +303,7 @@ export const Repository = {
     }
   },
 
-  async upsertTiposOcorrenciaDTR(tipos: Array<{ nome: string; gera_nc: boolean; item_contrato?: string; nao_atendimento?: string; prazo_dias_padrao?: number; descricao?: string; observacoes?: string }>): Promise<void> {
+  async upsertTiposOcorrenciaDTR(tipos: Array<{ nome: string; gera_nc: boolean; item_contrato?: string; nao_atendimento?: string; prazo_dias_padrao?: number; descricao?: string; observacoes?: string; rodovia?: string | null }>): Promise<void> {
     if (!tipos || tipos.length === 0) return
 
     const rows = tipos.map(t => ({
@@ -308,6 +315,7 @@ export const Repository = {
       prazo_dias_padrao: t.prazo_dias_padrao ? Number(t.prazo_dias_padrao) : null,
       descricao: t.descricao || null,
       observacoes: t.observacoes || null,
+      rodovia: t.rodovia || null,
       ativo: true,
       created_at: now(),
       updated_at: now()

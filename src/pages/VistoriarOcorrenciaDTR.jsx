@@ -74,18 +74,19 @@ export default function VistoriarOcorrenciaDTR() {
     const [location, setLocation] = useState(null);
     const [gettingLocation, setGettingLocation] = useState(false);
 
-    const { data: tiposDB = [] } = useQuery({
-        queryKey: ['tipos_ocorrencia_dtr'],
-        queryFn: () => Repository.listTiposOcorrenciaDTR(),
-        staleTime: 5 * 60 * 1000
-    });
-    const tipos = tiposDB.length > 0 ? tiposDB : TIPOS_FALLBACK;
-
     const { data: fisc } = useQuery({
         queryKey: ['fiscalizacao', fiscId],
         queryFn: () => Repository.getFiscalizacaoById(fiscId),
         enabled: !!fiscId
     });
+
+    const fiscRodovia = fisc?.rodovia ?? null;
+    const { data: tiposDB = [] } = useQuery({
+        queryKey: ['tipos_ocorrencia_dtr', fiscRodovia],
+        queryFn: () => Repository.listTiposOcorrenciaDTR(fiscRodovia),
+        staleTime: 5 * 60 * 1000
+    });
+    const tipos = tiposDB.length > 0 ? tiposDB : TIPOS_FALLBACK;
 
     const { data: ocorrencia } = useQuery({
         queryKey: ['unidade', occurrenceId],
