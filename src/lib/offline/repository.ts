@@ -1940,8 +1940,10 @@ export const Repository = {
       const exifData = { latitude: capture.latitude, longitude: capture.longitude, takenAt }
       const isDtrFisc = ['rodovias_dtr', 'transportes_dtr', 'fiscal_dtr'].includes(fiscTipoModulo)
       if (isDtrFisc) {
-        // DTR photos: EXIF metadata only, no text overlay
-        processed = await compressFileToBlob(file, MAX_DIMENSION, JPEG_QUALITY, { exif: exifData })
+        // DTR photos: apenas data/hora e coordenadas, sem código/município
+        const coordsText = `${capture.latitude.toFixed(6)}, ${capture.longitude.toFixed(6)}`
+        const watermarkLines = [`${formatDateBR(takenAt)} ${formatTimeBR(takenAt)}`, coordsText]
+        processed = await compressFileToBlob(file, MAX_DIMENSION, JPEG_QUALITY, { watermarkLines, exif: exifData })
       } else {
         const coordsText = `${capture.latitude.toFixed(6)}, ${capture.longitude.toFixed(6)}`
         const watermarkLines = [`${codigoUnidade}, ${municipioNome} - MS`, `${formatDateBR(takenAt)} ${formatTimeBR(takenAt)}`, coordsText]

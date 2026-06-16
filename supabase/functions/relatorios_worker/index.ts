@@ -790,10 +790,10 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
   const LH = mm2pt(4.5)
   const MIN_H = mm2pt(7.5)
 
-  const calcH = (text: string, colW: number, size = FS): number => {
+  const calcH = (text: string, colW: number, size = FS, f = font): number => {
     const s = String(text || '')
     if (!s || s === '-') return MIN_H
-    const lines = wrapText(s, colW - 2 * CPAD_X, font, size)
+    const lines = wrapText(s, colW - 2 * CPAD_X, f, size)
     return Math.max(MIN_H, lines.length * LH + 2 * CPAD_Y)
   }
 
@@ -829,11 +829,13 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
   type ColDef2 = { label: string; w: number; center?: boolean }
 
   const drawHdrRow = (cols: ColDef2[]) => {
-    const h = mm2pt(9)
+    // altura automática para evitar corte nos cabeçalhos
+    const hSize = 7.5
+    const h = Math.max(mm2pt(9), ...cols.map(col => calcH(col.label, col.w, hSize, fontBold)))
     if (yPos + h > pageHeight - bottomMargin) addPage()
     let x = margin
     for (const col of cols) {
-      drawCell2(col.label, x, yPos, col.w, h, { bold: true, center: true, fill: [220, 220, 220], size: 7.5 })
+      drawCell2(col.label, x, yPos, col.w, h, { bold: true, center: true, fill: [220, 220, 220], size: hSize })
       x += col.w
     }
     yPos += h
@@ -943,15 +945,15 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
     { label: 'OBSERVAÇÃO',  w: CO },
   ]
 
-  // NÃO CONFORMIDADES: ITEM(8) | PER(26) | NC(27) | NA(55) | KM(15) | SENTIDO(10) | RODOVIA(13) | PRAZO(10) | OBS(26)
-  const NI   = mm2pt(8)
-  const NP   = mm2pt(26)
-  const NN   = mm2pt(27)
-  const NA   = mm2pt(55)
-  const NK   = mm2pt(15)
-  const NSe  = mm2pt(10)
-  const NR   = mm2pt(13)
-  const NPr  = mm2pt(10)
+  // NÃO CONFORMIDADES: ITEM(7) | PER(28) | NC(28) | NA(48) | KM(13) | SENTIDO(15) | RODOVIA(17) | PRAZO(12) | OBS(22)
+  const NI   = mm2pt(7)
+  const NP   = mm2pt(28)
+  const NN   = mm2pt(28)
+  const NA   = mm2pt(48)
+  const NK   = mm2pt(13)
+  const NSe  = mm2pt(15)
+  const NR   = mm2pt(17)
+  const NPr  = mm2pt(12)
   const NO   = TW - NI - NP - NN - NA - NK - NSe - NR - NPr
 
   const ncCols: ColDef2[] = [
