@@ -337,6 +337,7 @@ export default function VistoriarOcorrenciaDTR() {
                         onReorderFotos={(n) => { setFotos(n); setFotosDirty(true); }}
                         fiscalizacaoId={fiscId} unidadeId={occurrenceId || 'novo-ponto'} isEditable={true}
                         enableLegenda={false}
+                        watermarkContext={{ rodovia: fisc?.rodovia || '', km: km || '', sentido: sentido || '' }}
                     />
                 </div>
             </div>

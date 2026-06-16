@@ -1904,14 +1904,17 @@ export const Repository = {
   async addLocalFotoFromFile(
     unidadeId: string,
     file: File,
-    capture?: { latitude: number; longitude: number; takenAt?: string }
+    capture?: { latitude: number; longitude: number; takenAt?: string },
+    context?: { fiscalizacaoId?: string; rodovia?: string; km?: string; sentido?: string }
   ): Promise<OfflineFoto & { previewUrl: string }> {
     const count = await db.fotos_local.where('unidadeLocalId').equals(unidadeId).count()
     if (count >= MAX_PHOTOS_PER_UNIDADE) {
       throw new Error(`Limite máximo de ${MAX_PHOTOS_PER_UNIDADE} fotos por unidade atingido`)
     }
     const unidade = await db.unidades.get(unidadeId as any)
-    const fiscalizacaoLocalId = unidade?.fiscalizacao_id || 'unknown'
+    // Para novas ocorrências (unidadeId = 'novo-ponto'), usar fiscalizacaoId do contexto
+    const lookupFiscId = unidade?.fiscalizacao_id || context?.fiscalizacaoId
+    const fiscalizacaoLocalId = lookupFiscId || 'unknown'
     const hasCapture =
       capture &&
       typeof capture.latitude === 'number' &&
@@ -1925,8 +1928,8 @@ export const Repository = {
     let codigoUnidade = String(unidade?.codigo_unidade || '').trim()
     if (!codigoUnidade) codigoUnidade = String(unidade?.nome_unidade || '').trim()
     if (!codigoUnidade) codigoUnidade = 'SEM CÓDIGO'
-    if (unidade?.fiscalizacao_id) {
-      const fisc = await db.fiscalizacoes.get(unidade.fiscalizacao_id as any)
+    if (lookupFiscId) {
+      const fisc = await db.fiscalizacoes.get(lookupFiscId as any)
       fiscTipoModulo = String(fisc?.tipo_modulo || '')
       municipioNome = String(fisc?.municipio_nome || '').trim()
       if (!municipioNome && fisc?.municipio_id) {
@@ -1937,14 +1940,24 @@ export const Repository = {
     if (!municipioNome) municipioNome = 'SEM MUNICÍPIO'
     const isDtrFisc = ['rodovias_dtr', 'transportes_dtr', 'fiscal_dtr'].includes(fiscTipoModulo)
 
+    // Monta linha de localização DTR: "{Rodovia} KM {km} {Sentido}"
+    const buildDtrLocLine = (): string => {
+      const parts: string[] = []
+      if (context?.rodovia) parts.push(context.rodovia)
+      if (context?.km) parts.push(`KM ${context.km}`)
+      if (context?.sentido) parts.push(context.sentido)
+      return parts.join(' ')
+    }
+
     let processed: Awaited<ReturnType<typeof compressFileToBlob>>
     if (hasCapture) {
       const takenAt = capture!.takenAt ? new Date(capture!.takenAt) : file.lastModified ? new Date(file.lastModified) : new Date()
       const exifData = { latitude: capture!.latitude, longitude: capture!.longitude, takenAt }
       const coordsText = `${capture!.latitude.toFixed(6)}, ${capture!.longitude.toFixed(6)}`
       if (isDtrFisc) {
-        // DTR: data/hora + coordenadas, sem código/município
-        const watermarkLines = [`${formatDateBR(takenAt)} ${formatTimeBR(takenAt)}`, coordsText]
+        // DTR: Rodovia+KM+Sentido / Data Hora / Coordenadas
+        const locLine = buildDtrLocLine()
+        const watermarkLines = [...(locLine ? [locLine] : []), `${formatDateBR(takenAt)} ${formatTimeBR(takenAt)}`, coordsText]
         processed = await compressFileToBlob(file, MAX_DIMENSION, JPEG_QUALITY, { watermarkLines, exif: exifData })
       } else {
         const watermarkLines = [`${codigoUnidade}, ${municipioNome} - MS`, `${formatDateBR(takenAt)} ${formatTimeBR(takenAt)}`, coordsText]
@@ -1952,11 +1965,11 @@ export const Repository = {
       }
     } else {
       if (isDtrFisc) {
-        // DTR sem GPS: apenas data/hora
+        // DTR sem GPS: Rodovia+KM+Sentido / Data Hora
+        const locLine = buildDtrLocLine()
         const takenAt = file.lastModified ? new Date(file.lastModified) : new Date()
-        processed = await compressFileToBlob(file, MAX_DIMENSION, JPEG_QUALITY, {
-          watermarkLines: [`${formatDateBR(takenAt)} ${formatTimeBR(takenAt)}`]
-        })
+        const watermarkLines = [...(locLine ? [locLine] : []), `${formatDateBR(takenAt)} ${formatTimeBR(takenAt)}`]
+        processed = await compressFileToBlob(file, MAX_DIMENSION, JPEG_QUALITY, { watermarkLines })
       } else {
         processed = await compressFileToBlob(file, MAX_DIMENSION, JPEG_QUALITY)
       }

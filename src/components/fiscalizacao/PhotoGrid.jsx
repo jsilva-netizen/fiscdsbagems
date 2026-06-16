@@ -21,7 +21,8 @@ export default function PhotoGrid({
     unidadeId,
     isEditable = true,
     bigButton = false,
-    enableLegenda = true
+    enableLegenda = true,
+    watermarkContext = null
 }) {
     const fotosList = useMemo(() => {
         return (Array.isArray(fotos) ? fotos : []).map((f) => (typeof f === 'string' ? { url: f, legenda: '' } : f)).filter(Boolean);
@@ -253,7 +254,10 @@ export default function PhotoGrid({
                                 file,
                                 capture
                                     ? { latitude: capture.latitude, longitude: capture.longitude, takenAt: capture.takenAt }
-                                    : undefined
+                                    : undefined,
+                                watermarkContext
+                                    ? { fiscalizacaoId, ...watermarkContext }
+                                    : { fiscalizacaoId }
                             );
                             const novaFoto = {
                                 localId: saved.localId,
