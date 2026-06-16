@@ -247,8 +247,7 @@ export default function FiscalizacoesDTR() {
 
                                             {/* Middle detail */}
                                             <div className="text-xs text-gray-500 bg-gray-50 p-2.5 rounded-lg border border-gray-100 flex flex-col gap-1">
-                                                <p><strong className="text-gray-700">Município:</strong> {f.municipio_nome}</p>
-                                                <div className="flex items-center justify-between mt-1 text-[11px] text-gray-400 font-mono">
+                                                <div className="flex items-center justify-between text-[11px] text-gray-400 font-mono">
                                                     <span className="flex items-center gap-1">
                                                         <Calendar className="h-3 w-3" />
                                                         {dataFmt} {horaFmt}
@@ -258,7 +257,7 @@ export default function FiscalizacoesDTR() {
                                             </div>
 
                                             {/* Actions */}
-                                            <div className="flex items-center justify-between border-t border-gray-100 pt-2.5 mt-1">
+                                            <div className="flex flex-col gap-1.5 border-t border-gray-100 pt-2.5 mt-1">
                                                 {isFinalized ? (
                                                     <div className="flex gap-2">
                                                         <RelatorioFiscalizacao fiscalizacao={f} />
@@ -268,15 +267,16 @@ export default function FiscalizacoesDTR() {
                                                         Continuar inspeção →
                                                     </span>
                                                 )}
-
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8 text-gray-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg"
-                                                    onClick={(e) => handleDeleteClick(e, f.id)}
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
+                                                <div className="flex justify-end">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 text-gray-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg"
+                                                        onClick={(e) => handleDeleteClick(e, f.id)}
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
                                             </div>
                                         </CardContent>
                                     </Card>

@@ -2,6 +2,7 @@ import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Repository } from '@/lib/offline/repository';
+import { runFullSync } from '@/lib/offline/syncEngine';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -30,10 +31,11 @@ export default function ExecutarFiscalizacaoDTR() {
         mutationFn: async () => {
             await Repository.finalizarFiscalizacao(fiscId);
         },
-        onSuccess: () => {
+        onSuccess: async () => {
             queryClient.invalidateQueries({ queryKey: ['fiscalizacoes'] });
             queryClient.invalidateQueries({ queryKey: ['fiscalizacao', fiscId] });
-            alert('Vistoria finalizada com sucesso!');
+            runFullSync().catch(() => {});
+            navigate(createPageUrl('FiscalizacoesDTR'));
         },
         onError: (err) => {
             alert(err.message || 'Falha ao finalizar vistoria.');
