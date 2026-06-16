@@ -30,3 +30,7 @@ rtk proxy <cmd>       # Run raw (no filtering, for debugging)
 ## Why
 
 RTK filters and compresses command output before it reaches the LLM context, saving 60-90% tokens on common operations. Always use `rtk <cmd>` instead of raw commands.
+
+## Caveman
+
+Be extremely direct. Remove all filler words, greetings, apologies, and obvious explanations. Provide only the direct solution, the exact command, or the refactored code. Use short, fragmented sentences. Focus 100% on technical accuracy.

@@ -7,7 +7,7 @@ import { snapToHighway } from '@/utils/rodoviasGeoJSON';
 import PhotoGrid from '@/components/fiscalizacao/PhotoGrid';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Loader2, Save } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Loader2, Save } from 'lucide-react';
 
 const TIPOS_FALLBACK = [
     { frente: 'RECUPERAÇÃO E MANUTENÇÃO', item_contrato: '3.1.1 Pavimento', descricao: 'Exsudação', nome: 'Exsudação', nao_atendimento: null, prazo_dias_padrao: null },
@@ -223,11 +223,29 @@ export default function VistoriarOcorrenciaDTR() {
     });
 
     const currentStep = STEPS[stepIdx];
+    const isLastStep = stepIdx === STEPS.length - 1;
+
     const goBack = () => {
         if (stepIdx === 0) navigate(createPageUrl('ExecutarFiscalizacaoDTR') + `?id=${fiscId}`);
         else setStepIdx(s => s - 1);
     };
     const goNext = () => setStepIdx(s => s + 1);
+
+    // Auto-avança após selecionar uma opção (com delay para mostrar feedback visual)
+    const selectAndAdvance = (setFn, value) => {
+        setFn(value);
+        if (!isLastStep) setTimeout(goNext, 200);
+    };
+
+    const canProceed = {
+        fotos: true,
+        frente: !!selectedFrente,
+        per: !!selectedPer,
+        descricao: !!selectedItem,
+        tipo: !!tipoRegistro,
+        sentido: !!sentido,
+        observacao: true,
+    }[currentStep] ?? true;
 
     const addFoto = (f) => { setFotos(p => [...p, f]); setFotosDirty(true); };
     const removeFoto = (i) => {
@@ -263,9 +281,12 @@ export default function VistoriarOcorrenciaDTR() {
         <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md sticky top-0 z-10">
             <div className="max-w-md mx-auto px-4 py-4">
                 <div className="flex items-center gap-3">
+                    {/* Voltar */}
                     <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full flex-shrink-0" onClick={goBack}>
                         <ArrowLeft className="h-5 w-5" />
                     </Button>
+
+                    {/* Barra de progresso + label */}
                     <div className="flex-1 min-w-0">
                         <p className="text-[10px] font-bold text-indigo-300 uppercase tracking-wider truncate">
                             {stepIdx + 1}. {stepLabel}
@@ -276,7 +297,19 @@ export default function VistoriarOcorrenciaDTR() {
                             ))}
                         </div>
                     </div>
-                    {currentStep === 'observacao' && (
+
+                    {/* Avançar (mostrado em todos exceto no último passo) */}
+                    {!isLastStep ? (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className={`rounded-full flex-shrink-0 transition-colors ${canProceed ? 'text-white hover:bg-white/10' : 'text-white/20 cursor-not-allowed'}`}
+                            onClick={canProceed ? goNext : undefined}
+                            disabled={!canProceed}
+                        >
+                            <ArrowRight className="h-5 w-5" />
+                        </Button>
+                    ) : (
                         <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8 px-3 rounded-lg flex-shrink-0"
                             onClick={() => salvarMutation.mutate()} disabled={salvarMutation.isPending}>
                             {salvarMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 mr-1" /> Salvar</>}
@@ -284,16 +317,6 @@ export default function VistoriarOcorrenciaDTR() {
                     )}
                 </div>
             </div>
-        </div>
-    );
-
-    const Footer = ({ canProceed, onNext }) => (
-        <div className="sticky bottom-0 bg-white border-t border-gray-200 px-4 py-3 flex items-center justify-between gap-3">
-            <span className="text-xs text-gray-400 italic">Pressione <strong>ENTER</strong></span>
-            <Button className="bg-gray-900 hover:bg-gray-700 text-white rounded-xl px-6 h-10"
-                disabled={!canProceed} onClick={onNext}>
-                Próximo
-            </Button>
         </div>
     );
 
@@ -314,7 +337,11 @@ export default function VistoriarOcorrenciaDTR() {
                     />
                 </div>
             </div>
-            <Footer canProceed={true} onNext={goNext} />
+            <div className="sticky bottom-0 bg-white border-t border-gray-200 px-4 py-3">
+                <Button className="w-full bg-gray-900 hover:bg-gray-700 text-white rounded-xl h-11" onClick={goNext}>
+                    Próximo
+                </Button>
+            </div>
         </div>
     );
 
@@ -326,10 +353,9 @@ export default function VistoriarOcorrenciaDTR() {
                 <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wide">{stepIdx + 1}. FRENTES DA CONCESSÃO</h2>
                 {frentes.map(f => (
                     <RadioCard key={f} label={f} selected={selectedFrente === f}
-                        onSelect={() => { setSelectedFrente(f); setSelectedPer(''); setSelectedItem(null); }} />
+                        onSelect={() => selectAndAdvance((v) => { setSelectedFrente(v); setSelectedPer(''); setSelectedItem(null); }, f)} />
                 ))}
             </div>
-            <Footer canProceed={!!selectedFrente} onNext={goNext} />
         </div>
     );
 
@@ -341,10 +367,9 @@ export default function VistoriarOcorrenciaDTR() {
                 <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wide">{stepIdx + 1}. FRENTE DE {selectedFrente}</h2>
                 {pers.map(p => (
                     <RadioCard key={p} label={p} selected={selectedPer === p}
-                        onSelect={() => { setSelectedPer(p); setSelectedItem(null); }} />
+                        onSelect={() => selectAndAdvance((v) => { setSelectedPer(v); setSelectedItem(null); }, p)} />
                 ))}
             </div>
-            <Footer canProceed={!!selectedPer} onNext={goNext} />
         </div>
     );
 
@@ -358,10 +383,12 @@ export default function VistoriarOcorrenciaDTR() {
                     const label = item.descricao || item.nome || `Item ${i + 1}`;
                     const isSel = selectedItem === item ||
                         (selectedItem?.descricao === item.descricao && selectedItem?.item_contrato === item.item_contrato);
-                    return <RadioCard key={i} label={label} selected={isSel} onSelect={() => setSelectedItem(item)} />;
+                    return (
+                        <RadioCard key={i} label={label} selected={isSel}
+                            onSelect={() => selectAndAdvance(setSelectedItem, item)} />
+                    );
                 })}
             </div>
-            <Footer canProceed={!!selectedItem} onNext={goNext} />
         </div>
     );
 
@@ -371,8 +398,10 @@ export default function VistoriarOcorrenciaDTR() {
             <Header />
             <div className="flex-1 max-w-md w-full mx-auto px-4 py-6 space-y-3">
                 <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wide">{stepIdx + 1}. TIPO</h2>
-                <RadioCard label="Constatação" selected={tipoRegistro === 'constatacao'} onSelect={() => setTipoRegistro('constatacao')} />
-                <RadioCard label="Não Conformidade" selected={tipoRegistro === 'nc'} onSelect={() => setTipoRegistro('nc')} />
+                <RadioCard label="Constatação" selected={tipoRegistro === 'constatacao'}
+                    onSelect={() => selectAndAdvance(setTipoRegistro, 'constatacao')} />
+                <RadioCard label="Não Conformidade" selected={tipoRegistro === 'nc'}
+                    onSelect={() => selectAndAdvance(setTipoRegistro, 'nc')} />
                 {tipoRegistro === 'nc' && selectedItem?.nao_atendimento && (
                     <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 text-xs text-amber-700 space-y-1">
                         <p className="font-semibold">Não Atendimento (PER):</p>
@@ -383,7 +412,6 @@ export default function VistoriarOcorrenciaDTR() {
                     </div>
                 )}
             </div>
-            <Footer canProceed={!!tipoRegistro} onNext={goNext} />
         </div>
     );
 
@@ -404,10 +432,10 @@ export default function VistoriarOcorrenciaDTR() {
                     </div>
                 )}
                 {['N', 'S', 'N/S'].map(s => (
-                    <RadioCard key={s} label={s} selected={sentido === s} onSelect={() => setSentido(s)} />
+                    <RadioCard key={s} label={s} selected={sentido === s}
+                        onSelect={() => selectAndAdvance(setSentido, s)} />
                 ))}
             </div>
-            <Footer canProceed={!!sentido} onNext={goNext} />
         </div>
     );
 
@@ -441,7 +469,7 @@ export default function VistoriarOcorrenciaDTR() {
                 <Textarea
                     value={observacao}
                     onChange={e => setObservacao(e.target.value)}
-                    placeholder="Descreva as condições encontradas..."
+                    placeholder="Observações..."
                     className="bg-white border-gray-200 text-gray-800 text-sm min-h-[120px] rounded-2xl resize-none"
                 />
             </div>
