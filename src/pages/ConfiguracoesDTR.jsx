@@ -104,21 +104,26 @@ function parseSpreadsheet(file) {
                 const ws = wb.Sheets[wb.SheetNames[0]];
                 const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
                 // Pular cabeçalho (linha 0)
+                // Detecta formato: com coluna Rodovia (nova) ou sem ela (antiga)
+                const header = (rows[0] || []).map(h => String(h || '').trim().toLowerCase());
+                const hasRodoviaCol = header[0] === 'rodovia';
+                const off = hasRodoviaCol ? 1 : 0;
+
                 const tipos = rows.slice(1)
-                    .filter(r => r[1] && String(r[1]).trim())
+                    .filter(r => r[off] && String(r[off]).trim())
                     .map(r => {
-                        const rodovia = String(r[0] || '').trim() || null;
-                        const frente = String(r[1] || '').trim();
-                        const item_contrato = String(r[2] || '').trim() || null;
-                        const descricao = String(r[3] || '').trim() || null;
-                        const nao_atendimento = String(r[4] || '').trim() || null;
-                        const prazo_dias_padrao = r[5] ? parseInt(String(r[5]).trim(), 10) || null : null;
+                        const rodovia = hasRodoviaCol ? (String(r[0] || '').trim() || null) : null;
+                        const frente = String(r[off] || '').trim();
+                        const item_contrato = String(r[off + 1] || '').trim() || null;
+                        const descricao = String(r[off + 2] || '').trim() || null;
+                        const nao_atendimento = String(r[off + 3] || '').trim() || null;
+                        const prazo_dias_padrao = r[off + 4] ? parseInt(String(r[off + 4]).trim(), 10) || null : null;
                         return {
                             rodovia,
                             frente,
                             item_contrato,
                             descricao,
-                            nome: descricao, // compatibilidade com código existente
+                            nome: descricao,
                             nao_atendimento,
                             prazo_dias_padrao,
                             gera_nc: !!nao_atendimento
