@@ -1940,11 +1940,23 @@ export const Repository = {
     if (!municipioNome) municipioNome = 'SEM MUNICÍPIO'
     const isDtrFisc = ['rodovias_dtr', 'transportes_dtr', 'fiscal_dtr'].includes(fiscTipoModulo)
 
+    // Formata KM decimal ("115.2") como "115+200m"; valores já formatados passam direto
+    const formatKmWatermark = (km: string): string => {
+      if (!km) return ''
+      if (km.includes('+')) return km
+      const num = parseFloat(km)
+      if (isNaN(num)) return km
+      const intPart = Math.floor(num)
+      const meters = Math.round((num - intPart) * 1000)
+      return meters > 0 ? `${intPart}+${meters}m` : String(intPart)
+    }
+
     // Monta linha de localização DTR: "{Rodovia} KM {km} {Sentido}"
     const buildDtrLocLine = (): string => {
       const parts: string[] = []
       if (context?.rodovia) parts.push(context.rodovia)
-      if (context?.km) parts.push(`KM ${context.km}`)
+      const kmFmt = formatKmWatermark(context?.km || '')
+      if (kmFmt) parts.push(`KM ${kmFmt}`)
       if (context?.sentido) parts.push(context.sentido)
       return parts.join(' ')
     }

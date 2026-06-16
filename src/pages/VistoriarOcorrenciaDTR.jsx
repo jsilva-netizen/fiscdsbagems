@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Repository } from '@/lib/offline/repository';
-import { snapToHighway } from '@/utils/rodoviasGeoJSON';
+import { snapToHighway, parseKMLSegments, snapToNearestKMLSegment } from '@/utils/rodoviasGeoJSON';
 import PhotoGrid from '@/components/fiscalizacao/PhotoGrid';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -71,6 +71,8 @@ export default function VistoriarOcorrenciaDTR() {
     const [observacao, setObservacao] = useState('');
     const [km, setKm] = useState('');
     const [trecho, setTrecho] = useState('');
+    const [rodoviaSnapped, setRodoviaSnapped] = useState('');
+    const [kmlSegments, setKmlSegments] = useState([]);
     const [location, setLocation] = useState(null);
     const [gettingLocation, setGettingLocation] = useState(false);
 
@@ -79,6 +81,16 @@ export default function VistoriarOcorrenciaDTR() {
         queryFn: () => Repository.getFiscalizacaoById(fiscId),
         enabled: !!fiscId
     });
+
+    // Carrega segmentos KML para snap multi-rodovia
+    useEffect(() => {
+        if (!fisc?.rodovia) return;
+        Repository.downloadKMLForRodovia(fisc.rodovia)
+            .then(kmlText => {
+                if (kmlText) setKmlSegments(parseKMLSegments(kmlText));
+            })
+            .catch(() => {});
+    }, [fisc?.rodovia]);
 
     const fiscRodovia = fisc?.rodovia ?? null;
     const { data: tiposDB = [] } = useQuery({
@@ -111,15 +123,22 @@ export default function VistoriarOcorrenciaDTR() {
                 const lat = pos.coords.latitude;
                 const lng = pos.coords.longitude;
                 setLocation({ lat, lng });
-                const snapped = snapToHighway(lat, lng, fisc.rodovia);
-                setKm(snapped.km);
-                setTrecho(snapped.trecho);
+                if (kmlSegments.length > 0) {
+                    const snapped = snapToNearestKMLSegment(lat, lng, kmlSegments);
+                    setKm(snapped.km);
+                    setRodoviaSnapped(snapped.rodovia || fisc.rodovia || '');
+                } else {
+                    const snapped = snapToHighway(lat, lng, fisc.rodovia);
+                    setKm(snapped.km);
+                    setTrecho(snapped.trecho);
+                    setRodoviaSnapped(fisc.rodovia || '');
+                }
                 setGettingLocation(false);
             },
             () => setGettingLocation(false),
             { enableHighAccuracy: true, timeout: 10000 }
         );
-    }, [fisc, occurrenceId]);
+    }, [fisc, occurrenceId, kmlSegments]);
 
     // Edit mode: pre-populate state and jump to last step
     useEffect(() => {
@@ -140,6 +159,7 @@ export default function VistoriarOcorrenciaDTR() {
         setObservacao(ocorrencia.endereco || '');
         setKm(ocorrencia.km || '');
         setTrecho(ocorrencia.trecho || '');
+        setRodoviaSnapped(ocorrencia.rodovia || fisc?.rodovia || '');
         if (ocorrencia.latitude && ocorrencia.longitude) {
             setLocation({ lat: ocorrencia.latitude, lng: ocorrencia.longitude });
         }
@@ -191,7 +211,7 @@ export default function VistoriarOcorrenciaDTR() {
                 endereco: observacao,
                 latitude: location?.lat ?? null,
                 longitude: location?.lng ?? null,
-                rodovia: fisc?.rodovia || '',
+                rodovia: rodoviaSnapped || fisc?.rodovia || '',
                 trecho: trecho,
                 km: km,
                 sentido: sentido || null,
@@ -337,7 +357,7 @@ export default function VistoriarOcorrenciaDTR() {
                         onReorderFotos={(n) => { setFotos(n); setFotosDirty(true); }}
                         fiscalizacaoId={fiscId} unidadeId={occurrenceId || 'novo-ponto'} isEditable={true}
                         enableLegenda={false}
-                        watermarkContext={{ rodovia: fisc?.rodovia || '', km: km || '', sentido: sentido || '' }}
+                        watermarkContext={{ rodovia: rodoviaSnapped || fisc?.rodovia || '', km: km || '', sentido: sentido || '' }}
                     />
                 </div>
             </div>

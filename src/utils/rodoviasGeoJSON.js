@@ -113,6 +113,91 @@ export function parseKMLCoordinates(kmlText) {
 }
 
 /**
+ * Analisa um KML com múltiplos Placemarks (uma rodovia por Placemark).
+ * Retorna um array de segmentos { name, coordinates } para snap multi-rodovia.
+ *
+ * @param {string} kmlText
+ * @returns {{ name: string, coordinates: [number,number][] }[]}
+ */
+export function parseKMLSegments(kmlText) {
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(kmlText, 'application/xml');
+    const placemarks = doc.querySelectorAll('Placemark');
+
+    const parseCoords = (el) => {
+      const coordNodes = el.querySelectorAll('LineString > coordinates, LinearRing > coordinates');
+      if (!coordNodes.length) return null;
+      const raw = coordNodes[0].textContent.trim();
+      const coords = raw.split(/\s+/).map(token => {
+        const parts = token.split(',').map(Number);
+        return parts.length >= 2 && !isNaN(parts[0]) && !isNaN(parts[1]) ? [parts[0], parts[1]] : null;
+      }).filter(Boolean);
+      return coords.length >= 2 ? coords : null;
+    };
+
+    if (placemarks.length > 0) {
+      const segments = [];
+      for (const pm of placemarks) {
+        const nameEl = pm.querySelector('name');
+        const name = nameEl ? nameEl.textContent.trim() : '';
+        const coords = parseCoords(pm);
+        if (coords) segments.push({ name, coordinates: coords });
+      }
+      if (segments.length > 0) return segments;
+    }
+
+    // Fallback: KML sem Placemarks — segmento único sem nome
+    const coords = parseKMLCoordinates(kmlText);
+    return coords ? [{ name: '', coordinates: coords }] : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Faz snap do ponto GPS ao segmento mais próximo dentre múltiplos do KML.
+ * Retorna km, rodovia (nome do Placemark) e coordenadas snappadas.
+ *
+ * @param {number} lat
+ * @param {number} lng
+ * @param {{ name: string, coordinates: [number,number][] }[]} segments
+ * @returns {{ km: string, rodovia: string, distanceToLineMeters: number, latitude: number, longitude: number }}
+ */
+export function snapToNearestKMLSegment(lat, lng, segments) {
+  if (!segments || segments.length === 0) {
+    return { km: '', rodovia: '', distanceToLineMeters: 0, latitude: lat, longitude: lng };
+  }
+
+  let best = null;
+  let bestDist = Infinity;
+
+  for (const seg of segments) {
+    if (!seg.coordinates || seg.coordinates.length < 2) continue;
+    try {
+      const line = lineString(seg.coordinates);
+      const pt = point([lng, lat]);
+      const snapped = nearestPointOnLine(line, pt);
+      const distM = (snapped.properties.dist ?? 0) * 1000;
+
+      if (distM < bestDist) {
+        bestDist = distM;
+        const rawKm = snapped.properties.location ?? 0;
+        best = {
+          km: rawKm.toFixed(1),
+          rodovia: seg.name || '',
+          distanceToLineMeters: Math.round(distM),
+          latitude: snapped.geometry.coordinates[1],
+          longitude: snapped.geometry.coordinates[0]
+        };
+      }
+    } catch {}
+  }
+
+  return best || { km: '', rodovia: '', distanceToLineMeters: 0, latitude: lat, longitude: lng };
+}
+
+/**
  * Faz snap de um ponto GPS ao traçado de uma rodovia, preferindo coordenadas
  * carregadas de KML (passadas como parâmetro) sobre as hardcoded em RODOVIAS_TRACKS.
  *
