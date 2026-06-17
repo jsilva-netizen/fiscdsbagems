@@ -6,40 +6,41 @@ import {
   Folder,
   ArrowLeft,
   LogOut,
-  Recycle,
 } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { createPageUrl } from '@/utils';
 
 const NAV_ITEMS = [
-  { to: '/CatersDashboard', label: 'Dashboard', icon: BarChart3 },
-  { to: '/CatersAvisos', label: 'Avisos', icon: Bell },
-  { to: '/CatersProcessos', label: 'Processos', icon: Folder },
-  { to: '/CatersRecomendacoes', label: 'Recomendações', icon: ClipboardList },
+  { to: createPageUrl('CatersDashboard'), label: 'Dashboard', icon: BarChart3 },
+  { to: createPageUrl('CatersAvisos'), label: 'Avisos', icon: Bell },
+  { to: createPageUrl('CatersProcessos'), label: 'Processos', icon: Folder },
+  { to: createPageUrl('CatersRecomendacoes'), label: 'Recomendações', icon: ClipboardList },
 ];
 
-function NavLink({ to, label, icon: Icon, badge }) {
+function NavTab({ to, label, icon: Icon, badge }) {
   const { pathname } = useLocation();
-  const active = pathname === to || pathname.startsWith(to + '/');
+  const active = pathname === to || pathname.startsWith(to + '/') ||
+    (to === createPageUrl('CatersProcessos') && pathname.startsWith(createPageUrl('CatersProcessoDetalhe')));
+
   return (
     <Link
       to={to}
       className={cn(
-        'flex items-center justify-between rounded-lg px-3 py-2.5 text-sm transition-colors',
+        'flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap',
         active
-          ? 'bg-emerald-600/20 text-emerald-300 font-medium'
-          : 'text-slate-400 hover:bg-slate-700/50 hover:text-slate-100'
+          ? 'border-white text-white'
+          : 'border-transparent text-blue-200 hover:border-blue-300 hover:text-white'
       )}
     >
-      <div className="flex items-center gap-3">
-        <Icon className="h-4 w-4 shrink-0" />
-        <span>{label}</span>
-      </div>
-      {badge > 0 ? (
+      <Icon className="h-4 w-4 shrink-0" />
+      <span>{label}</span>
+      {badge > 0 && (
         <span className="grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
           {badge}
         </span>
-      ) : null}
+      )}
     </Link>
   );
 }
@@ -48,53 +49,64 @@ export default function CatersLayout({ children, alertCount = 0 }) {
   const { user, logout } = useAuth();
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50">
-      <aside className="flex w-64 flex-shrink-0 flex-col bg-[#1a2535] text-white">
-        {/* Header */}
-        <div className="flex items-center gap-3 border-b border-white/10 p-5">
-          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-emerald-600/20">
-            <Recycle className="h-5 w-5 text-emerald-400" />
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 pt-4 pb-0">
+          <div className="flex items-center gap-4 pb-3">
+            {/* Logo */}
+            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center p-1.5 shadow-md flex-shrink-0">
+              <svg viewBox="0 0 128 128" className="w-full h-full" aria-label="Logo AGEMS">
+                <circle cx="64" cy="64" r="56" fill="none" stroke="#101010" strokeWidth="6" />
+                <polygon points="24,32 44,32 64,64 44,96 24,96 44,64" fill="#1FA463" />
+                <polygon points="44,32 64,32 84,64 64,96 44,96 64,64" fill="#1894F2" />
+                <polygon points="64,32 84,32 104,64 84,96 64,96 84,64" fill="#F6C713" />
+              </svg>
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <h1 className="text-lg font-bold leading-tight">CATERS</h1>
+              <p className="text-blue-200 text-xs">Câmara Técnica de Resíduos Sólidos</p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                asChild
+                className="text-blue-200 hover:text-white hover:bg-white/10 rounded-lg gap-1.5 h-8"
+              >
+                <Link to={createPageUrl('Home')}>
+                  <ArrowLeft className="h-4 w-4" />
+                  <span className="hidden sm:inline text-xs">Início</span>
+                </Link>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={logout}
+                className="text-blue-200 hover:text-white hover:bg-white/10 rounded-lg gap-1.5 h-8"
+              >
+                <LogOut className="h-4 w-4" />
+                <span className="hidden sm:inline text-xs">Sair</span>
+              </Button>
+            </div>
           </div>
-          <div className="min-w-0">
-            <div className="truncate text-sm font-bold text-slate-100">CATERS / DSB</div>
-            <div className="truncate text-[11px] text-slate-400">Resíduos Sólidos</div>
-          </div>
+
+          {/* Nav tabs */}
+          <nav className="flex items-end gap-1 overflow-x-auto">
+            {NAV_ITEMS.map((item) => (
+              <NavTab
+                key={item.to}
+                {...item}
+                badge={item.label === 'Avisos' ? alertCount : 0}
+              />
+            ))}
+          </nav>
         </div>
+      </div>
 
-        {/* Nav */}
-        <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
-          {NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.to}
-              {...item}
-              badge={item.to === '/CatersAvisos' ? alertCount : 0}
-            />
-          ))}
-        </nav>
-
-        {/* Footer */}
-        <div className="space-y-0.5 border-t border-white/10 p-3">
-          <Link
-            to="/"
-            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-400 transition-colors hover:bg-slate-700/50 hover:text-slate-100"
-          >
-            <ArrowLeft className="h-4 w-4 shrink-0" />
-            <span>Voltar ao início</span>
-          </Link>
-          <button
-            type="button"
-            onClick={logout}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-400 transition-colors hover:bg-slate-700/50 hover:text-slate-100"
-          >
-            <LogOut className="h-4 w-4 shrink-0" />
-            <span>Sair</span>
-          </button>
-          <div className="px-3 pt-2 text-[11px] text-slate-500 truncate">
-            {user?.email ?? ''}
-          </div>
-        </div>
-      </aside>
-
+      {/* Content */}
       <main className="flex-1 overflow-y-auto">{children}</main>
     </div>
   );
