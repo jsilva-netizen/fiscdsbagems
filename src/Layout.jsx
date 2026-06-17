@@ -2,16 +2,21 @@
 export default function Layout({ children, currentPageName }) {
     // Páginas que não precisam de layout (fullscreen)
     const fullscreenPages = [
-        'Home', 
-        'NovaFiscalizacao', 
-        'ExecutarFiscalizacao', 
+        'Home',
+        'NovaFiscalizacao',
+        'ExecutarFiscalizacao',
         'VistoriarUnidade',
         'AdicionarUnidade',
         'Municipios',
         'TiposUnidade',
         'Checklists',
         'Fiscalizacoes',
-        'Relatorios'
+        'Relatorios',
+        'CatersDashboard',
+        'CatersProcessos',
+        'CatersProcessoDetalhe',
+        'CatersAvisos',
+        'CatersRecomendacoes',
     ];
 
     if (fullscreenPages.includes(currentPageName)) {

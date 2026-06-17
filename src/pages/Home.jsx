@@ -14,12 +14,12 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   Plus, History, Building2, ClipboardCheck, Users, BarChart3, FileText,
-  AlertTriangle, LogOut, Wifi, WifiOff, RefreshCw, Download, ChevronRight
+  AlertTriangle, LogOut, Wifi, WifiOff, RefreshCw, Download, ChevronRight, Recycle
 } from 'lucide-react';
 
 export default function Home() {
     const { user, logout } = useAuth();
-    const { isDSB, isDTR, isDGE, isAdmin, diretoriaNome } = useModulo();
+    const { isDSB, isDTR, isDGE, isAdmin, diretoriaNome, camaraTecnica } = useModulo();
     const [isMobile, setIsMobile] = useState(false);
     const { online, lastSyncAt, refetchSyncStatus } = useSyncStatus?.() || { online: true, lastSyncAt: undefined, refetchSyncStatus: () => {} };
     const [syncing, setSyncing] = useState(false);
@@ -265,6 +265,25 @@ export default function Home() {
                                     <p className="text-gray-500 text-sm">Ver histórico e pontos registrados</p>
                                 </div>
                                 <ChevronRight className="h-5 w-5 text-gray-300 ml-auto flex-shrink-0 group-hover:translate-x-1 transition-transform" />
+                            </div>
+                        </Link>
+                    </div>
+                )}
+
+                {/* CATERS — Câmara Técnica de Resíduos Sólidos */}
+                {(camaraTecnica === 'caters' || isAdmin) && (
+                    <div>
+                        <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">CATERS — Resíduos Sólidos</h2>
+                        <Link to={createPageUrl('CatersDashboard')}>
+                            <div className="group bg-gradient-to-br from-emerald-600 to-teal-700 rounded-2xl p-5 flex items-center gap-4 shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all cursor-pointer">
+                                <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-white/30 transition-all">
+                                    <Recycle className="h-7 w-7 text-white" />
+                                </div>
+                                <div className="text-white min-w-0">
+                                    <h3 className="text-lg font-bold">Painel CATERS</h3>
+                                    <p className="text-emerald-100 text-sm">Processos, recomendações e avisos da câmara técnica</p>
+                                </div>
+                                <ChevronRight className="h-5 w-5 text-white/60 ml-auto flex-shrink-0 group-hover:translate-x-1 transition-transform" />
                             </div>
                         </Link>
                     </div>

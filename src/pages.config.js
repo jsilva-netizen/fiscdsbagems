@@ -75,6 +75,11 @@ import PortalPrestadorHome from './pages/PortalPrestadorHome';
 import ResponderTermo from './pages/ResponderTermo';
 import Contratos from './pages/Contratos';
 import ConfiguracoesDTR from './pages/ConfiguracoesDTR';
+import CatersDashboard from './pages/CatersDashboard';
+import CatersProcessos from './pages/CatersProcessos';
+import CatersProcessoDetalhe from './pages/CatersProcessoDetalhe';
+import CatersAvisos from './pages/CatersAvisos';
+import CatersRecomendacoes from './pages/CatersRecomendacoes';
 import __Layout from './Layout.jsx';
 
 
@@ -107,6 +112,11 @@ export const PAGES = {
     "ResponderTermo": ResponderTermo,
     "Contratos": Contratos,
     "ConfiguracoesDTR": ConfiguracoesDTR,
+    "CatersDashboard": CatersDashboard,
+    "CatersProcessos": CatersProcessos,
+    "CatersProcessoDetalhe": CatersProcessoDetalhe,
+    "CatersAvisos": CatersAvisos,
+    "CatersRecomendacoes": CatersRecomendacoes,
 }
 
 export const pagesConfig = {
