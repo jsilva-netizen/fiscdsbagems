@@ -2,13 +2,15 @@ import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import {
+  ChevronLeft,
+  ChevronRight,
+  Filter,
+  FolderOpen,
+  FolderSearch,
+  Loader2,
   Plus,
   Search,
   X,
-  FolderOpen,
-  ChevronRight,
-  Loader2,
-  Filter,
   Link2,
   Link2Off,
 } from 'lucide-react';
@@ -27,7 +29,6 @@ import { createPageUrl } from '@/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -37,6 +38,14 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/lib/AuthContext';
+
+const PAGE_SIZE = 25;
+
+const QUICK_TABS = [
+  { id: '', label: 'Visão Geral' },
+  { id: 'encerrado', label: 'Arquivados' },
+  { id: 'aguardando_analise', label: 'Pendentes' },
+];
 
 const STATUS_OPTIONS = [
   { value: '', label: 'Todos os status' },
@@ -62,6 +71,24 @@ function statusColor(status) {
   }
 }
 
+function StatusBadge({ p }) {
+  const hasOpenRecs = (p.recommendations_overdue ?? 0) + (p.recommendations_on_time ?? 0) > 0;
+  const isFollowUp = p.status === 'respondido' && hasOpenRecs;
+  const hasOverdueRecs = (p.recommendations_overdue ?? 0) > 0;
+
+  const label = isFollowUp ? 'Em acompanhamento' : formatProcessStatus(p.status);
+  const className = isFollowUp
+    ? (hasOverdueRecs ? 'bg-red-50 text-red-700' : 'bg-indigo-50 text-indigo-700')
+    : statusColor(p.status);
+
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${className}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${isFollowUp ? (hasOverdueRecs ? 'bg-red-600' : 'bg-indigo-600') : 'bg-current'}`} />
+      {label}
+    </span>
+  );
+}
+
 const EMPTY_FORM = {
   process_number: '',
   municipality: '',
@@ -82,18 +109,31 @@ export default function CatersProcessos() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const [search, setSearch] = useState('');
-  const [municipality, setMunicipality] = useState('');
-  const [status, setStatus] = useState('');
+  // Filters (applied on search button click)
+  const [searchApplied, setSearchApplied] = useState('');
+  const [municipalityApplied, setMunicipalityApplied] = useState('');
+  const [statusApplied, setStatusApplied] = useState('');
+
+  // Drafts
+  const [searchDraft, setSearchDraft] = useState('');
+  const [municipalityDraft, setMunicipalityDraft] = useState('');
+  const [statusDraft, setStatusDraft] = useState('');
+  const [createdFromDraft, setCreatedFromDraft] = useState('');
+  const [createdToDraft, setCreatedToDraft] = useState('');
+
+  // Applied date range
+  const [createdFrom, setCreatedFrom] = useState('');
+  const [createdTo, setCreatedTo] = useState('');
+
+  // Quick tab
+  const [quickTab, setQuickTab] = useState('');
+
+  const [page, setPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [selectedFiscalizacaoId, setSelectedFiscalizacaoId] = useState('');
 
-  const alertsQ = useQuery({
-    queryKey: ['caters-alerts'],
-    queryFn: fetchAlertsData,
-    staleTime: 60_000,
-  });
+  const alertsQ = useQuery({ queryKey: ['caters-alerts'], queryFn: fetchAlertsData, staleTime: 60_000 });
   const alertCount = useMemo(() => {
     const d = alertsQ.data;
     if (!d) return 0;
@@ -101,8 +141,8 @@ export default function CatersProcessos() {
   }, [alertsQ.data]);
 
   const processesQ = useQuery({
-    queryKey: ['caters-processes', search, municipality, status],
-    queryFn: () => fetchProcesses({ search, municipality, status }),
+    queryKey: ['caters-processes', searchApplied, municipalityApplied, statusApplied || quickTab],
+    queryFn: () => fetchProcesses({ search: searchApplied, municipality: municipalityApplied, status: statusApplied || quickTab }),
     staleTime: 30_000,
   });
 
@@ -116,26 +156,36 @@ export default function CatersProcessos() {
   const createMut = useMutation({
     mutationFn: async (data) => {
       const proc = await createProcess({ ...data, created_by: user?.id });
-      if (selectedFiscalizacaoId) {
-        await importFromFiscalizacao(selectedFiscalizacaoId, proc.id);
-      }
+      if (selectedFiscalizacaoId) await importFromFiscalizacao(selectedFiscalizacaoId, proc.id);
       return proc;
     },
-    onSuccess: (proc, _vars) => {
+    onSuccess: (proc) => {
       qc.invalidateQueries({ queryKey: ['caters-processes'] });
       qc.invalidateQueries({ queryKey: ['caters-dashboard'] });
-      qc.invalidateQueries({ queryKey: ['caters-recommendations', proc.id] });
       setShowForm(false);
       setForm(EMPTY_FORM);
       setSelectedFiscalizacaoId('');
-      toast({
-        title: selectedFiscalizacaoId
-          ? 'Processo criado e recomendações importadas.'
-          : 'Processo criado com sucesso.',
-      });
+      toast({ title: selectedFiscalizacaoId ? 'Processo criado e recomendações importadas.' : 'Processo criado.' });
     },
     onError: (e) => toast({ title: 'Erro ao criar processo', description: e.message, variant: 'destructive' }),
   });
+
+  const handleApplyFilters = () => {
+    setSearchApplied(searchDraft);
+    setMunicipalityApplied(municipalityDraft);
+    setStatusApplied(statusDraft);
+    setCreatedFrom(createdFromDraft);
+    setCreatedTo(createdToDraft);
+    setPage(1);
+  };
+
+  const handleClearFilters = () => {
+    setSearchDraft(''); setMunicipalityDraft(''); setStatusDraft('');
+    setCreatedFromDraft(''); setCreatedToDraft('');
+    setSearchApplied(''); setMunicipalityApplied(''); setStatusApplied('');
+    setCreatedFrom(''); setCreatedTo('');
+    setPage(1);
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -164,71 +214,104 @@ export default function CatersProcessos() {
     }));
   };
 
-  const processes = processesQ.data ?? [];
+  // Client-side date range filter
+  const allProcesses = processesQ.data ?? [];
+  const filteredProcesses = useMemo(() => {
+    if (!createdFrom && !createdTo) return allProcesses;
+    return allProcesses.filter((p) => {
+      const d = p.created_at?.slice(0, 10);
+      if (!d) return true;
+      if (createdFrom && d < createdFrom) return false;
+      if (createdTo && d > createdTo) return false;
+      return true;
+    });
+  }, [allProcesses, createdFrom, createdTo]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredProcesses.length / PAGE_SIZE));
+  const effectivePage = Math.min(page, totalPages);
+  const pageItems = filteredProcesses.slice((effectivePage - 1) * PAGE_SIZE, effectivePage * PAGE_SIZE);
+
+  const paginationLabel = useMemo(() => {
+    const total = filteredProcesses.length;
+    if (!total) return '0 processos';
+    const start = (effectivePage - 1) * PAGE_SIZE + 1;
+    const end = Math.min(total, effectivePage * PAGE_SIZE);
+    return `${start}-${end} de ${total} processos`;
+  }, [effectivePage, filteredProcesses.length]);
+
+  const hasActiveFilters = searchApplied || municipalityApplied || statusApplied || createdFrom || createdTo;
 
   return (
     <CatersLayout alertCount={alertCount}>
       <div className="min-h-full bg-slate-50">
-        <div className="px-8 pb-12 pt-8">
-          <div className="mx-auto max-w-6xl space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Processos</h1>
-                <p className="mt-1 text-sm text-slate-500">
-                  Acompanhamento de processos de fiscalização — CATERS
-                </p>
-              </div>
-              <Button
-                onClick={() => { setForm(EMPTY_FORM); setShowForm(true); }}
-                className="gap-2 bg-emerald-600 hover:bg-emerald-700"
-              >
-                <Plus className="h-4 w-4" />
-                Novo processo
-              </Button>
+        {/* Sticky header com quick tabs */}
+        <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/90 px-8 py-3 backdrop-blur-md">
+          <div className="flex items-center justify-between gap-6 mx-auto max-w-6xl">
+            <div className="flex items-center gap-6">
+              <div className="text-base font-semibold text-slate-900">Processos</div>
+              <nav className="hidden items-center gap-5 md:flex">
+                {QUICK_TABS.map((t) => (
+                  <button key={t.id} type="button"
+                    onClick={() => { setQuickTab(t.id); setStatusApplied(''); setStatusDraft(''); setPage(1); }}
+                    className={`pb-1 text-sm font-semibold transition-colors ${
+                      quickTab === t.id
+                        ? 'border-b-2 border-emerald-600 text-emerald-600'
+                        : 'text-slate-500 hover:text-slate-800'
+                    }`}>
+                    {t.label}
+                  </button>
+                ))}
+              </nav>
             </div>
+            <Button onClick={() => { setForm(EMPTY_FORM); setShowForm(true); }} className="gap-2 bg-emerald-600 hover:bg-emerald-700">
+              <Plus className="h-4 w-4" />
+              Novo processo
+            </Button>
+          </div>
+        </header>
 
+        <div className="px-8 py-8">
+          <div className="mx-auto max-w-6xl space-y-5">
             {/* Filtros */}
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-slate-100 p-4 shadow-sm">
               <div className="relative flex-1 min-w-48">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <Input
-                  className="pl-9"
-                  placeholder="Buscar por número…"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
+                <Input className="pl-9 bg-white" placeholder="Buscar por número…"
+                  value={searchDraft} onChange={(e) => setSearchDraft(e.target.value)} />
               </div>
-              <Input
-                className="w-52"
-                placeholder="Município…"
-                value={municipality}
-                onChange={(e) => setMunicipality(e.target.value)}
-              />
+              <Input className="w-48 bg-white" placeholder="Município…"
+                value={municipalityDraft} onChange={(e) => setMunicipalityDraft(e.target.value)} />
               <div className="relative">
                 <Filter className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                  className="h-10 rounded-md border border-input bg-background pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  {STATUS_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
+                <select value={statusDraft} onChange={(e) => setStatusDraft(e.target.value)}
+                  className="h-10 rounded-md border border-input bg-white pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                  {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
-              {(search || municipality || status) && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => { setSearch(''); setMunicipality(''); setStatus(''); }}
-                >
+              <div className="flex items-end gap-2">
+                <div className="space-y-1">
+                  <div className="text-xs font-semibold text-slate-500">De</div>
+                  <Input type="date" className="w-36 bg-white" value={createdFromDraft}
+                    onChange={(e) => setCreatedFromDraft(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <div className="text-xs font-semibold text-slate-500">Até</div>
+                  <Input type="date" className="w-36 bg-white" value={createdToDraft}
+                    onChange={(e) => setCreatedToDraft(e.target.value)} />
+                </div>
+              </div>
+              <Button onClick={handleApplyFilters} className="gap-2 bg-emerald-600 hover:bg-emerald-700">
+                <Filter className="h-4 w-4" />
+                Filtrar
+              </Button>
+              {hasActiveFilters && (
+                <Button variant="ghost" size="icon" onClick={handleClearFilters} title="Limpar filtros">
                   <X className="h-4 w-4" />
                 </Button>
               )}
             </div>
 
-            {/* Lista */}
+            {/* Tabela */}
             {processesQ.isLoading ? (
               <div className="flex items-center justify-center py-16">
                 <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
@@ -237,52 +320,52 @@ export default function CatersProcessos() {
               <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                 Erro: {String(processesQ.error?.message)}
               </div>
-            ) : !processes.length ? (
+            ) : !filteredProcesses.length ? (
               <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300/60 bg-white py-16 text-center">
-                <FolderOpen className="mb-3 h-10 w-10 text-slate-300" />
+                <FolderSearch className="mb-3 h-12 w-12 text-slate-200" />
                 <p className="font-medium text-slate-500">Nenhum processo encontrado</p>
                 <p className="mt-1 text-sm text-slate-400">
-                  {search || municipality || status ? 'Tente ajustar os filtros.' : 'Crie o primeiro processo com o botão acima.'}
+                  {hasActiveFilters ? 'Tente ajustar os filtros.' : 'Crie o primeiro processo com o botão acima.'}
                 </p>
               </div>
             ) : (
               <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                <table className="w-full text-sm">
-                  <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <table className="w-full text-sm border-collapse">
+                  <thead className="bg-slate-100 text-[11px] font-bold uppercase tracking-widest text-slate-500">
                     <tr>
-                      <th className="px-5 py-3 text-left">Processo</th>
-                      <th className="px-5 py-3 text-left">Município</th>
-                      <th className="hidden px-5 py-3 text-left md:table-cell">Status</th>
-                      <th className="hidden px-5 py-3 text-left lg:table-cell">Prazo resposta</th>
-                      <th className="hidden px-5 py-3 text-center xl:table-cell">Recom.</th>
-                      <th className="px-5 py-3" />
+                      <th className="border-b border-slate-200 px-5 py-3 text-left">Processo</th>
+                      <th className="border-b border-slate-200 px-5 py-3 text-left">Município</th>
+                      <th className="hidden border-b border-slate-200 px-5 py-3 text-left md:table-cell">Status</th>
+                      <th className="hidden border-b border-slate-200 px-5 py-3 text-left lg:table-cell">Prazo resposta</th>
+                      <th className="hidden border-b border-slate-200 px-5 py-3 text-left lg:table-cell">Criado em</th>
+                      <th className="hidden border-b border-slate-200 px-5 py-3 text-center xl:table-cell">Recom.</th>
+                      <th className="border-b border-slate-200 px-5 py-3" />
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {processes.map((p) => {
+                  <tbody className="divide-y divide-slate-200/70">
+                    {pageItems.map((p, idx) => {
                       const dueAt = computeResponseDueAt(p);
                       const days = dueAt ? daysFromToday(dueAt) : null;
                       const isOverdue = days !== null && days < 0;
                       return (
-                        <tr key={p.id} className="group hover:bg-slate-50">
-                          <td className="px-5 py-3.5 font-medium text-slate-900">{p.process_number}</td>
+                        <tr key={p.id} className={`group transition-colors hover:bg-slate-50 ${idx % 2 === 1 ? 'bg-slate-50/30' : 'bg-white'}`}>
+                          <td className="px-5 py-3.5 font-bold text-indigo-600">{p.process_number}</td>
                           <td className="px-5 py-3.5 text-slate-600">{p.municipality}</td>
                           <td className="hidden px-5 py-3.5 md:table-cell">
-                            <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${statusColor(p.status)}`}>
-                              {formatProcessStatus(p.status)}
-                            </span>
+                            <StatusBadge p={p} />
                           </td>
                           <td className="hidden px-5 py-3.5 lg:table-cell">
                             {dueAt ? (
                               <span className={isOverdue ? 'font-semibold text-red-600' : 'text-slate-600'}>
                                 {formatIsoDateHuman(dueAt)}
-                                {isOverdue && ` (${Math.abs(days)}d atraso)`}
+                                {isOverdue && ` (${Math.abs(days)}d)`}
                               </span>
-                            ) : (
-                              <span className="text-slate-400">—</span>
-                            )}
+                            ) : <span className="text-slate-400">—</span>}
                           </td>
-                          <td className="hidden px-5 py-3.5 text-center xl:table-cell">
+                          <td className="hidden px-5 py-3.5 text-slate-500 lg:table-cell">
+                            {formatIsoDateHuman(p.created_at?.slice(0, 10))}
+                          </td>
+                          <td className="hidden px-5 py-3.5 xl:table-cell">
                             <div className="flex items-center justify-center gap-1.5">
                               {(p.recommendations_on_time ?? 0) > 0 && (
                                 <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
@@ -304,7 +387,7 @@ export default function CatersProcessos() {
                               to={`${createPageUrl('CatersProcessoDetalhe')}?id=${p.id}`}
                               className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50"
                             >
-                              Detalhe
+                              Ver detalhes
                               <ChevronRight className="h-3.5 w-3.5" />
                             </Link>
                           </td>
@@ -313,6 +396,28 @@ export default function CatersProcessos() {
                     })}
                   </tbody>
                 </table>
+
+                {/* Paginação */}
+                {filteredProcesses.length > 0 && (
+                  <div className="flex items-center justify-between gap-3 border-t border-slate-200 bg-white px-5 py-3">
+                    <div className="text-xs font-medium text-slate-500">{paginationLabel}</div>
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="sm" disabled={effectivePage <= 1}
+                        onClick={() => setPage((p) => Math.max(1, p - 1))} className="gap-1 text-slate-500">
+                        <ChevronLeft className="h-4 w-4" />
+                        Anterior
+                      </Button>
+                      <div className="rounded-lg bg-slate-100 px-4 py-1.5 text-xs font-bold text-emerald-700">
+                        {effectivePage} / {totalPages}
+                      </div>
+                      <Button variant="ghost" size="sm" disabled={effectivePage >= totalPages}
+                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))} className="gap-1 text-slate-500">
+                        Próxima
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -326,7 +431,7 @@ export default function CatersProcessos() {
             <DialogTitle>Novo processo</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Vincular à fiscalização existente */}
+            {/* Vincular à fiscalização */}
             <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 space-y-2">
               <div className="flex items-center gap-2 text-sm font-semibold text-emerald-800">
                 {selectedFiscalizacaoId ? <Link2 className="h-4 w-4" /> : <Link2Off className="h-4 w-4" />}
@@ -334,14 +439,10 @@ export default function CatersProcessos() {
               </div>
               <p className="text-xs text-emerald-700">
                 Selecione para importar automaticamente as recomendações com prazo de 30 dias.
-                Deixe em branco para cadastro manual.
               </p>
-              <select
-                value={selectedFiscalizacaoId}
-                onChange={(e) => handleFiscalizacaoSelect(e.target.value)}
-                className="h-9 w-full rounded-md border border-emerald-300 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              >
-                <option value="">— Sem vínculo (processo manual) —</option>
+              <select value={selectedFiscalizacaoId} onChange={(e) => handleFiscalizacaoSelect(e.target.value)}
+                className="h-9 w-full rounded-md border border-emerald-300 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <option value="">— Sem vínculo (cadastro manual) —</option>
                 {fiscalizacoesQ.isLoading && <option disabled>Carregando…</option>}
                 {(fiscalizacoesQ.data ?? []).map((f) => (
                   <option key={f.id} value={f.id}>
@@ -359,145 +460,55 @@ export default function CatersProcessos() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="process_number">Número do processo *</Label>
-                <Input
-                  id="process_number"
-                  required
-                  value={form.process_number}
-                  onChange={(e) => setForm((f) => ({ ...f, process_number: e.target.value }))}
-                  placeholder="Ex: DSB-2024-001"
-                />
+                <Input id="process_number" required value={form.process_number}
+                  onChange={(e) => setForm((f) => ({ ...f, process_number: e.target.value }))} placeholder="Ex: CATERS-2024-001" />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="municipality">Município *</Label>
-                <Input
-                  id="municipality"
-                  required
-                  value={form.municipality}
-                  onChange={(e) => setForm((f) => ({ ...f, municipality: e.target.value }))}
-                  placeholder="Ex: Campo Grande"
-                />
+                <Input id="municipality" required value={form.municipality}
+                  onChange={(e) => setForm((f) => ({ ...f, municipality: e.target.value }))} />
               </div>
             </div>
-
             <div className="space-y-1.5">
               <Label htmlFor="object">Objeto *</Label>
-              <Input
-                id="object"
-                required
-                value={form.object}
-                onChange={(e) => setForm((f) => ({ ...f, object: e.target.value }))}
-                placeholder="Descreva o objeto da fiscalização"
-              />
+              <Input id="object" required value={form.object}
+                onChange={(e) => setForm((f) => ({ ...f, object: e.target.value }))} placeholder="Descreva o objeto da fiscalização" />
             </div>
-
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="status">Status</Label>
-                <select
-                  id="status"
-                  value={form.status}
-                  onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  {STATUS_OPTIONS.filter((o) => o.value).map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
+                <Label>Status</Label>
+                <select value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                  {STATUS_OPTIONS.filter((o) => o.value).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="technician_name">Técnico responsável</Label>
-                <Input
-                  id="technician_name"
-                  value={form.technician_name}
-                  onChange={(e) => setForm((f) => ({ ...f, technician_name: e.target.value }))}
-                  placeholder="Nome do técnico"
-                />
+                <Label>Técnico responsável</Label>
+                <Input value={form.technician_name} onChange={(e) => setForm((f) => ({ ...f, technician_name: e.target.value }))} />
               </div>
             </div>
-
             <div className="rounded-lg bg-slate-50 p-4 space-y-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">AR / Notificação</p>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="ar_sent_at">Envio do AR</Label>
-                  <Input
-                    id="ar_sent_at"
-                    type="date"
-                    value={form.ar_sent_at}
-                    onChange={(e) => setForm((f) => ({ ...f, ar_sent_at: e.target.value }))}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="ar_received_at">Recebimento do AR</Label>
-                  <Input
-                    id="ar_received_at"
-                    type="date"
-                    value={form.ar_received_at}
-                    onChange={(e) => setForm((f) => ({ ...f, ar_received_at: e.target.value }))}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="ar_tracking_code">Código de rastreio</Label>
-                  <Input
-                    id="ar_tracking_code"
-                    value={form.ar_tracking_code}
-                    onChange={(e) => setForm((f) => ({ ...f, ar_tracking_code: e.target.value }))}
-                    placeholder="Ex: BR123456789BR"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="ar_protocol_number">Nº de protocolo</Label>
-                  <Input
-                    id="ar_protocol_number"
-                    value={form.ar_protocol_number}
-                    onChange={(e) => setForm((f) => ({ ...f, ar_protocol_number: e.target.value }))}
-                  />
-                </div>
+                <div className="space-y-1.5"><Label>Envio do AR</Label><Input type="date" value={form.ar_sent_at} onChange={(e) => setForm((f) => ({ ...f, ar_sent_at: e.target.value }))} /></div>
+                <div className="space-y-1.5"><Label>Recebimento do AR</Label><Input type="date" value={form.ar_received_at} onChange={(e) => setForm((f) => ({ ...f, ar_received_at: e.target.value }))} /></div>
+                <div className="space-y-1.5"><Label>Código de rastreio</Label><Input value={form.ar_tracking_code} onChange={(e) => setForm((f) => ({ ...f, ar_tracking_code: e.target.value }))} placeholder="Ex: BR123456789BR" /></div>
+                <div className="space-y-1.5"><Label>Nº protocolo</Label><Input value={form.ar_protocol_number} onChange={(e) => setForm((f) => ({ ...f, ar_protocol_number: e.target.value }))} /></div>
               </div>
             </div>
-
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="report_sent_at">Envio do relatório</Label>
-                <Input
-                  id="report_sent_at"
-                  type="date"
-                  value={form.report_sent_at}
-                  onChange={(e) => setForm((f) => ({ ...f, report_sent_at: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="titular_response_due_at">Prazo de resposta</Label>
-                <Input
-                  id="titular_response_due_at"
-                  type="date"
-                  value={form.titular_response_due_at}
-                  onChange={(e) => setForm((f) => ({ ...f, titular_response_due_at: e.target.value }))}
-                />
-              </div>
+              <div className="space-y-1.5"><Label>Envio do relatório</Label><Input type="date" value={form.report_sent_at} onChange={(e) => setForm((f) => ({ ...f, report_sent_at: e.target.value }))} /></div>
+              <div className="space-y-1.5"><Label>Prazo de resposta</Label><Input type="date" value={form.titular_response_due_at} onChange={(e) => setForm((f) => ({ ...f, titular_response_due_at: e.target.value }))} /></div>
             </div>
-
             <div className="space-y-1.5">
-              <Label htmlFor="observations">Observações</Label>
-              <textarea
-                id="observations"
-                rows={3}
-                value={form.observations}
-                onChange={(e) => setForm((f) => ({ ...f, observations: e.target.value }))}
+              <Label>Observações</Label>
+              <textarea rows={3} value={form.observations} onChange={(e) => setForm((f) => ({ ...f, observations: e.target.value }))}
                 placeholder="Observações adicionais…"
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              />
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
             </div>
-
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                disabled={createMut.isPending}
-                className="gap-2 bg-emerald-600 hover:bg-emerald-700"
-              >
+              <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancelar</Button>
+              <Button type="submit" disabled={createMut.isPending} className="gap-2 bg-emerald-600 hover:bg-emerald-700">
                 {createMut.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                 Criar processo
               </Button>
