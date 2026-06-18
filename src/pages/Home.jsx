@@ -276,15 +276,15 @@ export default function Home() {
                 {!isPrestador && (
                     <div className="sm:max-w-sm">
                         <Link to={createPageUrl('Relatorios')}>
-                            <div className="group bg-gradient-to-br from-violet-600 to-indigo-700 rounded-2xl p-5 flex items-center gap-4 shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all cursor-pointer">
-                                <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-white/30 transition-all">
-                                    <TrendingUp className="h-7 w-7 text-white" />
+                            <div className="group bg-white border border-gray-200 rounded-2xl p-5 flex items-center gap-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
+                                <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-all">
+                                    <TrendingUp className="h-6 w-6 text-blue-600" />
                                 </div>
-                                <div className="text-white min-w-0">
-                                    <h3 className="text-lg font-bold">Relatórios e BI</h3>
-                                    <p className="text-violet-100 text-sm">Indicadores e análises</p>
+                                <div className="min-w-0">
+                                    <h3 className="text-base font-semibold text-gray-900">Relatórios e BI</h3>
+                                    <p className="text-gray-500 text-sm">Indicadores e análises</p>
                                 </div>
-                                <ChevronRight className="h-5 w-5 text-white/60 ml-auto flex-shrink-0 group-hover:translate-x-1 transition-transform" />
+                                <ChevronRight className="h-4 w-4 text-gray-400 ml-auto flex-shrink-0 group-hover:translate-x-1 transition-transform" />
                             </div>
                         </Link>
                     </div>
@@ -298,15 +298,15 @@ export default function Home() {
                         {/* CATESA */}
                         {(camaraTecnica === 'catesa' || isAdmin) && (
                             <Link to={createPageUrl('CatesaDashboard')}>
-                                <div className="group bg-gradient-to-br from-cyan-600 to-blue-700 rounded-2xl p-5 flex items-center gap-4 shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all cursor-pointer">
-                                    <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-white/30 transition-all">
-                                        <Droplets className="h-7 w-7 text-white" />
+                                <div className="group bg-white border border-gray-200 rounded-2xl p-5 flex items-center gap-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
+                                    <div className="w-12 h-12 bg-cyan-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-cyan-100 transition-all">
+                                        <Droplets className="h-6 w-6 text-cyan-600" />
                                     </div>
-                                    <div className="text-white min-w-0">
-                                        <h3 className="text-lg font-bold">Painel CATESA</h3>
-                                        <p className="text-cyan-100 text-sm">Câmara Técnica de Saneamento</p>
+                                    <div className="min-w-0">
+                                        <h3 className="text-base font-semibold text-gray-900">Painel CATESA</h3>
+                                        <p className="text-gray-500 text-sm">Câmara Técnica de Saneamento</p>
                                     </div>
-                                    <ChevronRight className="h-5 w-5 text-white/60 ml-auto flex-shrink-0 group-hover:translate-x-1 transition-transform" />
+                                    <ChevronRight className="h-4 w-4 text-gray-400 ml-auto flex-shrink-0 group-hover:translate-x-1 transition-transform" />
                                 </div>
                             </Link>
                         )}
@@ -314,15 +314,15 @@ export default function Home() {
                         {/* CATERS */}
                         {(camaraTecnica === 'caters' || isAdmin) && (
                             <Link to={createPageUrl('CatersDashboard')}>
-                                <div className="group bg-gradient-to-br from-emerald-600 to-teal-700 rounded-2xl p-5 flex items-center gap-4 shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all cursor-pointer">
-                                    <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-white/30 transition-all">
-                                        <Recycle className="h-7 w-7 text-white" />
+                                <div className="group bg-white border border-gray-200 rounded-2xl p-5 flex items-center gap-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
+                                    <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-100 transition-all">
+                                        <Recycle className="h-6 w-6 text-emerald-600" />
                                     </div>
-                                    <div className="text-white min-w-0">
-                                        <h3 className="text-lg font-bold">Painel CATERS</h3>
-                                        <p className="text-emerald-100 text-sm">Câmara Técnica de Resíduos Sólidos</p>
+                                    <div className="min-w-0">
+                                        <h3 className="text-base font-semibold text-gray-900">Painel CATERS</h3>
+                                        <p className="text-gray-500 text-sm">Câmara Técnica de Resíduos Sólidos</p>
                                     </div>
-                                    <ChevronRight className="h-5 w-5 text-white/60 ml-auto flex-shrink-0 group-hover:translate-x-1 transition-transform" />
+                                    <ChevronRight className="h-4 w-4 text-gray-400 ml-auto flex-shrink-0 group-hover:translate-x-1 transition-transform" />
                                 </div>
                             </Link>
                         )}
@@ -330,15 +330,15 @@ export default function Home() {
                         {/* CRES */}
                         {(camaraTecnica === 'cres' || isAdmin) && (
                             <Link to={createPageUrl('CresDashboard')}>
-                                <div className="group bg-gradient-to-br from-violet-600 to-indigo-700 rounded-2xl p-5 flex items-center gap-4 shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all cursor-pointer">
-                                    <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-white/30 transition-all">
-                                        <TrendingUp className="h-7 w-7 text-white" />
+                                <div className="group bg-white border border-gray-200 rounded-2xl p-5 flex items-center gap-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
+                                    <div className="w-12 h-12 bg-violet-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-violet-100 transition-all">
+                                        <TrendingUp className="h-6 w-6 text-violet-600" />
                                     </div>
-                                    <div className="text-white min-w-0">
-                                        <h3 className="text-lg font-bold">Painel CRES</h3>
-                                        <p className="text-violet-100 text-sm">Câmara Técnica de Regulação Econômica do Saneamento</p>
+                                    <div className="min-w-0">
+                                        <h3 className="text-base font-semibold text-gray-900">Painel CRES</h3>
+                                        <p className="text-gray-500 text-sm">Câmara Técnica de Regulação Econômica do Saneamento</p>
                                     </div>
-                                    <ChevronRight className="h-5 w-5 text-white/60 ml-auto flex-shrink-0 group-hover:translate-x-1 transition-transform" />
+                                    <ChevronRight className="h-4 w-4 text-gray-400 ml-auto flex-shrink-0 group-hover:translate-x-1 transition-transform" />
                                 </div>
                             </Link>
                         )}
