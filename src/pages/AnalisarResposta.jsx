@@ -2,8 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Repository } from '@/lib/offline/repository';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { createPageUrl } from '@/utils';
-import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Download, CheckCircle, XCircle, AlertCircle, Eye, Lock } from 'lucide-react';
+import { Download, CheckCircle, XCircle, AlertCircle, Eye, Lock } from 'lucide-react';
+import CatesaLayout from '@/components/camaras/CatesaLayout';
 
 
 
@@ -196,6 +195,42 @@ export default function AnalisarResposta() {
             alert('Análise salva com sucesso!');
             setDetalheDeterminacao(null);
             setAnaliseForm({ status: '', manifestacao_prestador: '', descricao_atendimento: '', dentro_prazo: true });
+        }
+    });
+
+    const { data: autosExistentes = [] } = useQuery({
+        queryKey: ['autos-da-fiscalizacao', fiscalizacao?.id],
+        queryFn: async () => {
+            if (!fiscalizacao?.id) return [];
+            const { data, error } = await supabase
+                .from('autos_infracao')
+                .select('id, determinacao_id')
+                .eq('fiscalizacao_id', fiscalizacao.id);
+            if (error) throw error;
+            return data || [];
+        },
+        enabled: !!fiscalizacao?.id
+    });
+
+    const gerarAutosMutation = useMutation({
+        mutationFn: async (dets) => {
+            if (!fiscalizacao?.id) throw new Error('Fiscalização não encontrada');
+            const records = dets.map(det => ({
+                fiscalizacao_id: fiscalizacao.id,
+                determinacao_id: det.id,
+                prestador_servico_id: fiscalizacao.prestador_servico_id,
+                descricao: det.descricao || det.texto || `Determinação ${det.numero_determinacao || det.id}`,
+                status: 'pendente',
+            }));
+            const { error } = await supabase.from('autos_infracao').insert(records);
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['autos-da-fiscalizacao', fiscalizacao?.id] });
+            alert('Autos de Infração gerados com sucesso!');
+        },
+        onError: (err) => {
+            alert('Erro ao gerar autos: ' + (err?.message || String(err)));
         }
     });
 
@@ -413,6 +448,23 @@ export default function AnalisarResposta() {
         };
     }, [detalheDeterminacao, evidenciasAtuais]);
 
+    const autosExistentesPorDetId = useMemo(
+        () => new Set((autosExistentes || []).map(a => a.determinacao_id).filter(Boolean)),
+        [autosExistentes]
+    );
+
+    const naoAtendidasSemAI = useMemo(() => {
+        if (!determinacoesOrdenadas.length) return [];
+        const allAnalyzed = determinacoesOrdenadas.every(d => {
+            const s = getStatusResposta(d.id);
+            return s === 'atendida' || s === 'nao_atendida';
+        });
+        if (!allAnalyzed) return [];
+        return determinacoesOrdenadas.filter(
+            d => getStatusResposta(d.id) === 'nao_atendida' && !autosExistentesPorDetId.has(d.id)
+        );
+    }, [determinacoesOrdenadas, respostas, autosExistentesPorDetId]);
+
     const podeAnalisar = (index) => {
         if (index === 0) return true;
         const determinacaoAnterior = determinacoesOrdenadas[index - 1];
@@ -481,23 +533,7 @@ export default function AnalisarResposta() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col justify-between">
-            <div>
-                {/* Header */}
-                <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md mb-6">
-                    <div className="max-w-5xl mx-auto px-4 py-5 flex items-center gap-3">
-                        <Link to={createPageUrl('AnaliseManifestacao')}>
-                            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full transition-all">
-                                <ArrowLeft className="h-5 w-5" />
-                            </Button>
-                        </Link>
-                        <div>
-                            <h1 className="text-2xl font-bold tracking-tight">Análise da Manifestação</h1>
-                            <p className="text-blue-200 text-xs mt-0.5">Avaliação de conformidade das determinações e justificativas</p>
-                        </div>
-                    </div>
-                </div>
-
+        <CatesaLayout>
                 <div className="max-w-5xl mx-auto px-4">
 
                 {/* Info do TN */}
@@ -870,13 +906,27 @@ export default function AnalisarResposta() {
                     </AlertDialogContent>
                 </AlertDialog>
 
+                {naoAtendidasSemAI.length > 0 && (
+                    <div className="mt-8 p-6 rounded-2xl border border-orange-200 bg-orange-50">
+                        <div className="flex flex-wrap items-start justify-between gap-4">
+                            <div>
+                                <p className="font-semibold text-orange-800">
+                                    {naoAtendidasSemAI.length} determinaç{naoAtendidasSemAI.length > 1 ? 'ões' : 'ão'} não atendida{naoAtendidasSemAI.length > 1 ? 's' : ''} sem Auto de Infração
+                                </p>
+                                <p className="text-sm text-orange-700 mt-1">Gere os autos pendentes para continuar o fluxo de fiscalização.</p>
+                            </div>
+                            <Button
+                                onClick={() => gerarAutosMutation.mutate(naoAtendidasSemAI)}
+                                disabled={gerarAutosMutation.isPending}
+                                className="bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-semibold shrink-0"
+                            >
+                                {gerarAutosMutation.isPending ? 'Gerando...' : 'Gerar Autos de Infração'}
+                            </Button>
+                        </div>
+                    </div>
+                )}
 
             </div>
-            </div>
-            {/* Footer */}
-            <div className="py-5 text-center text-xs text-slate-400 bg-white border-t border-slate-200 mt-8">
-                AGEMS - Agência Estadual de Regulação de Serviços Públicos de MS
-            </div>
-        </div>
+        </CatesaLayout>
     );
 }

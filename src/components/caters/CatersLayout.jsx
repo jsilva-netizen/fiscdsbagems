@@ -5,7 +5,7 @@ import { createPageUrl } from '@/utils';
 const NAV_ITEMS = [
   { label: 'Dashboard',          to: createPageUrl('CatersDashboard'),        icon: BarChart3 },
   { label: 'Fiscalizações',      to: createPageUrl('CatersFiscalizacoes'),    icon: FolderOpen },
-  { label: 'Termos (TN)',        to: createPageUrl('CatersTermos'),           icon: FileText },
+  { label: 'Termos de TN',       to: createPageUrl('GerenciarTermos'),        icon: FileText },
   { label: 'Avisos',             to: createPageUrl('CatersAvisos'),           icon: Bell },
   { label: 'Processos',          to: createPageUrl('CatersProcessos'),        icon: Folder, activeFor: ['CatersProcessoDetalhe'] },
   { label: 'Recomendações',      to: createPageUrl('CatersRecomendacoes'),    icon: ClipboardList },

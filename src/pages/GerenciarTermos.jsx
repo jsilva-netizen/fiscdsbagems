@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { createPageUrl } from '@/utils';
-import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -13,17 +11,21 @@ import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ArrowLeft, FileText, Trash2, Plus, Download, Upload, AlertTriangle } from 'lucide-react';
+import { FileText, Trash2, Plus, Download, Upload, AlertTriangle } from 'lucide-react';
 import TermosKPI from '@/components/termos/TermosKPI';
 import TermosFiltros from '@/components/termos/TermosFiltros';
 import { deleteTermoNotificacaoComDependencias } from '@/lib/storageCleanup';
 import { Repository } from '@/lib/offline/repository';
+import { useModulo } from '@/hooks/useModulo';
+import CatesaLayout from '@/components/camaras/CatesaLayout';
+import CatersLayout from '@/components/caters/CatersLayout';
 
 let cachedTermosBucketName = null;
 let cachedAvailableBuckets = null;
 
 export default function GerenciarTermos() {
-
+    const { camaraTecnica } = useModulo();
+    const CamaraLayoutComponent = camaraTecnica === 'caters' ? CatersLayout : CatesaLayout;
 
     const queryClient = useQueryClient();
     const [selectedFiscalizacao, setSelectedFiscalizacao] = useState(null);
@@ -679,36 +681,20 @@ export default function GerenciarTermos() {
         };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col justify-between">
-            <div>
-                {/* Header */}
-                <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md mb-6">
-                    <div className="max-w-6xl mx-auto px-4 py-5 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <Link to={createPageUrl('Home')}>
-                                <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full transition-all">
-                                    <ArrowLeft className="h-5 w-5" />
-                                </Button>
-                            </Link>
-                            <div>
-                                <h1 className="text-2xl font-bold tracking-tight">Gerenciar Termos de Notificação</h1>
-                                <p className="text-blue-200 text-xs mt-0.5">Emissão e controle de prazos e respostas de TN</p>
-                            </div>
-                        </div>
-                        <Button 
-                            onClick={() => {
-                                setSelectedFiscalizacao(fiscalizacoes.find(f => f.status === 'finalizada'));
-                                setShowDialog(true);
-                            }}
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md transition-all font-semibold"
-                        >
-                            <Plus className="h-4 w-4 mr-2" />
-                            Novo Termo
-                        </Button>
-                    </div>
+        <CamaraLayoutComponent>
+            <div className="max-w-6xl mx-auto px-4">
+                <div className="flex justify-end mb-6">
+                    <Button
+                        onClick={() => {
+                            setSelectedFiscalizacao(fiscalizacoes.find(f => f.status === 'finalizada'));
+                            setShowDialog(true);
+                        }}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md transition-all font-semibold"
+                    >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Novo Termo
+                    </Button>
                 </div>
-
-                <div className="max-w-6xl mx-auto px-4">
                     {/* Dashboard KPI */}
                     <TermosKPI termos={termos} />
 
@@ -1766,11 +1752,6 @@ export default function GerenciarTermos() {
                      )}
                 </div>
             </div>
-            </div>
-            {/* Footer */}
-            <div className="py-5 text-center text-xs text-slate-400 bg-white border-t border-slate-200 mt-8">
-                AGEMS - Agência Estadual de Regulação de Serviços Públicos de MS
-            </div>
-        </div>
+        </CamaraLayoutComponent>
     );
 }

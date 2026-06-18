@@ -21,6 +21,8 @@ export default function Layout({ children, currentPageName }) {
         'CatersTermos',
         'CatesaDashboard',
         'CatesaFiscalizacoes',
+        'GerenciarTermos',
+        'AnalisarResposta',
         'GestaoAutos',
         'AnaliseManifestacao',
         'PareceresTecnicos',

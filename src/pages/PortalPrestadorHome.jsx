@@ -191,6 +191,32 @@ export default function PortalPrestadorHome() {
     enabled: !!prestadorId,
   });
 
+  const termoIds = useMemo(() => {
+    const ids = new Set((lotesAI || []).map(r => r?.termo_id).filter(Boolean));
+    return [...ids];
+  }, [lotesAI]);
+
+  const { data: termosAM = [] } = useQuery({
+    queryKey: ['termos-am-portal', termoIds.join(',')],
+    queryFn: async () => {
+      if (termoIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from('termos_notificacao')
+        .select('id, numero_am, arquivo_am_assinada_url')
+        .in('id', termoIds);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: termoIds.length > 0,
+  });
+
+  const termoAmById = useMemo(() => {
+    return (termosAM || []).reduce((acc, t) => {
+      if (t?.id) acc[t.id] = t;
+      return acc;
+    }, {});
+  }, [termosAM]);
+
   const { data: itensAutosAI = [] } = useQuery({
     queryKey: ['itens-autos-ai-prestador', prestadorId, lotesAI.map((r) => r?.id).join(',')],
     queryFn: async () => {
@@ -513,6 +539,22 @@ export default function PortalPrestadorHome() {
                                   <div>
                                     <span className="font-bold text-gray-700">TN:</span> {r.numero_tn}
                                   </div>
+                                ) : null}
+                                {r?.termo_id && termoAmById[r.termo_id]?.numero_am ? (
+                                  <>
+                                    <span className="text-gray-350">•</span>
+                                    <div className="flex items-center gap-1">
+                                      <span className="font-bold text-gray-700">AM:</span> {termoAmById[r.termo_id].numero_am}
+                                      {termoAmById[r.termo_id].arquivo_am_assinada_url ? (
+                                        <button
+                                          onClick={() => void openArquivo(termoAmById[r.termo_id].arquivo_am_assinada_url)}
+                                          className="ml-1 text-blue-600 hover:text-blue-800 underline text-xs font-semibold"
+                                        >
+                                          (baixar)
+                                        </button>
+                                      ) : null}
+                                    </div>
+                                  </>
                                 ) : null}
                               </div>
                               <div className="flex flex-wrap items-center gap-2 pt-1">

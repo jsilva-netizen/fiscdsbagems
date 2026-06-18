@@ -6,6 +6,7 @@ import {
   ClipboardList,
   Scale,
   Droplets,
+  FileText,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -21,9 +22,17 @@ const MODULES = [
     bg: 'bg-cyan-50',
   },
   {
+    icon: FileText,
+    label: 'Termos de Notificação',
+    desc: 'Emissão e controle de prazos de TN',
+    to: createPageUrl('GerenciarTermos'),
+    color: 'text-teal-600',
+    bg: 'bg-teal-50',
+  },
+  {
     icon: GitMerge,
     label: 'Análise da Manifestação',
-    desc: 'Prazos e análises técnicas de TNs',
+    desc: 'Análise das respostas do prestador',
     to: createPageUrl('AnaliseManifestacao'),
     color: 'text-blue-600',
     bg: 'bg-blue-50',
