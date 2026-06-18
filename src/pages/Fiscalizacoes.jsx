@@ -13,16 +13,19 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, Filter, Trash2, AlertTriangle, MapPin, ChevronRight, Calendar, CheckCircle2, Clock, Plus, RotateCcw, Loader2 } from 'lucide-react';
+import { ArrowLeft, Search, Filter, Trash2, AlertTriangle, MapPin, ChevronRight, Calendar, CheckCircle2, Clock, Plus, RotateCcw, Loader2, Settings } from 'lucide-react';
 import ExportarPDFConsolidado from '@/components/fiscalizacao/ExportarPDFConsolidado';
 import RelatorioFiscalizacao from '@/components/fiscalizacao/RelatorioFiscalizacao';
 import HistoricoFiscalizacao from '@/components/fiscalizacao/HistoricoFiscalizacao';
 import { useSyncStatus } from '@/lib/SyncStatusContext.jsx';
 import { syncUpForFiscalizacao } from '@/lib/offline/syncEngine';
+import { useModulo } from '@/hooks/useModulo';
+import { supabase } from '@/lib/supabase';
 
 export default function Fiscalizacoes() {
     const queryClient = useQueryClient();
     const { user } = useAuth();
+    const { camaraTecnica, isAdmin } = useModulo();
     const { online, sessionValid, outboxCount } = useSyncStatus?.() || { online: true, sessionValid: true, outboxCount: 0 };
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('todos');
@@ -36,10 +39,19 @@ export default function Fiscalizacoes() {
     const [syncProgress, setSyncProgress] = useState(null);
 
     const { data: fiscalizacoes = [], isLoading } = useQuery({
-        queryKey: ['fiscalizacoes'],
+        queryKey: ['fiscalizacoes', camaraTecnica],
         queryFn: async () => {
-            const data = await Repository.listFiscalizacoes(100);
-            return data;
+            if (camaraTecnica) {
+                const { data, error } = await supabase
+                    .from('fiscalizacoes')
+                    .select('*')
+                    .eq('camara_tecnica_id', camaraTecnica)
+                    .order('data_inicio', { ascending: false })
+                    .limit(500);
+                if (error) throw error;
+                return data || [];
+            }
+            return Repository.listFiscalizacoes(100);
         },
         staleTime: 60000,
         gcTime: 300000
@@ -139,12 +151,22 @@ export default function Fiscalizacoes() {
                                 </p>
                             </div>
                         </div>
-                        <Link to={createPageUrl('NovaFiscalizacao')}>
-                            <Button className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow gap-1.5">
-                                <Plus className="h-4 w-4" />
-                                Nova
-                            </Button>
-                        </Link>
+                        <div className="flex items-center gap-2">
+                            {isAdmin && (
+                                <Link to={createPageUrl('Definicoes')}>
+                                    <Button variant="ghost" size="sm" className="text-blue-200 hover:text-white hover:bg-white/10 rounded-lg gap-1.5 h-8 text-xs">
+                                        <Settings className="h-3.5 w-3.5" />
+                                        Definições
+                                    </Button>
+                                </Link>
+                            )}
+                            <Link to={createPageUrl('NovaFiscalizacao')}>
+                                <Button className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow gap-1.5">
+                                    <Plus className="h-4 w-4" />
+                                    Nova
+                                </Button>
+                            </Link>
+                        </div>
                     </div>
                 </div>
             </div>

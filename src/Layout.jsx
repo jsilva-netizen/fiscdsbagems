@@ -28,6 +28,7 @@ export default function Layout({ children, currentPageName }) {
         'PareceresTecnicos',
         'CamaraJulgamento',
         'CresDashboard',
+        'Definicoes',
     ];
 
     if (fullscreenPages.includes(currentPageName)) {

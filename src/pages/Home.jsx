@@ -13,9 +13,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
-  Plus, History, Building2, ClipboardCheck, Users, BarChart3, FileText,
-  AlertTriangle, LogOut, Wifi, WifiOff, RefreshCw, Download, ChevronRight, Recycle,
-  Droplets, TrendingUp,
+  Plus, History, ClipboardCheck, Users, FileText,
+  LogOut, Wifi, WifiOff, RefreshCw, Download, ChevronRight, Recycle,
+  Droplets, TrendingUp, Settings,
 } from 'lucide-react';
 
 export default function Home() {
@@ -115,17 +115,6 @@ export default function Home() {
 
     // Menu card definitions
     const dsbMenuItems = [
-        { page: 'TiposUnidade', icon: <Building2 className="h-6 w-6" />, label: 'Tipos de Unidade', desc: 'ETA, ETE, etc', color: 'text-indigo-500', bg: 'bg-indigo-50' },
-        { page: 'Checklists', icon: <ClipboardCheck className="h-6 w-6" />, label: 'Checklists', desc: 'Configurar perguntas', color: 'text-violet-500', bg: 'bg-violet-50' },
-        { page: 'PrestadoresServico', icon: <Users className="h-6 w-6" />, label: 'Prestadores', desc: 'Titulares e Empresas', color: 'text-sky-500', bg: 'bg-sky-50' },
-        { page: 'Relatorios', icon: <BarChart3 className="h-6 w-6" />, label: 'Relatórios', desc: 'Indicadores e BI', color: 'text-emerald-500', bg: 'bg-emerald-50' },
-        { page: 'GerenciarTermos', icon: <FileText className="h-6 w-6" />, label: 'Termos', desc: 'Notificação', color: 'text-amber-500', bg: 'bg-amber-50' },
-        { page: 'AnaliseManifestacao', icon: <FileText className="h-6 w-6" />, label: 'Análise Manifestação', desc: 'Processos', color: 'text-teal-500', bg: 'bg-teal-50' },
-        { page: 'GestaoAutos', icon: <AlertTriangle className="h-6 w-6" />, label: 'Autos', desc: 'Infrações', color: 'text-rose-500', bg: 'bg-rose-50' },
-        ...(!isPrestador ? [
-            { page: 'PareceresTecnicos', icon: <FileText className="h-6 w-6" />, label: 'Pareceres Técnicos', desc: 'Defesas e análises', color: 'text-blue-500', bg: 'bg-blue-50' },
-            { page: 'CamaraJulgamento', icon: <FileText className="h-6 w-6" />, label: 'Câmara de Julgamento', desc: 'Pareceres assinados', color: 'text-slate-500', bg: 'bg-slate-50' },
-        ] : []),
         ...(isPrestador ? [{ page: 'PortalPrestadorHome', icon: <FileText className="h-6 w-6" />, label: 'Portal do Prestador', desc: 'Responder TNs', color: 'text-indigo-500', bg: 'bg-indigo-50' }] : []),
     ];
 
@@ -133,7 +122,6 @@ export default function Home() {
         { page: 'FiscalizacoesDTR', icon: <ClipboardCheck className="h-6 w-6" />, label: 'Inspeções', desc: 'Vistorias de rodovias', color: 'text-indigo-500', bg: 'bg-indigo-50' },
         { page: 'PrestadoresServico', icon: <Users className="h-6 w-6" />, label: 'Concessionárias', desc: 'Empresas Cadastradas', color: 'text-sky-500', bg: 'bg-sky-50' },
         { page: 'Contratos', icon: <FileText className="h-6 w-6" />, label: 'Contratos', desc: 'Rodovias e Concessões', color: 'text-violet-500', bg: 'bg-violet-50' },
-        { page: 'Relatorios', icon: <BarChart3 className="h-6 w-6" />, label: 'Relatórios', desc: 'Indicadores DTR', color: 'text-emerald-500', bg: 'bg-emerald-50' },
     ];
 
     const menuItems = isDSB ? dsbMenuItems : isDTR ? dtrMenuItems : [];
@@ -156,6 +144,19 @@ export default function Home() {
                             <h1 className="text-xl font-bold">Fiscalização AGEMS</h1>
                             <p className="text-blue-200 text-sm truncate">{diretoriaNome}</p>
                         </div>
+                        {isAdmin && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-white hover:bg-white/10 rounded-xl gap-1.5"
+                                asChild
+                            >
+                                <Link to={createPageUrl('GerenciarUsuarios')}>
+                                    <Settings className="h-4 w-4" />
+                                    <span className="hidden sm:inline">Usuários</span>
+                                </Link>
+                            </Button>
+                        )}
                         <Button
                             variant="ghost"
                             size="sm"
@@ -353,17 +354,6 @@ export default function Home() {
                                     </div>
                                 </Link>
                             ))}
-                            {isAdmin && (
-                                <Link to={createPageUrl('GerenciarUsuarios')}>
-                                    <div className="group bg-white border border-gray-200 rounded-2xl p-4 flex flex-col items-center text-center hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer gap-2">
-                                        <div className="w-12 h-12 bg-gray-100 text-gray-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                                            <Users className="h-6 w-6" />
-                                        </div>
-                                        <p className="font-semibold text-gray-800 text-sm">Usuários</p>
-                                        <p className="text-xs text-gray-400">Gestão e Permissões</p>
-                                    </div>
-                                </Link>
-                            )}
                         </div>
                     </div>
                 )}

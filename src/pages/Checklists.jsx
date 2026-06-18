@@ -22,7 +22,7 @@ import ItemChecklistForm from '@/components/admin/ItemChecklistForm';
 
 
 
-export default function Checklists() {
+export default function Checklists({ embedded = false }) {
     const queryClient = useQueryClient();
     const { online } = useOnlineStatus();
     const urlParams = new URLSearchParams(window.location.search);
@@ -435,8 +435,8 @@ export default function Checklists() {
     const tipoSelecionado = tipos.find(t => t.id === selectedTipo);
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header */}
+        <div className={embedded ? '' : 'min-h-screen bg-gray-50'}>
+            {!embedded && (
             <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
                 <div className="max-w-4xl mx-auto px-4 py-5">
                     <div className="flex items-center gap-3">
@@ -452,6 +452,7 @@ export default function Checklists() {
                     </div>
                 </div>
             </div>
+            )}
 
             {/* Seletor de Tipo */}
             <div className="max-w-4xl mx-auto px-4 py-4">

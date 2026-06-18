@@ -34,7 +34,7 @@ const SERVICES_BY_DIRETORIA = {
     dge: ['Energia Elétrica', 'Gás Canalizado', 'Iluminação Pública']
 };
 
-export default function PrestadoresServico() {
+export default function PrestadoresServico({ embedded = false }) {
     const queryClient = useQueryClient();
     const { diretoria, isAdmin } = useModulo();
     const [activeTab, setActiveTab] = useState(isAdmin ? 'todos' : diretoria);
@@ -282,9 +282,9 @@ export default function PrestadoresServico() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col justify-between">
+        <div className={embedded ? '' : 'min-h-screen bg-gray-50 flex flex-col justify-between'}>
             <div>
-                {/* Header */}
+                {!embedded && (
                 <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
                     <div className="max-w-5xl mx-auto px-6 py-5 flex items-center gap-3">
                         <Link to={createPageUrl('Home')}>
@@ -298,6 +298,7 @@ export default function PrestadoresServico() {
                         </div>
                     </div>
                 </div>
+                )}
 
                 {/* Content */}
                 <div className="max-w-5xl mx-auto px-6 py-6 space-y-5">

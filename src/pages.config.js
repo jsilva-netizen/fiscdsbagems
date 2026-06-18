@@ -85,6 +85,7 @@ import CatesaFiscalizacoes from './pages/CatesaFiscalizacoes';
 import CatersFiscalizacoes from './pages/CatersFiscalizacoes';
 import CatersTermos from './pages/CatersTermos';
 import CresDashboard from './pages/CresDashboard';
+import Definicoes from './pages/Definicoes';
 import __Layout from './Layout.jsx';
 
 
@@ -127,6 +128,7 @@ export const PAGES = {
     "CatersFiscalizacoes": CatersFiscalizacoes,
     "CatersTermos": CatersTermos,
     "CresDashboard": CresDashboard,
+    "Definicoes": Definicoes,
 }
 
 export const pagesConfig = {

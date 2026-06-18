@@ -16,7 +16,7 @@ import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader,
 
 const SERVICOS = ['Abastecimento de Água', 'Esgotamento Sanitário', 'Manejo de Resíduos Sólidos', 'Limpeza Urbana', 'Drenagem'];
 
-export default function TiposUnidade() {
+export default function TiposUnidade({ embedded = false }) {
     const queryClient = useQueryClient();
     const { online } = useOnlineStatus();
     const [showForm, setShowForm] = useState(false);
@@ -133,9 +133,9 @@ export default function TiposUnidade() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col justify-between">
+        <div className={embedded ? '' : 'min-h-screen bg-gray-50 flex flex-col justify-between'}>
             <div>
-            {/* Header */}
+            {!embedded && (
             <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
                 <div className="max-w-4xl mx-auto px-4 py-5">
                     <div className="flex items-center justify-between">
@@ -158,6 +158,7 @@ export default function TiposUnidade() {
                     </div>
                 </div>
             </div>
+            )}
 
             {/* Form Dialog */}
             <Dialog open={showForm} onOpenChange={(open) => !open && resetForm()}>
@@ -213,6 +214,13 @@ export default function TiposUnidade() {
 
             {/* List */}
             <div className="max-w-4xl mx-auto px-4 py-6">
+                {embedded && (
+                    <div className="flex justify-end mb-4">
+                        <Button onClick={() => setShowForm(true)} className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow gap-1.5">
+                            <Plus className="h-4 w-4" /> Novo Tipo
+                        </Button>
+                    </div>
+                )}
                 {isLoading ? (
                     <div className="flex justify-center py-12">
                         <Loader2 className="h-7 w-7 animate-spin text-indigo-500" />
