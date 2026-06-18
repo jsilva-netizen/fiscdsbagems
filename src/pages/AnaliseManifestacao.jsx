@@ -43,10 +43,13 @@ export default function AnaliseManifestacao() {
     });
 
     const { data: fiscalizacoes = [] } = useQuery({
-        queryKey: ['fiscalizacoes'],
+        queryKey: ['fiscalizacoes-online-am'],
         queryFn: async () => {
-            const data = await Repository.listFiscalizacoes(500);
-            return data;
+            const { data, error } = await supabase
+                .from('fiscalizacoes')
+                .select('id, status, servicos');
+            if (error) throw error;
+            return data || [];
         }
     });
 
@@ -175,9 +178,6 @@ export default function AnaliseManifestacao() {
         // Status do termo: deve ter resposta registrada (aguardando análise) ou estar aguardando resposta
         const statusTermo = termo.status;
         if (statusTermo !== 'aguardando_resposta' && statusTermo !== 'respondido') return false;
-
-        const fisc = fiscalizacoes.find(f => f.id === termo.fiscalizacao_id);
-        if (!fisc || fisc.status !== 'finalizada') return false;
 
         // Aplicar filtros
         if (filtros.busca && !termo.numero_termo_notificacao?.toLowerCase().includes(filtros.busca.toLowerCase())) return false;
