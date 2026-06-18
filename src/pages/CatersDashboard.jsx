@@ -4,15 +4,27 @@ import { Link } from 'react-router-dom';
 import {
   BarChart3,
   ClipboardList,
+  FileText,
   FolderOpen,
+  GitMerge,
   Hourglass,
   TimerOff,
   TriangleAlert,
+  Clock,
 } from 'lucide-react';
 import CatersLayout from '@/components/caters/CatersLayout';
 import { fetchDashboardData, fetchAlertsData } from '@/lib/caters/dashboard';
 import { formatIsoDateHuman } from '@/lib/caters/dates';
 import { createPageUrl } from '@/utils';
+import { supabase } from '@/lib/supabase';
+
+async function fetchCatersTNs() {
+  const { data, error } = await supabase
+    .from('termos_notificacao')
+    .select('id, status, camara_tecnica');
+  if (error) throw error;
+  return (data || []).filter(t => t.camara_tecnica === 'CATERS');
+}
 
 function MetricCard({ title, value, icon: Icon, iconBg, iconColor, badge }) {
   return (
@@ -56,9 +68,24 @@ export default function CatersDashboard() {
     return d.awaitingAnalysis.length + d.overdueResponses.length + d.overdueRecommendations.length;
   }, [alertsQ.data]);
 
+  const tnQ = useQuery({
+    queryKey: ['caters-tns'],
+    queryFn: fetchCatersTNs,
+    staleTime: 60_000,
+    refetchInterval: 120_000,
+  });
+
   const d = dashQ.data;
   const loading = dashQ.isLoading;
   const val = (v) => (loading ? '—' : String(v ?? 0));
+
+  const tnData = tnQ.data ?? [];
+  const tnVal = (v) => (tnQ.isLoading ? '—' : String(v ?? 0));
+  const tnPendenteTN = tnData.filter(t => t.status === 'pendente_tn').length;
+  const tnAguardandoAssinatura = tnData.filter(t => t.status === 'aguardando_assinatura_prestador').length;
+  const tnAguardandoResposta = tnData.filter(t => t.status === 'aguardando_resposta').length;
+  const tnPrazoVencido = tnData.filter(t => t.status === 'prazo_vencido').length;
+  const tnRespondido = tnData.filter(t => t.status === 'respondido').length;
 
   return (
     <CatersLayout alertCount={alertCount}>
@@ -79,7 +106,36 @@ export default function CatersDashboard() {
               </div>
             )}
 
-            {/* Métricas */}
+            {/* Termos de Notificação — CATERS */}
+            <section>
+              <h2 className="mb-4 text-xs font-bold uppercase tracking-wider text-slate-400">
+                Termos de Notificação
+              </h2>
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
+                <div className="flex flex-col justify-between rounded-xl border border-slate-200/70 bg-white p-5 shadow-sm">
+                  <div className="mb-3"><div className="rounded-lg p-2 bg-teal-50 w-fit"><FileText className="h-5 w-5 text-teal-700" /></div></div>
+                  <div><div className="text-3xl font-extrabold tracking-tight text-slate-900">{tnVal(tnData.length)}</div><div className="mt-1 text-xs font-semibold text-slate-500">Total de TNs</div></div>
+                </div>
+                <div className="flex flex-col justify-between rounded-xl border border-slate-200/70 bg-white p-5 shadow-sm">
+                  <div className="mb-3"><div className="rounded-lg p-2 bg-blue-50 w-fit"><Clock className="h-5 w-5 text-blue-700" /></div></div>
+                  <div><div className="text-3xl font-extrabold tracking-tight text-slate-900">{tnVal(tnAguardandoResposta)}</div><div className="mt-1 text-xs font-semibold text-slate-500">Aguardando resposta</div></div>
+                </div>
+                <div className={`flex flex-col justify-between rounded-xl border bg-white p-5 shadow-sm ${tnPrazoVencido > 0 ? 'border-red-200' : 'border-slate-200/70'}`}>
+                  <div className="mb-3"><div className="rounded-lg p-2 bg-red-50 w-fit"><TimerOff className="h-5 w-5 text-red-700" /></div></div>
+                  <div><div className={`text-3xl font-extrabold tracking-tight ${tnPrazoVencido > 0 ? 'text-red-600' : 'text-slate-900'}`}>{tnVal(tnPrazoVencido)}</div><div className="mt-1 text-xs font-semibold text-slate-500">Prazo vencido</div></div>
+                </div>
+                <div className="flex flex-col justify-between rounded-xl border border-slate-200/70 bg-white p-5 shadow-sm">
+                  <div className="mb-3"><div className="rounded-lg p-2 bg-amber-50 w-fit"><GitMerge className="h-5 w-5 text-amber-700" /></div></div>
+                  <div><div className="text-3xl font-extrabold tracking-tight text-slate-900">{tnVal(tnRespondido)}</div><div className="mt-1 text-xs font-semibold text-slate-500">Respondidos</div></div>
+                </div>
+                <div className="flex flex-col justify-between rounded-xl border border-slate-200/70 bg-white p-5 shadow-sm">
+                  <div className="mb-3"><div className="rounded-lg p-2 bg-orange-50 w-fit"><TriangleAlert className="h-5 w-5 text-orange-700" /></div></div>
+                  <div><div className="text-3xl font-extrabold tracking-tight text-slate-900">{tnVal(tnPendenteTN + tnAguardandoAssinatura)}</div><div className="mt-1 text-xs font-semibold text-slate-500">Pendente de emissão</div></div>
+                </div>
+              </div>
+            </section>
+
+            {/* Métricas — Processos CATERS */}
             <section className="grid grid-cols-2 gap-4 md:grid-cols-5">
               <MetricCard
                 title="Processos em acompanhamento"

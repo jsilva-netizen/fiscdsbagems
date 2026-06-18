@@ -274,18 +274,20 @@ export default function Home() {
 
                 {/* Relatórios e BI */}
                 {!isPrestador && (
-                    <Link to={createPageUrl('Relatorios')}>
-                        <div className="group bg-gradient-to-br from-violet-600 to-indigo-700 rounded-2xl p-5 flex items-center gap-4 shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all cursor-pointer">
-                            <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-white/30 transition-all">
-                                <TrendingUp className="h-7 w-7 text-white" />
+                    <div className="sm:max-w-sm">
+                        <Link to={createPageUrl('Relatorios')}>
+                            <div className="group bg-gradient-to-br from-violet-600 to-indigo-700 rounded-2xl p-5 flex items-center gap-4 shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all cursor-pointer">
+                                <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-white/30 transition-all">
+                                    <TrendingUp className="h-7 w-7 text-white" />
+                                </div>
+                                <div className="text-white min-w-0">
+                                    <h3 className="text-lg font-bold">Relatórios e BI</h3>
+                                    <p className="text-violet-100 text-sm">Indicadores e análises</p>
+                                </div>
+                                <ChevronRight className="h-5 w-5 text-white/60 ml-auto flex-shrink-0 group-hover:translate-x-1 transition-transform" />
                             </div>
-                            <div className="text-white min-w-0">
-                                <h3 className="text-lg font-bold">Relatórios e BI</h3>
-                                <p className="text-violet-100 text-sm">Indicadores, dashboards e análises</p>
-                            </div>
-                            <ChevronRight className="h-5 w-5 text-white/60 ml-auto flex-shrink-0 group-hover:translate-x-1 transition-transform" />
-                        </div>
-                    </Link>
+                        </Link>
+                    </div>
                 )}
 
                 {/* Painéis por Câmara Técnica — DSB */}
