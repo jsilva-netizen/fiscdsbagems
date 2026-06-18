@@ -34,7 +34,8 @@ export default function GerenciarTermos() {
         status: '',
         dataInicio: '',
         dataFim: '',
-        busca: ''
+        busca: '',
+        camaraTecnica: camaraTecnica ? camaraTecnica.toUpperCase() : '',
     });
     const [termoForm, setTermoForm] = useState({
         numero_termo_notificacao: '',
