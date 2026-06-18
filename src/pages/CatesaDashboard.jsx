@@ -37,21 +37,16 @@ function MetricCard({ title, value, icon: Icon, iconBg, iconColor, to, badge, al
 }
 
 async function fetchCatesaData() {
-  const now = new Date().toISOString();
-
   const [termosRes, autosRes] = await Promise.all([
-    supabase
-      .from('termos_notificacao')
-      .select('id, status, prazo_resposta, data_recebimento_resposta, camara_tecnica')
-      .eq('camara_tecnica', 'CATESA'),
-    supabase
-      .from('autos_infracao')
-      .select('id, status, camara_tecnica_id')
-      .eq('camara_tecnica_id', 'catesa'),
+    supabase.from('termos_notificacao').select('id, status, camara_tecnica'),
+    supabase.from('autos_infracao').select('id, status, camara_tecnica_id'),
   ]);
 
-  const termos = termosRes.data || [];
-  const autos = autosRes.data || [];
+  if (termosRes.error) throw termosRes.error;
+  if (autosRes.error) throw autosRes.error;
+
+  const termos = (termosRes.data || []).filter(t => t.camara_tecnica === 'CATESA');
+  const autos = (autosRes.data || []).filter(a => a.camara_tecnica_id === 'catesa');
 
   const tnTotal = termos.length;
   const tnPendenteTN = termos.filter(t => t.status === 'pendente_tn').length;

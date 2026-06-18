@@ -180,7 +180,7 @@ export default function Register() {
                         </svg>
                     </div>
                     <h1 className="text-2xl font-bold text-white tracking-tight">AGEMS</h1>
-                    <p className="text-blue-300 text-xs mt-0.5">Sistema de Fiscalização</p>
+                    <p className="text-blue-300 text-xs mt-0.5">SGO - Sistema de Gestão Operacional</p>
                 </div>
 
                 {/* Card */}

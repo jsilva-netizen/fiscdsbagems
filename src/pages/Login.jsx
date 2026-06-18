@@ -54,7 +54,7 @@ export default function Login() {
                         </svg>
                     </div>
                     <h1 className="text-3xl font-bold text-white tracking-tight">AGEMS</h1>
-                    <p className="text-blue-300 text-sm mt-1">Sistema de Fiscalização</p>
+                    <p className="text-blue-300 text-sm mt-1">SGO - Sistema de Gestão Operacional</p>
                 </div>
 
                 {/* Card */}
