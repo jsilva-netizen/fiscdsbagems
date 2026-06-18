@@ -17,7 +17,14 @@ export default function Layout({ children, currentPageName }) {
         'CatersProcessoDetalhe',
         'CatersAvisos',
         'CatersRecomendacoes',
+        'CatersFiscalizacoes',
+        'CatersTermos',
         'CatesaDashboard',
+        'CatesaFiscalizacoes',
+        'GestaoAutos',
+        'AnaliseManifestacao',
+        'PareceresTecnicos',
+        'CamaraJulgamento',
         'CresDashboard',
     ];
 

@@ -3,8 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Repository } from '@/lib/offline/repository';
 import jsPDF from 'jspdf';
-import { createPageUrl } from '@/utils';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -13,7 +12,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import FluxoUploadDocumentos from '@/components/autos/FluxoUploadDocumentos';
-import { ArrowLeft, Loader2, Save, Download, Send } from 'lucide-react';
+import { Loader2, Save, Download, Send } from 'lucide-react';
+import CatesaLayout from '@/components/camaras/CatesaLayout';
 
 export default function GestaoAutos() {
      const [searchParams] = useSearchParams();
@@ -499,24 +499,7 @@ export default function GestaoAutos() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
-                <div className="max-w-6xl mx-auto px-4 py-5">
-                    <div className="flex items-center gap-3">
-                        <Link to={createPageUrl('Home')}>
-                            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full">
-                                <ArrowLeft className="h-5 w-5" />
-                            </Button>
-                        </Link>
-                        <div>
-                            <h1 className="text-xl font-bold">Gestão de Autos de Infração</h1>
-                            <p className="text-blue-200 text-xs mt-0.5">{autos.length} autos cadastrados</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
+        <CatesaLayout>
             <div className="max-w-6xl mx-auto px-4 py-6">
 
                 {/* KPIs */}
@@ -974,6 +957,6 @@ export default function GestaoAutos() {
                     </TabsContent>
                 </Tabs>
             </div>
-        </div>
+        </CatesaLayout>
     );
 }

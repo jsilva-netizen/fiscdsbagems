@@ -11,7 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { ArrowLeft, FileText, Clock, CheckCircle, AlertCircle, Download } from 'lucide-react';
+import { FileText, Clock, CheckCircle, AlertCircle, Download } from 'lucide-react';
+import CatesaLayout from '@/components/camaras/CatesaLayout';
 
 
 
@@ -569,23 +570,7 @@ export default function AnaliseManifestacao() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col justify-between">
-            <div>
-                {/* Header */}
-                <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md mb-6">
-                    <div className="max-w-6xl mx-auto px-4 py-5 flex items-center gap-3">
-                        <Link to={createPageUrl('Home')}>
-                            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full transition-all">
-                                <ArrowLeft className="h-5 w-5" />
-                            </Button>
-                        </Link>
-                        <div>
-                            <h1 className="text-2xl font-bold tracking-tight">Análise da Manifestação</h1>
-                            <p className="text-blue-200 text-xs mt-0.5">Gestão de prazos, análises técnicas e emissão de AM</p>
-                        </div>
-                    </div>
-                </div>
-
+        <CatesaLayout>
                 <div className="max-w-6xl mx-auto px-4">
 
                 {/* Dashboard KPI */}
@@ -908,11 +893,6 @@ export default function AnaliseManifestacao() {
                     </AlertDialogContent>
                 </AlertDialog>
             </div>
-            </div>
-            {/* Footer */}
-            <div className="py-5 text-center text-xs text-slate-400 bg-white border-t border-slate-200 mt-8">
-                AGEMS - Agência Estadual de Regulação de Serviços Públicos de MS
-            </div>
-        </div>
+        </CatesaLayout>
     );
 }

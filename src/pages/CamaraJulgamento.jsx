@@ -1,12 +1,10 @@
 import { useState } from 'react';
 import { Repository } from '@/lib/offline/repository';
 import { useQuery } from '@tanstack/react-query';
-import { createPageUrl } from '@/utils';
-import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Download } from 'lucide-react';
+import { Download } from 'lucide-react';
+import CatesaLayout from '@/components/camaras/CatesaLayout';
 
 export default function CamaraJulgamento() {
     const [remessaAbertaId, setRemessaAbertaId] = useState(null);
@@ -73,24 +71,8 @@ export default function CamaraJulgamento() {
     const remessasEncaminhadas = (remessas || []).filter(r => String(r?.status || '') === 'parecer_enviado');
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col justify-between">
-            <div>
-                {/* Header */}
-                <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md mb-6">
-                    <div className="max-w-6xl mx-auto px-4 py-5 flex items-center gap-3">
-                        <Link to={createPageUrl('Home')}>
-                            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full transition-all">
-                                <ArrowLeft className="h-5 w-5" />
-                            </Button>
-                        </Link>
-                        <div>
-                            <h1 className="text-2xl font-bold tracking-tight">Câmara de Julgamento</h1>
-                            <p className="text-blue-200 text-xs mt-0.5">Deliberação e julgamento de recursos e remessas de autos</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="max-w-6xl mx-auto px-4">
+        <CatesaLayout>
+                <div className="max-w-6xl mx-auto px-4 py-6">
 
                 {/* KPIs */}
                 <div className="grid grid-cols-3 gap-4 mb-8">
@@ -218,11 +200,6 @@ export default function CamaraJulgamento() {
                     )}
                 </div>
             </div>
-            </div>
-            {/* Footer */}
-            <div className="py-5 text-center text-xs text-slate-400 bg-white border-t border-slate-200 mt-8">
-                AGEMS - Agência Estadual de Regulação de Serviços Públicos de MS
-            </div>
-        </div>
+        </CatesaLayout>
     );
 }

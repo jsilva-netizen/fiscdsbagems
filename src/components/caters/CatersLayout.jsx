@@ -1,12 +1,14 @@
-import { BarChart3, Bell, ClipboardList, Folder } from 'lucide-react';
+import { BarChart3, Bell, ClipboardList, Folder, FolderOpen, FileText } from 'lucide-react';
 import CamaraLayout from '@/components/camaras/CamaraLayout';
 import { createPageUrl } from '@/utils';
 
 const NAV_ITEMS = [
-  { label: 'Dashboard',      to: createPageUrl('CatersDashboard'),      icon: BarChart3 },
-  { label: 'Avisos',         to: createPageUrl('CatersAvisos'),         icon: Bell },
-  { label: 'Processos',      to: createPageUrl('CatersProcessos'),      icon: Folder, activeFor: ['CatersProcessoDetalhe'] },
-  { label: 'Recomendações',  to: createPageUrl('CatersRecomendacoes'),  icon: ClipboardList },
+  { label: 'Dashboard',          to: createPageUrl('CatersDashboard'),        icon: BarChart3 },
+  { label: 'Fiscalizações',      to: createPageUrl('CatersFiscalizacoes'),    icon: FolderOpen },
+  { label: 'Termos (TN)',        to: createPageUrl('CatersTermos'),           icon: FileText },
+  { label: 'Avisos',             to: createPageUrl('CatersAvisos'),           icon: Bell },
+  { label: 'Processos',          to: createPageUrl('CatersProcessos'),        icon: Folder, activeFor: ['CatersProcessoDetalhe'] },
+  { label: 'Recomendações',      to: createPageUrl('CatersRecomendacoes'),    icon: ClipboardList },
 ];
 
 export default function CatersLayout({ children, alertCount = 0 }) {

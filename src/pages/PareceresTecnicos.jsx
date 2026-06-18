@@ -2,15 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Repository } from '@/lib/offline/repository';
-import { createPageUrl } from '@/utils';
-import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Download, Loader2, Save, Send } from 'lucide-react';
+import { Download, Loader2, Save, Send } from 'lucide-react';
+import CatesaLayout from '@/components/camaras/CatesaLayout';
  
 export default function PareceresTecnicos() {
   const queryClient = useQueryClient();
@@ -189,44 +188,27 @@ export default function PareceresTecnicos() {
   const autosDoLote = useMemo(() => (remessaItens || []).map((it) => it?.autos_infracao).filter(Boolean), [remessaItens]);
  
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-between">
-      <div>
-        {/* Header */}
-        <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md mb-6">
-          <div className="max-w-6xl mx-auto px-4 py-5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Link to={createPageUrl('Home')}>
-                <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full transition-all">
-                  <ArrowLeft className="h-5 w-5" />
-                </Button>
-              </Link>
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight">Pareceres Técnicos</h1>
-                <p className="text-blue-200 text-xs mt-0.5">Análise e recomendação técnica de Autos de Infração</p>
-              </div>
-            </div>
-            {loteAbertoId && (
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setLoteAbertoId(null)}
-                  className="bg-white/10 text-white border-white/20 hover:bg-white/20 rounded-xl"
-                >
-                  Trocar lote
-                </Button>
-                <Button
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md transition-all font-semibold"
-                  disabled={!podeEncaminhar || enviandoLoteId === loteAbertoId}
-                  onClick={() => void encaminharParaCamara()}
-                >
-                  {enviandoLoteId === loteAbertoId ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
-                  Encaminhar à Câmara
-                </Button>
-              </div>
-            )}
-          </div>
+    <CatesaLayout>
+      {loteAbertoId && (
+        <div className="max-w-6xl mx-auto px-4 pt-4 flex items-center justify-end gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setLoteAbertoId(null)}
+            className="border-slate-300 rounded-xl"
+          >
+            Trocar lote
+          </Button>
+          <Button
+            className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md transition-all font-semibold"
+            disabled={!podeEncaminhar || enviandoLoteId === loteAbertoId}
+            onClick={() => void encaminharParaCamara()}
+          >
+            {enviandoLoteId === loteAbertoId ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
+            Encaminhar à Câmara
+          </Button>
         </div>
-        <div className="max-w-6xl mx-auto px-4">
+      )}
+      <div className="max-w-6xl mx-auto px-4">
         {!loteAbertoId && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card className="border border-gray-200 rounded-2xl bg-white shadow-sm hover:shadow-md transition-shadow">
@@ -449,11 +431,6 @@ export default function PareceresTecnicos() {
           </div>
         )}
       </div>
-      </div>
-      {/* Footer */}
-      <div className="py-5 text-center text-xs text-slate-400 bg-white border-t border-slate-200 mt-8">
-        AGEMS - Agência Estadual de Regulação de Serviços Públicos de MS
-      </div>
-    </div>
+    </CatesaLayout>
   );
 }
