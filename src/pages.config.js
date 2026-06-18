@@ -80,6 +80,8 @@ import CatersProcessos from './pages/CatersProcessos';
 import CatersProcessoDetalhe from './pages/CatersProcessoDetalhe';
 import CatersAvisos from './pages/CatersAvisos';
 import CatersRecomendacoes from './pages/CatersRecomendacoes';
+import CatesaDashboard from './pages/CatesaDashboard';
+import CresDashboard from './pages/CresDashboard';
 import __Layout from './Layout.jsx';
 
 
@@ -117,6 +119,8 @@ export const PAGES = {
     "CatersProcessoDetalhe": CatersProcessoDetalhe,
     "CatersAvisos": CatersAvisos,
     "CatersRecomendacoes": CatersRecomendacoes,
+    "CatesaDashboard": CatesaDashboard,
+    "CresDashboard": CresDashboard,
 }
 
 export const pagesConfig = {

@@ -17,6 +17,8 @@ export default function Layout({ children, currentPageName }) {
         'CatersProcessoDetalhe',
         'CatersAvisos',
         'CatersRecomendacoes',
+        'CatesaDashboard',
+        'CresDashboard',
     ];
 
     if (fullscreenPages.includes(currentPageName)) {

@@ -14,7 +14,8 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   Plus, History, Building2, ClipboardCheck, Users, BarChart3, FileText,
-  AlertTriangle, LogOut, Wifi, WifiOff, RefreshCw, Download, ChevronRight, Recycle
+  AlertTriangle, LogOut, Wifi, WifiOff, RefreshCw, Download, ChevronRight, Recycle,
+  Droplets, TrendingUp,
 } from 'lucide-react';
 
 export default function Home() {
@@ -270,22 +271,58 @@ export default function Home() {
                     </div>
                 )}
 
-                {/* CATERS — Câmara Técnica de Resíduos Sólidos */}
-                {(camaraTecnica === 'caters' || isAdmin) && (
-                    <div>
-                        <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">CATERS — Resíduos Sólidos</h2>
-                        <Link to={createPageUrl('CatersDashboard')}>
-                            <div className="group bg-gradient-to-br from-emerald-600 to-teal-700 rounded-2xl p-5 flex items-center gap-4 shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all cursor-pointer">
-                                <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-white/30 transition-all">
-                                    <Recycle className="h-7 w-7 text-white" />
+                {/* Painéis por Câmara Técnica — DSB */}
+                {isDSB && (camaraTecnica || isAdmin) && (
+                    <div className="space-y-3">
+                        <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Câmaras Técnicas — DSB</h2>
+
+                        {/* CATESA */}
+                        {(camaraTecnica === 'catesa' || isAdmin) && (
+                            <Link to={createPageUrl('CatesaDashboard')}>
+                                <div className="group bg-gradient-to-br from-cyan-600 to-blue-700 rounded-2xl p-5 flex items-center gap-4 shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all cursor-pointer">
+                                    <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-white/30 transition-all">
+                                        <Droplets className="h-7 w-7 text-white" />
+                                    </div>
+                                    <div className="text-white min-w-0">
+                                        <h3 className="text-lg font-bold">Painel CATESA</h3>
+                                        <p className="text-cyan-100 text-sm">Câmara Técnica de Saneamento</p>
+                                    </div>
+                                    <ChevronRight className="h-5 w-5 text-white/60 ml-auto flex-shrink-0 group-hover:translate-x-1 transition-transform" />
                                 </div>
-                                <div className="text-white min-w-0">
-                                    <h3 className="text-lg font-bold">Painel CATERS</h3>
-                                    <p className="text-emerald-100 text-sm">Processos, recomendações e avisos da câmara técnica</p>
+                            </Link>
+                        )}
+
+                        {/* CATERS */}
+                        {(camaraTecnica === 'caters' || isAdmin) && (
+                            <Link to={createPageUrl('CatersDashboard')}>
+                                <div className="group bg-gradient-to-br from-emerald-600 to-teal-700 rounded-2xl p-5 flex items-center gap-4 shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all cursor-pointer">
+                                    <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-white/30 transition-all">
+                                        <Recycle className="h-7 w-7 text-white" />
+                                    </div>
+                                    <div className="text-white min-w-0">
+                                        <h3 className="text-lg font-bold">Painel CATERS</h3>
+                                        <p className="text-emerald-100 text-sm">Câmara Técnica de Resíduos Sólidos</p>
+                                    </div>
+                                    <ChevronRight className="h-5 w-5 text-white/60 ml-auto flex-shrink-0 group-hover:translate-x-1 transition-transform" />
                                 </div>
-                                <ChevronRight className="h-5 w-5 text-white/60 ml-auto flex-shrink-0 group-hover:translate-x-1 transition-transform" />
-                            </div>
-                        </Link>
+                            </Link>
+                        )}
+
+                        {/* CRES */}
+                        {(camaraTecnica === 'cres' || isAdmin) && (
+                            <Link to={createPageUrl('CresDashboard')}>
+                                <div className="group bg-gradient-to-br from-violet-600 to-indigo-700 rounded-2xl p-5 flex items-center gap-4 shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all cursor-pointer">
+                                    <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-white/30 transition-all">
+                                        <TrendingUp className="h-7 w-7 text-white" />
+                                    </div>
+                                    <div className="text-white min-w-0">
+                                        <h3 className="text-lg font-bold">Painel CRES</h3>
+                                        <p className="text-violet-100 text-sm">Câmara Técnica de Regulação Econômica do Saneamento</p>
+                                    </div>
+                                    <ChevronRight className="h-5 w-5 text-white/60 ml-auto flex-shrink-0 group-hover:translate-x-1 transition-transform" />
+                                </div>
+                            </Link>
+                        )}
                     </div>
                 )}
 
