@@ -7,9 +7,10 @@ import { createPageUrl } from '@/utils';
 
 function NavTab({ to, label, icon: Icon, badge, activeFor = [] }) {
   const { pathname } = useLocation();
+  const toPath = to.split('?')[0];
   const active =
-    pathname === to ||
-    pathname.startsWith(to + '/') ||
+    pathname === toPath ||
+    pathname.startsWith(toPath + '/') ||
     activeFor.some((p) => pathname.startsWith(createPageUrl(p)));
 
   return (

@@ -4,7 +4,7 @@ import { BarChart3, GitMerge, FileWarning, ClipboardList, Scale, FileText } from
 
 const NAV_ITEMS = [
   { label: 'Dashboard',         to: createPageUrl('CatesaDashboard'),     icon: BarChart3 },
-  { label: 'Notificações',      to: createPageUrl('GerenciarTermos'),     icon: FileText },
+  { label: 'Notificações',      to: createPageUrl('GerenciarTermos') + '?camara=catesa', icon: FileText },
   { label: 'Manifestações',     to: createPageUrl('AnaliseManifestacao'), icon: GitMerge, activeFor: ['AnalisarResposta'] },
   { label: 'Autos de Infração', to: createPageUrl('GestaoAutos'),         icon: FileWarning },
   { label: 'Pareceres',         to: createPageUrl('PareceresTecnicos'),   icon: ClipboardList },

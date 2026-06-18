@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { createPageUrl } from '@/utils';
 import { supabase } from '@/lib/supabase';
 import { useModulo } from '@/hooks/useModulo';
@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, ArrowLeft, Download, FileJson, FileText, CheckCircle2, AlertTriangle, ChevronDown, Check, Search } from 'lucide-react';
+import { TrendingUp, ArrowLeft, Download, FileJson, FileText, CheckCircle2, AlertTriangle, ChevronDown, Check, Search, Route, MapPin } from 'lucide-react';
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Legend, Cell } from 'recharts';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -148,8 +148,347 @@ function MultiSelect({ placeholder, options, selectedValues, onChange }) {
     );
 }
 
+// ─── DTR ─────────────────────────────────────────────────────────────────────
+
+const DTR_MODULOS = ['rodovias_dtr', 'transportes_dtr', 'fiscal_dtr'];
+
+const frente_short = (f) => {
+    if (!f) return 'Outros';
+    if (f.includes('RECUPERAÇÃO')) return 'Recuperação';
+    if (f.includes('CONSERVAÇÃO')) return 'Conservação';
+    if (f.includes('MELHORIAS')) return 'Melhorias';
+    if (f.includes('SERVIÇOS')) return 'Serv. Operacionais';
+    return f;
+};
+
+const FRENTE_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#8b5cf6', '#ec4899'];
+
+function RelatoriosDTR({ diretoriaNome }) {
+    const [anoFiltro, setAnoFiltro] = useState([new Date().getFullYear().toString()]);
+    const [rodoviaFiltro, setRodoviaFiltro] = useState([]);
+    const [concessionariaFiltro, setConcessionariaFiltro] = useState([]);
+    const refContent = useRef(null);
+
+    const { data: fiscalizacoes = [], isLoading: loadFisc } = useQuery({
+        queryKey: ['relatorio-dtr-fisc'],
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from('fiscalizacoes')
+                .select('id, rodovia, status, data_inicio, prestador_servico_nome, tipo_modulo')
+                .in('tipo_modulo', DTR_MODULOS);
+            if (error) throw error;
+            return data || [];
+        },
+        staleTime: 120_000,
+    });
+
+    const fiscIdsAll = useMemo(() => fiscalizacoes.map(f => f.id), [fiscalizacoes]);
+
+    const { data: ocorrencias = [], isLoading: loadOcorr } = useQuery({
+        queryKey: ['relatorio-dtr-ocorr', fiscIdsAll.length],
+        queryFn: async () => {
+            if (!fiscIdsAll.length) return [];
+            const { data, error } = await supabase
+                .from('unidades')
+                .select('id, fiscalizacao_id, rodovia, tipo_ocorrencia, frente, gravidade, total_ncs, km')
+                .in('fiscalizacao_id', fiscIdsAll);
+            if (error) throw error;
+            return data || [];
+        },
+        enabled: fiscIdsAll.length > 0,
+        staleTime: 120_000,
+    });
+
+    const loading = loadFisc || loadOcorr;
+
+    const fiscFiltradas = useMemo(() => fiscalizacoes.filter(f => {
+        if (!f.data_inicio) return false;
+        const ano = String(new Date(f.data_inicio).getFullYear());
+        if (anoFiltro.length && !anoFiltro.includes(ano)) return false;
+        if (rodoviaFiltro.length && !rodoviaFiltro.includes(f.rodovia)) return false;
+        if (concessionariaFiltro.length && !concessionariaFiltro.includes(f.prestador_servico_nome)) return false;
+        return true;
+    }), [fiscalizacoes, anoFiltro, rodoviaFiltro, concessionariaFiltro]);
+
+    const fiscIdSet = useMemo(() => new Set(fiscFiltradas.map(f => f.id)), [fiscFiltradas]);
+    const ocorrenciasFiltradas = useMemo(() => ocorrencias.filter(o => fiscIdSet.has(o.fiscalizacao_id)), [ocorrencias, fiscIdSet]);
+
+    const totalVistorias = fiscFiltradas.length;
+    const finalizadas = fiscFiltradas.filter(f => f.status === 'finalizada').length;
+    const totalOcorrencias = ocorrenciasFiltradas.length;
+    const totalNCs = useMemo(() => ocorrenciasFiltradas.reduce((acc, o) => acc + (o.total_ncs || 0), 0), [ocorrenciasFiltradas]);
+    const rodoviaCount = useMemo(() => new Set(fiscFiltradas.map(f => f.rodovia).filter(Boolean)).size, [fiscFiltradas]);
+
+    const dadosRodovia = useMemo(() => {
+        const map = {};
+        fiscFiltradas.forEach(f => { if (f.rodovia) { map[f.rodovia] = map[f.rodovia] || { rodovia: f.rodovia, vistorias: 0, ncs: 0 }; map[f.rodovia].vistorias++; } });
+        ocorrenciasFiltradas.forEach(o => { if (o.rodovia) { map[o.rodovia] = map[o.rodovia] || { rodovia: o.rodovia, vistorias: 0, ncs: 0 }; map[o.rodovia].ncs += (o.total_ncs || 0); } });
+        return Object.values(map).sort((a, b) => b.ncs - a.ncs).slice(0, 10);
+    }, [fiscFiltradas, ocorrenciasFiltradas]);
+
+    const dadosFrente = useMemo(() => {
+        const map = {};
+        ocorrenciasFiltradas.forEach(o => {
+            const label = frente_short(o.frente);
+            map[label] = map[label] || { frente: label, ocorrencias: 0, ncs: 0 };
+            map[label].ocorrencias++;
+            map[label].ncs += (o.total_ncs || 0);
+        });
+        return Object.values(map).sort((a, b) => b.ocorrencias - a.ocorrencias);
+    }, [ocorrenciasFiltradas]);
+
+    const dadosTipo = useMemo(() => {
+        const map = {};
+        ocorrenciasFiltradas.forEach(o => {
+            const t = o.tipo_ocorrencia || 'Outros';
+            map[t] = map[t] || { tipo: t, count: 0 };
+            map[t].count++;
+        });
+        return Object.values(map).sort((a, b) => b.count - a.count).slice(0, 8);
+    }, [ocorrenciasFiltradas]);
+
+    const dadosMes = useMemo(() => {
+        const map = {};
+        fiscFiltradas.forEach(f => {
+            if (!f.data_inicio) return;
+            const d = new Date(f.data_inicio);
+            const k = `${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+            map[k] = map[k] || { mes: k, vistorias: 0 };
+            map[k].vistorias++;
+        });
+        return Object.values(map).sort((a, b) => a.mes.localeCompare(b.mes));
+    }, [fiscFiltradas]);
+
+    const rodoviaOptions = useMemo(() => [...new Set(fiscalizacoes.map(f => f.rodovia).filter(Boolean))].sort().map(r => ({ value: r, label: r })), [fiscalizacoes]);
+    const concessionariaOptions = useMemo(() => [...new Set(fiscalizacoes.map(f => f.prestador_servico_nome).filter(Boolean))].sort().map(n => ({ value: n, label: n })), [fiscalizacoes]);
+    const anoOptions = ['2024', '2025', '2026'].map(a => ({ value: a, label: a }));
+
+    const exportarPDF = async () => {
+        if (!refContent.current) return;
+        const canvas = await html2canvas(refContent.current, { scale: 2 });
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const imgData = canvas.toDataURL('image/png');
+        const imgWidth = 210;
+        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, (canvas.height * imgWidth) / canvas.width);
+        pdf.save(`Relatorio-DTR-${anoFiltro.join('-') || 'Todos'}.pdf`);
+    };
+
+    const exportarJSON = () => {
+        const dados = {
+            ano: anoFiltro.join(', ') || 'Todos',
+            data_geracao: new Date().toLocaleString('pt-BR'),
+            resumo: { totalVistorias, finalizadas, totalOcorrencias, totalNCs, rodovias: rodoviaCount },
+            por_rodovia: dadosRodovia,
+            por_frente: dadosFrente,
+            top_tipos: dadosTipo,
+        };
+        const blob = new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `Relatorio-DTR-${anoFiltro.join('-') || 'Todos'}.json`; a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    const v = (n) => loading ? '—' : n;
+
+    return (
+        <div className="min-h-screen bg-gray-50">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
+                <div className="max-w-6xl mx-auto px-4 py-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <Link to={createPageUrl('Home')}>
+                                <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full">
+                                    <ArrowLeft className="h-5 w-5" />
+                                </Button>
+                            </Link>
+                            <div>
+                                <h1 className="text-xl font-bold">Relatórios e Indicadores — DTR</h1>
+                                <p className="text-blue-200 text-sm">{diretoriaNome}</p>
+                            </div>
+                        </div>
+                        <div className="flex gap-2">
+                            <Button onClick={exportarPDF} size="sm" className="bg-white/20 hover:bg-white/30 text-white gap-1"><Download className="h-4 w-4" /> PDF</Button>
+                            <Button onClick={exportarJSON} size="sm" className="bg-white/20 hover:bg-white/30 text-white gap-1"><FileJson className="h-4 w-4" /> JSON</Button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Filtros */}
+            <div className="max-w-6xl mx-auto px-4 mt-6 print:hidden">
+                <Card className="bg-white border border-gray-200 shadow-sm">
+                    <CardContent className="p-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="space-y-1"><label className="text-xs font-semibold text-gray-500 block">Ano</label><MultiSelect placeholder="Todos os Anos" options={anoOptions} selectedValues={anoFiltro} onChange={setAnoFiltro} /></div>
+                            <div className="space-y-1"><label className="text-xs font-semibold text-gray-500 block">Rodovia</label><MultiSelect placeholder="Todas as Rodovias" options={rodoviaOptions} selectedValues={rodoviaFiltro} onChange={setRodoviaFiltro} /></div>
+                            <div className="space-y-1"><label className="text-xs font-semibold text-gray-500 block">Concessionária</label><MultiSelect placeholder="Todas" options={concessionariaOptions} selectedValues={concessionariaFiltro} onChange={setConcessionariaFiltro} /></div>
+                        </div>
+                        <div className="flex justify-end border-t border-gray-100 pt-3 mt-4">
+                            <span className="text-xs text-gray-400 font-medium">{totalVistorias} vistorias correspondentes</span>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Conteúdo */}
+            <div ref={refContent} className="max-w-6xl mx-auto px-4 py-6 space-y-6 bg-white mt-6">
+
+                {/* KPI Cards */}
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    {[
+                        { label: 'Vistorias Realizadas',     value: v(totalVistorias),  icon: FileText,       bg: 'bg-blue-100',   iconCls: 'text-blue-600' },
+                        { label: 'Finalizadas',              value: v(finalizadas),     icon: CheckCircle2,   bg: 'bg-green-100',  iconCls: 'text-green-600' },
+                        { label: 'Ocorrências Registradas',  value: v(totalOcorrencias),icon: MapPin,         bg: 'bg-orange-100', iconCls: 'text-orange-600' },
+                        { label: 'Não Conformidades',        value: v(totalNCs),        icon: AlertTriangle,  bg: 'bg-red-100',    iconCls: 'text-red-600' },
+                        { label: 'Rodovias Inspecionadas',   value: v(rodoviaCount),    icon: Route,          bg: 'bg-indigo-100', iconCls: 'text-indigo-600' },
+                    ].map(({ label, value, icon: Icon, bg, iconCls }) => (
+                        <Card key={label}>
+                            <CardContent className="p-4">
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-10 h-10 ${bg} rounded-lg flex items-center justify-center flex-shrink-0`}><Icon className={`h-5 w-5 ${iconCls}`} /></div>
+                                    <div><p className="text-2xl font-bold">{value}</p><p className="text-xs text-gray-500 leading-tight mt-0.5">{label}</p></div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+
+                {/* Gráficos — linha 1 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* NCs por Rodovia */}
+                    <Card>
+                        <CardHeader><CardTitle className="text-base">Não Conformidades por Rodovia</CardTitle></CardHeader>
+                        <CardContent>
+                            {dadosRodovia.length > 0 ? (
+                                <ResponsiveContainer width="100%" height={260}>
+                                    <BarChart data={dadosRodovia} layout="vertical" margin={{ left: 10, right: 20 }}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} />
+                                        <YAxis type="category" dataKey="rodovia" tick={{ fontSize: 11 }} width={65} />
+                                        <Tooltip formatter={(v, n) => [v, n === 'ncs' ? 'NCs' : 'Vistorias']} />
+                                        <Bar dataKey="ncs" name="ncs" radius={[0, 4, 4, 0]}>
+                                            {dadosRodovia.map((_, i) => <Cell key={i} fill={`hsl(${200 + i * 20}, 70%, 50%)`} />)}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            ) : <p className="text-center text-gray-400 py-10 text-sm">Sem dados para exibir</p>}
+                        </CardContent>
+                    </Card>
+
+                    {/* Vistorias por Mês */}
+                    <Card>
+                        <CardHeader><CardTitle className="text-base">Vistorias por Mês</CardTitle></CardHeader>
+                        <CardContent>
+                            {dadosMes.length > 0 ? (
+                                <ResponsiveContainer width="100%" height={260}>
+                                    <BarChart data={dadosMes}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="mes" tick={{ fontSize: 10 }} />
+                                        <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                                        <Tooltip />
+                                        <Bar dataKey="vistorias" name="Vistorias" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            ) : <p className="text-center text-gray-400 py-10 text-sm">Sem dados para exibir</p>}
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Gráficos — linha 2 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Ocorrências por Frente de Trabalho */}
+                    <Card>
+                        <CardHeader><CardTitle className="text-base">Ocorrências por Frente de Trabalho</CardTitle></CardHeader>
+                        <CardContent>
+                            {dadosFrente.length > 0 ? (
+                                <ResponsiveContainer width="100%" height={260}>
+                                    <BarChart data={dadosFrente}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="frente" tick={{ fontSize: 10 }} />
+                                        <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                                        <Tooltip />
+                                        <Bar dataKey="ocorrencias" name="Ocorrências" radius={[4, 4, 0, 0]}>
+                                            {dadosFrente.map((_, i) => <Cell key={i} fill={FRENTE_COLORS[i % FRENTE_COLORS.length]} />)}
+                                        </Bar>
+                                        <Bar dataKey="ncs" name="NCs" fill="#ef4444" radius={[4, 4, 0, 0]} opacity={0.75} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            ) : <p className="text-center text-gray-400 py-10 text-sm">Sem dados para exibir</p>}
+                        </CardContent>
+                    </Card>
+
+                    {/* Ranking de Tipos de Ocorrência */}
+                    <Card>
+                        <CardHeader><CardTitle className="text-base">Principais Tipos de Ocorrência</CardTitle></CardHeader>
+                        <CardContent>
+                            {dadosTipo.length > 0 ? (
+                                <div className="space-y-3 mt-1">
+                                    {dadosTipo.map((item, i) => (
+                                        <div key={item.tipo} className="flex items-center gap-3">
+                                            <span className="w-5 h-5 bg-blue-50 rounded-full flex items-center justify-center text-[10px] font-bold text-blue-600 flex-shrink-0">{i + 1}</span>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <span className="text-sm font-medium truncate pr-2">{item.tipo}</span>
+                                                    <Badge variant="outline" className="flex-shrink-0 text-xs bg-slate-50">{item.count}</Badge>
+                                                </div>
+                                                <div className="h-1.5 bg-gray-100 rounded-full">
+                                                    <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${(item.count / dadosTipo[0].count) * 100}%` }} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : <p className="text-center text-gray-400 py-10 text-sm">Sem dados para exibir</p>}
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Tabela de Rodovias */}
+                {dadosRodovia.length > 0 && (
+                    <Card>
+                        <CardHeader><CardTitle className="text-base">Ranking de Rodovias — Vistorias e NCs</CardTitle></CardHeader>
+                        <CardContent>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b border-gray-100 text-left">
+                                            <th className="pb-2 font-semibold text-gray-500 text-xs">#</th>
+                                            <th className="pb-2 font-semibold text-gray-500 text-xs">Rodovia</th>
+                                            <th className="pb-2 font-semibold text-gray-500 text-xs text-right">Vistorias</th>
+                                            <th className="pb-2 font-semibold text-gray-500 text-xs text-right">NCs</th>
+                                            <th className="pb-2 font-semibold text-gray-500 text-xs text-right">NCs / Vistoria</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {dadosRodovia.map((r, i) => (
+                                            <tr key={r.rodovia} className="border-b border-gray-50 hover:bg-gray-50">
+                                                <td className="py-2 text-gray-400 text-xs">{i + 1}</td>
+                                                <td className="py-2 font-medium">{r.rodovia}</td>
+                                                <td className="py-2 text-right">{r.vistorias}</td>
+                                                <td className="py-2 text-right"><span className={r.ncs > 0 ? 'text-red-600 font-semibold' : ''}>{r.ncs}</span></td>
+                                                <td className="py-2 text-right text-gray-500">{r.vistorias > 0 ? (r.ncs / r.vistorias).toFixed(1) : '—'}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+            </div>
+        </div>
+    );
+}
+
+// ─── DSB ─────────────────────────────────────────────────────────────────────
+
 export default function Relatorios() {
-    const { tipoModulo, modulosFiltro, isDSB, isAdmin, diretoriaNome } = useModulo();
+    const { tipoModulo, modulosFiltro, isDSB, isDTR, isAdmin, diretoriaNome } = useModulo();
+
+    if (isDTR) return <RelatoriosDTR diretoriaNome={diretoriaNome} />;
+
 
     // modulosFiltro: lista de tipo_modulo visíveis para este usuário (do hook)
     // Admin recebe [] = sem filtro; demais recebem todos os módulos da sua diretoria

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -25,7 +26,10 @@ let cachedAvailableBuckets = null;
 
 export default function GerenciarTermos() {
     const { camaraTecnica } = useModulo();
-    const CamaraLayoutComponent = camaraTecnica === 'caters' ? CatersLayout : CatesaLayout;
+    const [searchParams] = useSearchParams();
+    const camaraParam = searchParams.get('camara');
+    const effectiveCamara = camaraParam || camaraTecnica;
+    const CamaraLayoutComponent = effectiveCamara === 'caters' ? CatersLayout : CatesaLayout;
 
     const queryClient = useQueryClient();
     const [selectedFiscalizacao, setSelectedFiscalizacao] = useState(null);
