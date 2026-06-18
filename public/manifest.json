@@ -1,6 +1,6 @@
 {
-  "name": "Fiscalização DSB AGEMS",
-  "short_name": "FISCDSB",
+  "name": "SGO - Sistema de Gestão Operacional - AGEMS",
+  "short_name": "SGO AGEMS",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

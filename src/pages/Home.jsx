@@ -141,7 +141,7 @@ export default function Home() {
                             </svg>
                         </div>
                         <div className="flex-1 min-w-0">
-                            <h1 className="text-xl font-bold">Fiscalização AGEMS</h1>
+                            <h1 className="text-xl font-bold">SGO - Sistema de Gestão Operacional - AGEMS</h1>
                             <p className="text-blue-200 text-sm truncate">{diretoriaNome}</p>
                         </div>
                         {isAdmin && (
