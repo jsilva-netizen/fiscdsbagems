@@ -259,6 +259,10 @@ export default function PhotoGrid({
                                     ? { fiscalizacaoId, ...watermarkContext }
                                     : { fiscalizacaoId }
                             );
+                            // Prioridade: takenAt do EXIF/GPS → lastModified do arquivo → agora
+                            const dataHoraFoto = capture?.takenAt
+                                ? capture.takenAt
+                                : (file?.lastModified ? new Date(file.lastModified).toISOString() : new Date().toISOString());
                             const novaFoto = {
                                 localId: saved.localId,
                                 url: saved.previewUrl || saved.url || '',
@@ -266,7 +270,7 @@ export default function PhotoGrid({
                                 mimeType: saved.mimeType,
                                 width: saved.width,
                                 height: saved.height,
-                                data_hora: new Date().toISOString()
+                                data_hora: dataHoraFoto
                             };
                             onAddFoto(novaFoto);
                             processados++;

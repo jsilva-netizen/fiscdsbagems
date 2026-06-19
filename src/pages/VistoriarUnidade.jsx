@@ -72,6 +72,9 @@ export default function VistoriarUnidade() {
     const [novoEnderecoUnidade, setNovoEnderecoUnidade] = useState('');
     const [showEditarCoordenadasUnidade, setShowEditarCoordenadasUnidade] = useState(false);
     const [novasCoordenadasUnidade, setNovasCoordenadasUnidade] = useState('');
+    const [showEditarDataHoraUnidade, setShowEditarDataHoraUnidade] = useState(false);
+    const [novaDataUnidade, setNovaDataUnidade] = useState('');
+    const [novaHoraUnidade, setNovaHoraUnidade] = useState('');
     const [showEditarConstatacaoChecklist, setShowEditarConstatacaoChecklist] = useState(false);
     const [respostaChecklistParaEditar, setRespostaChecklistParaEditar] = useState(null);
     const [textoConstatacaoChecklist, setTextoConstatacaoChecklist] = useState('');
@@ -994,6 +997,21 @@ export default function VistoriarUnidade() {
         }
     });
 
+    const atualizarDataHoraUnidadeMutation = useMutation({
+        mutationFn: async () => {
+            const iso = `${novaDataUnidade}T${novaHoraUnidade || '00:00'}:00`;
+            await Repository.updateUnidadeDataHoraVistoria(unidadeId, iso);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['unidade', unidadeId] });
+            queryClient.invalidateQueries({ queryKey: ['unidades-fiscalizacao'] });
+            setShowEditarDataHoraUnidade(false);
+        },
+        onError: (err) => {
+            alert(err.message);
+        }
+    });
+
     const salvarAlteracoesMutation = useMutation({
         mutationFn: async () => {
             console.log('🔵 Salvando alterações da unidade (modo edição):', unidadeId);
@@ -1086,6 +1104,27 @@ export default function VistoriarUnidade() {
     const podeEditarNomeUnidade = unidade?.status !== 'finalizada' || modoEdicao;
     const podeEditarEnderecoUnidade = unidade?.status !== 'finalizada' || modoEdicao;
     const podeEditarCoordenadasUnidade = unidade?.status !== 'finalizada' || modoEdicao;
+    const podeEditarDataHoraUnidade = unidade?.status !== 'finalizada' || modoEdicao;
+
+    const formatDataHoraVistoria = (u) => {
+        const iso = u?.data_hora_vistoria || u?.created_at;
+        if (!iso) return '-';
+        const d = new Date(iso);
+        if (isNaN(d.getTime())) return '-';
+        return d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+    };
+
+    const isoParaInputs = (u) => {
+        const iso = u?.data_hora_vistoria || u?.created_at;
+        if (!iso) return { data: '', hora: '' };
+        const d = new Date(iso);
+        if (isNaN(d.getTime())) return { data: '', hora: '' };
+        const pad = (n) => String(n).padStart(2, '0');
+        return {
+            data: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
+            hora: `${pad(d.getHours())}:${pad(d.getMinutes())}`
+        };
+    };
 
     return (
         <div className="min-h-screen bg-gray-100 pb-24">
@@ -1169,6 +1208,26 @@ export default function VistoriarUnidade() {
                                         onClick={() => {
                                             setNovasCoordenadasUnidade(unidade?.coordenadas || '');
                                             setShowEditarCoordenadasUnidade(true);
+                                        }}
+                                    >
+                                        <Pencil className="h-3 w-3 mr-1" />
+                                        Editar
+                                    </Button>
+                                )}
+                            </div>
+                            <div className="flex items-center gap-2 text-blue-200 text-xs mt-1">
+                                <span>Data/Hora:</span>
+                                <span className="text-white">{formatDataHoraVistoria(unidade)}</span>
+                                {podeEditarDataHoraUnidade && (
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-6 px-2 text-blue-200 hover:text-white hover:bg-white/10"
+                                        onClick={() => {
+                                            const { data, hora } = isoParaInputs(unidade);
+                                            setNovaDataUnidade(data);
+                                            setNovaHoraUnidade(hora);
+                                            setShowEditarDataHoraUnidade(true);
                                         }}
                                     >
                                         <Pencil className="h-3 w-3 mr-1" />
@@ -1970,6 +2029,58 @@ export default function VistoriarUnidade() {
                                 disabled={atualizarCoordenadasUnidadeMutation.isPending}
                             >
                                 {atualizarCoordenadasUnidadeMutation.isPending ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    'Salvar'
+                                )}
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={showEditarDataHoraUnidade} onOpenChange={setShowEditarDataHoraUnidade}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Editar data e hora da vistoria</DialogTitle>
+                        <DialogDescription>
+                            Altera a data e a hora da vistoria desta unidade.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Data</Label>
+                                <Input
+                                    type="date"
+                                    value={novaDataUnidade}
+                                    onChange={(e) => setNovaDataUnidade(e.target.value)}
+                                    disabled={atualizarDataHoraUnidadeMutation.isPending}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Hora</Label>
+                                <Input
+                                    type="time"
+                                    value={novaHoraUnidade}
+                                    onChange={(e) => setNovaHoraUnidade(e.target.value)}
+                                    disabled={atualizarDataHoraUnidadeMutation.isPending}
+                                />
+                            </div>
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <Button
+                                variant="outline"
+                                onClick={() => setShowEditarDataHoraUnidade(false)}
+                                disabled={atualizarDataHoraUnidadeMutation.isPending}
+                            >
+                                Cancelar
+                            </Button>
+                            <Button
+                                onClick={() => atualizarDataHoraUnidadeMutation.mutate()}
+                                disabled={atualizarDataHoraUnidadeMutation.isPending}
+                            >
+                                {atualizarDataHoraUnidadeMutation.isPending ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />
                                 ) : (
                                     'Salvar'
