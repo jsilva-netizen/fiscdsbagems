@@ -247,10 +247,15 @@ export default function VistoriarOcorrenciaDTR() {
         setStepIdx(BASE_STEPS.length - 1);
     }, [occurrenceId, ocorrencia]);
 
-    // Load photos in edit mode
+    // Load photos in edit mode — espera a query de `ocorrencia` carregar antes de travar
+    // o ref de "já carregado". Sem isso, a primeira execução do efeito roda com
+    // ocorrencia ainda undefined (query em voo), mescla só as fotos locais não
+    // sincronizadas (ou nenhuma, se já sincronizadas) e trava o ref, fazendo as fotos
+    // já salvas em fotos_unidade nunca mais serem carregadas nessa visita à página.
     useEffect(() => {
         if (!occurrenceId) return;
         if (fotosCarregadasRef.current === occurrenceId) return;
+        if (!ocorrencia) return;
         const isLocalUrl = (u) => /^blob:|^data:|^file:|^capacitor:/i.test(String(u || ''));
         (async () => {
             try {
