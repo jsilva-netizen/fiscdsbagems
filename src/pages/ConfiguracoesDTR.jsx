@@ -218,7 +218,10 @@ function parseSpreadsheet(file) {
 
                 resolve(tipos);
             } catch (err) {
-                reject(new Error('Erro ao ler planilha: ' + (err && err.message ? err.message : String(err))));
+                console.error("Spreadsheet parse error:", err);
+                const errMsg = err && err.message ? err.message : String(err);
+                const stackMsg = err && err.stack ? err.stack : '';
+                reject(new Error('Erro ao ler planilha: ' + errMsg + ' | Stack: ' + stackMsg.substring(0, 200)));
             }
         };
         reader.onerror = () => reject(new Error('Falha ao ler arquivo.'));

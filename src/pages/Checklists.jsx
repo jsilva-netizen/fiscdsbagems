@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { createPageUrl } from '@/utils';
-import * as XLSX from 'xlsx';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useOnlineStatus } from '@/lib/OnlineStatusContext.jsx';
@@ -197,6 +196,12 @@ export default function Checklists({ embedded = false }) {
 
         setImporting(true);
         try {
+            const XLSX = window.XLSX;
+            if (!XLSX) {
+                alert("Biblioteca XLSX não carregada. Recarregue a página.");
+                setImporting(false);
+                return;
+            }
             const data = await file.arrayBuffer();
             const workbook = XLSX.read(data);
             const sheetName = workbook.SheetNames[0];
