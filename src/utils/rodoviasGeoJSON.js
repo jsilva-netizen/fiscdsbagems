@@ -78,6 +78,87 @@ export const RODOVIAS_TRACKS = {
 };
 
 /**
+ * Analisa um KML de pontos de KM e retorna array de {lat, lng, km}.
+ * Aceita o campo "km" via: ExtendedData > SimpleData[name=km],
+ * ExtendedData > Data[name=km] > value, ou <name>.
+ *
+ * @param {string} kmlText
+ * @returns {{lat: number, lng: number, km: string}[] | null}
+ */
+export function parseKMLKmPoints(kmlText) {
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(kmlText, 'application/xml');
+    const placemarks = doc.querySelectorAll('Placemark');
+    const points = [];
+
+    for (const pm of placemarks) {
+      const coordEl = pm.querySelector('Point > coordinates');
+      if (!coordEl) continue;
+      const parts = coordEl.textContent.trim().split(',').map(Number);
+      if (parts.length < 2 || isNaN(parts[0]) || isNaN(parts[1])) continue;
+      const lng = parts[0];
+      const lat = parts[1];
+
+      let km = '';
+      for (const sd of pm.querySelectorAll('SimpleData')) {
+        if ((sd.getAttribute('name') || '').toLowerCase() === 'km') {
+          km = sd.textContent.trim();
+          break;
+        }
+      }
+      if (!km) {
+        for (const d of pm.querySelectorAll('Data')) {
+          if ((d.getAttribute('name') || '').toLowerCase() === 'km') {
+            const v = d.querySelector('value');
+            if (v) { km = v.textContent.trim(); break; }
+          }
+        }
+      }
+      if (!km) {
+        const nameEl = pm.querySelector('name');
+        if (nameEl) km = nameEl.textContent.trim();
+      }
+
+      if (km) points.push({ lat, lng, km });
+    }
+
+    return points.length > 0 ? points : null;
+  } catch {
+    return null;
+  }
+}
+
+function haversineMeters(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const phi1 = lat1 * Math.PI / 180;
+  const phi2 = lat2 * Math.PI / 180;
+  const dPhi = (lat2 - lat1) * Math.PI / 180;
+  const dLambda = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dPhi / 2) ** 2 + Math.cos(phi1) * Math.cos(phi2) * Math.sin(dLambda / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+/**
+ * Retorna o ponto KM mais próximo das coordenadas GPS fornecidas.
+ *
+ * @param {{lat: number, lng: number, km: string}[]} points
+ * @param {number} lat
+ * @param {number} lng
+ * @returns {{lat: number, lng: number, km: string, distanceMeters: number} | null}
+ */
+export function findNearestKmPoint(points, lat, lng) {
+  if (!points || points.length === 0) return null;
+  let nearest = null;
+  let minDist = Infinity;
+  for (const p of points) {
+    const d = haversineMeters(lat, lng, p.lat, p.lng);
+    if (d < minDist) { minDist = d; nearest = p; }
+  }
+  return nearest ? { ...nearest, distanceMeters: Math.round(minDist) } : null;
+}
+
+/**
  * Analisa um arquivo KML e extrai o primeiro LineString de coordenadas encontrado.
  * Retorna um array de [lng, lat] para uso com Turf.js (mesmo formato de RODOVIAS_TRACKS).
  *

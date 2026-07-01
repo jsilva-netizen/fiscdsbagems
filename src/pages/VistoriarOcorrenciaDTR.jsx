@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Repository } from '@/lib/offline/repository';
-import { snapToHighway, parseKMLSegments, snapToNearestKMLSegment } from '@/utils/rodoviasGeoJSON';
+import { snapToHighway, parseKMLSegments, snapToNearestKMLSegment, findNearestKmPoint } from '@/utils/rodoviasGeoJSON';
 import PhotoGrid from '@/components/fiscalizacao/PhotoGrid';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -73,6 +73,7 @@ export default function VistoriarOcorrenciaDTR() {
     const [km, setKm] = useState('');
     const [trecho, setTrecho] = useState('');
     const [rodoviaSnapped, setRodoviaSnapped] = useState('');
+    const [kmPoints, setKmPoints] = useState(null);
     const [kmlSegments, setKmlSegments] = useState([]);
     const [location, setLocation] = useState(null);
     const [gettingLocation, setGettingLocation] = useState(false);
@@ -83,14 +84,22 @@ export default function VistoriarOcorrenciaDTR() {
         enabled: !!fiscId
     });
 
-    // Carrega segmentos KML para snap multi-rodovia
+    // Carrega referências KM: tenta pontos (novo formato) ou cai no KML de linhas (legado)
     useEffect(() => {
         if (!fisc?.rodovia) return;
-        Repository.downloadKMLForRodovia(fisc.rodovia)
-            .then(kmlText => {
-                if (kmlText) setKmlSegments(parseKMLSegments(kmlText));
-            })
-            .catch(() => {});
+        Repository.getKmPointsForRodovia(fisc.rodovia).then(points => {
+            if (points && points.length > 0) {
+                setKmPoints(points);
+            } else {
+                Repository.downloadKMLForRodovia(fisc.rodovia)
+                    .then(kmlText => { if (kmlText) setKmlSegments(parseKMLSegments(kmlText)); })
+                    .catch(() => {});
+            }
+        }).catch(() => {
+            Repository.downloadKMLForRodovia(fisc.rodovia)
+                .then(kmlText => { if (kmlText) setKmlSegments(parseKMLSegments(kmlText)); })
+                .catch(() => {});
+        });
     }, [fisc?.rodovia]);
 
     const fiscRodovia = fisc?.rodovia ?? null;
@@ -138,7 +147,11 @@ export default function VistoriarOcorrenciaDTR() {
                 const lat = pos.coords.latitude;
                 const lng = pos.coords.longitude;
                 setLocation({ lat, lng });
-                if (kmlSegments.length > 0) {
+                if (kmPoints && kmPoints.length > 0) {
+                    const nearest = findNearestKmPoint(kmPoints, lat, lng);
+                    setKm(nearest?.km || '');
+                    setRodoviaSnapped(fisc.rodovia || '');
+                } else if (kmlSegments.length > 0) {
                     const snapped = snapToNearestKMLSegment(lat, lng, kmlSegments);
                     setKm(snapped.km);
                     setRodoviaSnapped(snapped.rodovia || fisc.rodovia || '');
@@ -153,7 +166,7 @@ export default function VistoriarOcorrenciaDTR() {
             () => setGettingLocation(false),
             { enableHighAccuracy: true, timeout: 10000 }
         );
-    }, [fisc, occurrenceId, kmlSegments]);
+    }, [fisc, occurrenceId, kmPoints, kmlSegments]);
 
     // Edit mode: pre-populate state and jump to last step
     useEffect(() => {

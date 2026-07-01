@@ -61,6 +61,8 @@ export type Prestador = {
   observacoes?: string
 }
 
+export type KmPoint = { lat: number; lng: number; km: string }
+
 export type Contrato = {
   id: UUID
   numero_contrato: string
@@ -68,6 +70,7 @@ export type Contrato = {
   rodovia: string
   ativo: boolean
   kml_url?: string
+  km_points?: KmPoint[] | null
   created_at?: string
   updated_at?: string
 }

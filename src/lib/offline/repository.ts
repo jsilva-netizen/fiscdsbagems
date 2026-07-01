@@ -393,23 +393,34 @@ export const Repository = {
 
   // --- KML por Contrato/Rodovia ---
 
-  async uploadKMLForContrato(contratoId: string, kmlText: string, rodoviaName: string): Promise<string> {
+  async uploadKMLForContrato(contratoId: string, kmlText: string, rodoviaName: string, kmPoints?: import('./db').KmPoint[] | null): Promise<string> {
     const path = `${rodoviaName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${contratoId.substring(0, 8)}.kml`
     const blob = new Blob([kmlText], { type: 'application/vnd.google-earth.kml+xml' })
     const { error: upErr } = await supabase.storage.from('kml-rodovias').upload(path, blob, { upsert: true })
     if (upErr) throw new Error('Falha ao enviar KML: ' + upErr.message)
 
     const kmlUrl = `storage://kml-rodovias/${path}`
+    const extra: Record<string, any> = { kml_url: kmlUrl }
+    if (kmPoints) extra.km_points = kmPoints
 
     const cur = await db.contratos.get(contratoId as any)
     if (cur) {
-      await db.contratos.update(contratoId as any, { ...cur, kml_url: kmlUrl, updated_at: now() })
+      await db.contratos.update(contratoId as any, { ...cur, ...extra, updated_at: now() })
     }
 
-    const { error: updErr } = await supabase.from('contratos').update({ kml_url: kmlUrl }).eq('id', contratoId)
-    if (updErr) throw new Error('Falha ao salvar URL do KML no contrato: ' + updErr.message)
+    const { error: updErr } = await supabase.from('contratos').update(extra).eq('id', contratoId)
+    if (updErr) throw new Error('Falha ao salvar KML no contrato: ' + updErr.message)
 
     return kmlUrl
+  },
+
+  async getKmPointsForRodovia(rodovia: string): Promise<import('./db').KmPoint[] | null> {
+    try {
+      const contratos = await db.contratos.where('rodovia').equals(rodovia).toArray()
+      return contratos[0]?.km_points ?? null
+    } catch {
+      return null
+    }
   },
 
   async downloadKMLForRodovia(rodovia: string): Promise<string | null> {

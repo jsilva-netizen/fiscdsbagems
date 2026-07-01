@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Repository } from '@/lib/offline/repository';
-import { parseKMLCoordinates } from '@/utils/rodoviasGeoJSON';
+import { parseKMLKmPoints } from '@/utils/rodoviasGeoJSON';
 import * as XLSX from 'xlsx';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -415,16 +415,18 @@ function TabKML() {
 
     const uploadKMLMutation = useMutation({
         mutationFn: async ({ contratoId, kmlText, rodovia }) => {
-            const coords = parseKMLCoordinates(kmlText);
-            if (!coords) throw new Error('Arquivo KML inválido ou sem LineString de coordenadas.');
-            await Repository.uploadKMLForContrato(contratoId, kmlText, rodovia);
-            return coords.length;
+            const kmPoints = parseKMLKmPoints(kmlText);
+            if (!kmPoints || kmPoints.length === 0) {
+                throw new Error('KML inválido ou sem pontos de KM. O arquivo deve conter Placemarks do tipo Point com campo "km".');
+            }
+            await Repository.uploadKMLForContrato(contratoId, kmlText, rodovia, kmPoints);
+            return kmPoints.length;
         },
         onSuccess: (numPoints, vars) => {
             queryClient.invalidateQueries({ queryKey: ['contratos'] });
             setKmlStatus(prev => ({
                 ...prev,
-                [vars.contratoId]: { type: 'success', message: `KML válido — ${numPoints} pontos carregados.` }
+                [vars.contratoId]: { type: 'success', message: `KML válido — ${numPoints} marcadores KM carregados.` }
             }));
         },
         onError: (err, vars) => {
