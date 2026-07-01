@@ -403,14 +403,18 @@ export const Repository = {
     if (upErr) throw new Error('Falha ao enviar KML: ' + upErr.message)
 
     const kmlUrl = `storage://kml-rodovias/${path}`
-    const extra: Record<string, any> = { kml_url: kmlUrl }
+    const nowIso = now()
+    const extra: Record<string, any> = { kml_url: kmlUrl, updated_at: nowIso }
     if (kmPoints) extra.km_points = kmPoints
 
     const cur = await db.contratos.get(contratoId as any)
     if (cur) {
-      await db.contratos.update(contratoId as any, { ...cur, ...extra, updated_at: now() })
+      await db.contratos.update(contratoId as any, { ...cur, ...extra })
     }
 
+    // updated_at precisa ir explícito aqui: sem isso, o pull incremental de outros
+    // dispositivos (que filtra por updated_at >= since) nunca detecta essa mudança,
+    // e o km_points novo (com o campo rodovia por ponto) nunca chega no aparelho de campo.
     const { error: updErr } = await supabase.from('contratos').update(extra).eq('id', contratoId)
     if (updErr) throw new Error('Falha ao salvar KML no contrato: ' + updErr.message)
 
