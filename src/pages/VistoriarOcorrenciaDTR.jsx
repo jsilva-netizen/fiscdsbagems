@@ -177,7 +177,7 @@ export default function VistoriarOcorrenciaDTR() {
         autoSavedRef.current = true;
         Repository.createUnidade({
             fiscalizacao_id: fiscId,
-            tipo_unidade_id: null as any,
+            tipo_unidade_id: null,
             nome_unidade: 'Rascunho DTR',
             latitude: location?.lat ?? null,
             longitude: location?.lng ?? null,
@@ -280,7 +280,7 @@ export default function VistoriarOcorrenciaDTR() {
             if (targetId) {
                 await Repository.updateUnidadeDTR(targetId, payload);
             } else {
-                const res = await Repository.createUnidade({ fiscalizacao_id: fiscId, tipo_unidade_id: null as any, ...payload });
+                const res = await Repository.createUnidade({ fiscalizacao_id: fiscId, tipo_unidade_id: null, ...payload });
                 uId = res.id;
                 await Repository.reassignLocalFotos('novo-ponto', uId);
             }
