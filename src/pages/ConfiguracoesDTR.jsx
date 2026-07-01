@@ -453,14 +453,6 @@ function TabKML() {
 
     return (
         <div className="space-y-4">
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-700 flex items-start gap-2">
-                <Map className="h-4 w-4 flex-shrink-0 mt-0.5 text-blue-500" />
-                <div>
-                    <p className="font-semibold mb-0.5">Como usar o KML</p>
-                    <p>Exporte o traçado de cada rodovia do Google Earth ou Google Maps como arquivo <strong>.kml</strong> contendo um <em>LineString</em> (caminho). O app usará este traçado para calcular o KM automático pelo GPS.</p>
-                </div>
-            </div>
-
             {isLoading ? (
                 <div className="flex justify-center py-8">
                     <Loader2 className="h-6 w-6 text-indigo-500 animate-spin" />
