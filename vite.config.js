@@ -7,7 +7,7 @@ import path from 'path'
 export default defineConfig({
   logLevel: 'error', // Suppress warnings, only show errors
   optimizeDeps: {
-    include: ['xlsx'],
+    include: ['xlsx', 'leaflet'],
   },
   build: {
     commonjsOptions: {

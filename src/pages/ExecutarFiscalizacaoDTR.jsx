@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Loader2, MapPin, ChevronRight, Camera } from 'lucide-react';
+import RodoviaMap from '@/components/fiscalizacao/RodoviaMap';
 
 export default function ExecutarFiscalizacaoDTR() {
     const queryClient = useQueryClient();
@@ -105,8 +106,17 @@ export default function ExecutarFiscalizacaoDTR() {
                 </div>
             </div>
 
+            {/* Mapa da rodovia */}
+            <div className="max-w-2xl w-full mx-auto px-4 pt-4">
+                <RodoviaMap
+                    rodovia={fisc.rodovia}
+                    fiscId={fisc.id}
+                    ocorrencias={ocorrencias}
+                />
+            </div>
+
             {/* Botão Registrar Imagem */}
-            <div className="max-w-md w-full mx-auto px-4 pt-6 pb-2">
+            <div className="max-w-md w-full mx-auto px-4 pt-2 pb-2">
                 {!isFinalized ? (
                     <Link to={createPageUrl('VistoriarOcorrenciaDTR') + `?fiscId=${fisc.id}`}>
                         <Button className="w-full h-16 text-base bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-2xl flex items-center justify-center gap-3 shadow-md">
