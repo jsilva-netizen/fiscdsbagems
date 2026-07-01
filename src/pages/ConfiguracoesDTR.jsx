@@ -113,20 +113,33 @@ function downloadTemplate() {
     XLSX.writeFile(wb, 'template_tipos_ocorrencia_dtr.xlsx');
 }
 
+// Converte qualquer valor de célula XLSX (string, número, Date, richtext) para string limpa
+function cellStr(v) {
+    if (v === null || v === undefined) return '';
+    if (typeof v === 'string') return v.trim();
+    if (typeof v === 'number' || typeof v === 'boolean') return String(v).trim();
+    if (v instanceof Date) return '';
+    // XLSX richtext ou formula: tenta usar .v (valor calculado) ou .t (texto)
+    if (typeof v === 'object') return String(v.v ?? v.t ?? v.w ?? '').trim();
+    return String(v).trim();
+}
+
 function parseSpreadsheet(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
-                const wb = XLSX.read(e.target.result, { type: 'binary' });
+                // type:'array' com ArrayBuffer é mais robusto que binary string
+                const data = new Uint8Array(e.target.result);
+                const wb = XLSX.read(data, { type: 'array', cellDates: false });
                 const ws = wb.Sheets[wb.SheetNames[0]];
-                const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
-                const header = (rows[0] || []).map(h => String(h || '').trim().toLowerCase());
+                // raw:false força valores primitivos; defval evita posições undefined
+                const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '' });
+                const header = (rows[0] || []).map(h => cellStr(h).toLowerCase());
                 const hasRodoviaCol = header[0] === 'rodovia';
                 const off = hasRodoviaCol ? 1 : 0;
 
                 // Fill-down: células mescladas no Excel chegam vazias nas linhas continuação.
-                // Mantemos o último valor não-vazio de cada coluna estrutural.
                 let lastRodovia = null;
                 let lastFrente = '';
                 let lastPer = null;
@@ -134,11 +147,17 @@ function parseSpreadsheet(file) {
 
                 // Passo 1 — parse com fill-down
                 const flat = [];
-                for (const r of rows.slice(1)) {
-                    const rodovia = hasRodoviaCol ? (String(r[0] || '').trim() || lastRodovia) : null;
-                    const frente = String(r[off] || '').trim() || lastFrente;
-                    const per = String(r[off + 1] || '').trim() || lastPer;
-                    const descricao = String(r[off + 2] || '').trim() || lastDescricao;
+                for (let i = 0; i < rows.length - 1; i++) {
+                    const r = rows[i + 1] || [];
+                    const rodoviaRaw = cellStr(r[0]);
+                    const frenteRaw = cellStr(r[off]);
+                    const perRaw = cellStr(r[off + 1]);
+                    const descricaoRaw = cellStr(r[off + 2]);
+
+                    const rodovia = hasRodoviaCol ? (rodoviaRaw || lastRodovia) : null;
+                    const frente = frenteRaw || lastFrente;
+                    const per = perRaw || lastPer;
+                    const descricao = descricaoRaw || lastDescricao;
 
                     if (!frente) continue; // linha totalmente vazia
 
@@ -147,10 +166,11 @@ function parseSpreadsheet(file) {
                     lastPer = per;
                     lastDescricao = descricao;
 
-                    const rawNaoAten = String(r[off + 3] || '').trim();
+                    const rawNaoAten = cellStr(r[off + 3]);
                     const nao_atendimento = rawNaoAten && rawNaoAten !== '-' ? rawNaoAten : null;
-                    const prazo_dias_padrao = r[off + 4] ? parseInt(String(r[off + 4]).trim(), 10) || null : null;
-                    const rawEtapa = r[off + 5] ? String(r[off + 5]).trim() : '';
+                    const prazoStr = cellStr(r[off + 4]);
+                    const prazo_dias_padrao = prazoStr ? parseInt(prazoStr, 10) || null : null;
+                    const rawEtapa = cellStr(r[off + 5]);
                     const etapaLinha = rawEtapa && rawEtapa !== '-' ? rawEtapa : null;
 
                     flat.push({ rodovia, frente, item_contrato: per, descricao, nao_atendimento, prazo_dias_padrao, etapaLinha });
@@ -158,10 +178,11 @@ function parseSpreadsheet(file) {
 
                 // Passo 2 — agrupa linhas com mesma chave, juntando etapas com \n
                 const mergeMap = new Map();
-                for (const row of flat) {
+                for (let j = 0; j < flat.length; j++) {
+                    const row = flat[j];
                     const key = [row.rodovia, row.frente, row.item_contrato, row.descricao].join('||');
                     if (!mergeMap.has(key)) {
-                        mergeMap.set(key, { ...row, etapas: row.etapaLinha ? [row.etapaLinha] : [] });
+                        mergeMap.set(key, { rodovia: row.rodovia, frente: row.frente, item_contrato: row.item_contrato, descricao: row.descricao, nao_atendimento: row.nao_atendimento, prazo_dias_padrao: row.prazo_dias_padrao, etapas: row.etapaLinha ? [row.etapaLinha] : [] });
                     } else {
                         const ex = mergeMap.get(key);
                         if (row.etapaLinha) ex.etapas.push(row.etapaLinha);
@@ -170,20 +191,28 @@ function parseSpreadsheet(file) {
                     }
                 }
 
-                const tipos = [...mergeMap.values()].map(({ etapas, etapaLinha, ...rest }) => ({
-                    ...rest,
-                    nome: rest.descricao,
-                    etapas_obra: etapas.length > 0 ? etapas.join('\n') : null,
-                    gera_nc: !!rest.nao_atendimento,
-                }));
+                const tipos = [];
+                mergeMap.forEach((v) => {
+                    tipos.push({
+                        rodovia: v.rodovia,
+                        frente: v.frente,
+                        item_contrato: v.item_contrato,
+                        descricao: v.descricao,
+                        nome: v.descricao,
+                        nao_atendimento: v.nao_atendimento,
+                        prazo_dias_padrao: v.prazo_dias_padrao,
+                        etapas_obra: v.etapas.length > 0 ? v.etapas.join('\n') : null,
+                        gera_nc: !!v.nao_atendimento,
+                    });
+                });
 
                 resolve(tipos);
             } catch (err) {
-                reject(new Error('Erro ao ler planilha: ' + err.message));
+                reject(new Error('Erro ao ler planilha: ' + (err && err.message ? err.message : String(err))));
             }
         };
         reader.onerror = () => reject(new Error('Falha ao ler arquivo.'));
-        reader.readAsBinaryString(file);
+        reader.readAsArrayBuffer(file);
     });
 }
 
