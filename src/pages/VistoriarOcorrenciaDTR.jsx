@@ -123,9 +123,23 @@ export default function VistoriarOcorrenciaDTR() {
     const pers = [...new Set(
         tipos.filter(t => t.frente === selectedFrente).map(t => t.item_contrato).filter(Boolean)
     )];
-    const itemsForPer = tipos.filter(
-        t => t.frente === selectedFrente && t.item_contrato === selectedPer
-    );
+    // Deduplica por descricao: mesma descrição pode existir para rodovias diferentes na planilha.
+    // Prefere a versão com rodovia específica sobre a genérica (rodovia null).
+    const itemsForPer = useMemo(() => {
+        const all = tipos.filter(
+            t => t.frente === selectedFrente && t.item_contrato === selectedPer
+        );
+        const byDesc = new Map();
+        for (const item of all) {
+            const key = (item.descricao || item.nome || '').trim();
+            if (!key) continue;
+            const existing = byDesc.get(key);
+            if (!existing || (item.rodovia && !existing.rodovia)) {
+                byDesc.set(key, item);
+            }
+        }
+        return [...byDesc.values()];
+    }, [tipos, selectedFrente, selectedPer]);
 
     // Steps dinâmicos: insere 'etapa_obra' entre 'descricao' e 'tipo' quando o item tem etapas
     const activeSteps = useMemo(() => {
@@ -470,10 +484,9 @@ export default function VistoriarOcorrenciaDTR() {
                 <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wide">{stepIdx + 1}. {selectedPer.toUpperCase()}</h2>
                 {itemsForPer.map((item, i) => {
                     const label = item.descricao || item.nome || `Item ${i + 1}`;
-                    const isSel = selectedItem === item ||
-                        (selectedItem?.descricao === item.descricao && selectedItem?.item_contrato === item.item_contrato);
+                    const isSel = selectedItem?.id === item.id;
                     return (
-                        <RadioCard key={i} label={label} selected={isSel}
+                        <RadioCard key={item.id || label} label={label} selected={isSel}
                             onSelect={() => {
                                 setEtapaObra('');
                                 setObservacao('');
