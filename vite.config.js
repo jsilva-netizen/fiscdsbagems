@@ -7,11 +7,11 @@ import path from 'path'
 export default defineConfig({
   logLevel: 'error', // Suppress warnings, only show errors
   optimizeDeps: {
-    include: ['xlsx', 'leaflet'],
+    include: ['leaflet'],
   },
   build: {
     commonjsOptions: {
-      include: [/xlsx/, /node_modules/],
+      include: [/node_modules/],
     },
   },
   plugins: [

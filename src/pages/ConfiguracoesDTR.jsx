@@ -32,7 +32,11 @@ const TEMPLATE_COLUNAS = [
 ];
 
 async function downloadTemplate() {
-    const XLSX = await import('xlsx');
+    const XLSX = window.XLSX;
+    if (!XLSX) {
+        alert("Biblioteca XLSX não carregada. Recarregue a página.");
+        return;
+    }
     const ws = XLSX.utils.aoa_to_sheet([
         TEMPLATE_COLUNAS,
         [
@@ -128,9 +132,13 @@ function cellStr(v) {
 function parseSpreadsheet(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = async (e) => {
+        reader.onload = (e) => {
             try {
-                const XLSX = await import('xlsx');
+                const XLSX = window.XLSX;
+                if (!XLSX) {
+                    reject(new Error("Biblioteca XLSX não carregada. Recarregue a página."));
+                    return;
+                }
                 // type:'array' com ArrayBuffer é mais robusto que binary string
                 const data = new Uint8Array(e.target.result);
                 const wb = XLSX.read(data, { type: 'array', cellDates: false });
