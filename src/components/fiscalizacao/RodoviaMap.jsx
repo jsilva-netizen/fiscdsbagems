@@ -256,7 +256,7 @@ export default function RodoviaMap({ rodovia, fiscId, ocorrencias = [] }) {
                 {/* KM markers */}
                 {kmPoints.map((pt, i) => (
                     <Marker key={`km-${i}`} position={[pt.lat, pt.lng]} icon={kmIcon(pt.km)} zIndexOffset={100}>
-                        <Popup>KM {pt.km} — {rodovia}</Popup>
+                        <Popup>KM {pt.km} — {pt.rodovia || rodovia}</Popup>
                     </Marker>
                 ))}
 

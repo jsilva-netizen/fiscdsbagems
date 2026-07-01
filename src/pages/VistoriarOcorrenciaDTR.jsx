@@ -166,7 +166,7 @@ export default function VistoriarOcorrenciaDTR() {
                 if (kmPoints && kmPoints.length > 0) {
                     const nearest = findNearestKmPoint(kmPoints, lat, lng);
                     setKm(nearest?.km || '');
-                    setRodoviaSnapped(fisc.rodovia || '');
+                    setRodoviaSnapped(nearest?.rodovia || fisc.rodovia || '');
                 } else if (kmlSegments.length > 0) {
                     const snapped = snapToNearestKMLSegment(lat, lng, kmlSegments);
                     setKm(snapped.km);
@@ -541,7 +541,7 @@ export default function VistoriarOcorrenciaDTR() {
                 <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wide">{stepIdx + 1}. SENTIDO</h2>
                 {(km || gettingLocation) && (
                     <div className="bg-blue-50 border border-blue-200 rounded-xl px-3 py-2 text-xs text-blue-700 flex items-center gap-2">
-                        <span className="font-semibold">{fisc?.rodovia || ''}</span>
+                        <span className="font-semibold">{rodoviaSnapped || fisc?.rodovia || ''}</span>
                         {km
                             ? <span className="font-mono">KM {km}</span>
                             : <span className="text-blue-400">Obtendo localização...</span>
@@ -574,7 +574,7 @@ export default function VistoriarOcorrenciaDTR() {
                         ['Tipo', tipoRegistro === 'nc' ? 'Não Conformidade' : 'Constatação'],
                         ['KM', km || (gettingLocation ? 'Obtendo...' : '—')],
                         ['Sentido', sentido || '—'],
-                        ['Rodovia', fisc?.rodovia || '—'],
+                        ['Rodovia', rodoviaSnapped || fisc?.rodovia || '—'],
                     ].filter(Boolean).map(([label, value]) => (
                         <div key={label} className="flex gap-2 text-xs">
                             <span className="text-gray-400 font-semibold w-16 flex-shrink-0">{label}</span>

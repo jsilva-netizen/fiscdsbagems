@@ -476,7 +476,7 @@ function TabKML() {
         mutationFn: async ({ contratoId, kmlText, rodovia }) => {
             const kmPoints = parseKMLKmPoints(kmlText);
             if (!kmPoints || kmPoints.length === 0) {
-                throw new Error('KML inválido ou sem pontos de KM. O arquivo deve conter Placemarks do tipo Point com campo "km".');
+                throw new Error('KML inválido ou sem pontos de KM. O arquivo deve conter Placemarks do tipo Point com campo "km" (campo "rodovia" é opcional, use quando a concessão abranger mais de uma rodovia).');
             }
             await Repository.uploadKMLForContrato(contratoId, kmlText, rodovia, kmPoints);
             return kmPoints.length;

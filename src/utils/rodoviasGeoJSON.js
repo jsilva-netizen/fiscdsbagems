@@ -77,13 +77,32 @@ export const RODOVIAS_TRACKS = {
   }
 };
 
+// Lê um campo por nome via ExtendedData > SimpleData[name=x] ou ExtendedData > Data[name=x] > value
+function readExtendedDataField(pm, fieldName) {
+  for (const sd of pm.querySelectorAll('SimpleData')) {
+    if ((sd.getAttribute('name') || '').toLowerCase() === fieldName) {
+      return sd.textContent.trim();
+    }
+  }
+  for (const d of pm.querySelectorAll('Data')) {
+    if ((d.getAttribute('name') || '').toLowerCase() === fieldName) {
+      const v = d.querySelector('value');
+      if (v) return v.textContent.trim();
+    }
+  }
+  return '';
+}
+
 /**
- * Analisa um KML de pontos de KM e retorna array de {lat, lng, km}.
- * Aceita o campo "km" via: ExtendedData > SimpleData[name=km],
- * ExtendedData > Data[name=km] > value, ou <name>.
+ * Analisa um KML de pontos de KM e retorna array de {lat, lng, km, rodovia}.
+ * Aceita os campos "km" e "rodovia" via: ExtendedData > SimpleData[name=...],
+ * ExtendedData > Data[name=...] > value, ou <name> (fallback apenas para km).
+ * O campo "rodovia" é opcional: usado quando uma mesma concessão (ex: "112/306")
+ * abrange trechos de rodovias distintas, permitindo identificar qual rodovia
+ * corresponde a cada ponto de KM.
  *
  * @param {string} kmlText
- * @returns {{lat: number, lng: number, km: string}[] | null}
+ * @returns {{lat: number, lng: number, km: string, rodovia?: string}[] | null}
  */
 export function parseKMLKmPoints(kmlText) {
   try {
@@ -100,27 +119,14 @@ export function parseKMLKmPoints(kmlText) {
       const lng = parts[0];
       const lat = parts[1];
 
-      let km = '';
-      for (const sd of pm.querySelectorAll('SimpleData')) {
-        if ((sd.getAttribute('name') || '').toLowerCase() === 'km') {
-          km = sd.textContent.trim();
-          break;
-        }
-      }
-      if (!km) {
-        for (const d of pm.querySelectorAll('Data')) {
-          if ((d.getAttribute('name') || '').toLowerCase() === 'km') {
-            const v = d.querySelector('value');
-            if (v) { km = v.textContent.trim(); break; }
-          }
-        }
-      }
+      let km = readExtendedDataField(pm, 'km');
       if (!km) {
         const nameEl = pm.querySelector('name');
         if (nameEl) km = nameEl.textContent.trim();
       }
+      const rodovia = readExtendedDataField(pm, 'rodovia');
 
-      if (km) points.push({ lat, lng, km });
+      if (km) points.push(rodovia ? { lat, lng, km, rodovia } : { lat, lng, km });
     }
 
     return points.length > 0 ? points : null;

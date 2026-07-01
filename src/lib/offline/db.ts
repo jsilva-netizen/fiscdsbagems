@@ -61,7 +61,7 @@ export type Prestador = {
   observacoes?: string
 }
 
-export type KmPoint = { lat: number; lng: number; km: string }
+export type KmPoint = { lat: number; lng: number; km: string; rodovia?: string }
 
 export type Contrato = {
   id: UUID
