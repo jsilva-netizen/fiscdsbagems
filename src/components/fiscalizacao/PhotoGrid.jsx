@@ -45,6 +45,10 @@ export default function PhotoGrid({
     const GPS_FALLBACK_MAX_AGE_MS = 10 * 60 * 1000;
     const captureResetTimerRef = useRef(null);
     const autoCaptureAttemptedRef = useRef(false);
+    const videoRef = useRef(null);
+    const canvasRef = useRef(null);
+    const streamRef = useRef(null);
+    const [showCamera, setShowCamera] = useState(false);
 
     const fotoKey = (foto, index) => {
         const f = foto || {};
@@ -78,11 +82,27 @@ export default function PhotoGrid({
         return url;
     };
 
+    // Limpa stream WebRTC ao desmontar
+    useEffect(() => {
+        return () => {
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach(t => t.stop());
+            }
+        };
+    }, []);
+
+    // Conecta stream ao elemento <video> quando overlay abre
+    useEffect(() => {
+        if (!showCamera || !videoRef.current || !streamRef.current) return;
+        videoRef.current.srcObject = streamRef.current;
+        videoRef.current.play().catch(() => {});
+    }, [showCamera]);
+
     // Auto-abre câmera na montagem quando autoCapture=true e sem fotos
     useEffect(() => {
         if (!autoCapture || autoCaptureAttemptedRef.current || fotosList.length > 0) return;
         autoCaptureAttemptedRef.current = true;
-        void openWithGpsGate(cameraInputRef);
+        void openCamera();
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -180,6 +200,88 @@ export default function PhotoGrid({
                 fallbackAge <= GPS_FALLBACK_MAX_AGE_MS;
             if (okFallback) return fallback;
             throw err;
+        }
+    };
+
+    const stopCamera = () => {
+        if (streamRef.current) {
+            streamRef.current.getTracks().forEach(t => t.stop());
+            streamRef.current = null;
+        }
+        setShowCamera(false);
+    };
+
+    const capturePhoto = async () => {
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        if (!video || !canvas) return;
+        canvas.width = video.videoWidth || 1280;
+        canvas.height = video.videoHeight || 720;
+        canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+        stopCamera();
+        setIsUploading(true);
+        setTotalUploads(1);
+        setUploadProgress(0);
+        canvas.toBlob(async (blob) => {
+            if (!blob) { setIsUploading(false); return; }
+            const file = new File([blob], `foto_${Date.now()}.jpg`, { type: 'image/jpeg' });
+            const gpsFix = lastGpsFixRef.current;
+            try {
+                const capture = gpsFix
+                    ? { latitude: gpsFix.latitude, longitude: gpsFix.longitude, takenAt: new Date().toISOString() }
+                    : null;
+                const saved = await Repository.addLocalFotoFromFile(
+                    unidadeId, file,
+                    capture ? { latitude: capture.latitude, longitude: capture.longitude, takenAt: capture.takenAt } : undefined,
+                    watermarkContext ? { fiscalizacaoId, ...watermarkContext } : { fiscalizacaoId }
+                );
+                onAddFoto({
+                    localId: saved.localId,
+                    url: saved.previewUrl || saved.url || '',
+                    legenda: '',
+                    mimeType: saved.mimeType,
+                    width: saved.width,
+                    height: saved.height,
+                    data_hora: capture?.takenAt || new Date().toISOString()
+                });
+                setUploadProgress(1);
+            } catch (err) {
+                alert('Erro ao salvar foto: ' + (err?.message || String(err)));
+            } finally {
+                setIsUploading(false);
+                setUploadProgress(0);
+                setTotalUploads(0);
+            }
+        }, 'image/jpeg', 0.92);
+    };
+
+    const openCamera = async () => {
+        if (isCapturing || isUploading) return;
+        // Se getUserMedia não disponível, cai no input nativo
+        if (!navigator.mediaDevices?.getUserMedia) {
+            return openWithGpsGate(cameraInputRef);
+        }
+        setIsCapturing(true);
+        // GPS primeiro
+        try {
+            const fix = await getGpsFixWithFallback();
+            lastGpsFixRef.current = fix;
+            lastGpsFixAtRef.current = Date.now();
+        } catch (err) {
+            setIsCapturing(false);
+            alert(err?.message || String(err));
+            return;
+        }
+        // Abre stream da câmera
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+            streamRef.current = stream;
+            setIsCapturing(false);
+            setShowCamera(true);
+        } catch {
+            setIsCapturing(false);
+            // Permissão negada ou não suportado: fallback para input nativo
+            openWithGpsGate(cameraInputRef);
         }
     };
 
@@ -318,7 +420,7 @@ export default function PhotoGrid({
             {bigButton && fotosList.length === 0 && isEditable && (
                 <button
                     type="button"
-                    onClick={() => void openWithGpsGate(cameraInputRef)}
+                    onClick={() => void openCamera()}
                     disabled={isUploading || isCapturing}
                     className="w-full py-16 rounded-2xl border-2 border-dashed border-blue-300 bg-blue-50 hover:bg-blue-100 active:bg-blue-200 transition-colors flex flex-col items-center justify-center gap-3 disabled:opacity-60"
                 >
@@ -357,7 +459,7 @@ export default function PhotoGrid({
                             )}
                         </Button>
                         <Button
-                            onClick={() => void openWithGpsGate(cameraInputRef)}
+                            onClick={() => void openCamera()}
                             size="sm"
                             disabled={isUploading || isCapturing || !isEditable}
                         >
@@ -487,6 +589,36 @@ export default function PhotoGrid({
             )}
 
 
+
+            {/* Overlay câmera WebRTC — captura sem tela de confirmação nativa */}
+            {showCamera && (
+                <div className="fixed inset-0 bg-black z-[9999] flex flex-col">
+                    <canvas ref={canvasRef} className="hidden" />
+                    <video
+                        ref={videoRef}
+                        autoPlay
+                        playsInline
+                        muted
+                        className="flex-1 w-full object-cover"
+                    />
+                    <div className="flex-shrink-0 p-6 flex items-center justify-around bg-black">
+                        <button
+                            type="button"
+                            className="w-12 h-12 flex items-center justify-center rounded-full bg-white/10 active:bg-white/30 text-white"
+                            onClick={stopCamera}
+                        >
+                            <X className="h-6 w-6" />
+                        </button>
+                        <button
+                            type="button"
+                            className="w-20 h-20 rounded-full border-4 border-white active:scale-95 transition-transform disabled:opacity-50 bg-transparent"
+                            onClick={capturePhoto}
+                            disabled={isUploading}
+                        />
+                        <div className="w-12" />
+                    </div>
+                </div>
+            )}
 
             {/* Visualização ampliada */}
             {selectedFoto && (

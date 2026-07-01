@@ -79,7 +79,6 @@ export default function VistoriarOcorrenciaDTR() {
     const [gettingLocation, setGettingLocation] = useState(false);
     const [draftId, setDraftId] = useState(null);
     const autoSavedRef = useRef(false);
-    const autoAdvancedRef = useRef(false);
 
     const { data: fisc } = useQuery({
         queryKey: ['fiscalizacao', fiscId],
@@ -204,14 +203,6 @@ export default function VistoriarOcorrenciaDTR() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [fotos.length]);
 
-    // Auto-avança para próximo step após primeira foto (nova ocorrência)
-    useEffect(() => {
-        if (currentStep !== 'fotos' || fotos.length === 0 || occurrenceId || autoAdvancedRef.current) return;
-        autoAdvancedRef.current = true;
-        setTimeout(() => setStepIdx(s => s + 1), 400);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [fotos.length]);
-
     // Edit mode: pre-populate state and jump to last step
     useEffect(() => {
         if (!occurrenceId || !ocorrencia) return;
@@ -318,9 +309,11 @@ export default function VistoriarOcorrenciaDTR() {
 
     const goBack = () => {
         if (stepIdx === 0) {
-            // Foto existe mas ainda não foi salva como rascunho: pede confirmação
-            if (fotos.length > 0 && !draftId && !occurrenceId) {
-                if (!confirm('A foto ainda não foi salva. Deseja descartar e sair?')) return;
+            if (fotos.length > 0 && !occurrenceId) {
+                const msg = draftId
+                    ? 'Sair? O rascunho está salvo e pode ser concluído depois.'
+                    : 'Sair agora? As fotos podem ser perdidas.';
+                if (!confirm(msg)) return;
             }
             navigate(createPageUrl('ExecutarFiscalizacaoDTR') + `?id=${fiscId}`);
         } else {
