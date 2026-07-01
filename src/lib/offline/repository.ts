@@ -288,6 +288,15 @@ export const Repository = {
     }
   },
 
+  async clearTiposOcorrenciaDTR(): Promise<void> {
+    const { error } = await supabase
+      .from('tipos_ocorrencia_dtr')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000')
+    if (error) throw new Error('Falha ao limpar tipos: ' + error.message)
+    await db.tipos_ocorrencia_dtr.clear()
+  },
+
   async syncTiposOcorrenciaDTR(): Promise<number> {
     try {
       const { data, error } = await supabase

@@ -167,6 +167,7 @@ function TabTipos() {
     const [uploadStatus, setUploadStatus] = useState(null); // {type:'success'|'error', message}
     const [preview, setPreview] = useState(null); // rows antes de confirmar
     const [parsedFile, setParsedFile] = useState(null);
+    const [confirmingClear, setConfirmingClear] = useState(false);
 
     const { data: tipos = [], isLoading, refetch } = useQuery({
         queryKey: ['tipos_ocorrencia_dtr'],
@@ -180,6 +181,19 @@ function TabTipos() {
             setUploadStatus({ type: 'success', message: `${n} tipos sincronizados do servidor.` });
         },
         onError: (err) => setUploadStatus({ type: 'error', message: err.message })
+    });
+
+    const clearMutation = useMutation({
+        mutationFn: () => Repository.clearTiposOcorrenciaDTR(),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['tipos_ocorrencia_dtr'] });
+            setUploadStatus({ type: 'success', message: 'Base limpa. Importe a planilha para recarregar.' });
+            setConfirmingClear(false);
+        },
+        onError: (err) => {
+            setUploadStatus({ type: 'error', message: err.message });
+            setConfirmingClear(false);
+        }
     });
 
     const uploadMutation = useMutation({
@@ -245,6 +259,38 @@ function TabTipos() {
                     {syncMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
                     Sincronizar
                 </Button>
+                {!confirmingClear ? (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="gap-1.5 text-xs text-rose-500 hover:text-rose-700 hover:bg-rose-50 ml-auto"
+                        onClick={() => setConfirmingClear(true)}
+                        disabled={tipos.length === 0}
+                    >
+                        <Trash2 className="h-3.5 w-3.5" /> Limpar base
+                    </Button>
+                ) : (
+                    <div className="flex items-center gap-1.5 ml-auto">
+                        <span className="text-xs text-rose-600 font-medium">Apagar todos os {tipos.length} tipos?</span>
+                        <Button
+                            size="sm"
+                            className="h-7 text-xs bg-rose-600 hover:bg-rose-700 text-white"
+                            onClick={() => clearMutation.mutate()}
+                            disabled={clearMutation.isPending}
+                        >
+                            {clearMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Confirmar'}
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs text-gray-500"
+                            onClick={() => setConfirmingClear(false)}
+                            disabled={clearMutation.isPending}
+                        >
+                            Cancelar
+                        </Button>
+                    </div>
+                )}
                 <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFileSelect} />
             </div>
 
@@ -264,14 +310,14 @@ function TabTipos() {
                             {preview.length} tipos encontrados na planilha. Confirmar importação?
                         </p>
                         <p className="text-xs text-amber-700">
-                            Atenção: Isso substituirá <strong>todos</strong> os tipos existentes no servidor.
+                            Apenas tipos novos serão adicionados. Tipos já existentes serão atualizados se tiverem mudanças.
                         </p>
                         <div className="max-h-60 overflow-y-auto space-y-1.5 pr-1">
                             {preview.map((t, i) => (
                                 <div key={i} className="text-xs bg-white rounded-lg px-3 py-2 border border-amber-100 space-y-0.5">
                                     <div className="flex items-center gap-2">
                                         <span className="flex-1 font-medium text-gray-800">{t.descricao || t.nome}</span>
-                                        {t.nao_atendimento && <Badge className="text-[10px] py-0 h-4 bg-rose-100 text-rose-700 border-rose-200">NC</Badge>}
+                                        {t.gera_nc && <Badge className="text-[10px] py-0 h-4 bg-rose-100 text-rose-700 border-rose-200">NC</Badge>}
                                         {t.etapas_obra && <Badge className="text-[10px] py-0 h-4 bg-amber-100 text-amber-700 border-amber-200">Obra</Badge>}
                                         {t.prazo_dias_padrao && <span className="text-gray-400 whitespace-nowrap">{t.prazo_dias_padrao}d</span>}
                                     </div>
@@ -324,7 +370,7 @@ function TabTipos() {
                             <div key={t.id ?? i} className="bg-white rounded-xl border border-gray-200 px-3 py-2.5 shadow-sm space-y-1">
                                 <div className="flex items-center gap-3">
                                     <p className="text-sm font-medium text-gray-800 flex-1 truncate">{t.descricao || t.nome}</p>
-                                    {t.nao_atendimento && (
+                                    {t.gera_nc && (
                                         <Badge className="text-[10px] py-0 h-5 bg-rose-50 text-rose-600 border border-rose-200 flex-shrink-0">
                                             NC
                                         </Badge>
