@@ -84,26 +84,25 @@ export default function VistoriarOcorrenciaDTR() {
         enabled: !!fiscId
     });
 
-    // Carrega referências KM: tenta pontos (Dexie) → download KML pontos → KML linhas (legado)
-    // kmDataLoaded só vira true quando essa carga termina (com ou sem dados), para
-    // evitar que a resolução de GPS/KM rode antes com um fallback impreciso e sobrescreva
-    // depois — o que deixava a foto salva com um KM errado se capturada nesse meio-tempo.
+    // Carrega referências KM — 100% local (Dexie): km_points já vem sincronizado
+    // no registro do contrato pelo syncEngine normal, sem precisar de rede aqui.
+    // kmDataLoaded vira true assim que essa consulta local termina, então nunca
+    // trava a liberação da câmera esperando internet.
+    // O download do KML por rede é só um fallback legado (contratos antigos sem
+    // km_points sincronizado) e roda em segundo plano, sem bloquear nada.
     useEffect(() => {
         if (!fisc) return;
         if (!fisc.rodovia) { setKmDataLoaded(true); return; }
-        const loadFromKmlText = (kmlText) => {
-            if (!kmlText) return;
-            const pts = parseKMLKmPoints(kmlText);
-            if (pts && pts.length > 0) { setKmPoints(pts); return; }
-            const segs = parseKMLSegments(kmlText);
-            if (segs.length > 0) setKmlSegments(segs);
-        };
         Repository.getKmPointsForRodovia(fisc.rodovia).then(pts => {
             if (pts && pts.length > 0) { setKmPoints(pts); return; }
-            return Repository.downloadKMLForRodovia(fisc.rodovia).then(loadFromKmlText).catch(() => {});
-        }).catch(() => {
-            return Repository.downloadKMLForRodovia(fisc.rodovia).then(loadFromKmlText).catch(() => {});
-        }).finally(() => setKmDataLoaded(true));
+            Repository.downloadKMLForRodovia(fisc.rodovia).then(kmlText => {
+                if (!kmlText) return;
+                const kmlPts = parseKMLKmPoints(kmlText);
+                if (kmlPts && kmlPts.length > 0) { setKmPoints(kmlPts); return; }
+                const segs = parseKMLSegments(kmlText);
+                if (segs.length > 0) setKmlSegments(segs);
+            }).catch(() => {});
+        }).catch(() => {}).finally(() => setKmDataLoaded(true));
     }, [fisc]);
 
     const fiscRodovia = fisc?.rodovia ?? null;

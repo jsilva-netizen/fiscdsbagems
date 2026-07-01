@@ -609,16 +609,16 @@ export default function PhotoGrid({
 
             {/* Overlay câmera WebRTC — captura sem tela de confirmação nativa */}
             {showCamera && (
-                <div className="fixed inset-0 bg-black z-[9999] flex flex-col">
+                <div className="fixed inset-0 bg-black z-[9999] flex flex-col overflow-hidden">
                     <canvas ref={canvasRef} className="hidden" />
                     <video
                         ref={videoRef}
                         autoPlay
                         playsInline
                         muted
-                        className="flex-1 w-full object-cover"
+                        className="flex-1 min-h-0 w-full object-cover"
                     />
-                    <div className="flex-shrink-0 p-6 flex items-center justify-around bg-black">
+                    <div className="flex-shrink-0 p-6 flex items-center justify-around bg-black relative z-10">
                         <button
                             type="button"
                             className="w-12 h-12 flex items-center justify-center rounded-full bg-white/10 active:bg-white/30 text-white"
