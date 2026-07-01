@@ -6,6 +6,7 @@ export function formatProcessStatus(status) {
   const map = {
     aguardando_analise: 'Aguardando análise',
     em_analise: 'Em análise',
+    dilacao_solicitada: 'Dilação solicitada',
     respondido: 'Respondido',
     no_prazo: 'No prazo',
     critico: 'Crítico',

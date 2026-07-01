@@ -4,23 +4,11 @@ import { Link } from 'react-router-dom';
 import { ClipboardList, FolderOpen, Loader2, Search, X } from 'lucide-react';
 import CatersLayout from '@/components/caters/CatersLayout';
 import { fetchRecommendationSummariesByProcess } from '@/lib/caters/recommendations';
-import { fetchAlertsData } from '@/lib/caters/dashboard';
 import { createPageUrl } from '@/utils';
 import { Input } from '@/components/ui/input';
 
 export default function CatersRecomendacoes() {
   const [search, setSearch] = useState('');
-
-  const alertsQ = useQuery({
-    queryKey: ['caters-alerts'],
-    queryFn: fetchAlertsData,
-    staleTime: 60_000,
-  });
-  const alertCount = useMemo(() => {
-    const d = alertsQ.data;
-    if (!d) return 0;
-    return d.awaitingAnalysis.length + d.overdueResponses.length + d.overdueRecommendations.length;
-  }, [alertsQ.data]);
 
   const summariesQ = useQuery({
     queryKey: ['caters-rec-summaries'],
@@ -45,7 +33,7 @@ export default function CatersRecomendacoes() {
   );
 
   return (
-    <CatersLayout alertCount={alertCount}>
+    <CatersLayout>
       <div className="min-h-full bg-slate-50">
         <div className="px-8 pb-12 pt-8">
           <div className="mx-auto max-w-4xl space-y-6">

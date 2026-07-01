@@ -25,6 +25,8 @@ import {
   Upload,
   X,
   Link2,
+  CalendarClock,
+  Ban,
 } from 'lucide-react';
 import CatersLayout from '@/components/caters/CatersLayout';
 import { fetchProcessById, updateProcess, formatProcessStatus, importFromFiscalizacao } from '@/lib/caters/processes';
@@ -40,7 +42,7 @@ import {
 import { fetchMunicipalityResponse, upsertMunicipalityResponse } from '@/lib/caters/municipalityResponses';
 import { fetchHistory, createHistory, deleteHistory, HISTORY_ACTION_LABELS, HISTORY_ACTION_OPTIONS } from '@/lib/caters/history';
 import { fetchExtraDocuments, createExtraDocument, deleteExtraDocument, uploadCatersFile } from '@/lib/caters/documents';
-import { fetchAlertsData } from '@/lib/caters/dashboard';
+import { fetchDeadlineExtensions, createDeadlineExtension, deleteDeadlineExtension } from '@/lib/caters/deadlineExtensions';
 import { formatIsoDateHuman, daysFromToday, addDaysToIsoDate } from '@/lib/caters/dates';
 import { createPageUrl } from '@/utils';
 import { Button } from '@/components/ui/button';
@@ -60,6 +62,7 @@ import { cn } from '@/lib/utils';
 const STATUS_OPTIONS = [
   { value: 'aguardando_analise', label: 'Aguardando análise' },
   { value: 'em_analise', label: 'Em análise' },
+  { value: 'dilacao_solicitada', label: 'Dilação solicitada' },
   { value: 'respondido', label: 'Respondido' },
   { value: 'no_prazo', label: 'No prazo' },
   { value: 'critico', label: 'Crítico' },
@@ -74,6 +77,7 @@ function statusColor(status) {
     case 'em_analise': return 'bg-amber-50 text-amber-700';
     case 'aguardando_analise': return 'bg-slate-50 text-slate-500';
     case 'critico': return 'bg-red-50 text-red-700';
+    case 'dilacao_solicitada': return 'bg-violet-50 text-violet-700';
     case 'atrasado': return 'bg-orange-50 text-orange-700';
     case 'no_prazo': return 'bg-emerald-50 text-emerald-700';
     default: return 'bg-slate-100 text-slate-600';
@@ -97,6 +101,8 @@ function priorityColor(p) {
     default: return 'bg-slate-50 text-slate-600';
   }
 }
+
+const EMPTY_DILACAO = { reference_date: '', extension_days: '30', municipality_request_at: '', municipality_protocol: '', notes: '' };
 
 const EMPTY_REC = {
   description: '',
@@ -138,13 +144,11 @@ export default function CatersProcessoDetalhe() {
   const [extraFile, setExtraFile] = useState(null);
   const extraFileRef = useRef(null);
 
-  // ── Queries ──────────────────────────────────────────────────────────
-  const alertsQ = useQuery({ queryKey: ['caters-alerts'], queryFn: fetchAlertsData, staleTime: 60_000 });
-  const alertCount = useMemo(() => {
-    const d = alertsQ.data;
-    if (!d) return 0;
-    return d.awaitingAnalysis.length + d.overdueResponses.length + d.overdueRecommendations.length;
-  }, [alertsQ.data]);
+  // Dilação de prazo
+  const [dilacaoForm, setDilacaoForm] = useState(EMPTY_DILACAO);
+  const [showDilacaoForm, setShowDilacaoForm] = useState(false);
+
+  // ── Queries ───────────────────────────────────────────────────────────
 
   const procQ = useQuery({
     queryKey: ['caters-process', processId],
@@ -173,6 +177,12 @@ export default function CatersProcessoDetalhe() {
   const extraDocsQ = useQuery({
     queryKey: ['caters-extra-docs', processId],
     queryFn: () => fetchExtraDocuments(processId),
+    enabled: !!processId,
+  });
+
+  const dilacaoQ = useQuery({
+    queryKey: ['caters-deadline-extensions', processId],
+    queryFn: () => fetchDeadlineExtensions(processId),
     enabled: !!processId,
   });
 
@@ -322,12 +332,60 @@ export default function CatersProcessoDetalhe() {
     onError: (e) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
   });
 
+  const createDilacaoMut = useMutation({
+    mutationFn: async ({ status }) => {
+      const refDate = dilacaoForm.reference_date;
+      const days = parseInt(dilacaoForm.extension_days, 10);
+      if (!refDate || isNaN(days) || days <= 0) throw new Error('Informe a data de referência e os dias.');
+      const calcDate = addDaysToIsoDate(refDate, days);
+      const ext = await createDeadlineExtension({
+        process_id: processId,
+        reference_date: refDate,
+        extension_days: days,
+        calculated_date: calcDate,
+        municipality_request_at: dilacaoForm.municipality_request_at || null,
+        municipality_protocol: dilacaoForm.municipality_protocol.trim() || null,
+        notes: dilacaoForm.notes.trim() || null,
+        status,
+        created_by: user?.id,
+      });
+      if (status === 'aprovado') {
+        await updateProcess(processId, { titular_response_due_at: calcDate, status: 'dilacao_solicitada' });
+        await createHistory({
+          process_id: processId,
+          action_type: 'prazo_estendido',
+          description: `Dilação aprovada: +${days} dias a partir de ${formatIsoDateHuman(refDate)} → novo prazo: ${formatIsoDateHuman(calcDate)}`,
+          performed_by: user?.id,
+        });
+      }
+      return ext;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['caters-deadline-extensions', processId] });
+      qc.invalidateQueries({ queryKey: ['caters-process', processId] });
+      qc.invalidateQueries({ queryKey: ['caters-processes'] });
+      qc.invalidateQueries({ queryKey: ['caters-history', processId] });
+      qc.invalidateQueries({ queryKey: ['caters-dashboard'] });
+      setDilacaoForm(EMPTY_DILACAO);
+      setShowDilacaoForm(false);
+      toast({ title: 'Dilação registrada.' });
+    },
+    onError: (e) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
+  });
+
+  const deleteDilacaoMut = useMutation({
+    mutationFn: (id) => deleteDeadlineExtension(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['caters-deadline-extensions', processId] }),
+    onError: (e) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
+  });
+
   // ── Data ──────────────────────────────────────────────────────────────
   const process = procQ.data;
   const recs = recsQ.data ?? [];
   const resp = respQ.data;
   const history = histQ.data ?? [];
   const extraDocs = extraDocsQ.data ?? [];
+  const dilacoes = dilacaoQ.data ?? [];
 
   // Computed deadline values
   const computedResponseDueAt = useMemo(() => {
@@ -344,7 +402,7 @@ export default function CatersProcessoDetalhe() {
 
   const isConcluded = process?.status === 'respondido' || process?.status === 'encerrado';
   const isDeadlineRelevant = process
-    ? process.status !== 'respondido' && process.status !== 'encerrado' && process.status !== 'em_analise'
+    ? !['respondido', 'encerrado', 'em_analise'].includes(process.status)
     : false;
 
   // Sync resp form when data loads
@@ -362,7 +420,7 @@ export default function CatersProcessoDetalhe() {
   // ── Guards ────────────────────────────────────────────────────────────
   if (!processId) {
     return (
-      <CatersLayout alertCount={alertCount}>
+      <CatersLayout>
         <div className="flex items-center justify-center h-64">
           <p className="text-slate-500">ID do processo não informado.</p>
         </div>
@@ -372,7 +430,7 @@ export default function CatersProcessoDetalhe() {
 
   if (procQ.isLoading) {
     return (
-      <CatersLayout alertCount={alertCount}>
+      <CatersLayout>
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
         </div>
@@ -382,7 +440,7 @@ export default function CatersProcessoDetalhe() {
 
   if (procQ.isError || !process) {
     return (
-      <CatersLayout alertCount={alertCount}>
+      <CatersLayout>
         <div className="px-8 pt-8">
           <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             Processo não encontrado ou erro ao carregar.
@@ -478,7 +536,7 @@ export default function CatersProcessoDetalhe() {
   ];
 
   return (
-    <CatersLayout alertCount={alertCount}>
+    <CatersLayout>
       <div className="min-h-full bg-slate-50">
         <div className="px-8 pb-12 pt-8">
           <div className="mx-auto max-w-5xl space-y-6">
@@ -747,6 +805,42 @@ export default function CatersProcessoDetalhe() {
                     Prazo de resposta não aplicável para o status atual ({formatProcessStatus(process.status)}).
                   </div>
                 )}
+
+                {/* Histórico de dilações */}
+                {dilacoes.length > 0 && (
+                  <section className="rounded-xl border border-violet-200 bg-white p-6 shadow-sm">
+                    <div className="flex items-center gap-2 mb-4 text-sm font-bold text-slate-900">
+                      <CalendarClock className="h-4 w-4 text-violet-600" />
+                      Dilações de Prazo
+                    </div>
+                    <div className="space-y-2">
+                      {dilacoes.map((d) => (
+                        <div key={d.id} className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                          <span className={cn(
+                            'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase',
+                            d.status === 'aprovado' ? 'bg-violet-100 text-violet-700' : 'bg-red-100 text-red-700'
+                          )}>
+                            {d.status === 'aprovado' ? 'Aprovado' : 'Negado'}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <span className="font-semibold text-slate-900">+{d.extension_days} dias</span>
+                            <span className="mx-2 text-slate-400">a partir de</span>
+                            <span className="text-slate-700">{formatIsoDateHuman(d.reference_date)}</span>
+                            {d.status === 'aprovado' && (
+                              <>
+                                <span className="mx-2 text-slate-400">→</span>
+                                <span className="font-semibold text-violet-700">{formatIsoDateHuman(d.calculated_date)}</span>
+                              </>
+                            )}
+                          </div>
+                          {d.municipality_protocol && (
+                            <span className="shrink-0 text-xs text-slate-500">{d.municipality_protocol}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                )}
               </div>
             )}
 
@@ -828,6 +922,129 @@ export default function CatersProcessoDetalhe() {
                     <span className="capitalize">{resp.cronograma_status}</span>
                   </div>
                 )}
+
+                {/* ── Dilações de Prazo ── */}
+                <section className="rounded-xl border border-violet-200 bg-white p-6 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2 text-lg font-bold text-slate-900">
+                      <CalendarClock className="h-5 w-5 text-violet-600" />
+                      Dilações de Prazo
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowDilacaoForm((v) => !v)}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-700"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Registrar dilação
+                    </button>
+                  </div>
+
+                  {showDilacaoForm && (() => {
+                    const refDate = dilacaoForm.reference_date;
+                    const days = parseInt(dilacaoForm.extension_days, 10);
+                    const preview = refDate && !isNaN(days) && days > 0 ? addDaysToIsoDate(refDate, days) : null;
+                    return (
+                      <div className="mb-5 rounded-xl border border-violet-100 bg-violet-50 p-4 space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-slate-700">Data de referência *</label>
+                            <input type="date" value={dilacaoForm.reference_date}
+                              onChange={(e) => setDilacaoForm((f) => ({ ...f, reference_date: e.target.value }))}
+                              className="h-9 w-full rounded-md border border-input bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                            <p className="text-[10px] text-slate-500">Ex: data do email de cobrança</p>
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-slate-700">Dias concedidos *</label>
+                            <input type="number" min="1" value={dilacaoForm.extension_days}
+                              onChange={(e) => setDilacaoForm((f) => ({ ...f, extension_days: e.target.value }))}
+                              className="h-9 w-full rounded-md border border-input bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                            {preview && (
+                              <p className="text-[10px] font-semibold text-violet-700">→ Vence em {formatIsoDateHuman(preview)}</p>
+                            )}
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-slate-700">Data do ofício municipal</label>
+                            <input type="date" value={dilacaoForm.municipality_request_at}
+                              onChange={(e) => setDilacaoForm((f) => ({ ...f, municipality_request_at: e.target.value }))}
+                              className="h-9 w-full rounded-md border border-input bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-slate-700">Protocolo do ofício</label>
+                            <input type="text" placeholder="Ex: PMB-2025-0099" value={dilacaoForm.municipality_protocol}
+                              onChange={(e) => setDilacaoForm((f) => ({ ...f, municipality_protocol: e.target.value }))}
+                              className="h-9 w-full rounded-md border border-input bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                          </div>
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-slate-700">Observações</label>
+                          <textarea rows={2} value={dilacaoForm.notes}
+                            onChange={(e) => setDilacaoForm((f) => ({ ...f, notes: e.target.value }))}
+                            className="w-full rounded-md border border-input bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                        </div>
+                        <div className="flex gap-2 justify-end pt-1">
+                          <button type="button"
+                            onClick={() => { setShowDilacaoForm(false); setDilacaoForm(EMPTY_DILACAO); }}
+                            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+                            Cancelar
+                          </button>
+                          <button type="button" disabled={createDilacaoMut.isPending}
+                            onClick={() => createDilacaoMut.mutate({ status: 'negado' })}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50">
+                            <Ban className="h-3.5 w-3.5" />
+                            Negar
+                          </button>
+                          <button type="button" disabled={createDilacaoMut.isPending}
+                            onClick={() => createDilacaoMut.mutate({ status: 'aprovado' })}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-700 disabled:opacity-50">
+                            {createDilacaoMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle className="h-3.5 w-3.5" />}
+                            Aprovar e atualizar prazo
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {dilacaoQ.isLoading ? (
+                    <div className="text-xs text-slate-500">Carregando…</div>
+                  ) : !dilacoes.length ? (
+                    <p className="text-sm text-slate-400 italic">Nenhuma dilação registrada.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {dilacoes.map((d) => (
+                        <div key={d.id} className="group flex items-start justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
+                          <div className="flex items-start gap-3 min-w-0">
+                            <span className={cn(
+                              'mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase',
+                              d.status === 'aprovado' ? 'bg-violet-100 text-violet-700' : 'bg-red-100 text-red-700'
+                            )}>
+                              {d.status === 'aprovado' ? 'Aprovado' : 'Negado'}
+                            </span>
+                            <div className="min-w-0">
+                              <div className="font-semibold text-slate-900">
+                                +{d.extension_days} dias a partir de {formatIsoDateHuman(d.reference_date)}
+                                {d.status === 'aprovado' && (
+                                  <span className="ml-2 font-normal text-violet-700">→ {formatIsoDateHuman(d.calculated_date)}</span>
+                                )}
+                              </div>
+                              {(d.municipality_request_at || d.municipality_protocol) && (
+                                <div className="text-xs text-slate-500">
+                                  Ofício: {[d.municipality_protocol, d.municipality_request_at ? formatIsoDateHuman(d.municipality_request_at) : null].filter(Boolean).join(' · ')}
+                                </div>
+                              )}
+                              {d.notes && <div className="text-xs text-slate-500 italic">{d.notes}</div>}
+                            </div>
+                          </div>
+                          <button type="button"
+                            onClick={() => { if (confirm('Remover esta dilação?')) deleteDilacaoMut.mutate(d.id); }}
+                            className="hidden rounded-md p-1.5 text-red-400 hover:bg-red-50 group-hover:inline-flex shrink-0">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
               </div>
             )}
 

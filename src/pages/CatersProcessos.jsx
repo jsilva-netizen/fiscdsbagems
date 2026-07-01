@@ -23,7 +23,6 @@ import {
   fetchFiscalizacoesParaVincular,
   importFromFiscalizacao,
 } from '@/lib/caters/processes';
-import { fetchAlertsData } from '@/lib/caters/dashboard';
 import { formatIsoDateHuman, daysFromToday } from '@/lib/caters/dates';
 import { createPageUrl } from '@/utils';
 import { Button } from '@/components/ui/button';
@@ -133,13 +132,6 @@ export default function CatersProcessos() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [selectedFiscalizacaoId, setSelectedFiscalizacaoId] = useState('');
 
-  const alertsQ = useQuery({ queryKey: ['caters-alerts'], queryFn: fetchAlertsData, staleTime: 60_000 });
-  const alertCount = useMemo(() => {
-    const d = alertsQ.data;
-    if (!d) return 0;
-    return d.awaitingAnalysis.length + d.overdueResponses.length + d.overdueRecommendations.length;
-  }, [alertsQ.data]);
-
   const processesQ = useQuery({
     queryKey: ['caters-processes', searchApplied, municipalityApplied, statusApplied || quickTab],
     queryFn: () => fetchProcesses({ search: searchApplied, municipality: municipalityApplied, status: statusApplied || quickTab }),
@@ -242,7 +234,7 @@ export default function CatersProcessos() {
   const hasActiveFilters = searchApplied || municipalityApplied || statusApplied || createdFrom || createdTo;
 
   return (
-    <CatersLayout alertCount={alertCount}>
+    <CatersLayout>
       <div className="min-h-full bg-slate-50">
         {/* Sticky header com quick tabs */}
         <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/90 px-8 py-3 backdrop-blur-md">

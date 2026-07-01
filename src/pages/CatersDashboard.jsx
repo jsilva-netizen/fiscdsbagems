@@ -13,7 +13,7 @@ import {
   Clock,
 } from 'lucide-react';
 import CatersLayout from '@/components/caters/CatersLayout';
-import { fetchDashboardData, fetchAlertsData } from '@/lib/caters/dashboard';
+import { fetchDashboardData } from '@/lib/caters/dashboard';
 import { formatIsoDateHuman } from '@/lib/caters/dates';
 import { createPageUrl } from '@/utils';
 import { supabase } from '@/lib/supabase';
@@ -55,19 +55,6 @@ export default function CatersDashboard() {
     refetchInterval: 60_000,
   });
 
-  const alertsQ = useQuery({
-    queryKey: ['caters-alerts'],
-    queryFn: fetchAlertsData,
-    staleTime: 60_000,
-    refetchInterval: 60_000,
-  });
-
-  const alertCount = useMemo(() => {
-    const d = alertsQ.data;
-    if (!d) return 0;
-    return d.awaitingAnalysis.length + d.overdueResponses.length + d.overdueRecommendations.length;
-  }, [alertsQ.data]);
-
   const tnQ = useQuery({
     queryKey: ['caters-tns'],
     queryFn: fetchCatersTNs,
@@ -88,7 +75,7 @@ export default function CatersDashboard() {
   const tnRespondido = tnData.filter(t => t.status === 'respondido').length;
 
   return (
-    <CatersLayout alertCount={alertCount}>
+    <CatersLayout>
       <div className="bg-slate-50 min-h-full">
         <div className="px-8 pb-12 pt-8">
           <div className="mx-auto max-w-7xl space-y-8">

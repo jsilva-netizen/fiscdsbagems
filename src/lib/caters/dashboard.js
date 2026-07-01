@@ -122,11 +122,13 @@ export async function fetchAlertsData() {
   const recommendations = recsData ?? [];
   const processesById = new Map(processes.map((p) => [p.id, p]));
 
-  const awaitingAnalysis = processes.filter((p) => p.status === 'aguardando_analise');
+  const awaitingAnalysis = processes.filter(
+    (p) => p.status === 'aguardando_analise' || p.status === 'dilacao_solicitada'
+  );
 
   const overdueResponses = [];
   for (const p of processes) {
-    if (['respondido', 'encerrado', 'em_analise'].includes(p.status)) continue;
+    if (['respondido', 'encerrado', 'em_analise', 'dilacao_solicitada'].includes(p.status)) continue;
     const due = computeResponseDueAt(p);
     if (!due) continue;
     const days = daysFromToday(due);

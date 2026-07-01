@@ -93,7 +93,7 @@ export default function CatersAvisos() {
 
   if (alertsQ.isLoading) {
     return (
-      <CatersLayout alertCount={0}>
+      <CatersLayout>
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
         </div>
@@ -102,7 +102,7 @@ export default function CatersAvisos() {
   }
 
   return (
-    <CatersLayout alertCount={alertCount}>
+    <CatersLayout>
       <div className="min-h-full bg-slate-50">
         <div className="px-8 pb-12 pt-8">
           <div className="mx-auto max-w-4xl space-y-8">
