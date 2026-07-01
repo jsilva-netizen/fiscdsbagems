@@ -4,7 +4,7 @@ import { createPageUrl } from '@/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Repository } from '@/lib/offline/repository';
 import { parseKMLKmPoints } from '@/utils/rodoviasGeoJSON';
-import * as XLSX from 'xlsx';
+// xlsx é carregado dinamicamente para evitar quebra de construtores pelo Vite
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -31,7 +31,8 @@ const TEMPLATE_COLUNAS = [
     'Etapas Obra'
 ];
 
-function downloadTemplate() {
+async function downloadTemplate() {
+    const XLSX = await import('xlsx');
     const ws = XLSX.utils.aoa_to_sheet([
         TEMPLATE_COLUNAS,
         [
@@ -127,8 +128,9 @@ function cellStr(v) {
 function parseSpreadsheet(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
             try {
+                const XLSX = await import('xlsx');
                 // type:'array' com ArrayBuffer é mais robusto que binary string
                 const data = new Uint8Array(e.target.result);
                 const wb = XLSX.read(data, { type: 'array', cellDates: false });
