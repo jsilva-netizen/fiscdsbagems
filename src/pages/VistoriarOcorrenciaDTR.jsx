@@ -78,6 +78,10 @@ export default function VistoriarOcorrenciaDTR() {
     const [kmDataLoaded, setKmDataLoaded] = useState(false);
     const [location, setLocation] = useState(null);
     const [gettingLocation, setGettingLocation] = useState(false);
+    const [gpsAccuracy, setGpsAccuracy] = useState(null);
+    const [gpsError, setGpsError] = useState(null);
+    const [gpsRetryTick, setGpsRetryTick] = useState(0);
+    const MIN_GPS_ACCURACY_M = 20;
     const { data: fisc } = useQuery({
         queryKey: ['fiscalizacao', fiscId],
         queryFn: () => Repository.getFiscalizacaoById(fiscId),
@@ -158,34 +162,64 @@ export default function VistoriarOcorrenciaDTR() {
     // GPS on mount for new occurrences — só roda depois que kmDataLoaded confirma que
     // kmPoints/kmlSegments já terminaram de carregar (ou que não há dados a carregar),
     // para nunca resolver o KM com base num fallback incompleto.
+    // Usa watchPosition e só aceita o fix (e libera a câmera) quando a precisão for
+    // ≤ MIN_GPS_ACCURACY_M — nunca grava/permite foto com um KM ainda não confiável.
     useEffect(() => {
         if (!fisc || occurrenceId || !kmDataLoaded) return;
+        let watchId = null;
+        let cancelled = false;
         setGettingLocation(true);
-        navigator.geolocation.getCurrentPosition(
+        setGpsError(null);
+        setGpsAccuracy(null);
+
+        const resolveKm = (lat, lng) => {
+            if (kmPoints && kmPoints.length > 0) {
+                const nearest = findNearestKmPoint(kmPoints, lat, lng);
+                setKm(nearest?.km || '');
+                setRodoviaSnapped(nearest?.rodovia || fisc.rodovia || '');
+            } else if (kmlSegments.length > 0) {
+                const snapped = snapToNearestKMLSegment(lat, lng, kmlSegments);
+                setKm(snapped.km);
+                setRodoviaSnapped(snapped.rodovia || fisc.rodovia || '');
+            } else {
+                const snapped = snapToHighway(lat, lng, fisc.rodovia);
+                setKm(snapped.km);
+                setTrecho(snapped.trecho);
+                setRodoviaSnapped(fisc.rodovia || '');
+            }
+        };
+
+        watchId = navigator.geolocation.watchPosition(
             (pos) => {
-                const lat = pos.coords.latitude;
-                const lng = pos.coords.longitude;
+                if (cancelled) return;
+                const { latitude: lat, longitude: lng, accuracy } = pos.coords;
+                setGpsAccuracy(accuracy);
+                setGpsError(null);
+                if (!Number.isFinite(accuracy) || accuracy > MIN_GPS_ACCURACY_M) return;
                 setLocation({ lat, lng });
-                if (kmPoints && kmPoints.length > 0) {
-                    const nearest = findNearestKmPoint(kmPoints, lat, lng);
-                    setKm(nearest?.km || '');
-                    setRodoviaSnapped(nearest?.rodovia || fisc.rodovia || '');
-                } else if (kmlSegments.length > 0) {
-                    const snapped = snapToNearestKMLSegment(lat, lng, kmlSegments);
-                    setKm(snapped.km);
-                    setRodoviaSnapped(snapped.rodovia || fisc.rodovia || '');
-                } else {
-                    const snapped = snapToHighway(lat, lng, fisc.rodovia);
-                    setKm(snapped.km);
-                    setTrecho(snapped.trecho);
-                    setRodoviaSnapped(fisc.rodovia || '');
-                }
+                resolveKm(lat, lng);
                 setGettingLocation(false);
+                if (watchId != null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
             },
-            () => setGettingLocation(false),
-            { enableHighAccuracy: true, timeout: 10000 }
+            (err) => {
+                if (cancelled) return;
+                if (err?.code === 1) {
+                    // Permissão negada: não adianta continuar tentando sozinho.
+                    setGpsError('Permissão de localização negada. Habilite o GPS e tente novamente.');
+                    setGettingLocation(false);
+                    if (watchId != null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+                } else {
+                    setGpsError('Aguardando sinal de GPS...');
+                }
+            },
+            { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
         );
-    }, [fisc, occurrenceId, kmDataLoaded]);
+
+        return () => {
+            cancelled = true;
+            if (watchId != null) navigator.geolocation.clearWatch(watchId);
+        };
+    }, [fisc, occurrenceId, kmDataLoaded, gpsRetryTick]);
 
     // Edit mode: pre-populate state and jump to last step
     useEffect(() => {
@@ -288,9 +322,17 @@ export default function VistoriarOcorrenciaDTR() {
         onError: (err) => alert(err.message || 'Falha ao salvar ocorrência.')
     });
 
-    // Só libera a captura depois que o KM foi resolvido (ou definitivamente falhou),
-    // para nunca gravar a foto com um KM ainda não determinado / impreciso.
-    const kmReady = !!occurrenceId || (kmDataLoaded && !gettingLocation);
+    // Só libera a captura depois que o KM foi de fato resolvido com um GPS de
+    // precisão ≤ MIN_GPS_ACCURACY_M. Nunca libera por timeout/erro sem km setado —
+    // sem KM confiável, não tira foto.
+    const kmReady = !!occurrenceId || (kmDataLoaded && !gettingLocation && !!km);
+    const captureBlockedMessage = !kmDataLoaded
+        ? 'Carregando dados da rodovia...'
+        : gpsError
+            ? gpsError
+            : gpsAccuracy != null
+                ? `Aguardando GPS (±${Math.round(gpsAccuracy)}m, precisa ≤${MIN_GPS_ACCURACY_M}m)...`
+                : 'Localizando KM...';
 
     const currentStep = activeSteps[stepIdx];
     const isLastStep = stepIdx === activeSteps.length - 1;
@@ -415,10 +457,18 @@ export default function VistoriarOcorrenciaDTR() {
                         enableLegenda={false}
                         autoCapture={!occurrenceId && fotos.length === 0}
                         captureBlocked={!kmReady}
-                        captureBlockedMessage="Localizando KM..."
+                        captureBlockedMessage={captureBlockedMessage}
                         watermarkContext={{ rodovia: rodoviaSnapped || fisc?.rodovia || '', km: km || '', sentido: sentido || '' }}
                     />
                 </div>
+                {!occurrenceId && !kmReady && gpsError && (
+                    <div className="mt-3 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2.5 flex items-center justify-between gap-2">
+                        <p className="text-xs text-rose-700">{gpsError}</p>
+                        <Button size="sm" variant="outline" className="h-7 text-xs flex-shrink-0" onClick={() => setGpsRetryTick(t => t + 1)}>
+                            Tentar novamente
+                        </Button>
+                    </div>
+                )}
             </div>
             <div className="sticky bottom-0 bg-white border-t border-gray-200 px-4 py-3">
                 <Button className="w-full bg-gray-900 hover:bg-gray-700 text-white rounded-xl h-11" onClick={goNext}>

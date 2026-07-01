@@ -1916,9 +1916,15 @@ async function hardResetLocalData(): Promise<void> {
   clearAllPreviewUrls()
 }
 
+const isValidUuid = (v: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)
+
 export async function syncFotosWithProgress(onProgress?: (uploaded: number, total: number) => void): Promise<number> {
   const all = await db.fotos_local.toArray()
-  const unsynced = all.filter((f) => !f.syncedAt)
+  // Fotos ainda com o placeholder 'novo-ponto' (ocorrência em edição, ainda não salva)
+  // não podem ser sincronizadas: se subissem agora, a limpeza abaixo (fotos sincronizadas
+  // com unidadeLocalId inválido) as apagaria antes do reassignLocalFotos rodar no Salvar,
+  // perdendo a foto mesmo que o usuário confirme o salvamento depois.
+  const unsynced = all.filter((f) => !f.syncedAt && isValidUuid(String(f.unidadeLocalId || '')))
   const total = unsynced.length
   let uploaded = 0
   onProgress?.(uploaded, total)
@@ -1979,7 +1985,6 @@ export async function syncFotosWithProgress(onProgress?: (uploaded: number, tota
     unitCursor++
     return entries[i]
   }
-  const isValidUuid = (v: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)
   const unitWorker = async () => {
     while (true) {
       const pair = nextUnit()
