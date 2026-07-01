@@ -562,7 +562,7 @@ export const Repository = {
     })
   },
   
-  async createUnidade(data: { fiscalizacao_id: string; tipo_unidade_id: string; codigo_unidade?: string; nome_unidade?: string; endereco?: string; latitude?: number | null; longitude?: number | null; data_hora_vistoria?: string; rodovia?: string; trecho?: string; km?: string; sentido?: string; per?: string; frente?: string; tipo_ocorrencia?: string; gravidade?: string; nao_atendimento?: string; prazo_dias_nc?: number | null }): Promise<Unidade> {
+  async createUnidade(data: { fiscalizacao_id: string; tipo_unidade_id: string; codigo_unidade?: string; nome_unidade?: string; endereco?: string; latitude?: number | null; longitude?: number | null; data_hora_vistoria?: string; rodovia?: string; trecho?: string; km?: string; sentido?: string; per?: string; frente?: string; tipo_ocorrencia?: string; gravidade?: string; nao_atendimento?: string; prazo_dias_nc?: number | null; gps_accuracy_m?: number | null; km_impreciso?: boolean }): Promise<Unidade> {
     const id = uid()
     const all = await db.unidades.where('fiscalizacao_id').equals(data.fiscalizacao_id).toArray()
     const maxOrdem = (all || []).reduce((acc: number, u: any) => Math.max(acc, Number(u?.ordem) || 0), 0)
@@ -588,6 +588,8 @@ export const Repository = {
       gravidade: data.gravidade || undefined,
       nao_atendimento: data.nao_atendimento || undefined,
       prazo_dias_nc: data.prazo_dias_nc ?? null,
+      gps_accuracy_m: data.gps_accuracy_m ?? null,
+      km_impreciso: !!data.km_impreciso,
       created_at: now(),
       updated_at: now()
     }
@@ -2277,7 +2279,7 @@ export const Repository = {
     await enqueueMutation({ id: unidadeId, data_hora_vistoria, updated_at: now() }, 'update', 'unidades')
   },
 
-  async updateUnidadeDTR(unidadeId: string, changes: { rodovia?: string; trecho?: string; km?: string; sentido?: string; tipo_ocorrencia?: string; latitude?: number | null; longitude?: number | null; status?: string; gravidade?: string; endereco?: string; nome_unidade?: string; per?: string; frente?: string; nao_atendimento?: string | null; prazo_dias_nc?: number | null }): Promise<void> {
+  async updateUnidadeDTR(unidadeId: string, changes: { rodovia?: string; trecho?: string; km?: string; sentido?: string; tipo_ocorrencia?: string; latitude?: number | null; longitude?: number | null; status?: string; gravidade?: string; endereco?: string; nome_unidade?: string; per?: string; frente?: string; nao_atendimento?: string | null; prazo_dias_nc?: number | null; gps_accuracy_m?: number | null; km_impreciso?: boolean }): Promise<void> {
     const u = await db.unidades.get(unidadeId)
     if (u) {
       await db.unidades.update(unidadeId, { ...u, ...changes, updated_at: now() })

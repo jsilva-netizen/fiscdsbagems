@@ -304,7 +304,12 @@ export default function VistoriarOcorrenciaDTR() {
                 per: selectedPer,
                 nao_atendimento: tipoRegistro === 'nc' ? (selectedItem?.nao_atendimento || '') : null,
                 prazo_dias_nc: tipoRegistro === 'nc' ? (selectedItem?.prazo_dias_padrao || null) : null,
-                status: 'finalizada'
+                status: 'finalizada',
+                // Só grava/atualiza a precisão do GPS numa ocorrência nova, cujo KM acabou
+                // de ser resolvido agora. Editar uma ocorrência já salva não deve mexer
+                // nessa flag, senão qualquer edição de outro campo apagaria o aviso de
+                // "KM impreciso" de um registro que já foi sinalizado antes.
+                ...(!occurrenceId ? { gps_accuracy_m: gpsAccuracy ?? null, km_impreciso: !kmPreciso } : {})
             };
             if (targetId) {
                 await Repository.updateUnidadeDTR(targetId, payload);

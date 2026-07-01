@@ -172,6 +172,14 @@ export default function ExecutarFiscalizacaoDTR() {
                                                         {oc.tipo_ocorrencia === 'nc' && (
                                                             <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200 flex-shrink-0">NC</span>
                                                         )}
+                                                        {oc.km_impreciso && (
+                                                            <span
+                                                                className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 flex-shrink-0"
+                                                                title={oc.gps_accuracy_m ? `GPS ±${Math.round(oc.gps_accuracy_m)}m no momento do registro` : 'GPS impreciso no momento do registro'}
+                                                            >
+                                                                KM impreciso
+                                                            </span>
+                                                        )}
                                                     </div>
                                                     <p className="text-xs text-gray-400 mt-0.5">
                                                         <span className="font-mono bg-gray-100 px-1 py-0.5 rounded text-[11px]">KM {oc.km || '—'}</span>

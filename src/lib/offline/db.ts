@@ -145,6 +145,8 @@ export type Unidade = {
   gravidade?: string
   nao_atendimento?: string
   prazo_dias_nc?: number | null
+  gps_accuracy_m?: number | null
+  km_impreciso?: boolean
 }
 
 export type ItemChecklist = {
