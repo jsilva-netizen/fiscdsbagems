@@ -1217,9 +1217,9 @@ export default function CatersProcessoDetalhe() {
                               <p className="mt-1.5 text-sm text-slate-800">{r.description}</p>
                               <div className="mt-1 flex flex-wrap gap-3 text-xs text-slate-500">
                                 {r.promised_due_at && (
-                                  <span className={days !== null && days < 0 ? 'text-red-600 font-semibold' : ''}>
+                                  <span className={computed !== 'cumprido' && days !== null && days < 0 ? 'text-red-600 font-semibold' : ''}>
                                     Prazo: {formatIsoDateHuman(r.promised_due_at)}
-                                    {days !== null && days < 0 && ` (${Math.abs(days)}d atraso)`}
+                                    {computed !== 'cumprido' && days !== null && days < 0 && ` (${Math.abs(days)}d atraso)`}
                                   </span>
                                 )}
                                 {r.fulfilled_at && <span className="text-emerald-600">Cumprido em: {formatIsoDateHuman(r.fulfilled_at)}</span>}
