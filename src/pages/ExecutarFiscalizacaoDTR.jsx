@@ -67,124 +67,134 @@ export default function ExecutarFiscalizacaoDTR() {
     const isFinalized = fisc.status === 'finalizada';
 
     return (
-        <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
-                <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <Link to={createPageUrl('FiscalizacoesDTR')}>
-                            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full h-9 w-9">
-                                <ArrowLeft className="h-5 w-5" />
+        /*
+         * Layout de tela cheia dividida em dois painéis:
+         *   ┌─────────────────────────────┐  ← h-[50dvh] rolável
+         *   │  Header + botão + lista     │
+         *   ├─────────────────────────────┤
+         *   │  Mapa (fixo na metade inf.) │  ← h-[50dvh]
+         *   └─────────────────────────────┘
+         */
+        <div className="h-dvh flex flex-col bg-gray-50 text-gray-800 overflow-hidden">
+
+            {/* ── PAINEL SUPERIOR (metade de cima, scrollável) ── */}
+            <div className="flex flex-col overflow-y-auto" style={{ height: '50dvh' }}>
+
+                {/* Header */}
+                <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md flex-shrink-0">
+                    <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <Link to={createPageUrl('FiscalizacoesDTR')}>
+                                <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full h-9 w-9">
+                                    <ArrowLeft className="h-5 w-5" />
+                                </Button>
+                            </Link>
+                            <div>
+                                <h1 className="text-sm font-bold text-white">{fisc.rodovia}</h1>
+                                <p className="text-[10px] text-indigo-200">{fisc.prestador_servico_nome}</p>
+                            </div>
+                        </div>
+
+                        {!isFinalized && (
+                            <Button
+                                size="sm"
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs h-8 px-3 rounded-lg"
+                                disabled={finalizarMutation.isPending}
+                                onClick={() => {
+                                    if (confirm('Tem certeza que deseja finalizar esta vistoria? Não será possível adicionar mais ocorrências.')) {
+                                        finalizarMutation.mutate();
+                                    }
+                                }}
+                            >
+                                {finalizarMutation.isPending ? 'Finalizando...' : 'Finalizar'}
+                            </Button>
+                        )}
+
+                        {isFinalized && (
+                            <Badge className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] py-0.5 px-2">
+                                Finalizada
+                            </Badge>
+                        )}
+                    </div>
+                </div>
+
+                {/* Botão Registrar Imagem */}
+                <div className="max-w-md w-full mx-auto px-4 pt-3 pb-2 flex-shrink-0">
+                    {!isFinalized ? (
+                        <Link to={createPageUrl('VistoriarOcorrenciaDTR') + `?fiscId=${fisc.id}`}>
+                            <Button className="w-full h-14 text-base bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-2xl flex items-center justify-center gap-3 shadow-md">
+                                <Camera className="h-5 w-5" />
+                                Registrar Imagem
                             </Button>
                         </Link>
-                        <div>
-                            <h1 className="text-sm font-bold text-white">{fisc.rodovia}</h1>
-                            <p className="text-[10px] text-indigo-200">{fisc.prestador_servico_nome}</p>
+                    ) : (
+                        <div className="w-full h-14 flex items-center justify-center bg-gray-100 rounded-2xl border border-dashed border-gray-300">
+                            <p className="text-sm text-gray-400">Vistoria finalizada</p>
                         </div>
-                    </div>
-
-                    {!isFinalized && (
-                        <Button
-                            size="sm"
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs h-8 px-3 rounded-lg"
-                            disabled={finalizarMutation.isPending}
-                            onClick={() => {
-                                if (confirm('Tem certeza que deseja finalizar esta vistoria? Não será possível adicionar mais ocorrências.')) {
-                                    finalizarMutation.mutate();
-                                }
-                            }}
-                        >
-                            {finalizarMutation.isPending ? 'Finalizando...' : 'Finalizar'}
-                        </Button>
-                    )}
-
-                    {isFinalized && (
-                        <Badge className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] py-0.5 px-2">
-                            Finalizada
-                        </Badge>
                     )}
                 </div>
-            </div>
 
-            {/* Mapa da rodovia */}
-            <div className="max-w-2xl w-full mx-auto px-4 pt-4">
-                <RodoviaMap
-                    rodovia={fisc.rodovia}
-                    fiscId={fisc.id}
-                    ocorrencias={ocorrencias}
-                />
-            </div>
+                {/* Lista de Ocorrências */}
+                <div className="max-w-md w-full mx-auto px-4 pb-4 flex flex-col gap-2 flex-1">
+                    <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                        <MapPin className="h-3.5 w-3.5" /> Ocorrências ({ocorrencias.length})
+                    </h2>
 
-            {/* Botão Registrar Imagem */}
-            <div className="max-w-md w-full mx-auto px-4 pt-2 pb-2">
-                {!isFinalized ? (
-                    <Link to={createPageUrl('VistoriarOcorrenciaDTR') + `?fiscId=${fisc.id}`}>
-                        <Button className="w-full h-16 text-base bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-2xl flex items-center justify-center gap-3 shadow-md">
-                            <Camera className="h-6 w-6" />
-                            Registrar Imagem
-                        </Button>
-                    </Link>
-                ) : (
-                    <div className="w-full h-16 flex items-center justify-center bg-gray-100 rounded-2xl border border-dashed border-gray-300">
-                        <p className="text-sm text-gray-400">Vistoria finalizada</p>
-                    </div>
-                )}
-            </div>
-
-            {/* Lista de Ocorrências */}
-            <div className="flex-1 max-w-md w-full mx-auto px-4 py-4 flex flex-col gap-3">
-                <h2 className="text-sm font-bold text-gray-700">Ocorrências Registradas ({ocorrencias.length})</h2>
-
-                <div className="space-y-2.5 flex-1">
                     {loadingOcorrencias ? (
                         <div className="flex justify-center py-6">
                             <Loader2 className="h-6 w-6 text-indigo-500 animate-spin" />
                         </div>
                     ) : ocorrencias.length === 0 ? (
-                        <div className="text-center py-10 bg-gray-100 border border-dashed border-gray-300 rounded-2xl">
-                            <MapPin className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                        <div className="text-center py-6 bg-gray-100 border border-dashed border-gray-300 rounded-2xl">
+                            <MapPin className="h-6 w-6 text-gray-300 mx-auto mb-1" />
                             <p className="text-sm text-gray-500 font-semibold">Nenhum ponto registrado</p>
                             <p className="text-xs text-gray-400 mt-0.5">Use o botão acima para adicionar.</p>
                         </div>
                     ) : (
-                        ocorrencias.map((oc, index) => (
-                            <Link
-                                key={oc.id}
-                                to={createPageUrl('VistoriarOcorrenciaDTR') + `?fiscId=${fisc.id}&id=${oc.id}`}
-                                className="block active:scale-99 transition-all"
-                            >
-                                <Card className="bg-white border border-gray-200 hover:shadow-md hover:border-indigo-200 transition-all rounded-xl shadow-sm">
-                                    <CardContent className="p-3.5 flex items-center justify-between gap-3">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center font-bold text-xs">
-                                                #{index + 1}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2">
-                                                    <h4 className="font-semibold text-gray-800 text-sm truncate">
-                                                        {oc.nome_unidade || oc.tipo_ocorrencia || 'Ponto de Inspeção'}
-                                                    </h4>
-                                                    {oc.tipo_ocorrencia === 'nc' && (
-                                                        <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200 flex-shrink-0">NC</span>
-                                                    )}
+                        <div className="space-y-2">
+                            {ocorrencias.map((oc, index) => (
+                                <Link
+                                    key={oc.id}
+                                    to={createPageUrl('VistoriarOcorrenciaDTR') + `?fiscId=${fisc.id}&id=${oc.id}`}
+                                    className="block active:scale-99 transition-all"
+                                >
+                                    <Card className="bg-white border border-gray-200 hover:shadow-md hover:border-indigo-200 transition-all rounded-xl shadow-sm">
+                                        <CardContent className="p-3 flex items-center justify-between gap-3">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center font-bold text-xs flex-shrink-0">
+                                                    #{index + 1}
                                                 </div>
-                                                <p className="text-xs text-gray-400 mt-0.5">
-                                                    <span className="font-mono bg-gray-100 px-1 py-0.5 rounded text-[11px]">KM {oc.km || '—'}</span>
-                                                </p>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2">
+                                                        <h4 className="font-semibold text-gray-800 text-sm truncate">
+                                                            {oc.nome_unidade || oc.tipo_ocorrencia || 'Ponto de Inspeção'}
+                                                        </h4>
+                                                        {oc.tipo_ocorrencia === 'nc' && (
+                                                            <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200 flex-shrink-0">NC</span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-xs text-gray-400 mt-0.5">
+                                                        <span className="font-mono bg-gray-100 px-1 py-0.5 rounded text-[11px]">KM {oc.km || '—'}</span>
+                                                    </p>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <ChevronRight className="h-5 w-5 text-gray-300" />
-                                    </CardContent>
-                                </Card>
-                            </Link>
-                        ))
+                                            <ChevronRight className="h-4 w-4 text-gray-300 flex-shrink-0" />
+                                        </CardContent>
+                                    </Card>
+                                </Link>
+                            ))}
+                        </div>
                     )}
                 </div>
             </div>
 
-            {/* Footer */}
-            <div className="py-4 text-center text-xs text-gray-400 border-t border-gray-200 bg-white">
-                AGEMS — Diretoria de Transportes Rodoviários
+            {/* ── PAINEL INFERIOR — Mapa (metade de baixo, fixo) ── */}
+            <div className="flex-shrink-0 border-t border-gray-200" style={{ height: '50dvh' }}>
+                <RodoviaMap
+                    rodovia={fisc.rodovia}
+                    fiscId={fisc.id}
+                    ocorrencias={ocorrencias}
+                />
             </div>
         </div>
     );
