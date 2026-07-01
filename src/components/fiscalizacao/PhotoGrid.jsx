@@ -25,7 +25,8 @@ export default function PhotoGrid({
     watermarkContext = null,
     autoCapture = false,
     captureBlocked = false,
-    captureBlockedMessage = 'Aguarde...'
+    captureBlockedMessage = 'Aguarde...',
+    presetGpsFix = null
 }) {
     const fotosList = useMemo(() => {
         return (Array.isArray(fotos) ? fotos : []).map((f) => (typeof f === 'string' ? { url: f, legenda: '' } : f)).filter(Boolean);
@@ -264,15 +265,27 @@ export default function PhotoGrid({
             return openWithGpsGate(cameraInputRef);
         }
         setIsCapturing(true);
-        // GPS primeiro
-        try {
-            const fix = await getGpsFixWithFallback();
-            lastGpsFixRef.current = fix;
+        // GPS primeiro — reaproveita o fix já resolvido pelo chamador (ex: o mesmo
+        // usado para achar o KM) quando disponível, em vez de buscar de novo. Buscar
+        // de novo aqui somaria uma segunda espera de GPS em cima da que já rolou
+        // antes do botão liberar, o que é inaceitável com o carro em movimento.
+        const hasPreset =
+            presetGpsFix &&
+            typeof presetGpsFix.latitude === 'number' && Number.isFinite(presetGpsFix.latitude) &&
+            typeof presetGpsFix.longitude === 'number' && Number.isFinite(presetGpsFix.longitude);
+        if (hasPreset) {
+            lastGpsFixRef.current = presetGpsFix;
             lastGpsFixAtRef.current = Date.now();
-        } catch (err) {
-            setIsCapturing(false);
-            alert(err?.message || String(err));
-            return;
+        } else {
+            try {
+                const fix = await getGpsFixWithFallback();
+                lastGpsFixRef.current = fix;
+                lastGpsFixAtRef.current = Date.now();
+            } catch (err) {
+                setIsCapturing(false);
+                alert(err?.message || String(err));
+                return;
+            }
         }
         // Abre stream da câmera
         try {

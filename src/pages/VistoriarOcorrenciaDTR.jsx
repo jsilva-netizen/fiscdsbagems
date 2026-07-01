@@ -162,8 +162,11 @@ export default function VistoriarOcorrenciaDTR() {
     // GPS on mount for new occurrences — só roda depois que kmDataLoaded confirma que
     // kmPoints/kmlSegments já terminaram de carregar (ou que não há dados a carregar),
     // para nunca resolver o KM com base num fallback incompleto.
-    // Usa watchPosition e só aceita o fix (e libera a câmera) quando a precisão for
-    // ≤ MIN_GPS_ACCURACY_M — nunca grava/permite foto com um KM ainda não confiável.
+    // Nunca bloqueia a câmera esperando precisão: numa rodovia com o carro em
+    // movimento, perder a foto é pior do que registrar um KM impreciso sinalizado
+    // para revisão manual depois. Por isso o watch fica sempre ativo (não para no
+    // primeiro fix) e o KM/rodovia são atualizados a cada posição recebida, ficando
+    // cada vez mais precisos conforme o GPS converge.
     useEffect(() => {
         if (!fisc || occurrenceId || !kmDataLoaded) return;
         let watchId = null;
@@ -195,19 +198,17 @@ export default function VistoriarOcorrenciaDTR() {
                 const { latitude: lat, longitude: lng, accuracy } = pos.coords;
                 setGpsAccuracy(accuracy);
                 setGpsError(null);
-                if (!Number.isFinite(accuracy) || accuracy > MIN_GPS_ACCURACY_M) return;
                 setLocation({ lat, lng });
                 resolveKm(lat, lng);
                 setGettingLocation(false);
-                if (watchId != null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+                // Continua observando (não limpa o watch): a cada posição nova, o KM é
+                // recalculado, refinando conforme o GPS converge ou o veículo avança.
             },
             (err) => {
                 if (cancelled) return;
                 if (err?.code === 1) {
-                    // Permissão negada: não adianta continuar tentando sozinho.
-                    setGpsError('Permissão de localização negada. Habilite o GPS e tente novamente.');
+                    setGpsError('Permissão de localização negada. Habilite o GPS para registrar o KM.');
                     setGettingLocation(false);
-                    if (watchId != null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
                 } else {
                     setGpsError('Aguardando sinal de GPS...');
                 }
@@ -327,17 +328,13 @@ export default function VistoriarOcorrenciaDTR() {
         onError: (err) => alert(err.message || 'Falha ao salvar ocorrência.')
     });
 
-    // Só libera a captura depois que o KM foi de fato resolvido com um GPS de
-    // precisão ≤ MIN_GPS_ACCURACY_M. Nunca libera por timeout/erro sem km setado —
-    // sem KM confiável, não tira foto.
-    const kmReady = !!occurrenceId || (kmDataLoaded && !gettingLocation && !!km);
-    const captureBlockedMessage = !kmDataLoaded
-        ? 'Carregando dados da rodovia...'
-        : gpsError
-            ? gpsError
-            : gpsAccuracy != null
-                ? `Aguardando GPS (±${Math.round(gpsAccuracy)}m, precisa ≤${MIN_GPS_ACCURACY_M}m)...`
-                : 'Localizando KM...';
+    // Nunca bloqueia a captura por precisão de GPS — numa rodovia com o carro em
+    // movimento, perder a foto é pior do que gravar um KM impreciso sinalizado para
+    // revisão manual. Só espera o carregamento local (kmDataLoaded), que é quase
+    // instantâneo por ser 100% offline.
+    const kmReady = !!occurrenceId || kmDataLoaded;
+    const captureBlockedMessage = 'Carregando dados da rodovia...';
+    const kmPreciso = gpsAccuracy != null && gpsAccuracy <= MIN_GPS_ACCURACY_M;
 
     const currentStep = activeSteps[stepIdx];
     const isLastStep = stepIdx === activeSteps.length - 1;
@@ -463,15 +460,27 @@ export default function VistoriarOcorrenciaDTR() {
                         autoCapture={!occurrenceId && fotos.length === 0}
                         captureBlocked={!kmReady}
                         captureBlockedMessage={captureBlockedMessage}
+                        presetGpsFix={!occurrenceId && location ? { latitude: location.lat, longitude: location.lng, accuracy: gpsAccuracy ?? undefined, takenAt: new Date().toISOString() } : null}
                         watermarkContext={{ rodovia: rodoviaSnapped || fisc?.rodovia || '', km: km || '', sentido: sentido || '' }}
                     />
                 </div>
-                {!occurrenceId && !kmReady && gpsError && (
+                {!occurrenceId && gpsError && (
                     <div className="mt-3 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2.5 flex items-center justify-between gap-2">
                         <p className="text-xs text-rose-700">{gpsError}</p>
                         <Button size="sm" variant="outline" className="h-7 text-xs flex-shrink-0" onClick={() => setGpsRetryTick(t => t + 1)}>
                             Tentar novamente
                         </Button>
+                    </div>
+                )}
+                {/* Aviso não-bloqueante: a foto pode ser tirada mesmo sem GPS preciso,
+                    mas o KM/rodovia gravados podem estar errados — sinaliza pra conferir depois. */}
+                {!occurrenceId && !gpsError && (!km || !kmPreciso) && (
+                    <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+                        <p className="text-xs text-amber-700">
+                            {!km
+                                ? 'Aguardando GPS — a foto pode ser tirada, mas o KM ainda não foi identificado.'
+                                : `GPS impreciso (±${Math.round(gpsAccuracy)}m) — confira o KM (${km}) manualmente depois.`}
+                        </p>
                     </div>
                 )}
             </div>
@@ -582,13 +591,16 @@ export default function VistoriarOcorrenciaDTR() {
             <div className="flex-1 max-w-md w-full mx-auto px-4 py-6 space-y-3">
                 <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wide">{stepIdx + 1}. SENTIDO</h2>
                 {(km || gettingLocation) && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-xl px-3 py-2 text-xs text-blue-700 flex items-center gap-2">
+                    <div className={`border rounded-xl px-3 py-2 text-xs flex items-center gap-2 ${km && !kmPreciso ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-blue-50 border-blue-200 text-blue-700'}`}>
                         <span className="font-semibold">{rodoviaSnapped || fisc?.rodovia || ''}</span>
                         {km
                             ? <span className="font-mono">KM {km}</span>
                             : <span className="text-blue-400">Obtendo localização...</span>
                         }
-                        {gettingLocation && <Loader2 className="h-3 w-3 animate-spin ml-auto" />}
+                        {km && !kmPreciso && gpsAccuracy != null && (
+                            <span className="text-[10px]">(±{Math.round(gpsAccuracy)}m — conferir)</span>
+                        )}
+                        {gettingLocation && !km && <Loader2 className="h-3 w-3 animate-spin ml-auto" />}
                     </div>
                 )}
                 {['N', 'S', 'N/S'].map(s => (
@@ -614,7 +626,7 @@ export default function VistoriarOcorrenciaDTR() {
                         ['Item', selectedItem?.descricao || selectedItem?.nome || '—'],
                         etapaObra ? ['Etapa', etapaObra] : null,
                         ['Tipo', tipoRegistro === 'nc' ? 'Não Conformidade' : 'Constatação'],
-                        ['KM', km || (gettingLocation ? 'Obtendo...' : '—')],
+                        ['KM', km ? (kmPreciso ? km : `${km} (±${Math.round(gpsAccuracy)}m — conferir)`) : (gettingLocation ? 'Obtendo...' : '—')],
                         ['Sentido', sentido || '—'],
                         ['Rodovia', rodoviaSnapped || fisc?.rodovia || '—'],
                     ].filter(Boolean).map(([label, value]) => (
