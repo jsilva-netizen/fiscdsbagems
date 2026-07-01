@@ -20,13 +20,15 @@ import {
 // Descrição → nome do item exibido no app e nas constatações
 // Não atendimento → cláusula do PER violada (preenchida se houver NC)
 // Prazo → prazo padrão em dias quando for NC
+// Etapas Obra → etapas separadas por \n; preencher só em itens de obra
 const TEMPLATE_COLUNAS = [
     'Rodovia',
     'Frente',
     'PER',
     'Descrição',
     'Não atendimento (NC)',
-    'Prazo (dias)'
+    'Prazo (dias)',
+    'Etapas Obra'
 ];
 
 function downloadTemplate() {
@@ -38,6 +40,7 @@ function downloadTemplate() {
             '3.1.1 Pavimento',
             'Exsudação',
             '',
+            '',
             ''
         ],
         [
@@ -45,6 +48,7 @@ function downloadTemplate() {
             'RECUPERAÇÃO E MANUTENÇÃO',
             '3.1.1 Pavimento',
             'Elementos indesejáveis',
+            '',
             '',
             ''
         ],
@@ -54,13 +58,15 @@ function downloadTemplate() {
             '3.1.1 Pavimento',
             'Buraco / Panela na pista',
             '3.1.1 Ausência de defeitos no revestimento do pavimento do tipo panela, afundamento de trilha de roda, escorregamento, conforme parâmetros do PER.',
-            '3'
+            '3',
+            ''
         ],
         [
             '',
             'RECUPERAÇÃO E MANUTENÇÃO',
             '3.1.1 Pavimento',
             'Outros',
+            '',
             '',
             ''
         ],
@@ -70,7 +76,8 @@ function downloadTemplate() {
             '3.1.2 Sinalização e Elementos de Proteção e Segurança',
             'Sinalização vertical danificada ou ausente',
             '',
-            '3'
+            '3',
+            ''
         ],
         [
             '',
@@ -78,7 +85,8 @@ function downloadTemplate() {
             '3.1.6 Canteiro Central e Faixa de Domínio',
             'Vegetação alta no acostamento / faixa de domínio',
             '3.1.6 Ausência total de vegetação rasteira com comprimento superior a 40,0 (quarenta) cm, em toda a extensão da faixa de domínio, numa largura mínima de 4,0 (quatro) metros a partir do bordo da drenagem e/ou do acostamento, de cada lado das rodovias.',
-            '15'
+            '15',
+            ''
         ],
         [
             '',
@@ -86,10 +94,20 @@ function downloadTemplate() {
             '3.4.5.1 Atendimento Médico de Emergência',
             'Ausência de ambulância / serviço médico',
             '3.4.5.1. Disponibilização de serviço de atendimento médico de emergência 24:00 horas por dia, inclusive sábados, domingos e feriados, conforme Anexo B.',
-            '1'
+            '1',
+            ''
+        ],
+        [
+            '112/306',
+            'OBRAS',
+            '4.1.1 Recuperação de Pavimento',
+            'Obra de recuperação asfáltica',
+            '4.1.1 Execução de recuperação do revestimento asfáltico conforme projeto.',
+            '30',
+            '1ª Etapa - Fresagem\n2ª Etapa - Imprimação\n3ª Etapa - CBUQ'
         ]
     ]);
-    ws['!cols'] = [{ wch: 12 }, { wch: 50 }, { wch: 50 }, { wch: 45 }, { wch: 90 }, { wch: 14 }];
+    ws['!cols'] = [{ wch: 12 }, { wch: 50 }, { wch: 50 }, { wch: 45 }, { wch: 90 }, { wch: 14 }, { wch: 40 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Tipos de Ocorrência DTR');
     XLSX.writeFile(wb, 'template_tipos_ocorrencia_dtr.xlsx');
@@ -118,6 +136,8 @@ function parseSpreadsheet(file) {
                         const descricao = String(r[off + 2] || '').trim() || null;
                         const nao_atendimento = String(r[off + 3] || '').trim() || null;
                         const prazo_dias_padrao = r[off + 4] ? parseInt(String(r[off + 4]).trim(), 10) || null : null;
+                        const rawEtapas = r[off + 5] ? String(r[off + 5]).trim() : '';
+                        const etapas_obra = rawEtapas && rawEtapas !== '-' ? rawEtapas : null;
                         return {
                             rodovia,
                             frente,
@@ -126,6 +146,7 @@ function parseSpreadsheet(file) {
                             nome: descricao,
                             nao_atendimento,
                             prazo_dias_padrao,
+                            etapas_obra,
                             gera_nc: !!nao_atendimento
                         };
                     });
@@ -247,6 +268,7 @@ function TabTipos() {
                                     <div className="flex items-center gap-2">
                                         <span className="flex-1 font-medium text-gray-800">{t.descricao || t.nome}</span>
                                         {t.nao_atendimento && <Badge className="text-[10px] py-0 h-4 bg-rose-100 text-rose-700 border-rose-200">NC</Badge>}
+                                        {t.etapas_obra && <Badge className="text-[10px] py-0 h-4 bg-amber-100 text-amber-700 border-amber-200">Obra</Badge>}
                                         {t.prazo_dias_padrao && <span className="text-gray-400 whitespace-nowrap">{t.prazo_dias_padrao}d</span>}
                                     </div>
                                     {t.frente && <p className="text-gray-400 text-[10px] truncate">{t.frente}</p>}
@@ -301,6 +323,11 @@ function TabTipos() {
                                     {t.nao_atendimento && (
                                         <Badge className="text-[10px] py-0 h-5 bg-rose-50 text-rose-600 border border-rose-200 flex-shrink-0">
                                             NC
+                                        </Badge>
+                                    )}
+                                    {t.etapas_obra && (
+                                        <Badge className="text-[10px] py-0 h-5 bg-amber-50 text-amber-600 border border-amber-200 flex-shrink-0">
+                                            Obra
                                         </Badge>
                                     )}
                                     {t.prazo_dias_padrao && (

@@ -85,6 +85,8 @@ export type TipoOcorrenciaDTR = {
   observacoes?: string
   /** Rodovia específica (ex: "112"). NULL = aplica-se a todas as rodovias. */
   rodovia?: string | null
+  /** Etapas de obra separadas por \n. Preenchido = item de obra com passo extra no wizard. */
+  etapas_obra?: string | null
   ativo: boolean
   created_at?: string
   updated_at?: string

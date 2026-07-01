@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -28,7 +28,7 @@ const TIPOS_FALLBACK = [
     { frente: 'SERVIÇOS OPERACIONAIS', item_contrato: '3.4.5.1 Atendimento Médico de Emergência', descricao: 'Ausência de ambulância / serviço médico', nome: 'Ausência de ambulância', nao_atendimento: '3.4.5.1. Disponibilização de serviço de atendimento médico de emergência 24:00 horas por dia, inclusive sábados, domingos e feriados.', prazo_dias_padrao: 1 },
 ];
 
-const STEPS = ['fotos', 'frente', 'per', 'descricao', 'tipo', 'sentido', 'observacao'];
+const BASE_STEPS = ['fotos', 'frente', 'per', 'descricao', 'tipo', 'sentido', 'observacao'];
 
 function RadioCard({ label, selected, onSelect }) {
     return (
@@ -67,6 +67,7 @@ export default function VistoriarOcorrenciaDTR() {
     const [selectedPer, setSelectedPer] = useState('');
     const [selectedItem, setSelectedItem] = useState(null);
     const [tipoRegistro, setTipoRegistro] = useState('');
+    const [etapaObra, setEtapaObra] = useState('');
     const [sentido, setSentido] = useState('');
     const [observacao, setObservacao] = useState('');
     const [km, setKm] = useState('');
@@ -113,6 +114,20 @@ export default function VistoriarOcorrenciaDTR() {
     const itemsForPer = tipos.filter(
         t => t.frente === selectedFrente && t.item_contrato === selectedPer
     );
+
+    // Steps dinâmicos: insere 'etapa_obra' entre 'descricao' e 'tipo' quando o item tem etapas
+    const activeSteps = useMemo(() => {
+        const s = ['fotos', 'frente', 'per', 'descricao'];
+        if (selectedItem?.etapas_obra?.trim()) s.push('etapa_obra');
+        s.push('tipo', 'sentido', 'observacao');
+        return s;
+    }, [selectedItem?.etapas_obra]);
+
+    // Opções de etapa separadas por \n
+    const etapaOptions = useMemo(() => {
+        if (!selectedItem?.etapas_obra?.trim()) return [];
+        return selectedItem.etapas_obra.split('\n').map(e => e.trim()).filter(Boolean);
+    }, [selectedItem?.etapas_obra]);
 
     // GPS on mount for new occurrences
     useEffect(() => {
@@ -163,7 +178,7 @@ export default function VistoriarOcorrenciaDTR() {
         if (ocorrencia.latitude && ocorrencia.longitude) {
             setLocation({ lat: ocorrencia.latitude, lng: ocorrencia.longitude });
         }
-        setStepIdx(STEPS.length - 1);
+        setStepIdx(BASE_STEPS.length - 1);
     }, [occurrenceId, ocorrencia]);
 
     // Load photos in edit mode
@@ -244,8 +259,8 @@ export default function VistoriarOcorrenciaDTR() {
         onError: (err) => alert(err.message || 'Falha ao salvar ocorrência.')
     });
 
-    const currentStep = STEPS[stepIdx];
-    const isLastStep = stepIdx === STEPS.length - 1;
+    const currentStep = activeSteps[stepIdx];
+    const isLastStep = stepIdx === activeSteps.length - 1;
 
     const goBack = () => {
         if (stepIdx === 0) navigate(createPageUrl('ExecutarFiscalizacaoDTR') + `?id=${fiscId}`);
@@ -264,6 +279,7 @@ export default function VistoriarOcorrenciaDTR() {
         frente: !!selectedFrente,
         per: !!selectedPer,
         descricao: !!selectedItem,
+        etapa_obra: !!etapaObra,
         tipo: !!tipoRegistro,
         sentido: !!sentido,
         observacao: true,
@@ -294,6 +310,7 @@ export default function VistoriarOcorrenciaDTR() {
         frente: 'Frentes da Concessão',
         per: `Frente: ${selectedFrente}`,
         descricao: selectedPer || 'Item',
+        etapa_obra: 'Etapa da Obra',
         tipo: 'Tipo',
         sentido: 'Sentido',
         observacao: 'Observação'
@@ -314,7 +331,7 @@ export default function VistoriarOcorrenciaDTR() {
                             {stepIdx + 1}. {stepLabel}
                         </p>
                         <div className="flex gap-0.5 mt-1.5">
-                            {STEPS.map((_, i) => (
+                            {activeSteps.map((_, i) => (
                                 <div key={i} className={`h-0.5 flex-1 rounded-full transition-colors ${i <= stepIdx ? 'bg-white' : 'bg-white/20'}`} />
                             ))}
                         </div>
@@ -409,9 +426,32 @@ export default function VistoriarOcorrenciaDTR() {
                         (selectedItem?.descricao === item.descricao && selectedItem?.item_contrato === item.item_contrato);
                     return (
                         <RadioCard key={i} label={label} selected={isSel}
-                            onSelect={() => selectAndAdvance(setSelectedItem, item)} />
+                            onSelect={() => {
+                                setEtapaObra('');
+                                setObservacao('');
+                                selectAndAdvance(setSelectedItem, item);
+                            }} />
                     );
                 })}
+            </div>
+        </div>
+    );
+
+    // ─── ETAPA DA OBRA ───────────────────────────────────────────────────────────
+    if (currentStep === 'etapa_obra') return (
+        <div className="min-h-screen bg-[#e8eaed] flex flex-col">
+            <Header />
+            <div className="flex-1 max-w-md w-full mx-auto px-4 py-6 space-y-3">
+                <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wide">{stepIdx + 1}. ETAPA DA OBRA</h2>
+                <p className="text-xs text-gray-500">{selectedItem?.descricao || selectedItem?.nome}</p>
+                {etapaOptions.map(etapa => (
+                    <RadioCard key={etapa} label={etapa} selected={etapaObra === etapa}
+                        onSelect={() => {
+                            setEtapaObra(etapa);
+                            setObservacao(etapa);
+                            if (!isLastStep) setTimeout(goNext, 200);
+                        }} />
+                ))}
             </div>
         </div>
     );
@@ -476,11 +516,12 @@ export default function VistoriarOcorrenciaDTR() {
                         ['Frente', selectedFrente || '—'],
                         ['PER', selectedPer || '—'],
                         ['Item', selectedItem?.descricao || selectedItem?.nome || '—'],
+                        etapaObra ? ['Etapa', etapaObra] : null,
                         ['Tipo', tipoRegistro === 'nc' ? 'Não Conformidade' : 'Constatação'],
                         ['KM', km || (gettingLocation ? 'Obtendo...' : '—')],
                         ['Sentido', sentido || '—'],
                         ['Rodovia', fisc?.rodovia || '—'],
-                    ].map(([label, value]) => (
+                    ].filter(Boolean).map(([label, value]) => (
                         <div key={label} className="flex gap-2 text-xs">
                             <span className="text-gray-400 font-semibold w-16 flex-shrink-0">{label}</span>
                             <span className={`text-gray-700 ${label === 'Tipo' && tipoRegistro === 'nc' ? 'text-rose-600 font-bold' : ''}`}>
