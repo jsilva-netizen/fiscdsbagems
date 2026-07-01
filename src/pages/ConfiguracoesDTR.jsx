@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
-    ArrowLeft, Upload, Download, FileSpreadsheet, Map, CheckCircle2,
+    ArrowLeft, Upload, Download, FileSpreadsheet, Map as MapIcon, CheckCircle2,
     AlertCircle, Loader2, RefreshCw, FileText, Trash2, Route
 } from 'lucide-react';
 
@@ -625,7 +625,7 @@ export default function ConfiguracoesDTR() {
                         onClick={() => setTab('kml')}
                         className={`flex items-center gap-1.5 px-4 py-3 text-xs font-semibold border-b-2 transition-colors ${tab === 'kml' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                     >
-                        <Map className="h-4 w-4" /> Rodovias & KML
+                        <MapIcon className="h-4 w-4" /> Rodovias & KML
                     </button>
                 </div>
             </div>
