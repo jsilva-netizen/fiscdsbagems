@@ -121,36 +121,62 @@ function parseSpreadsheet(file) {
                 const wb = XLSX.read(e.target.result, { type: 'binary' });
                 const ws = wb.Sheets[wb.SheetNames[0]];
                 const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
-                // Pular cabeçalho (linha 0)
-                // Detecta formato: com coluna Rodovia (nova) ou sem ela (antiga)
                 const header = (rows[0] || []).map(h => String(h || '').trim().toLowerCase());
                 const hasRodoviaCol = header[0] === 'rodovia';
                 const off = hasRodoviaCol ? 1 : 0;
 
-                const tipos = rows.slice(1)
-                    .filter(r => r[off] && String(r[off]).trim())
-                    .map(r => {
-                        const rodovia = hasRodoviaCol ? (String(r[0] || '').trim() || null) : null;
-                        const frente = String(r[off] || '').trim();
-                        const item_contrato = String(r[off + 1] || '').trim() || null;
-                        const descricao = String(r[off + 2] || '').trim() || null;
-                        const rawNaoAten = String(r[off + 3] || '').trim();
-                        const nao_atendimento = rawNaoAten && rawNaoAten !== '-' ? rawNaoAten : null;
-                        const prazo_dias_padrao = r[off + 4] ? parseInt(String(r[off + 4]).trim(), 10) || null : null;
-                        const rawEtapas = r[off + 5] ? String(r[off + 5]).trim() : '';
-                        const etapas_obra = rawEtapas && rawEtapas !== '-' ? rawEtapas : null;
-                        return {
-                            rodovia,
-                            frente,
-                            item_contrato,
-                            descricao,
-                            nome: descricao,
-                            nao_atendimento,
-                            prazo_dias_padrao,
-                            etapas_obra,
-                            gera_nc: !!nao_atendimento
-                        };
-                    });
+                // Fill-down: células mescladas no Excel chegam vazias nas linhas continuação.
+                // Mantemos o último valor não-vazio de cada coluna estrutural.
+                let lastRodovia = null;
+                let lastFrente = '';
+                let lastPer = null;
+                let lastDescricao = null;
+
+                // Passo 1 — parse com fill-down
+                const flat = [];
+                for (const r of rows.slice(1)) {
+                    const rodovia = hasRodoviaCol ? (String(r[0] || '').trim() || lastRodovia) : null;
+                    const frente = String(r[off] || '').trim() || lastFrente;
+                    const per = String(r[off + 1] || '').trim() || lastPer;
+                    const descricao = String(r[off + 2] || '').trim() || lastDescricao;
+
+                    if (!frente) continue; // linha totalmente vazia
+
+                    lastRodovia = rodovia;
+                    lastFrente = frente;
+                    lastPer = per;
+                    lastDescricao = descricao;
+
+                    const rawNaoAten = String(r[off + 3] || '').trim();
+                    const nao_atendimento = rawNaoAten && rawNaoAten !== '-' ? rawNaoAten : null;
+                    const prazo_dias_padrao = r[off + 4] ? parseInt(String(r[off + 4]).trim(), 10) || null : null;
+                    const rawEtapa = r[off + 5] ? String(r[off + 5]).trim() : '';
+                    const etapaLinha = rawEtapa && rawEtapa !== '-' ? rawEtapa : null;
+
+                    flat.push({ rodovia, frente, item_contrato: per, descricao, nao_atendimento, prazo_dias_padrao, etapaLinha });
+                }
+
+                // Passo 2 — agrupa linhas com mesma chave, juntando etapas com \n
+                const mergeMap = new Map();
+                for (const row of flat) {
+                    const key = [row.rodovia, row.frente, row.item_contrato, row.descricao].join('||');
+                    if (!mergeMap.has(key)) {
+                        mergeMap.set(key, { ...row, etapas: row.etapaLinha ? [row.etapaLinha] : [] });
+                    } else {
+                        const ex = mergeMap.get(key);
+                        if (row.etapaLinha) ex.etapas.push(row.etapaLinha);
+                        if (row.nao_atendimento && !ex.nao_atendimento) ex.nao_atendimento = row.nao_atendimento;
+                        if (row.prazo_dias_padrao && !ex.prazo_dias_padrao) ex.prazo_dias_padrao = row.prazo_dias_padrao;
+                    }
+                }
+
+                const tipos = [...mergeMap.values()].map(({ etapas, etapaLinha, ...rest }) => ({
+                    ...rest,
+                    nome: rest.descricao,
+                    etapas_obra: etapas.length > 0 ? etapas.join('\n') : null,
+                    gera_nc: !!rest.nao_atendimento,
+                }));
+
                 resolve(tipos);
             } catch (err) {
                 reject(new Error('Erro ao ler planilha: ' + err.message));
