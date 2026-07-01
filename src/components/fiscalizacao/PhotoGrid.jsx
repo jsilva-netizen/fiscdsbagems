@@ -23,7 +23,9 @@ export default function PhotoGrid({
     bigButton = false,
     enableLegenda = true,
     watermarkContext = null,
-    autoCapture = false
+    autoCapture = false,
+    captureBlocked = false,
+    captureBlockedMessage = 'Aguarde...'
 }) {
     const fotosList = useMemo(() => {
         return (Array.isArray(fotos) ? fotos : []).map((f) => (typeof f === 'string' ? { url: f, legenda: '' } : f)).filter(Boolean);
@@ -98,33 +100,13 @@ export default function PhotoGrid({
         videoRef.current.play().catch(() => {});
     }, [showCamera]);
 
-    // Força orientação paisagem enquanto a câmera estiver aberta (necessário
-    // tela cheia no Chrome/Android para o orientation.lock ser aceito)
-    useEffect(() => {
-        if (!showCamera) return;
-        (async () => {
-            try {
-                await document.documentElement.requestFullscreen?.();
-            } catch {}
-            try {
-                await screen.orientation?.lock?.('landscape');
-            } catch {}
-        })();
-        return () => {
-            try { screen.orientation?.unlock?.(); } catch {}
-            try {
-                if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-            } catch {}
-        };
-    }, [showCamera]);
-
     // Auto-abre câmera na montagem quando autoCapture=true e sem fotos
     useEffect(() => {
-        if (!autoCapture || autoCaptureAttemptedRef.current || fotosList.length > 0) return;
+        if (!autoCapture || autoCaptureAttemptedRef.current || fotosList.length > 0 || captureBlocked) return;
         autoCaptureAttemptedRef.current = true;
         void openCamera();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [captureBlocked]);
 
     useEffect(() => {
         let cancelled = false;
@@ -449,10 +431,15 @@ export default function PhotoGrid({
                 <button
                     type="button"
                     onClick={() => void openCamera()}
-                    disabled={isUploading || isCapturing}
+                    disabled={isUploading || isCapturing || captureBlocked}
                     className="w-full py-16 rounded-2xl border-2 border-dashed border-blue-300 bg-blue-50 hover:bg-blue-100 active:bg-blue-200 transition-colors flex flex-col items-center justify-center gap-3 disabled:opacity-60"
                 >
-                    {(isUploading || isCapturing) ? (
+                    {captureBlocked ? (
+                        <>
+                            <Loader2 className="h-12 w-12 text-blue-400 animate-spin" />
+                            <span className="text-sm font-semibold text-blue-500">{captureBlockedMessage}</span>
+                        </>
+                    ) : (isUploading || isCapturing) ? (
                         <>
                             <Loader2 className="h-12 w-12 text-blue-400 animate-spin" />
                             <span className="text-sm font-semibold text-blue-500">
@@ -489,9 +476,11 @@ export default function PhotoGrid({
                         <Button
                             onClick={() => void openCamera()}
                             size="sm"
-                            disabled={isUploading || isCapturing || !isEditable}
+                            disabled={isUploading || isCapturing || !isEditable || captureBlocked}
                         >
-                            {isUploading ? (
+                            {captureBlocked ? (
+                                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />{captureBlockedMessage}</>
+                            ) : isUploading ? (
                                 <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Enviando...</>
                             ) : isCapturing ? (
                                 <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Abrindo câmera...</>

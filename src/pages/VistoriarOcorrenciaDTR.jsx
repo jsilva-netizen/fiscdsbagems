@@ -75,6 +75,7 @@ export default function VistoriarOcorrenciaDTR() {
     const [rodoviaSnapped, setRodoviaSnapped] = useState('');
     const [kmPoints, setKmPoints] = useState(null);
     const [kmlSegments, setKmlSegments] = useState([]);
+    const [kmDataLoaded, setKmDataLoaded] = useState(false);
     const [location, setLocation] = useState(null);
     const [gettingLocation, setGettingLocation] = useState(false);
     const [draftId, setDraftId] = useState(null);
@@ -87,8 +88,12 @@ export default function VistoriarOcorrenciaDTR() {
     });
 
     // Carrega referências KM: tenta pontos (Dexie) → download KML pontos → KML linhas (legado)
+    // kmDataLoaded só vira true quando essa carga termina (com ou sem dados), para
+    // evitar que a resolução de GPS/KM rode antes com um fallback impreciso e sobrescreva
+    // depois — o que deixava a foto salva com um KM errado se capturada nesse meio-tempo.
     useEffect(() => {
-        if (!fisc?.rodovia) return;
+        if (!fisc) return;
+        if (!fisc.rodovia) { setKmDataLoaded(true); return; }
         const loadFromKmlText = (kmlText) => {
             if (!kmlText) return;
             const pts = parseKMLKmPoints(kmlText);
@@ -98,11 +103,11 @@ export default function VistoriarOcorrenciaDTR() {
         };
         Repository.getKmPointsForRodovia(fisc.rodovia).then(pts => {
             if (pts && pts.length > 0) { setKmPoints(pts); return; }
-            Repository.downloadKMLForRodovia(fisc.rodovia).then(loadFromKmlText).catch(() => {});
+            return Repository.downloadKMLForRodovia(fisc.rodovia).then(loadFromKmlText).catch(() => {});
         }).catch(() => {
-            Repository.downloadKMLForRodovia(fisc.rodovia).then(loadFromKmlText).catch(() => {});
-        });
-    }, [fisc?.rodovia]);
+            return Repository.downloadKMLForRodovia(fisc.rodovia).then(loadFromKmlText).catch(() => {});
+        }).finally(() => setKmDataLoaded(true));
+    }, [fisc]);
 
     const fiscRodovia = fisc?.rodovia ?? null;
     const { data: tiposDB = [] } = useQuery({
@@ -154,9 +159,11 @@ export default function VistoriarOcorrenciaDTR() {
         return selectedItem.etapas_obra.split('\n').map(e => e.trim()).filter(Boolean);
     }, [selectedItem?.etapas_obra]);
 
-    // GPS on mount for new occurrences
+    // GPS on mount for new occurrences — só roda depois que kmDataLoaded confirma que
+    // kmPoints/kmlSegments já terminaram de carregar (ou que não há dados a carregar),
+    // para nunca resolver o KM com base num fallback incompleto.
     useEffect(() => {
-        if (!fisc || occurrenceId) return;
+        if (!fisc || occurrenceId || !kmDataLoaded) return;
         setGettingLocation(true);
         navigator.geolocation.getCurrentPosition(
             (pos) => {
@@ -182,7 +189,7 @@ export default function VistoriarOcorrenciaDTR() {
             () => setGettingLocation(false),
             { enableHighAccuracy: true, timeout: 10000 }
         );
-    }, [fisc, occurrenceId, kmPoints, kmlSegments]);
+    }, [fisc, occurrenceId, kmDataLoaded]);
 
     // Auto-save rascunho quando primeira foto é adicionada (nova ocorrência)
     useEffect(() => {
@@ -303,6 +310,10 @@ export default function VistoriarOcorrenciaDTR() {
         },
         onError: (err) => alert(err.message || 'Falha ao salvar ocorrência.')
     });
+
+    // Só libera a captura depois que o KM foi resolvido (ou definitivamente falhou),
+    // para nunca gravar a foto com um KM ainda não determinado / impreciso.
+    const kmReady = !!occurrenceId || (kmDataLoaded && !gettingLocation);
 
     const currentStep = activeSteps[stepIdx];
     const isLastStep = stepIdx === activeSteps.length - 1;
@@ -429,6 +440,8 @@ export default function VistoriarOcorrenciaDTR() {
                         fiscalizacaoId={fiscId} unidadeId={occurrenceId || draftId || 'novo-ponto'} isEditable={true}
                         enableLegenda={false}
                         autoCapture={!occurrenceId && fotos.length === 0}
+                        captureBlocked={!kmReady}
+                        captureBlockedMessage="Localizando KM..."
                         watermarkContext={{ rodovia: rodoviaSnapped || fisc?.rodovia || '', km: km || '', sentido: sentido || '' }}
                     />
                 </div>
