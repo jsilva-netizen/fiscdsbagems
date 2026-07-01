@@ -264,11 +264,14 @@ export const Repository = {
 
   async listTiposOcorrenciaDTR(rodovia?: string | null): Promise<import('./db').TipoOcorrenciaDTR[]> {
     const local = await db.tipos_ocorrencia_dtr.filter(t => t.ativo !== false).toArray()
+    // Normaliza "MS-306" → "306" para comparar com valores da planilha
+    const normRod = (r: string) => r.replace(/^MS-?/i, '').replace(/\s/g, '').toLowerCase()
     const byRodovia = (list: import('./db').TipoOcorrenciaDTR[]) => {
       if (!rodovia) return list
+      const fiscNorm = normRod(rodovia)
       return list.filter(t => {
         if (!t.rodovia) return true
-        return t.rodovia.split('/').map(r => r.trim()).includes(rodovia)
+        return t.rodovia.split('/').map((r: string) => normRod(r)).some((r: string) => r === fiscNorm)
       })
     }
     if (local.length > 0) return byRodovia(local).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))

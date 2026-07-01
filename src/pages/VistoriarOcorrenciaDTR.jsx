@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Repository } from '@/lib/offline/repository';
-import { snapToHighway, parseKMLSegments, snapToNearestKMLSegment, findNearestKmPoint } from '@/utils/rodoviasGeoJSON';
+import { snapToHighway, parseKMLSegments, snapToNearestKMLSegment, findNearestKmPoint, parseKMLKmPoints } from '@/utils/rodoviasGeoJSON';
 import PhotoGrid from '@/components/fiscalizacao/PhotoGrid';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -77,6 +77,9 @@ export default function VistoriarOcorrenciaDTR() {
     const [kmlSegments, setKmlSegments] = useState([]);
     const [location, setLocation] = useState(null);
     const [gettingLocation, setGettingLocation] = useState(false);
+    const [draftId, setDraftId] = useState(null);
+    const autoSavedRef = useRef(false);
+    const autoAdvancedRef = useRef(false);
 
     const { data: fisc } = useQuery({
         queryKey: ['fiscalizacao', fiscId],
@@ -84,21 +87,21 @@ export default function VistoriarOcorrenciaDTR() {
         enabled: !!fiscId
     });
 
-    // Carrega referências KM: tenta pontos (novo formato) ou cai no KML de linhas (legado)
+    // Carrega referências KM: tenta pontos (Dexie) → download KML pontos → KML linhas (legado)
     useEffect(() => {
         if (!fisc?.rodovia) return;
-        Repository.getKmPointsForRodovia(fisc.rodovia).then(points => {
-            if (points && points.length > 0) {
-                setKmPoints(points);
-            } else {
-                Repository.downloadKMLForRodovia(fisc.rodovia)
-                    .then(kmlText => { if (kmlText) setKmlSegments(parseKMLSegments(kmlText)); })
-                    .catch(() => {});
-            }
+        const loadFromKmlText = (kmlText) => {
+            if (!kmlText) return;
+            const pts = parseKMLKmPoints(kmlText);
+            if (pts && pts.length > 0) { setKmPoints(pts); return; }
+            const segs = parseKMLSegments(kmlText);
+            if (segs.length > 0) setKmlSegments(segs);
+        };
+        Repository.getKmPointsForRodovia(fisc.rodovia).then(pts => {
+            if (pts && pts.length > 0) { setKmPoints(pts); return; }
+            Repository.downloadKMLForRodovia(fisc.rodovia).then(loadFromKmlText).catch(() => {});
         }).catch(() => {
-            Repository.downloadKMLForRodovia(fisc.rodovia)
-                .then(kmlText => { if (kmlText) setKmlSegments(parseKMLSegments(kmlText)); })
-                .catch(() => {});
+            Repository.downloadKMLForRodovia(fisc.rodovia).then(loadFromKmlText).catch(() => {});
         });
     }, [fisc?.rodovia]);
 
@@ -168,6 +171,33 @@ export default function VistoriarOcorrenciaDTR() {
         );
     }, [fisc, occurrenceId, kmPoints, kmlSegments]);
 
+    // Auto-save rascunho quando primeira foto é adicionada (nova ocorrência)
+    useEffect(() => {
+        if (fotos.length === 0 || occurrenceId || autoSavedRef.current || !fiscId) return;
+        autoSavedRef.current = true;
+        Repository.createUnidade({
+            fiscalizacao_id: fiscId,
+            tipo_unidade_id: null as any,
+            nome_unidade: 'Rascunho DTR',
+            latitude: location?.lat ?? null,
+            longitude: location?.lng ?? null,
+            rodovia: rodoviaSnapped || fisc?.rodovia || '',
+            km: km || '',
+        }).then(res => {
+            Repository.reassignLocalFotos('novo-ponto', res.id).catch(() => {});
+            setDraftId(res.id);
+        }).catch(() => { autoSavedRef.current = false; });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [fotos.length]);
+
+    // Auto-avança para próximo step após primeira foto (nova ocorrência)
+    useEffect(() => {
+        if (currentStep !== 'fotos' || fotos.length === 0 || occurrenceId || autoAdvancedRef.current) return;
+        autoAdvancedRef.current = true;
+        setTimeout(() => setStepIdx(s => s + 1), 400);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [fotos.length]);
+
     // Edit mode: pre-populate state and jump to last step
     useEffect(() => {
         if (!occurrenceId || !ocorrencia) return;
@@ -228,14 +258,11 @@ export default function VistoriarOcorrenciaDTR() {
 
     const salvarMutation = useMutation({
         mutationFn: async () => {
-            let uId = occurrenceId;
+            const targetId = occurrenceId || draftId;
+            let uId = targetId || '';
             const descricaoItem = selectedItem?.descricao || selectedItem?.nome || '';
             const payload = {
-                fiscalizacao_id: fiscId,
-                tipo_unidade_id: null,
-                tipo_unidade_name: 'Ocorrência DTR',
                 nome_unidade: descricaoItem,
-                codigo_unidade: '',
                 endereco: observacao,
                 latitude: location?.lat ?? null,
                 longitude: location?.lng ?? null,
@@ -250,10 +277,10 @@ export default function VistoriarOcorrenciaDTR() {
                 prazo_dias_nc: tipoRegistro === 'nc' ? (selectedItem?.prazo_dias_padrao || null) : null,
                 status: 'finalizada'
             };
-            if (occurrenceId) {
-                await Repository.updateUnidadeDTR(occurrenceId, payload);
+            if (targetId) {
+                await Repository.updateUnidadeDTR(targetId, payload);
             } else {
-                const res = await Repository.createUnidade(payload);
+                const res = await Repository.createUnidade({ fiscalizacao_id: fiscId, tipo_unidade_id: null as any, ...payload });
                 uId = res.id;
                 await Repository.reassignLocalFotos('novo-ponto', uId);
             }
@@ -276,8 +303,15 @@ export default function VistoriarOcorrenciaDTR() {
     const isLastStep = stepIdx === activeSteps.length - 1;
 
     const goBack = () => {
-        if (stepIdx === 0) navigate(createPageUrl('ExecutarFiscalizacaoDTR') + `?id=${fiscId}`);
-        else setStepIdx(s => s - 1);
+        if (stepIdx === 0) {
+            // Foto existe mas ainda não foi salva como rascunho: pede confirmação
+            if (fotos.length > 0 && !draftId && !occurrenceId) {
+                if (!confirm('A foto ainda não foi salva. Deseja descartar e sair?')) return;
+            }
+            navigate(createPageUrl('ExecutarFiscalizacaoDTR') + `?id=${fiscId}`);
+        } else {
+            setStepIdx(s => s - 1);
+        }
     };
     const goNext = () => setStepIdx(s => s + 1);
 
@@ -385,8 +419,9 @@ export default function VistoriarOcorrenciaDTR() {
                         onAddFoto={addFoto} onRemoveFoto={removeFoto}
                         onUpdateLegenda={updateLegenda}
                         onReorderFotos={(n) => { setFotos(n); setFotosDirty(true); }}
-                        fiscalizacaoId={fiscId} unidadeId={occurrenceId || 'novo-ponto'} isEditable={true}
+                        fiscalizacaoId={fiscId} unidadeId={occurrenceId || draftId || 'novo-ponto'} isEditable={true}
                         enableLegenda={false}
+                        autoCapture={!occurrenceId && fotos.length === 0}
                         watermarkContext={{ rodovia: rodoviaSnapped || fisc?.rodovia || '', km: km || '', sentido: sentido || '' }}
                     />
                 </div>

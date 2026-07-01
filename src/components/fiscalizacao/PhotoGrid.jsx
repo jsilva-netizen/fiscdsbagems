@@ -22,7 +22,8 @@ export default function PhotoGrid({
     isEditable = true,
     bigButton = false,
     enableLegenda = true,
-    watermarkContext = null
+    watermarkContext = null,
+    autoCapture = false
 }) {
     const fotosList = useMemo(() => {
         return (Array.isArray(fotos) ? fotos : []).map((f) => (typeof f === 'string' ? { url: f, legenda: '' } : f)).filter(Boolean);
@@ -43,6 +44,7 @@ export default function PhotoGrid({
     const GPS_FIX_MAX_AGE_MS = 2 * 60 * 1000;
     const GPS_FALLBACK_MAX_AGE_MS = 10 * 60 * 1000;
     const captureResetTimerRef = useRef(null);
+    const autoCaptureAttemptedRef = useRef(false);
 
     const fotoKey = (foto, index) => {
         const f = foto || {};
@@ -75,6 +77,14 @@ export default function PhotoGrid({
         }
         return url;
     };
+
+    // Auto-abre câmera na montagem quando autoCapture=true e sem fotos
+    useEffect(() => {
+        if (!autoCapture || autoCaptureAttemptedRef.current || fotosList.length > 0) return;
+        autoCaptureAttemptedRef.current = true;
+        void openWithGpsGate(cameraInputRef);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     useEffect(() => {
         let cancelled = false;
