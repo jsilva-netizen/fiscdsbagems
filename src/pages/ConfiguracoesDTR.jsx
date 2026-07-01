@@ -4,7 +4,7 @@ import { createPageUrl } from '@/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Repository } from '@/lib/offline/repository';
 import { parseKMLKmPoints } from '@/utils/rodoviasGeoJSON';
-// xlsx é carregado dinamicamente para evitar quebra de construtores pelo Vite
+import * as XLSX from 'xlsx';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -32,11 +32,6 @@ const TEMPLATE_COLUNAS = [
 ];
 
 async function downloadTemplate() {
-    const XLSX = window.XLSX;
-    if (!XLSX) {
-        alert("Biblioteca XLSX não carregada. Recarregue a página.");
-        return;
-    }
     const ws = XLSX.utils.aoa_to_sheet([
         TEMPLATE_COLUNAS,
         [
@@ -134,11 +129,6 @@ function parseSpreadsheet(file) {
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
-                const XLSX = window.XLSX;
-                if (!XLSX) {
-                    reject(new Error("Biblioteca XLSX não carregada. Recarregue a página."));
-                    return;
-                }
                 // type:'array' com ArrayBuffer é mais robusto que binary string
                 const data = new Uint8Array(e.target.result);
                 const wb = XLSX.read(data, { type: 'array', cellDates: false });
