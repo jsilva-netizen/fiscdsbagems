@@ -184,9 +184,13 @@ function TabTipos() {
 
     const uploadMutation = useMutation({
         mutationFn: (tipos) => Repository.upsertTiposOcorrenciaDTR(tipos),
-        onSuccess: () => {
+        onSuccess: ({ inserted, updated, unchanged }) => {
             queryClient.invalidateQueries({ queryKey: ['tipos_ocorrencia_dtr'] });
-            setUploadStatus({ type: 'success', message: `${parsedFile?.length || 0} tipos enviados com sucesso!` });
+            const parts = [];
+            if (inserted > 0) parts.push(`${inserted} adicionado${inserted !== 1 ? 's' : ''}`);
+            if (updated > 0) parts.push(`${updated} atualizado${updated !== 1 ? 's' : ''}`);
+            if (unchanged > 0) parts.push(`${unchanged} sem alterações`);
+            setUploadStatus({ type: 'success', message: parts.join(', ') + '.' });
             setPreview(null);
             setParsedFile(null);
         },

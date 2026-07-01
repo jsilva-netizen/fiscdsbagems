@@ -303,34 +303,83 @@ export const Repository = {
     }
   },
 
-  async upsertTiposOcorrenciaDTR(tipos: Array<{ nome: string; gera_nc: boolean; item_contrato?: string; nao_atendimento?: string; prazo_dias_padrao?: number; descricao?: string; observacoes?: string; rodovia?: string | null }>): Promise<void> {
-    if (!tipos || tipos.length === 0) return
+  async upsertTiposOcorrenciaDTR(tipos: Array<{ nome?: string; frente?: string; gera_nc: boolean; item_contrato?: string; nao_atendimento?: string; prazo_dias_padrao?: number; descricao?: string; observacoes?: string; rodovia?: string | null; etapas_obra?: string | null }>): Promise<{ inserted: number; updated: number; unchanged: number }> {
+    if (!tipos || tipos.length === 0) return { inserted: 0, updated: 0, unchanged: 0 }
 
-    const rows = tipos.map(t => ({
-      id: uid(),
-      nome: (t.nome || '').trim(),
-      gera_nc: !!t.gera_nc,
-      item_contrato: t.item_contrato || null,
-      nao_atendimento: t.nao_atendimento || null,
-      prazo_dias_padrao: t.prazo_dias_padrao ? Number(t.prazo_dias_padrao) : null,
-      descricao: t.descricao || null,
-      observacoes: t.observacoes || null,
-      rodovia: t.rodovia || null,
-      ativo: true,
-      created_at: now(),
-      updated_at: now()
-    })).filter(r => r.nome)
+    const { data: existing, error: fetchErr } = await supabase.from('tipos_ocorrencia_dtr').select('*')
+    if (fetchErr) throw new Error('Falha ao buscar tipos existentes: ' + fetchErr.message)
 
-    // Limpar e reinserir no Supabase
-    const { error: delErr } = await supabase.from('tipos_ocorrencia_dtr').delete().neq('id', '00000000-0000-0000-0000-000000000000')
-    if (delErr) throw new Error('Falha ao limpar tipos antigos: ' + delErr.message)
+    const rowKey = (frente?: string | null, item?: string | null, desc?: string | null, rod?: string | null) =>
+      `${(frente || '').trim()}|${(item || '').trim()}|${(desc || '').trim()}|${(rod || '').trim()}`
 
-    const { error: insErr } = await supabase.from('tipos_ocorrencia_dtr').insert(rows)
-    if (insErr) throw new Error('Falha ao inserir tipos: ' + insErr.message)
+    const existingMap = new Map((existing || []).map(r => [rowKey(r.frente, r.item_contrato, r.descricao, r.rodovia), r]))
 
-    // Sincronizar localmente
-    await db.tipos_ocorrencia_dtr.clear()
-    await db.tipos_ocorrencia_dtr.bulkPut(rows as any)
+    const toInsert: any[] = []
+    const toUpdate: any[] = []
+    let unchanged = 0
+
+    for (const t of tipos) {
+      const nome = (t.descricao || t.nome || t.item_contrato || t.frente || '').trim()
+      if (!nome) continue
+
+      const incoming = {
+        nome,
+        frente: t.frente || null,
+        gera_nc: !!t.gera_nc,
+        item_contrato: t.item_contrato || null,
+        nao_atendimento: t.nao_atendimento || null,
+        prazo_dias_padrao: t.prazo_dias_padrao ? Number(t.prazo_dias_padrao) : null,
+        descricao: t.descricao || null,
+        observacoes: t.observacoes || null,
+        rodovia: t.rodovia || null,
+        etapas_obra: t.etapas_obra || null,
+        ativo: true,
+      }
+
+      const k = rowKey(t.frente, t.item_contrato, t.descricao, t.rodovia)
+      const match = existingMap.get(k)
+
+      if (!match) {
+        toInsert.push({ id: uid(), ...incoming, created_at: now(), updated_at: now() })
+      } else {
+        const changed =
+          match.nome !== incoming.nome ||
+          match.gera_nc !== incoming.gera_nc ||
+          (match.nao_atendimento || null) !== incoming.nao_atendimento ||
+          (match.prazo_dias_padrao || null) !== incoming.prazo_dias_padrao ||
+          (match.etapas_obra || null) !== incoming.etapas_obra ||
+          (match.observacoes || null) !== incoming.observacoes
+        if (changed) {
+          toUpdate.push({ id: match.id, ...incoming, updated_at: now() })
+        } else {
+          unchanged++
+        }
+      }
+    }
+
+    if (toInsert.length > 0) {
+      const { error } = await supabase.from('tipos_ocorrencia_dtr').insert(toInsert)
+      if (error) throw new Error('Falha ao inserir tipos: ' + error.message)
+    }
+
+    if (toUpdate.length > 0) {
+      await Promise.all(
+        toUpdate.map(({ id, ...data }) =>
+          supabase.from('tipos_ocorrencia_dtr').update(data).eq('id', id).then(({ error }) => {
+            if (error) throw new Error('Falha ao atualizar tipo: ' + error.message)
+          })
+        )
+      )
+    }
+
+    // Ressincronizar local com estado atual do servidor
+    const { data: refreshed } = await supabase.from('tipos_ocorrencia_dtr').select('*').order('nome')
+    if (refreshed) {
+      await db.tipos_ocorrencia_dtr.clear()
+      await db.tipos_ocorrencia_dtr.bulkPut(refreshed as any)
+    }
+
+    return { inserted: toInsert.length, updated: toUpdate.length, unchanged }
   },
 
   // --- KML por Contrato/Rodovia ---
