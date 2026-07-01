@@ -78,9 +78,6 @@ export default function VistoriarOcorrenciaDTR() {
     const [kmDataLoaded, setKmDataLoaded] = useState(false);
     const [location, setLocation] = useState(null);
     const [gettingLocation, setGettingLocation] = useState(false);
-    const [draftId, setDraftId] = useState(null);
-    const autoSavedRef = useRef(false);
-
     const { data: fisc } = useQuery({
         queryKey: ['fiscalizacao', fiscId],
         queryFn: () => Repository.getFiscalizacaoById(fiscId),
@@ -191,25 +188,6 @@ export default function VistoriarOcorrenciaDTR() {
         );
     }, [fisc, occurrenceId, kmDataLoaded]);
 
-    // Auto-save rascunho quando primeira foto é adicionada (nova ocorrência)
-    useEffect(() => {
-        if (fotos.length === 0 || occurrenceId || autoSavedRef.current || !fiscId) return;
-        autoSavedRef.current = true;
-        Repository.createUnidade({
-            fiscalizacao_id: fiscId,
-            tipo_unidade_id: null,
-            nome_unidade: 'Rascunho DTR',
-            latitude: location?.lat ?? null,
-            longitude: location?.lng ?? null,
-            rodovia: rodoviaSnapped || fisc?.rodovia || '',
-            km: km || '',
-        }).then(res => {
-            Repository.reassignLocalFotos('novo-ponto', res.id).catch(() => {});
-            setDraftId(res.id);
-        }).catch(() => { autoSavedRef.current = false; });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [fotos.length]);
-
     // Edit mode: pre-populate state and jump to last step
     useEffect(() => {
         if (!occurrenceId || !ocorrencia) return;
@@ -270,7 +248,7 @@ export default function VistoriarOcorrenciaDTR() {
 
     const salvarMutation = useMutation({
         mutationFn: async () => {
-            const targetId = occurrenceId || draftId;
+            const targetId = occurrenceId;
             let uId = targetId || '';
             const descricaoItem = selectedItem?.descricao || selectedItem?.nome || '';
             const payload = {
@@ -321,10 +299,7 @@ export default function VistoriarOcorrenciaDTR() {
     const goBack = () => {
         if (stepIdx === 0) {
             if (fotos.length > 0 && !occurrenceId) {
-                const msg = draftId
-                    ? 'Sair? O rascunho está salvo e pode ser concluído depois.'
-                    : 'Sair agora? As fotos podem ser perdidas.';
-                if (!confirm(msg)) return;
+                if (!confirm('Sair agora? As fotos podem ser perdidas.')) return;
             }
             navigate(createPageUrl('ExecutarFiscalizacaoDTR') + `?id=${fiscId}`);
         } else {
@@ -437,7 +412,7 @@ export default function VistoriarOcorrenciaDTR() {
                         onAddFoto={addFoto} onRemoveFoto={removeFoto}
                         onUpdateLegenda={updateLegenda}
                         onReorderFotos={(n) => { setFotos(n); setFotosDirty(true); }}
-                        fiscalizacaoId={fiscId} unidadeId={occurrenceId || draftId || 'novo-ponto'} isEditable={true}
+                        fiscalizacaoId={fiscId} unidadeId={occurrenceId || 'novo-ponto'} isEditable={true}
                         enableLegenda={false}
                         autoCapture={!occurrenceId && fotos.length === 0}
                         captureBlocked={!kmReady}
