@@ -98,6 +98,26 @@ export default function PhotoGrid({
         videoRef.current.play().catch(() => {});
     }, [showCamera]);
 
+    // Força orientação paisagem enquanto a câmera estiver aberta (necessário
+    // tela cheia no Chrome/Android para o orientation.lock ser aceito)
+    useEffect(() => {
+        if (!showCamera) return;
+        (async () => {
+            try {
+                await document.documentElement.requestFullscreen?.();
+            } catch {}
+            try {
+                await screen.orientation?.lock?.('landscape');
+            } catch {}
+        })();
+        return () => {
+            try { screen.orientation?.unlock?.(); } catch {}
+            try {
+                if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+            } catch {}
+        };
+    }, [showCamera]);
+
     // Auto-abre câmera na montagem quando autoCapture=true e sem fotos
     useEffect(() => {
         if (!autoCapture || autoCaptureAttemptedRef.current || fotosList.length > 0) return;
@@ -274,7 +294,15 @@ export default function PhotoGrid({
         }
         // Abre stream da câmera
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: 'environment',
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 },
+                    aspectRatio: { ideal: 16 / 9 }
+                },
+                audio: false
+            });
             streamRef.current = stream;
             setIsCapturing(false);
             setShowCamera(true);
