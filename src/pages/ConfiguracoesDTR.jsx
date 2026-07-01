@@ -134,7 +134,8 @@ function parseSpreadsheet(file) {
                         const frente = String(r[off] || '').trim();
                         const item_contrato = String(r[off + 1] || '').trim() || null;
                         const descricao = String(r[off + 2] || '').trim() || null;
-                        const nao_atendimento = String(r[off + 3] || '').trim() || null;
+                        const rawNaoAten = String(r[off + 3] || '').trim();
+                        const nao_atendimento = rawNaoAten && rawNaoAten !== '-' ? rawNaoAten : null;
                         const prazo_dias_padrao = r[off + 4] ? parseInt(String(r[off + 4]).trim(), 10) || null : null;
                         const rawEtapas = r[off + 5] ? String(r[off + 5]).trim() : '';
                         const etapas_obra = rawEtapas && rawEtapas !== '-' ? rawEtapas : null;
