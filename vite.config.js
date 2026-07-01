@@ -6,6 +6,14 @@ import path from 'path'
 // https://vite.dev/config/
 export default defineConfig({
   logLevel: 'error', // Suppress warnings, only show errors
+  optimizeDeps: {
+    include: ['leaflet', 'xlsx'],
+  },
+  build: {
+    commonjsOptions: {
+      include: [/xlsx/, /node_modules/],
+    },
+  },
   plugins: [
     react(),
     VitePWA({
