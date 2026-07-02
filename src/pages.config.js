@@ -51,7 +51,6 @@ import AcompanhamentoDeterminacoes from './pages/AcompanhamentoDeterminacoes';
 import AdicionarUnidade from './pages/AdicionarUnidade';
 import AnalisarResposta from './pages/AnalisarResposta';
 import AnaliseManifestacao from './pages/AnaliseManifestacao';
-import CamaraJulgamento from './pages/CamaraJulgamento';
 import Checklists from './pages/Checklists';
 import DetalhePrestador from './pages/DetalhePrestador';
 import ExecutarFiscalizacao from './pages/ExecutarFiscalizacao';
@@ -102,7 +101,6 @@ export const PAGES = {
     "AdicionarUnidade": AdicionarUnidade,
     "AnalisarResposta": AnalisarResposta,
     "AnaliseManifestacao": AnaliseManifestacao,
-    "CamaraJulgamento": CamaraJulgamento,
     "Checklists": Checklists,
     "DetalhePrestador": DetalhePrestador,
     "ExecutarFiscalizacao": ExecutarFiscalizacao,

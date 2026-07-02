@@ -26,7 +26,6 @@ export default function Layout({ children, currentPageName }) {
         'GestaoAutos',
         'AnaliseManifestacao',
         'PareceresTecnicos',
-        'CamaraJulgamento',
         'CresDashboard',
         'Definicoes',
         'FiscalizacoesDTR',

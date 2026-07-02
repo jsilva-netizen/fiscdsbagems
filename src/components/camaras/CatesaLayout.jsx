@@ -1,6 +1,6 @@
 import CamaraLayout from '@/components/camaras/CamaraLayout';
 import { createPageUrl } from '@/utils';
-import { BarChart3, ClipboardCheck, GitMerge, FileWarning, ClipboardList, Scale, FileText, TrendingUp } from 'lucide-react';
+import { BarChart3, ClipboardCheck, GitMerge, FileWarning, ClipboardList, FileText, TrendingUp } from 'lucide-react';
 
 const NAV_ITEMS = [
   { label: 'Dashboard',         to: createPageUrl('CatesaDashboard'),     icon: BarChart3 },
@@ -9,7 +9,6 @@ const NAV_ITEMS = [
   { label: 'Manifestações',     to: createPageUrl('AnaliseManifestacao'), icon: GitMerge, activeFor: ['AnalisarResposta'] },
   { label: 'Autos de Infração', to: createPageUrl('GestaoAutos'),         icon: FileWarning },
   { label: 'Pareceres',         to: createPageUrl('PareceresTecnicos'),   icon: ClipboardList },
-  { label: 'Câm. Julgamento',   to: createPageUrl('CamaraJulgamento'),    icon: Scale },
   { label: 'Indicadores',       to: createPageUrl('Relatorios') + '?camara=catesa', icon: TrendingUp },
 ];
 
