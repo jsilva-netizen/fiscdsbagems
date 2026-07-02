@@ -61,7 +61,7 @@ export default function CamaraLayout({ sigla, nome, diretoria, navItems = [], ch
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-lg">
         <div className="max-w-7xl mx-auto px-4 pt-4 pb-0">
-          <div className="flex items-center gap-3 pb-3">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 pb-3">
             {/* Logo — volta pro início (seleção de módulo/câmara) */}
             <Link to={createPageUrl('Home')} className="w-9 h-9 bg-white rounded-xl flex items-center justify-center p-1.5 shadow-md flex-shrink-0">
               <svg viewBox="0 0 128 128" className="w-full h-full" aria-label="Logo AGEMS">
@@ -72,8 +72,8 @@ export default function CamaraLayout({ sigla, nome, diretoria, navItems = [], ch
               </svg>
             </Link>
 
-            <div className="flex-1 min-w-0">
-              <h1 className="text-lg font-bold leading-tight">{sigla}</h1>
+            <div className="flex-1 min-w-[88px]">
+              <h1 className="text-lg font-bold leading-tight whitespace-nowrap">{sigla}</h1>
               <p className="text-blue-200 text-xs truncate">{nome}</p>
             </div>
 
