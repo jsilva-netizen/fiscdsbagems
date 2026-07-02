@@ -9,9 +9,7 @@ import {
   AlertTriangle,
   GitMerge,
   TimerOff,
-  Plus,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import CatesaLayout from '@/components/camaras/CatesaLayout';
 import { supabase } from '@/lib/supabase';
 import { createPageUrl } from '@/utils';
@@ -84,22 +82,6 @@ export default function CatesaDashboard() {
       <div className="bg-slate-50 min-h-full">
         <div className="px-4 sm:px-8 pb-12 pt-8">
           <div className="mx-auto max-w-6xl space-y-8">
-
-            {/* Header */}
-            <div className="flex items-start justify-between gap-4 flex-wrap">
-              <div>
-                <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Dashboard</h1>
-                <p className="mt-1 text-sm text-slate-500">
-                  Centro de acompanhamento regulatório — CATESA/DSB/AGEMS
-                </p>
-              </div>
-              <Link to={createPageUrl('NovaFiscalizacao')}>
-                <Button className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow gap-1.5">
-                  <Plus className="h-4 w-4" />
-                  Nova Fiscalização
-                </Button>
-              </Link>
-            </div>
 
             {isError && (
               <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

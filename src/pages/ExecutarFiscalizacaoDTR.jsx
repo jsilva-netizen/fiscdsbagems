@@ -69,16 +69,16 @@ export default function ExecutarFiscalizacaoDTR() {
     return (
         /*
          * Layout de tela cheia dividida em dois painéis:
-         *   ┌─────────────────────────────┐  ← h-[50dvh] rolável
+         *   ┌─────────────────────────────┐  ← h-[70dvh] rolável
          *   │  Header + botão + lista     │
          *   ├─────────────────────────────┤
-         *   │  Mapa (fixo na metade inf.) │  ← h-[50dvh]
+         *   │  Mapa (fixo embaixo)        │  ← h-[30dvh]
          *   └─────────────────────────────┘
          */
         <div className="h-dvh flex flex-col bg-gray-50 text-gray-800 overflow-hidden">
 
-            {/* ── PAINEL SUPERIOR (metade de cima, scrollável) ── */}
-            <div className="flex flex-col overflow-y-auto" style={{ height: '50dvh' }}>
+            {/* ── PAINEL SUPERIOR (70% de cima, scrollável) ── */}
+            <div className="flex flex-col overflow-y-auto" style={{ height: '70dvh' }}>
 
                 {/* Header */}
                 <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md flex-shrink-0">
@@ -196,8 +196,8 @@ export default function ExecutarFiscalizacaoDTR() {
                 </div>
             </div>
 
-            {/* ── PAINEL INFERIOR — Mapa (metade de baixo, fixo) ── */}
-            <div className="flex-shrink-0 border-t border-gray-200" style={{ height: '50dvh' }}>
+            {/* ── PAINEL INFERIOR — Mapa (fixo embaixo) ── */}
+            <div className="flex-shrink-0 border-t border-gray-200" style={{ height: '30dvh' }}>
                 <RodoviaMap
                     rodovia={fisc.rodovia}
                     fiscId={fisc.id}

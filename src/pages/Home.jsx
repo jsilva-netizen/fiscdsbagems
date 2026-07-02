@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { createPageUrl } from '@/utils';
 import { useAuth } from '@/lib/AuthContext';
 import { useModulo } from '@/hooks/useModulo';
-import { CAMARA_DASHBOARD_PAGE, DEFAULT_CAMARA_POR_DIRETORIA } from '@/lib/camaras';
+import { CAMARA_DASHBOARD_PAGE, CAMARA_FISCALIZACAO_PATH, DEFAULT_CAMARA_POR_DIRETORIA } from '@/lib/camaras';
 import { Link, Navigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,8 @@ export default function Home() {
     const [isMobile, setIsMobile] = useState(false);
 
     const isPrestador = user?.role === 'prestador';
+    // "user" é o valor legado salvo no banco pro cargo "Fiscal" (ver GerenciarUsuarios.jsx).
+    const isFiscal = (user?.role === 'user' ? 'fiscal' : user?.role) === 'fiscal';
 
     const handleLogout = async () => {
         try { await logout(); } catch (error) { console.error('Erro ao sair:', error); }
@@ -38,9 +40,15 @@ export default function Home() {
     }, []);
 
     // Quem já tem câmara técnica atribuída cai direto no dashboard dela — exceto admin,
-    // que sempre vê o seletor de módulo/câmara abaixo (pode navegar livremente).
-    if (!isAdmin && CAMARA_DASHBOARD_PAGE[camaraTecnica]) {
-        return <Navigate to={createPageUrl(CAMARA_DASHBOARD_PAGE[camaraTecnica])} replace />;
+    // que sempre vê o seletor de módulo/câmara abaixo (pode navegar livremente). Fiscais
+    // pulam o dashboard e caem direto na aba de Fiscalização, que é o que eles usam no dia a dia.
+    if (!isAdmin && camaraTecnica) {
+        if (isFiscal && CAMARA_FISCALIZACAO_PATH[camaraTecnica]) {
+            return <Navigate to={CAMARA_FISCALIZACAO_PATH[camaraTecnica]} replace />;
+        }
+        if (CAMARA_DASHBOARD_PAGE[camaraTecnica]) {
+            return <Navigate to={createPageUrl(CAMARA_DASHBOARD_PAGE[camaraTecnica])} replace />;
+        }
     }
 
     // Menu card definitions (caso remanescente: usuário sem câmara atribuída, não-admin)

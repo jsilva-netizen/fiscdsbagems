@@ -578,7 +578,7 @@ export async function compressFileToBlob(
   file: File,
   maxDimension = MAX_DIMENSION,
   quality = JPEG_QUALITY,
-  options?: { watermarkLines?: string[]; exif?: { latitude: number; longitude: number; takenAt: Date } }
+  options?: { watermarkLines?: string[]; exif?: { latitude: number; longitude: number; takenAt: Date }; forceLandscape?: boolean }
 ): Promise<{
   blob: Blob
   mimeType: string
@@ -607,15 +607,24 @@ export async function compressFileToBlob(
     w = Math.round(w * scale)
     h = Math.round(h * scale)
   }
+  // Câmaras que exigem paisagem (ex: fiscalização de rodovias/DTR) recebem a foto
+  // sempre deitada, girando o retrato 90° em vez de deixar a captura vertical.
+  const rotateToLandscape = !!options?.forceLandscape && h > w
   const canvas = document.createElement('canvas')
-  canvas.width = w
-  canvas.height = h
+  canvas.width = rotateToLandscape ? h : w
+  canvas.height = rotateToLandscape ? w : h
   const ctx = canvas.getContext('2d')!
   ctx.imageSmoothingEnabled = true
   try {
     ctx.imageSmoothingQuality = 'high'
   } catch {}
-  ctx.drawImage(img, 0, 0, w, h)
+  if (rotateToLandscape) {
+    ctx.translate(canvas.width, 0)
+    ctx.rotate(Math.PI / 2)
+    ctx.drawImage(img, 0, 0, w, h)
+  } else {
+    ctx.drawImage(img, 0, 0, w, h)
+  }
   if (options?.watermarkLines?.length) {
     drawWatermark(canvas, options.watermarkLines)
   }
@@ -642,8 +651,8 @@ export async function compressFileToBlob(
   return {
     blob: finalBlob,
     mimeType: 'image/jpeg',
-    width: w,
-    height: h,
+    width: canvas.width,
+    height: canvas.height,
     byteLength: finalBlob.size
   }
 }

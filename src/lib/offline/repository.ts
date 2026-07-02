@@ -2048,7 +2048,7 @@ export const Repository = {
         // DTR: Rodovia+KM+Sentido / Data Hora / Coordenadas
         const locLine = buildDtrLocLine()
         const watermarkLines = [...(locLine ? [locLine] : []), `${formatDateBR(takenAt)} ${formatTimeBR(takenAt)}`, coordsText]
-        processed = await compressFileToBlob(file, MAX_DIMENSION, JPEG_QUALITY, { watermarkLines, exif: exifData })
+        processed = await compressFileToBlob(file, MAX_DIMENSION, JPEG_QUALITY, { watermarkLines, exif: exifData, forceLandscape: true })
       } else {
         const watermarkLines = [`${codigoUnidade}, ${municipioNome} - MS`, `${formatDateBR(takenAt)} ${formatTimeBR(takenAt)}`, coordsText]
         processed = await compressFileToBlob(file, MAX_DIMENSION, JPEG_QUALITY, { watermarkLines, exif: exifData })
@@ -2059,7 +2059,7 @@ export const Repository = {
         const locLine = buildDtrLocLine()
         const takenAt = file.lastModified ? new Date(file.lastModified) : new Date()
         const watermarkLines = [...(locLine ? [locLine] : []), `${formatDateBR(takenAt)} ${formatTimeBR(takenAt)}`]
-        processed = await compressFileToBlob(file, MAX_DIMENSION, JPEG_QUALITY, { watermarkLines })
+        processed = await compressFileToBlob(file, MAX_DIMENSION, JPEG_QUALITY, { watermarkLines, forceLandscape: true })
       } else {
         processed = await compressFileToBlob(file, MAX_DIMENSION, JPEG_QUALITY)
       }
