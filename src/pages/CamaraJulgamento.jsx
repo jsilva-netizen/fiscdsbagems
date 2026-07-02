@@ -3,7 +3,7 @@ import { Repository } from '@/lib/offline/repository';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Download } from 'lucide-react';
+import { Download, Scale } from 'lucide-react';
 import CatesaLayout from '@/components/camaras/CatesaLayout';
 
 export default function CamaraJulgamento() {
@@ -72,7 +72,18 @@ export default function CamaraJulgamento() {
 
     return (
         <CatesaLayout>
-                <div className="max-w-6xl mx-auto px-4 py-6">
+                <div className="max-w-6xl mx-auto px-4 pt-8 pb-6">
+
+                {/* Header */}
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="grid h-10 w-10 place-items-center rounded-xl bg-violet-50">
+                        <Scale className="h-5 w-5 text-violet-700" />
+                    </div>
+                    <div>
+                        <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Câmara de Julgamento</h1>
+                        <p className="text-sm text-slate-500">Remessas encaminhadas para julgamento</p>
+                    </div>
+                </div>
 
                 {/* KPIs */}
                 <div className="grid grid-cols-3 gap-4 mb-8">

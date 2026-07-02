@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { FileText, Clock, CheckCircle, AlertCircle, Download } from 'lucide-react';
+import { FileText, Clock, CheckCircle, AlertCircle, Download, GitMerge } from 'lucide-react';
 import CatesaLayout from '@/components/camaras/CatesaLayout';
 
 
@@ -571,7 +571,18 @@ export default function AnaliseManifestacao() {
 
     return (
         <CatesaLayout>
-                <div className="max-w-6xl mx-auto px-4">
+                <div className="max-w-6xl mx-auto px-4 pt-8">
+
+                {/* Header */}
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="grid h-10 w-10 place-items-center rounded-xl bg-amber-50">
+                        <GitMerge className="h-5 w-5 text-amber-700" />
+                    </div>
+                    <div>
+                        <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Manifestações</h1>
+                        <p className="text-sm text-slate-500">Análise de respostas e manifestações de prestadores</p>
+                    </div>
+                </div>
 
                 {/* Dashboard KPI */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">

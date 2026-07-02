@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import FluxoUploadDocumentos from '@/components/autos/FluxoUploadDocumentos';
-import { Loader2, Save, Download, Send } from 'lucide-react';
+import { Loader2, Save, Download, Send, FileWarning } from 'lucide-react';
 import CatesaLayout from '@/components/camaras/CatesaLayout';
 
 export default function GestaoAutos() {
@@ -500,7 +500,18 @@ export default function GestaoAutos() {
 
     return (
         <CatesaLayout>
-            <div className="max-w-6xl mx-auto px-4 py-6">
+            <div className="max-w-6xl mx-auto px-4 pt-8 pb-6">
+
+                {/* Header */}
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="grid h-10 w-10 place-items-center rounded-xl bg-orange-50">
+                        <FileWarning className="h-5 w-5 text-orange-700" />
+                    </div>
+                    <div>
+                        <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Autos de Infração</h1>
+                        <p className="text-sm text-slate-500">Gestão de autos, remessas e pareceres</p>
+                    </div>
+                </div>
 
                 {/* KPIs */}
                 <div className="grid grid-cols-4 gap-4 mb-8">
