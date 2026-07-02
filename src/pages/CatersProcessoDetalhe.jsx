@@ -539,7 +539,7 @@ export default function CatersProcessoDetalhe() {
     <CatersLayout>
       <div className="min-h-full bg-slate-50">
         <div className="px-8 pb-12 pt-8">
-          <div className="mx-auto max-w-5xl space-y-6">
+          <div className="mx-auto max-w-6xl space-y-6">
 
             {/* Breadcrumb */}
             <div className="flex items-center gap-2 text-sm text-slate-500">

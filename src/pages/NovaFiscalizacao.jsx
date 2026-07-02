@@ -10,7 +10,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Navigation, Loader2, MapPin, Plus, Sparkles } from 'lucide-react';
+import { ArrowLeft, Navigation, Loader2, MapPin, Plus } from 'lucide-react';
 
 const SERVICOS = ['Abastecimento de Água', 'Esgotamento Sanitário', 'Manejo de Resíduos Sólidos', 'Limpeza Urbana', 'Drenagem'];
 
@@ -96,8 +96,8 @@ export default function NovaFiscalizacao() {
                             </Button>
                         </Link>
                         <div>
-                            <h1 className="text-xl font-bold flex items-center gap-2">
-                                Nova Fiscalização <Sparkles className="h-5 w-5 text-yellow-300 fill-yellow-300" />
+                            <h1 className="text-xl font-bold">
+                                Nova Fiscalização
                             </h1>
                             <p className="text-blue-200 text-xs">Módulo Saneamento Básico (DSB)</p>
                         </div>

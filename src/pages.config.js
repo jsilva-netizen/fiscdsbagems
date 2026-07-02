@@ -86,6 +86,14 @@ import CatersFiscalizacoes from './pages/CatersFiscalizacoes';
 import CatersTermos from './pages/CatersTermos';
 import CresDashboard from './pages/CresDashboard';
 import Definicoes from './pages/Definicoes';
+import CaterfDashboard from './pages/CaterfDashboard';
+import CatranspDashboard from './pages/CatranspDashboard';
+import CatefisDashboard from './pages/CatefisDashboard';
+import CretDashboard from './pages/CretDashboard';
+import CategasDashboard from './pages/CategasDashboard';
+import CateneDashboard from './pages/CateneDashboard';
+import CregDashboard from './pages/CregDashboard';
+import CaterfConcessionarias from './pages/CaterfConcessionarias';
 import __Layout from './Layout.jsx';
 
 
@@ -129,6 +137,14 @@ export const PAGES = {
     "CatersTermos": CatersTermos,
     "CresDashboard": CresDashboard,
     "Definicoes": Definicoes,
+    "CaterfDashboard": CaterfDashboard,
+    "CatranspDashboard": CatranspDashboard,
+    "CatefisDashboard": CatefisDashboard,
+    "CretDashboard": CretDashboard,
+    "CategasDashboard": CategasDashboard,
+    "CateneDashboard": CateneDashboard,
+    "CregDashboard": CregDashboard,
+    "CaterfConcessionarias": CaterfConcessionarias,
 }
 
 export const pagesConfig = {

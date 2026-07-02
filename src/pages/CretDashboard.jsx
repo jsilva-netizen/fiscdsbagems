@@ -3,22 +3,20 @@ import {
   FileText,
   ClipboardList,
   Scale,
-  Gavel,
   Construction,
 } from 'lucide-react';
-import CresLayout from '@/components/cres/CresLayout';
+import CretLayout from '@/components/cret/CretLayout';
 
 const COMING_SOON = [
-  { icon: TrendingUp,    label: 'Revisões Tarifárias',    desc: 'Processos de revisão e reajuste' },
-  { icon: FileText,      label: 'Análise de Manifestação', desc: 'Processos de defesa' },
+  { icon: TrendingUp,   label: 'Revisões Tarifárias',     desc: 'Processos de revisão e reajuste' },
+  { icon: FileText,     label: 'Análise de Manifestação', desc: 'Processos de defesa' },
   { icon: ClipboardList, label: 'Pareceres Econômicos',   desc: 'Análises regulatórias' },
-  { icon: Scale,         label: 'Pareceres Técnicos',     desc: 'Pareceres e análises' },
-  { icon: Gavel,         label: 'Câmara de Julgamento',   desc: 'Pareceres para julgamento' },
+  { icon: Scale,        label: 'Câmara de Julgamento',    desc: 'Pareceres para julgamento' },
 ];
 
-export default function CresDashboard() {
+export default function CretDashboard() {
   return (
-    <CresLayout>
+    <CretLayout>
       <div className="min-h-full bg-slate-50">
         <div className="max-w-4xl mx-auto px-6 py-10 space-y-8">
 
@@ -29,9 +27,9 @@ export default function CresDashboard() {
                 <Construction className="h-7 w-7 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-extrabold">Painel CRES</h1>
+                <h1 className="text-2xl font-extrabold">Painel CRET</h1>
                 <p className="mt-1 text-violet-100 text-sm">
-                  Câmara Técnica de Regulação Econômica do Saneamento — em implementação
+                  Câmara Técnica de Regulação Econômica — em implementação
                 </p>
               </div>
             </div>
@@ -65,6 +63,6 @@ export default function CresDashboard() {
 
         </div>
       </div>
-    </CresLayout>
+    </CretLayout>
   );
 }

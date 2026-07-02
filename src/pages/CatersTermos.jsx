@@ -56,7 +56,7 @@ export default function CatersTermos() {
 
   return (
     <CatersLayout>
-      <div className="max-w-5xl mx-auto px-4 py-6 space-y-5">
+      <div className="max-w-6xl mx-auto px-4 py-6 space-y-5">
 
         <div className="flex items-center gap-3">
           <div className="relative flex-1 max-w-sm">

@@ -36,7 +36,7 @@ export default function CatersRecomendacoes() {
     <CatersLayout>
       <div className="min-h-full bg-slate-50">
         <div className="px-8 pb-12 pt-8">
-          <div className="mx-auto max-w-4xl space-y-6">
+          <div className="mx-auto max-w-6xl space-y-6">
             {/* Header */}
             <div className="flex items-center gap-3">
               <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-50">

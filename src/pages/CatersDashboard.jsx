@@ -11,12 +11,14 @@ import {
   TimerOff,
   TriangleAlert,
   Clock,
+  Plus,
 } from 'lucide-react';
 import CatersLayout from '@/components/caters/CatersLayout';
 import { fetchDashboardData } from '@/lib/caters/dashboard';
 import { formatIsoDateHuman } from '@/lib/caters/dates';
 import { createPageUrl } from '@/utils';
 import { supabase } from '@/lib/supabase';
+import { Button } from '@/components/ui/button';
 
 async function fetchCatersTNs() {
   const { data, error } = await supabase
@@ -28,20 +30,20 @@ async function fetchCatersTNs() {
 
 function MetricCard({ title, value, icon: Icon, iconBg, iconColor, badge }) {
   return (
-    <div className="flex flex-col justify-between rounded-xl border border-slate-200/70 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
-      <div className="mb-3 flex items-start justify-between gap-3">
-        <div className={`rounded-lg p-2 ${iconBg}`}>
-          <Icon className={`h-5 w-5 ${iconColor}`} />
+    <div className="flex flex-col justify-between rounded-lg border border-slate-200/70 bg-white p-3 shadow-sm transition-shadow hover:shadow-md">
+      <div className="mb-2 flex items-start justify-between gap-2">
+        <div className={`rounded-md p-1.5 ${iconBg}`}>
+          <Icon className={`h-4 w-4 ${iconColor}`} />
         </div>
         {badge ? (
-          <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-tight text-emerald-700">
+          <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-tight text-emerald-700">
             {badge}
           </span>
         ) : null}
       </div>
       <div>
-        <div className="text-3xl font-extrabold tracking-tight text-slate-900">{value}</div>
-        <div className="mt-1 text-xs font-semibold leading-tight text-slate-500">{title}</div>
+        <div className="text-xl font-extrabold tracking-tight text-slate-900">{value}</div>
+        <div className="mt-0.5 text-[11px] font-semibold leading-tight text-slate-500">{title}</div>
       </div>
     </div>
   );
@@ -78,13 +80,21 @@ export default function CatersDashboard() {
     <CatersLayout>
       <div className="bg-slate-50 min-h-full">
         <div className="px-8 pb-12 pt-8">
-          <div className="mx-auto max-w-7xl space-y-8">
+          <div className="mx-auto max-w-6xl space-y-8">
             {/* Header */}
-            <div>
-              <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Dashboard</h1>
-              <p className="mt-1 text-sm text-slate-500">
-                Centro de acompanhamento regulatório — CATERS/DSB/AGEMS
-              </p>
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div>
+                <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Dashboard</h1>
+                <p className="mt-1 text-sm text-slate-500">
+                  Centro de acompanhamento regulatório — CATERS/DSB/AGEMS
+                </p>
+              </div>
+              <Link to={createPageUrl('NovaFiscalizacao')}>
+                <Button className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow gap-1.5">
+                  <Plus className="h-4 w-4" />
+                  Nova Fiscalização
+                </Button>
+              </Link>
             </div>
 
             {dashQ.isError && (
@@ -98,32 +108,32 @@ export default function CatersDashboard() {
               <h2 className="mb-4 text-xs font-bold uppercase tracking-wider text-slate-400">
                 Termos de Notificação
               </h2>
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
-                <div className="flex flex-col justify-between rounded-xl border border-slate-200/70 bg-white p-5 shadow-sm">
-                  <div className="mb-3"><div className="rounded-lg p-2 bg-teal-50 w-fit"><FileText className="h-5 w-5 text-teal-700" /></div></div>
-                  <div><div className="text-3xl font-extrabold tracking-tight text-slate-900">{tnVal(tnData.length)}</div><div className="mt-1 text-xs font-semibold text-slate-500">Total de TNs</div></div>
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+                <div className="flex flex-col justify-between rounded-lg border border-slate-200/70 bg-white p-3 shadow-sm">
+                  <div className="mb-2"><div className="rounded-md p-1.5 bg-teal-50 w-fit"><FileText className="h-4 w-4 text-teal-700" /></div></div>
+                  <div><div className="text-xl font-extrabold tracking-tight text-slate-900">{tnVal(tnData.length)}</div><div className="mt-0.5 text-[11px] font-semibold text-slate-500">Total de TNs</div></div>
                 </div>
-                <div className="flex flex-col justify-between rounded-xl border border-slate-200/70 bg-white p-5 shadow-sm">
-                  <div className="mb-3"><div className="rounded-lg p-2 bg-blue-50 w-fit"><Clock className="h-5 w-5 text-blue-700" /></div></div>
-                  <div><div className="text-3xl font-extrabold tracking-tight text-slate-900">{tnVal(tnAguardandoResposta)}</div><div className="mt-1 text-xs font-semibold text-slate-500">Aguardando resposta</div></div>
+                <div className="flex flex-col justify-between rounded-lg border border-slate-200/70 bg-white p-3 shadow-sm">
+                  <div className="mb-2"><div className="rounded-md p-1.5 bg-blue-50 w-fit"><Clock className="h-4 w-4 text-blue-700" /></div></div>
+                  <div><div className="text-xl font-extrabold tracking-tight text-slate-900">{tnVal(tnAguardandoResposta)}</div><div className="mt-0.5 text-[11px] font-semibold text-slate-500">Aguardando resposta</div></div>
                 </div>
-                <div className={`flex flex-col justify-between rounded-xl border bg-white p-5 shadow-sm ${tnPrazoVencido > 0 ? 'border-red-200' : 'border-slate-200/70'}`}>
-                  <div className="mb-3"><div className="rounded-lg p-2 bg-red-50 w-fit"><TimerOff className="h-5 w-5 text-red-700" /></div></div>
-                  <div><div className={`text-3xl font-extrabold tracking-tight ${tnPrazoVencido > 0 ? 'text-red-600' : 'text-slate-900'}`}>{tnVal(tnPrazoVencido)}</div><div className="mt-1 text-xs font-semibold text-slate-500">Prazo vencido</div></div>
+                <div className={`flex flex-col justify-between rounded-lg border bg-white p-3 shadow-sm ${tnPrazoVencido > 0 ? 'border-red-200' : 'border-slate-200/70'}`}>
+                  <div className="mb-2"><div className="rounded-md p-1.5 bg-red-50 w-fit"><TimerOff className="h-4 w-4 text-red-700" /></div></div>
+                  <div><div className={`text-xl font-extrabold tracking-tight ${tnPrazoVencido > 0 ? 'text-red-600' : 'text-slate-900'}`}>{tnVal(tnPrazoVencido)}</div><div className="mt-0.5 text-[11px] font-semibold text-slate-500">Prazo vencido</div></div>
                 </div>
-                <div className="flex flex-col justify-between rounded-xl border border-slate-200/70 bg-white p-5 shadow-sm">
-                  <div className="mb-3"><div className="rounded-lg p-2 bg-amber-50 w-fit"><GitMerge className="h-5 w-5 text-amber-700" /></div></div>
-                  <div><div className="text-3xl font-extrabold tracking-tight text-slate-900">{tnVal(tnRespondido)}</div><div className="mt-1 text-xs font-semibold text-slate-500">Respondidos</div></div>
+                <div className="flex flex-col justify-between rounded-lg border border-slate-200/70 bg-white p-3 shadow-sm">
+                  <div className="mb-2"><div className="rounded-md p-1.5 bg-amber-50 w-fit"><GitMerge className="h-4 w-4 text-amber-700" /></div></div>
+                  <div><div className="text-xl font-extrabold tracking-tight text-slate-900">{tnVal(tnRespondido)}</div><div className="mt-0.5 text-[11px] font-semibold text-slate-500">Respondidos</div></div>
                 </div>
-                <div className="flex flex-col justify-between rounded-xl border border-slate-200/70 bg-white p-5 shadow-sm">
-                  <div className="mb-3"><div className="rounded-lg p-2 bg-orange-50 w-fit"><TriangleAlert className="h-5 w-5 text-orange-700" /></div></div>
-                  <div><div className="text-3xl font-extrabold tracking-tight text-slate-900">{tnVal(tnPendenteTN + tnAguardandoAssinatura)}</div><div className="mt-1 text-xs font-semibold text-slate-500">Pendente de emissão</div></div>
+                <div className="flex flex-col justify-between rounded-lg border border-slate-200/70 bg-white p-3 shadow-sm">
+                  <div className="mb-2"><div className="rounded-md p-1.5 bg-orange-50 w-fit"><TriangleAlert className="h-4 w-4 text-orange-700" /></div></div>
+                  <div><div className="text-xl font-extrabold tracking-tight text-slate-900">{tnVal(tnPendenteTN + tnAguardandoAssinatura)}</div><div className="mt-0.5 text-[11px] font-semibold text-slate-500">Pendente de emissão</div></div>
                 </div>
               </div>
             </section>
 
             {/* Métricas — Processos CATERS */}
-            <section className="grid grid-cols-2 gap-4 md:grid-cols-5">
+            <section className="grid grid-cols-2 gap-3 md:grid-cols-5">
               <MetricCard
                 title="Processos em acompanhamento"
                 value={val(d?.counts.followUpProcesses)}

@@ -534,7 +534,7 @@ export default function AnalisarResposta() {
 
     return (
         <CatesaLayout>
-                <div className="max-w-5xl mx-auto px-4">
+                <div className="max-w-6xl mx-auto px-4">
 
                 {/* Info do TN */}
                 <Card className="border border-gray-200 rounded-2xl shadow-sm bg-white mb-6">

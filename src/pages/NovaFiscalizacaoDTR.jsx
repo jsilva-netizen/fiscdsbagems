@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Navigation, Loader2, Sparkles, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Navigation, Loader2, AlertCircle } from 'lucide-react';
 
 export default function NovaFiscalizacaoDTR() {
     const navigate = useNavigate();
@@ -126,8 +126,8 @@ export default function NovaFiscalizacaoDTR() {
                             </Button>
                         </Link>
                         <div>
-                            <h1 className="text-xl font-bold flex items-center gap-2">
-                                Nova Fiscalização <Sparkles className="h-5 w-5 text-yellow-300 fill-yellow-300" />
+                            <h1 className="text-xl font-bold">
+                                Nova Fiscalização
                             </h1>
                             <p className="text-blue-200 text-xs">Módulo Transportes e Rodovias (DTR)</p>
                         </div>

@@ -105,7 +105,7 @@ export default function CatersAvisos() {
     <CatersLayout>
       <div className="min-h-full bg-slate-50">
         <div className="px-8 pb-12 pt-8">
-          <div className="mx-auto max-w-4xl space-y-8">
+          <div className="mx-auto max-w-6xl space-y-8">
 
             {/* Header */}
             <div className="flex flex-wrap items-end justify-between gap-4">

@@ -236,34 +236,41 @@ export default function CatersProcessos() {
   return (
     <CatersLayout>
       <div className="min-h-full bg-slate-50">
-        {/* Sticky header com quick tabs */}
-        <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/90 px-8 py-3 backdrop-blur-md">
-          <div className="flex items-center justify-between gap-6 mx-auto max-w-6xl">
-            <div className="flex items-center gap-6">
-              <div className="text-base font-semibold text-slate-900">Processos</div>
-              <nav className="hidden items-center gap-5 md:flex">
-                {QUICK_TABS.map((t) => (
-                  <button key={t.id} type="button"
-                    onClick={() => { setQuickTab(t.id); setStatusApplied(''); setStatusDraft(''); setPage(1); }}
-                    className={`pb-1 text-sm font-semibold transition-colors ${
-                      quickTab === t.id
-                        ? 'border-b-2 border-emerald-600 text-emerald-600'
-                        : 'text-slate-500 hover:text-slate-800'
-                    }`}>
-                    {t.label}
-                  </button>
-                ))}
-              </nav>
-            </div>
-            <Button onClick={() => { setForm(EMPTY_FORM); setShowForm(true); }} className="gap-2 bg-emerald-600 hover:bg-emerald-700">
-              <Plus className="h-4 w-4" />
-              Novo processo
-            </Button>
-          </div>
-        </header>
+        <div className="px-8 pb-12 pt-8">
+          <div className="mx-auto max-w-6xl space-y-6">
 
-        <div className="px-8 py-8">
-          <div className="mx-auto max-w-6xl space-y-5">
+            {/* Header */}
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-50">
+                  <FolderOpen className="h-5 w-5 text-emerald-700" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Processos</h1>
+                  <p className="text-sm text-slate-500">{paginationLabel}</p>
+                </div>
+              </div>
+              <Button onClick={() => { setForm(EMPTY_FORM); setShowForm(true); }} className="gap-2 bg-emerald-600 hover:bg-emerald-700">
+                <Plus className="h-4 w-4" />
+                Novo processo
+              </Button>
+            </div>
+
+            {/* Quick tabs */}
+            <nav className="flex items-center gap-5 border-b border-slate-200">
+              {QUICK_TABS.map((t) => (
+                <button key={t.id} type="button"
+                  onClick={() => { setQuickTab(t.id); setStatusApplied(''); setStatusDraft(''); setPage(1); }}
+                  className={`-mb-px border-b-2 pb-2.5 text-sm font-semibold transition-colors ${
+                    quickTab === t.id
+                      ? 'border-emerald-600 text-emerald-600'
+                      : 'border-transparent text-slate-500 hover:text-slate-800'
+                  }`}>
+                  {t.label}
+                </button>
+              ))}
+            </nav>
+
             {/* Filtros */}
             <div className="flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-slate-100 p-4 shadow-sm">
               <div className="relative flex-1 min-w-48">

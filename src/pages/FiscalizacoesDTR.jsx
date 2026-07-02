@@ -13,8 +13,9 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from '@/components/ui/alert-dialog';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, Filter, Trash2, Calendar, Map, CheckCircle2, Clock, Plus, Compass, Loader2 } from 'lucide-react';
+import { Search, Filter, Trash2, Calendar, Map, CheckCircle2, Clock, Plus, Compass, Loader2 } from 'lucide-react';
 import RelatorioFiscalizacao from '@/components/fiscalizacao/RelatorioFiscalizacao';
+import CaterfLayout from '@/components/caterf/CaterfLayout';
 
 const DTR_MODULOS = ['rodovias_dtr', 'transportes_dtr', 'fiscal_dtr'];
 
@@ -89,31 +90,29 @@ export default function FiscalizacoesDTR() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col justify-between">
+        <CaterfLayout>
             {/* Header */}
-            <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
-                <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div className="max-w-6xl mx-auto px-4 pt-8">
+                <div className="flex items-start justify-between gap-4 flex-wrap">
                     <div className="flex items-center gap-3">
-                        <Link to={createPageUrl('Home')}>
-                            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full">
-                                <ArrowLeft className="h-5 w-5" />
-                            </Button>
-                        </Link>
+                        <div className="grid h-10 w-10 place-items-center rounded-xl bg-sky-50">
+                            <Compass className="h-5 w-5 text-sky-700" />
+                        </div>
                         <div>
-                            <h1 className="text-lg font-bold">Vistorias DTR</h1>
-                            <p className="text-blue-200 text-xs">Histórico e Execução de Rodovias</p>
+                            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Fiscalização</h1>
+                            <p className="text-sm text-slate-500">Histórico e execução de fiscalizações</p>
                         </div>
                     </div>
                     <Link to={createPageUrl('NovaFiscalizacaoDTR')}>
-                        <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow">
-                            <Plus className="h-4 w-4 mr-1" /> Novo
+                        <Button className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow gap-1.5">
+                            <Plus className="h-4 w-4" /> Novo
                         </Button>
                     </Link>
                 </div>
             </div>
 
             {/* Content */}
-            <div className="flex-1 max-w-4xl w-full mx-auto px-4 py-5 flex flex-col gap-4">
+            <div className="flex-1 max-w-6xl w-full mx-auto px-4 py-5 flex flex-col gap-4">
                 {/* Search Bar */}
                 <div className="flex gap-2">
                     <div className="relative flex-1">
@@ -323,6 +322,6 @@ export default function FiscalizacoesDTR() {
             <div className="py-5 text-center text-xs text-gray-400 bg-white border-t border-gray-200">
                 AGEMS - Agência Estadual de Regulação de Serviços Públicos de MS
             </div>
-        </div>
+        </CaterfLayout>
     );
 }

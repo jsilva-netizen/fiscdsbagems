@@ -286,7 +286,7 @@ export default function PrestadoresServico({ embedded = false }) {
             <div>
                 {!embedded && (
                 <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
-                    <div className="max-w-5xl mx-auto px-6 py-5 flex items-center gap-3">
+                    <div className="max-w-6xl mx-auto px-6 py-5 flex items-center gap-3">
                         <Link to={createPageUrl('Home')}>
                             <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full transition-all">
                                 <ArrowLeft className="h-5 w-5" />
@@ -301,7 +301,7 @@ export default function PrestadoresServico({ embedded = false }) {
                 )}
 
                 {/* Content */}
-                <div className="max-w-5xl mx-auto px-6 py-6 space-y-5">
+                <div className="max-w-6xl mx-auto px-6 py-6 space-y-5">
                     {/* Controls & Tabs */}
                     <div className="flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center">
                         {isAdmin ? (

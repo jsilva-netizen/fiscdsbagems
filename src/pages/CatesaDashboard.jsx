@@ -9,27 +9,29 @@ import {
   AlertTriangle,
   GitMerge,
   TimerOff,
+  Plus,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import CatesaLayout from '@/components/camaras/CatesaLayout';
 import { supabase } from '@/lib/supabase';
 import { createPageUrl } from '@/utils';
 
 function MetricCard({ title, value, icon: Icon, iconBg, iconColor, to, badge, alert }) {
   const inner = (
-    <div className={`flex flex-col justify-between rounded-xl border bg-white p-5 shadow-sm transition-shadow hover:shadow-md ${alert ? 'border-red-200' : 'border-slate-200/70'}`}>
-      <div className="mb-3 flex items-start justify-between gap-3">
-        <div className={`rounded-lg p-2 ${iconBg}`}>
-          <Icon className={`h-5 w-5 ${iconColor}`} />
+    <div className={`flex flex-col justify-between rounded-lg border bg-white p-3 shadow-sm transition-shadow hover:shadow-md ${alert ? 'border-red-200' : 'border-slate-200/70'}`}>
+      <div className="mb-2 flex items-start justify-between gap-2">
+        <div className={`rounded-md p-1.5 ${iconBg}`}>
+          <Icon className={`h-4 w-4 ${iconColor}`} />
         </div>
         {badge ? (
-          <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-tight text-emerald-700">
+          <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-tight text-emerald-700">
             {badge}
           </span>
         ) : null}
       </div>
       <div>
-        <div className={`text-3xl font-extrabold tracking-tight ${alert ? 'text-red-600' : 'text-slate-900'}`}>{value}</div>
-        <div className="mt-1 text-xs font-semibold leading-tight text-slate-500">{title}</div>
+        <div className={`text-xl font-extrabold tracking-tight ${alert ? 'text-red-600' : 'text-slate-900'}`}>{value}</div>
+        <div className="mt-0.5 text-[11px] font-semibold leading-tight text-slate-500">{title}</div>
       </div>
     </div>
   );
@@ -81,14 +83,22 @@ export default function CatesaDashboard() {
     <CatesaLayout>
       <div className="bg-slate-50 min-h-full">
         <div className="px-4 sm:px-8 pb-12 pt-8">
-          <div className="mx-auto max-w-7xl space-y-8">
+          <div className="mx-auto max-w-6xl space-y-8">
 
             {/* Header */}
-            <div>
-              <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Dashboard</h1>
-              <p className="mt-1 text-sm text-slate-500">
-                Centro de acompanhamento regulatório — CATESA/DSB/AGEMS
-              </p>
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div>
+                <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Dashboard</h1>
+                <p className="mt-1 text-sm text-slate-500">
+                  Centro de acompanhamento regulatório — CATESA/DSB/AGEMS
+                </p>
+              </div>
+              <Link to={createPageUrl('NovaFiscalizacao')}>
+                <Button className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow gap-1.5">
+                  <Plus className="h-4 w-4" />
+                  Nova Fiscalização
+                </Button>
+              </Link>
             </div>
 
             {isError && (
@@ -102,7 +112,7 @@ export default function CatesaDashboard() {
               <h2 className="mb-4 text-xs font-bold uppercase tracking-wider text-slate-400">
                 Termos de Notificação
               </h2>
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
                 <MetricCard
                   title="Total de TNs emitidos"
                   value={val(d?.tnTotal)}
@@ -153,7 +163,7 @@ export default function CatesaDashboard() {
               <h2 className="mb-4 text-xs font-bold uppercase tracking-wider text-slate-400">
                 Autos de Infração
               </h2>
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                 <MetricCard
                   title="Total de AIs"
                   value={val(d?.aiTotal)}

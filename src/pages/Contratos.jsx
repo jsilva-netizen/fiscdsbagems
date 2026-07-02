@@ -11,7 +11,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Plus, Edit2, Trash2, AlertTriangle, Eye, Loader2, Link2, MapPin, Settings2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, AlertTriangle, Eye, Loader2, Link2, MapPin, Settings2 } from 'lucide-react';
+import CaterfLayout from '@/components/caterf/CaterfLayout';
 
 export default function Contratos() {
     const queryClient = useQueryClient();
@@ -117,28 +118,19 @@ export default function Contratos() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col justify-between">
+        <CaterfLayout>
             <div>
                 {/* Header */}
-                <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
-                    <div className="max-w-4xl mx-auto px-4 py-5 flex items-center gap-3">
-                        <Link to={createPageUrl('Home')}>
-                            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full transition-all">
-                                <ArrowLeft className="h-5 w-5" />
-                            </Button>
-                        </Link>
-                        <div>
-                            <h1 className="text-2xl font-bold tracking-tight">Contratos de Concessão</h1>
-                            <p className="text-blue-200 text-xs mt-0.5">Vínculos de rodovias e concessionárias sob fiscalização DTR</p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Content */}
-                <div className="max-w-4xl mx-auto px-4 py-6 space-y-5">
-                    <div className="flex justify-between items-center">
-                        <div className="text-sm text-slate-500 font-medium bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
-                            Total de Contratos: <span className="text-slate-800 font-bold">{contratos.length}</span>
+                <div className="max-w-6xl mx-auto px-4 pt-8">
+                    <div className="flex items-start justify-between gap-4 flex-wrap">
+                        <div className="flex items-center gap-3">
+                            <div className="grid h-10 w-10 place-items-center rounded-xl bg-violet-50">
+                                <Link2 className="h-5 w-5 text-violet-700" />
+                            </div>
+                            <div>
+                                <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Contratos</h1>
+                                <p className="text-sm text-slate-500">Vínculos de rodovias e concessionárias sob fiscalização DTR</p>
+                            </div>
                         </div>
                         <div className="flex gap-2">
                             <Link to={createPageUrl('ConfiguracoesDTR')}>
@@ -152,6 +144,13 @@ export default function Contratos() {
                                 Novo Contrato
                             </Button>
                         </div>
+                    </div>
+                </div>
+
+                {/* Content */}
+                <div className="max-w-6xl mx-auto px-4 py-6 space-y-5">
+                    <div className="text-sm text-slate-500 font-medium bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 inline-block">
+                        Total de Contratos: <span className="text-slate-800 font-bold">{contratos.length}</span>
                     </div>
 
                     {isLoadingContratos || isLoadingConcess ? (
@@ -380,6 +379,6 @@ export default function Contratos() {
             <div className="py-5 text-center text-xs text-slate-400 bg-white border-t border-slate-200">
                 AGEMS - Agência Estadual de Regulação de Serviços Públicos de MS
             </div>
-        </div>
+        </CaterfLayout>
     );
 }

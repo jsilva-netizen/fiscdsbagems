@@ -6,26 +6,32 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Repository } from '@/lib/offline/repository';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, Filter, Trash2, AlertTriangle, MapPin, ChevronRight, Calendar, CheckCircle2, Clock, Plus, RotateCcw, Loader2, Settings } from 'lucide-react';
+import { Search, Filter, Trash2, AlertTriangle, MapPin, ChevronRight, Calendar, CheckCircle2, Clock, Plus, RotateCcw, Loader2, Settings, ClipboardCheck } from 'lucide-react';
 import ExportarPDFConsolidado from '@/components/fiscalizacao/ExportarPDFConsolidado';
 import RelatorioFiscalizacao from '@/components/fiscalizacao/RelatorioFiscalizacao';
 import HistoricoFiscalizacao from '@/components/fiscalizacao/HistoricoFiscalizacao';
 import { useSyncStatus } from '@/lib/SyncStatusContext.jsx';
 import { syncUpForFiscalizacao } from '@/lib/offline/syncEngine';
 import { useModulo } from '@/hooks/useModulo';
+import { useCamaraLayout } from '@/hooks/useCamaraLayout';
 import { supabase } from '@/lib/supabase';
 
 export default function Fiscalizacoes() {
     const queryClient = useQueryClient();
     const { user } = useAuth();
-    const { camaraTecnica, isAdmin } = useModulo();
+    const { camaraTecnica: ownCamaraTecnica, isAdmin } = useModulo();
+    const [searchParams] = useSearchParams();
+    // Admin navega livremente entre câmaras pelo seletor no cabeçalho — a câmara "efetiva"
+    // dessa página vem da URL (?camara=xxx), não do perfil do usuário (que pra admin é vazio).
+    const camaraTecnica = searchParams.get('camara') || ownCamaraTecnica;
+    const Layout = useCamaraLayout(searchParams.get('camara'));
     const { online, sessionValid, outboxCount } = useSyncStatus?.() || { online: true, sessionValid: true, outboxCount: 0 };
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('todos');
@@ -131,48 +137,44 @@ export default function Fiscalizacoes() {
     const finalizadas = fiscalizacoes.filter(f => f.status === 'finalizada').length;
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <Layout>
             {/* Header */}
-            <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
-                <div className="max-w-4xl mx-auto px-4 py-5">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <Link to={createPageUrl('Home')}>
-                                <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full">
-                                    <ArrowLeft className="h-5 w-5" />
+            <div className="max-w-6xl mx-auto px-4 pt-8">
+                <div className="flex items-start justify-between gap-4 flex-wrap">
+                    <div className="flex items-center gap-3">
+                        <div className="grid h-10 w-10 place-items-center rounded-xl bg-sky-50">
+                            <ClipboardCheck className="h-5 w-5 text-sky-700" />
+                        </div>
+                        <div>
+                            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Fiscalizações</h1>
+                            <p className="text-sm text-slate-500">
+                                <span className="font-semibold text-sky-700">{emAndamento}</span> em andamento
+                                {' • '}
+                                <span className="font-semibold text-emerald-700">{finalizadas}</span> finalizadas
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        {isAdmin && (
+                            <Link to={createPageUrl('Definicoes')}>
+                                <Button variant="outline" size="sm" className="gap-1.5 text-xs">
+                                    <Settings className="h-3.5 w-3.5" />
+                                    Definições
                                 </Button>
                             </Link>
-                            <div>
-                                <h1 className="text-xl font-bold">Fiscalizações</h1>
-                                <p className="text-blue-200 text-xs mt-0.5">
-                                    <span className="font-semibold text-sky-300">{emAndamento}</span> em andamento
-                                    {' • '}
-                                    <span className="font-semibold text-emerald-300">{finalizadas}</span> finalizadas
-                                </p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            {isAdmin && (
-                                <Link to={createPageUrl('Definicoes')}>
-                                    <Button variant="ghost" size="sm" className="text-blue-200 hover:text-white hover:bg-white/10 rounded-lg gap-1.5 h-8 text-xs">
-                                        <Settings className="h-3.5 w-3.5" />
-                                        Definições
-                                    </Button>
-                                </Link>
-                            )}
-                            <Link to={createPageUrl('NovaFiscalizacao')}>
-                                <Button className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow gap-1.5">
-                                    <Plus className="h-4 w-4" />
-                                    Nova
-                                </Button>
-                            </Link>
-                        </div>
+                        )}
+                        <Link to={createPageUrl('NovaFiscalizacao')}>
+                            <Button className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow gap-1.5">
+                                <Plus className="h-4 w-4" />
+                                Nova
+                            </Button>
+                        </Link>
                     </div>
                 </div>
             </div>
 
             {/* Filters */}
-            <div className="max-w-4xl mx-auto px-4 py-4 space-y-3">
+            <div className="max-w-6xl mx-auto px-4 py-4 space-y-3">
                 <div className="flex gap-2">
                     <div className="relative flex-1">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -254,7 +256,7 @@ export default function Fiscalizacoes() {
             </div>
 
             {/* List */}
-            <div className="max-w-4xl mx-auto px-4 pb-8">
+            <div className="max-w-6xl mx-auto px-4 pb-8">
                 {isLoading ? (
                     <div className="flex justify-center py-12"><Loader2 className="h-7 w-7 animate-spin text-indigo-500" /></div>
                 ) : (
@@ -572,6 +574,6 @@ export default function Fiscalizacoes() {
                     </div>
                 </div>
             )}
-        </div>
+        </Layout>
     );
 }

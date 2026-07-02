@@ -29,6 +29,16 @@ export default function Layout({ children, currentPageName }) {
         'CamaraJulgamento',
         'CresDashboard',
         'Definicoes',
+        'FiscalizacoesDTR',
+        'Contratos',
+        'CaterfDashboard',
+        'CatranspDashboard',
+        'CatefisDashboard',
+        'CretDashboard',
+        'CategasDashboard',
+        'CateneDashboard',
+        'CregDashboard',
+        'CaterfConcessionarias',
     ];
 
     if (fullscreenPages.includes(currentPageName)) {

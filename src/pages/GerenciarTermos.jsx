@@ -687,16 +687,25 @@ export default function GerenciarTermos() {
 
     return (
         <CamaraLayoutComponent>
-            <div className="max-w-6xl mx-auto px-4">
-                <div className="flex justify-end mb-6">
+            <div className="max-w-6xl mx-auto px-4 pt-8">
+                <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
+                    <div className="flex items-center gap-3">
+                        <div className="grid h-10 w-10 place-items-center rounded-xl bg-cyan-50">
+                            <FileText className="h-5 w-5 text-cyan-700" />
+                        </div>
+                        <div>
+                            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Notificações</h1>
+                            <p className="text-sm text-slate-500">{termos.length} termo{termos.length !== 1 ? 's' : ''} de notificação</p>
+                        </div>
+                    </div>
                     <Button
                         onClick={() => {
                             setSelectedFiscalizacao(fiscalizacoes.find(f => f.status === 'finalizada'));
                             setShowDialog(true);
                         }}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md transition-all font-semibold"
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md transition-all font-semibold gap-2"
                     >
-                        <Plus className="h-4 w-4 mr-2" />
+                        <Plus className="h-4 w-4" />
                         Novo Termo
                     </Button>
                 </div>

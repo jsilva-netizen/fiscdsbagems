@@ -1,13 +1,15 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { createPageUrl } from '@/utils';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { useModulo } from '@/hooks/useModulo';
+import { useModulo, DIRETORIA_NOMES, CAMARA_TO_TIPO_MODULO } from '@/hooks/useModulo';
+import { useCamaraLayout } from '@/hooks/useCamaraLayout';
+import { CAMARA_TO_DIRETORIA } from '@/lib/camaras';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, ArrowLeft, Download, FileJson, FileText, CheckCircle2, AlertTriangle, ChevronDown, Check, Search, Route, MapPin } from 'lucide-react';
+import { TrendingUp, Download, FileJson, FileText, CheckCircle2, AlertTriangle, ChevronDown, Check, Search, Route, MapPin } from 'lucide-react';
+import CaterfLayout from '@/components/caterf/CaterfLayout';
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Legend, Cell } from 'recharts';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -292,26 +294,22 @@ function RelatoriosDTR({ diretoriaNome }) {
     const v = (n) => loading ? '—' : n;
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <CaterfLayout>
             {/* Header */}
-            <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
-                <div className="max-w-6xl mx-auto px-4 py-4">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <Link to={createPageUrl('Home')}>
-                                <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full">
-                                    <ArrowLeft className="h-5 w-5" />
-                                </Button>
-                            </Link>
-                            <div>
-                                <h1 className="text-xl font-bold">Relatórios e Indicadores — DTR</h1>
-                                <p className="text-blue-200 text-sm">{diretoriaNome}</p>
-                            </div>
+            <div className="max-w-6xl mx-auto px-4 pt-8">
+                <div className="flex items-start justify-between gap-4 flex-wrap">
+                    <div className="flex items-center gap-3">
+                        <div className="grid h-10 w-10 place-items-center rounded-xl bg-blue-50">
+                            <TrendingUp className="h-5 w-5 text-blue-700" />
                         </div>
-                        <div className="flex gap-2">
-                            <Button onClick={exportarPDF} size="sm" className="bg-white/20 hover:bg-white/30 text-white gap-1"><Download className="h-4 w-4" /> PDF</Button>
-                            <Button onClick={exportarJSON} size="sm" className="bg-white/20 hover:bg-white/30 text-white gap-1"><FileJson className="h-4 w-4" /> JSON</Button>
+                        <div>
+                            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Relatórios e Indicadores</h1>
+                            <p className="text-sm text-slate-500">{diretoriaNome}</p>
                         </div>
+                    </div>
+                    <div className="flex gap-2">
+                        <Button onClick={exportarPDF} variant="outline" size="sm" className="gap-1.5 text-xs"><Download className="h-3.5 w-3.5" /> PDF</Button>
+                        <Button onClick={exportarJSON} variant="outline" size="sm" className="gap-1.5 text-xs"><FileJson className="h-3.5 w-3.5" /> JSON</Button>
                     </div>
                 </div>
             </div>
@@ -478,16 +476,29 @@ function RelatoriosDTR({ diretoriaNome }) {
                     </Card>
                 )}
             </div>
-        </div>
+        </CaterfLayout>
     );
 }
 
 // ─── DSB ─────────────────────────────────────────────────────────────────────
 
 export default function Relatorios() {
-    const { tipoModulo, modulosFiltro, isDSB, isDTR, isAdmin, diretoriaNome } = useModulo();
+    const { tipoModulo, modulosFiltro, isDSB, diretoria, diretoriaNome, isAdmin } = useModulo();
+    const [searchParams] = useSearchParams();
+    const camaraParam = searchParams.get('camara');
 
-    if (isDTR) return <RelatoriosDTR diretoriaNome={diretoriaNome} />;
+    // Admin navega livremente entre câmaras pelo seletor no cabeçalho — a diretoria/módulo
+    // "efetivos" dessa página vêm da câmara clicada na URL (?camara=xxx), não do perfil do
+    // usuário (que pra admin é vazio/irrelevante e sempre marcaria isDTR=true).
+    const efetivaDiretoria = camaraParam ? (CAMARA_TO_DIRETORIA[camaraParam] ?? diretoria) : diretoria;
+    const efetivaDiretoriaNome = camaraParam ? (DIRETORIA_NOMES[efetivaDiretoria] ?? diretoriaNome) : diretoriaNome;
+    const efetivoModulosFiltro = camaraParam && CAMARA_TO_TIPO_MODULO[camaraParam]
+        ? [CAMARA_TO_TIPO_MODULO[camaraParam]]
+        : modulosFiltro;
+
+    const Layout = useCamaraLayout(camaraParam);
+
+    if (efetivaDiretoria === 'dtr') return <RelatoriosDTR diretoriaNome={efetivaDiretoriaNome} />;
 
 
     // modulosFiltro: lista de tipo_modulo visíveis para este usuário (do hook)
@@ -545,14 +556,14 @@ export default function Relatorios() {
         por_servico: [],
         ranking_determinacoes: []
     } } = useQuery({
-        queryKey: ['resumo-indicadores', anoFiltro, servicoFiltro, municipioFiltro, prestadorFiltro, modulosFiltro],
+        queryKey: ['resumo-indicadores', anoFiltro, servicoFiltro, municipioFiltro, prestadorFiltro, efetivoModulosFiltro],
         queryFn: async () => {
             const { data, error } = await supabase.rpc('obter_resumo_indicadores', {
                 p_anos: anoFiltro,
                 p_servicos: servicoFiltro,
                 p_municipio_ids: municipioFiltro,
                 p_prestador_ids: prestadorFiltro,
-                p_tipo_modulo: modulosFiltro,   // NOVO: filtro por módulo
+                p_tipo_modulo: efetivoModulosFiltro,   // câmara específica quando admin navega via seletor; senão módulos da diretoria do usuário
             });
             if (error) throw error;
             return data;
@@ -659,32 +670,28 @@ export default function Relatorios() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <Layout>
             {/* Header */}
-            <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
-                <div className="max-w-6xl mx-auto px-4 py-4">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <Link to={createPageUrl('Home')}>
-                                <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full">
-                                    <ArrowLeft className="h-5 w-5" />
-                                </Button>
-                            </Link>
-                            <div>
-                                <h1 className="text-xl font-bold">Relatórios e Indicadores</h1>
-                                <p className="text-blue-200 text-sm">{diretoriaNome}</p>
-                            </div>
+            <div className="max-w-6xl mx-auto px-4 pt-8">
+                <div className="flex items-start justify-between gap-4 flex-wrap">
+                    <div className="flex items-center gap-3">
+                        <div className="grid h-10 w-10 place-items-center rounded-xl bg-blue-50">
+                            <TrendingUp className="h-5 w-5 text-blue-700" />
                         </div>
-                        <div className="flex gap-2">
-                            <Button onClick={exportarPDF} size="sm" className="bg-white/20 hover:bg-white/30 text-white gap-1">
-                                <Download className="h-4 w-4" />
-                                PDF
-                            </Button>
-                            <Button onClick={exportarJSON} size="sm" className="bg-white/20 hover:bg-white/30 text-white gap-1">
-                                <FileJson className="h-4 w-4" />
-                                JSON
-                            </Button>
+                        <div>
+                            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Relatórios e Indicadores</h1>
+                            <p className="text-sm text-slate-500">{efetivaDiretoriaNome}</p>
                         </div>
+                    </div>
+                    <div className="flex gap-2">
+                        <Button onClick={exportarPDF} variant="outline" size="sm" className="gap-1.5 text-xs">
+                            <Download className="h-3.5 w-3.5" />
+                            PDF
+                        </Button>
+                        <Button onClick={exportarJSON} variant="outline" size="sm" className="gap-1.5 text-xs">
+                            <FileJson className="h-3.5 w-3.5" />
+                            JSON
+                        </Button>
                     </div>
                 </div>
             </div>
@@ -958,6 +965,6 @@ export default function Relatorios() {
 
             </div>
             </div>
-        </div>
+        </Layout>
     );
 }

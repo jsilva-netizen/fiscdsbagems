@@ -10,7 +10,7 @@ import { useAuth } from '@/lib/AuthContext';
  */
 
 // Nomes das Diretorias sem prefixo "Diretoria de Regulação e Fiscalização" para a UI
-const DIRETORIA_NOMES = {
+export const DIRETORIA_NOMES = {
   dsb: 'DSB - Saneamento Básico e Resíduos Sólidos',
   dtr: 'DTR - Transportes, Rodovias, Ferrovias, Portos e Aeroportos',
   dge: 'DGE - Gás Canalizado, Energia e Mineração',
@@ -27,7 +27,7 @@ const DIRETORIA_SIGLAS = {
 // Mapeamento câmara técnica (id) → tipo_modulo de fiscalização
 // IDs correspondem ao seed em 103_multi_diretoria.sql
 // -----------------------------------------------------------------------
-const CAMARA_TO_TIPO_MODULO = {
+export const CAMARA_TO_TIPO_MODULO = {
   // DSB — Saneamento Básico e Resíduos Sólidos
   catesa: 'saneamento_dsb',   // CATESA — Câmara Técnica de Saneamento
   caters: 'residuos_dsb',     // CATERS — Câmara Técnica de Resíduos Sólidos

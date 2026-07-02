@@ -32,7 +32,7 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
         return data?.session?.access_token;
     };
 
-    const invokeEdgeFunction = async (functionName, body) => {
+    const invokeEdgeFunction = async (functionName, body, { retryOnAuthError = true } = {}) => {
         const baseUrl = import.meta.env.VITE_SUPABASE_URL;
         const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
         const jwt = await ensureAuth();
@@ -58,6 +58,14 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
             json = null;
         }
         if (!res.ok) {
+            // Token de sessão pode ter expirado entre carregar a tela e essa chamada.
+            // Tenta renovar a sessão uma vez antes de propagar o erro pro usuário.
+            if (res.status === 401 && retryOnAuthError) {
+                const { data, error } = await supabase.auth.refreshSession();
+                if (!error && data?.session?.access_token) {
+                    return invokeEdgeFunction(functionName, body, { retryOnAuthError: false });
+                }
+            }
             const msg = json?.error || json?.message || `Erro ${res.status}`;
             throw new Error(msg);
         }
@@ -134,6 +142,18 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
             } catch {}
             setJob(null);
             setJobId(null);
+            setError(null);
+            return;
+        }
+        if (
+            String(msg).toLowerCase().includes('unauthorized') ||
+            String(msg).toLowerCase().includes('forbidden')
+        ) {
+            // Checagem passiva ("já existe relatório?") — sessão instável ou sem
+            // permissão não deve virar um erro alarmante pro usuário aqui; ele
+            // ainda pode tentar gerar o relatório manualmente pelo botão. Não
+            // limpamos o ponteiro local: pode ser um problema transitório de
+            // sessão, não um job realmente inexistente.
             setError(null);
             return;
         }

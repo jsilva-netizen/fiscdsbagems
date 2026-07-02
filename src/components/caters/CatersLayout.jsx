@@ -1,16 +1,18 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { BarChart3, Bell, ClipboardList, Folder, FileText } from 'lucide-react';
+import { BarChart3, Bell, ClipboardCheck, ClipboardList, Folder, FileText, TrendingUp } from 'lucide-react';
 import CamaraLayout from '@/components/camaras/CamaraLayout';
 import { createPageUrl } from '@/utils';
 import { fetchAlertsData } from '@/lib/caters/dashboard';
 
 const NAV_ITEMS = [
   { label: 'Dashboard',     to: createPageUrl('CatersDashboard'),     icon: BarChart3 },
+  { label: 'Fiscalização',  to: createPageUrl('Fiscalizacoes') + '?camara=caters', icon: ClipboardCheck },
   { label: 'Notificações',  to: createPageUrl('GerenciarTermos') + '?camara=caters', icon: FileText },
   { label: 'Avisos',        to: createPageUrl('CatersAvisos'),        icon: Bell },
   { label: 'Processos',     to: createPageUrl('CatersProcessos'),     icon: Folder, activeFor: ['CatersProcessoDetalhe'] },
   { label: 'Recomendações', to: createPageUrl('CatersRecomendacoes'), icon: ClipboardList },
+  { label: 'Indicadores',   to: createPageUrl('Relatorios') + '?camara=caters', icon: TrendingUp },
 ];
 
 export default function CatersLayout({ children }) {
@@ -30,6 +32,7 @@ export default function CatersLayout({ children }) {
     <CamaraLayout
       sigla="CATERS"
       nome="Câmara Técnica de Resíduos Sólidos"
+      diretoria="dsb"
       navItems={items}
     >
       {children}
