@@ -514,7 +514,7 @@ export default function GestaoAutos() {
                 </div>
 
                 {/* KPIs */}
-                <div className="grid grid-cols-4 gap-4 mb-8">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-8">
                     <Card className="border border-gray-200 rounded-2xl shadow-sm bg-white">
                         <CardContent className="p-5 text-center">
                             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Gerados</p>
@@ -543,12 +543,12 @@ export default function GestaoAutos() {
 
                 {/* Tabs */}
                 <Tabs value={tab} onValueChange={setTab} className="w-full">
-                    <TabsList className="grid w-full grid-cols-5">
-                        <TabsTrigger value="gerados">Gerados ({autosPorStatus.gerados.length})</TabsTrigger>
-                        <TabsTrigger value="enviados">Enviados ({autosPorStatus.enviados.length})</TabsTrigger>
-                        <TabsTrigger value="analise">Em Análise ({autosPorStatus.em_analise.length})</TabsTrigger>
-                        <TabsTrigger value="finalizados">Finalizados ({autosPorStatus.finalizados.length})</TabsTrigger>
-                        <TabsTrigger value="remessas">Remessas ({remessas.length})</TabsTrigger>
+                    <TabsList className="flex w-full justify-start gap-1 overflow-x-auto sm:grid sm:grid-cols-5 sm:overflow-visible">
+                        <TabsTrigger value="gerados" className="shrink-0">Gerados ({autosPorStatus.gerados.length})</TabsTrigger>
+                        <TabsTrigger value="enviados" className="shrink-0">Enviados ({autosPorStatus.enviados.length})</TabsTrigger>
+                        <TabsTrigger value="analise" className="shrink-0">Em Análise ({autosPorStatus.em_analise.length})</TabsTrigger>
+                        <TabsTrigger value="finalizados" className="shrink-0">Finalizados ({autosPorStatus.finalizados.length})</TabsTrigger>
+                        <TabsTrigger value="remessas" className="shrink-0">Remessas ({remessas.length})</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="gerados" className="space-y-4">
