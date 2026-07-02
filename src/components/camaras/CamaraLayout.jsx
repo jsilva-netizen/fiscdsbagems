@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { LogOut, Settings } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
@@ -11,14 +12,26 @@ import SyncBar from './SyncBar';
 
 function NavTab({ to, label, icon: Icon, badge, activeFor = [] }) {
   const { pathname } = useLocation();
+  const ref = useRef(null);
   const toPath = to.split('?')[0];
   const active =
     pathname === toPath ||
     pathname.startsWith(toPath + '/') ||
     activeFor.some((p) => pathname.startsWith(createPageUrl(p)));
 
+  // A barra de abas rola horizontalmente no mobile. Cada navegação remonta o
+  // header do zero, então o scroll volta pro início — sem isso a aba ativa
+  // (Manifestações/Pareceres/Indicadores etc.) fica fora da área visível e
+  // parece que "voltou" pro Dashboard, mesmo estando selecionada.
+  useEffect(() => {
+    if (active) {
+      ref.current?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
+  }, [active]);
+
   return (
     <Link
+      ref={ref}
       to={to}
       className={cn(
         'flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap',

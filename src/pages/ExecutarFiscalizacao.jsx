@@ -224,7 +224,7 @@ export default function ExecutarFiscalizacao() {
             {/* Content */}
             <div className="max-w-4xl mx-auto px-4 py-4">
                 {/* Stats */}
-                <div className="grid grid-cols-4 gap-2 mb-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
                     <Card className="bg-blue-50">
                         <CardContent className="p-3 text-center">
                             <p className="text-2xl font-bold text-blue-600">{unidades.length}</p>

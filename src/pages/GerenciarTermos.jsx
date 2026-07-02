@@ -722,7 +722,7 @@ export default function GerenciarTermos() {
                             <DialogTitle>Criar Termo de Notificação</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4">
-                            <div className="grid grid-cols-4 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                                 <div>
                                     <Label>Número do TN *</Label>
                                     <Input
@@ -784,7 +784,7 @@ export default function GerenciarTermos() {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <Label>Fiscalização *</Label>
                                     <Select 
@@ -908,7 +908,7 @@ export default function GerenciarTermos() {
                         </DialogHeader>
                         {termoDetalhes && (
                             <div className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <Label className="text-gray-600">Número do TN</Label>
                                         <p className="font-semibold">{termoDetalhes.numero_termo_notificacao || termoDetalhes.numero_termo}</p>
@@ -1616,7 +1616,7 @@ export default function GerenciarTermos() {
                                                      {formatRelatorioTN(termo)}
                                                  </p>
                                              )}
-                                             <div className="grid grid-cols-2 gap-2 mt-2 text-xs text-gray-600">
+                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 text-xs text-gray-600">
                                                  <div><span className="font-medium">Município:</span> {getMunicipioNome(termo.municipio_id)}</div>
                                                  <div><span className="font-medium">Processo:</span> {termo.numero_processo || 'N/A'}</div>
                                                  <div><span className="font-medium">Prestador:</span> {getPrestadorNome(termo.prestador_servico_id)}</div>

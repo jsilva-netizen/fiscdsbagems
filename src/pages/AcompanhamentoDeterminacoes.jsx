@@ -293,7 +293,7 @@ export default function AcompanhamentoDeterminacoes() {
                 />
 
                 {/* KPIs */}
-                <div className="grid grid-cols-4 gap-4 mb-8">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-8">
                     <Card className="border border-gray-200 rounded-2xl shadow-sm bg-white">
                         <CardContent className="p-5">
                             <div className="text-center">
@@ -345,11 +345,11 @@ export default function AcompanhamentoDeterminacoes() {
 
                 {/* Lista de Fiscalizações com Determinações */}
                 <Tabs defaultValue="pendentes" className="w-full mb-8">
-                    <TabsList className="grid w-full grid-cols-4">
-                        <TabsTrigger value="pendentes">Pendentes ({determPorStatus.pendente.length})</TabsTrigger>
-                        <TabsTrigger value="atendidas">Acatadas ({determPorStatus.atendidas.length})</TabsTrigger>
-                        <TabsTrigger value="nao_atendidas">Não Acatadas ({determPorStatus.nao_atendidas.length})</TabsTrigger>
-                        <TabsTrigger value="autos">Com Auto ({determPorStatus.com_auto.length})</TabsTrigger>
+                    <TabsList className="flex w-full justify-start gap-1 overflow-x-auto sm:grid sm:grid-cols-4 sm:overflow-visible">
+                        <TabsTrigger value="pendentes" className="shrink-0">Pendentes ({determPorStatus.pendente.length})</TabsTrigger>
+                        <TabsTrigger value="atendidas" className="shrink-0">Acatadas ({determPorStatus.atendidas.length})</TabsTrigger>
+                        <TabsTrigger value="nao_atendidas" className="shrink-0">Não Acatadas ({determPorStatus.nao_atendidas.length})</TabsTrigger>
+                        <TabsTrigger value="autos" className="shrink-0">Com Auto ({determPorStatus.com_auto.length})</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="pendentes" className="space-y-4">
