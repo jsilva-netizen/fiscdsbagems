@@ -1,27 +1,39 @@
+import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
-import { Filter, X } from 'lucide-react';
+import { Filter, X, ChevronDown } from 'lucide-react';
 
 
 
-export default function DeterminacoesFiltros({ 
-    filtros, 
-    onFiltroChange, 
+export default function DeterminacoesFiltros({
+    filtros,
+    onFiltroChange,
     municipios = [],
     prestadores = [],
-    onLimpar 
+    onLimpar
 }) {
+    const [aberto, setAberto] = useState(false);
+    const temFiltro = Object.values(filtros || {}).some(v => v !== '' && v != null);
+
     return (
         <Card className="mb-6">
             <CardContent className="p-6">
-                <div className="flex items-center gap-2 mb-4">
+                <button
+                    type="button"
+                    onClick={() => setAberto(!aberto)}
+                    className="flex items-center gap-2 w-full text-left"
+                >
                     <Filter className="h-5 w-5" />
                     <h3 className="font-semibold">Filtros</h3>
-                </div>
+                    {temFiltro && <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />}
+                    <ChevronDown className={`h-4 w-4 text-gray-400 ml-auto transition-transform ${aberto ? 'rotate-180' : ''}`} />
+                </button>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                {aberto && (
+                <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
                     {/* Município */}
                     <div>
                         <label className="text-sm font-medium text-gray-700 block mb-2">Município</label>
@@ -94,8 +106,8 @@ export default function DeterminacoesFiltros({
                 </div>
 
                 <div className="flex gap-2 mt-4 justify-end">
-                    <Button 
-                        variant="outline" 
+                    <Button
+                        variant="outline"
                         size="sm"
                         onClick={onLimpar}
                         className="gap-2"
@@ -104,6 +116,8 @@ export default function DeterminacoesFiltros({
                         Limpar Filtros
                     </Button>
                 </div>
+                </>
+                )}
             </CardContent>
         </Card>
     );

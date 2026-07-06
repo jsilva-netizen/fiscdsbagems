@@ -1,11 +1,13 @@
-
+import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
-import { Filter, X } from 'lucide-react';
+import { Filter, X, ChevronDown } from 'lucide-react';
 
 export default function TermosFiltros({ onFilterChange, filtros }) {
+  const [aberto, setAberto] = useState(false);
+
   const handleFilterChange = (campo, valor) => {
     onFilterChange({ ...filtros, [campo]: valor });
   };
@@ -25,11 +27,18 @@ export default function TermosFiltros({ onFilterChange, filtros }) {
   return (
     <Card className="mb-6">
       <CardContent className="p-4">
-        <div className="flex items-center gap-2 mb-4">
+        <button
+          type="button"
+          onClick={() => setAberto(!aberto)}
+          className="flex items-center gap-2 w-full text-left"
+        >
           <Filter className="h-4 w-4 text-gray-600" />
           <span className="font-semibold text-sm">Filtros</span>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+          {temFiltro && <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />}
+          <ChevronDown className={`h-4 w-4 text-gray-400 ml-auto transition-transform ${aberto ? 'rotate-180' : ''}`} />
+        </button>
+        {aberto && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 mt-4">
           <Input
             placeholder="Buscar por número..."
             value={filtros.busca || ''}
@@ -73,7 +82,8 @@ export default function TermosFiltros({ onFilterChange, filtros }) {
             placeholder="Data Fim"
           />
         </div>
-        {temFiltro && (
+        )}
+        {aberto && temFiltro && (
           <div className="mt-3 flex justify-end">
             <Button
               size="sm"

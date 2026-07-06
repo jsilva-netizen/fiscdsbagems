@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import {
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Filter,
   FolderSearch,
   Loader2,
@@ -111,6 +112,8 @@ export default function CatersProcessos() {
   const [searchApplied, setSearchApplied] = useState('');
   const [municipalityApplied, setMunicipalityApplied] = useState('');
   const [statusApplied, setStatusApplied] = useState('');
+
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false);
 
   // Drafts
   const [searchDraft, setSearchDraft] = useState('');
@@ -265,41 +268,55 @@ export default function CatersProcessos() {
             </nav>
 
             {/* Filtros */}
-            <div className="flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-slate-100 p-4 shadow-sm">
-              <div className="relative flex-1 min-w-48">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <Input className="pl-9 bg-white" placeholder="Buscar por número…"
-                  value={searchDraft} onChange={(e) => setSearchDraft(e.target.value)} />
-              </div>
-              <Input className="w-48 bg-white" placeholder="Município…"
-                value={municipalityDraft} onChange={(e) => setMunicipalityDraft(e.target.value)} />
-              <div className="relative">
-                <Filter className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <select value={statusDraft} onChange={(e) => setStatusDraft(e.target.value)}
-                  className="h-10 rounded-md border border-input bg-white pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
-                  {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-              </div>
-              <div className="flex items-end gap-2">
-                <div className="space-y-1">
-                  <div className="text-xs font-semibold text-slate-500">De</div>
-                  <Input type="date" className="w-36 bg-white" value={createdFromDraft}
-                    onChange={(e) => setCreatedFromDraft(e.target.value)} />
+            <div className="rounded-xl border border-slate-200 bg-slate-100 shadow-sm">
+              <button
+                type="button"
+                onClick={() => setFiltrosAbertos(!filtrosAbertos)}
+                className="flex items-center gap-2 w-full text-left p-4"
+              >
+                <Filter className="h-4 w-4 text-slate-500" />
+                <span className="font-semibold text-sm text-slate-700">Filtros</span>
+                {hasActiveFilters && <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />}
+                <ChevronDown className={`h-4 w-4 text-slate-400 ml-auto transition-transform ${filtrosAbertos ? 'rotate-180' : ''}`} />
+              </button>
+              {filtrosAbertos && (
+              <div className="flex flex-wrap items-end gap-3 p-4 pt-0">
+                <div className="relative flex-1 min-w-48">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <Input className="pl-9 bg-white" placeholder="Buscar por número…"
+                    value={searchDraft} onChange={(e) => setSearchDraft(e.target.value)} />
                 </div>
-                <div className="space-y-1">
-                  <div className="text-xs font-semibold text-slate-500">Até</div>
-                  <Input type="date" className="w-36 bg-white" value={createdToDraft}
-                    onChange={(e) => setCreatedToDraft(e.target.value)} />
+                <Input className="w-48 bg-white" placeholder="Município…"
+                  value={municipalityDraft} onChange={(e) => setMunicipalityDraft(e.target.value)} />
+                <div className="relative">
+                  <Filter className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <select value={statusDraft} onChange={(e) => setStatusDraft(e.target.value)}
+                    className="h-10 rounded-md border border-input bg-white pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                    {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
                 </div>
-              </div>
-              <Button onClick={handleApplyFilters} className="gap-2 bg-emerald-600 hover:bg-emerald-700">
-                <Filter className="h-4 w-4" />
-                Filtrar
-              </Button>
-              {hasActiveFilters && (
-                <Button variant="ghost" size="icon" onClick={handleClearFilters} title="Limpar filtros">
-                  <X className="h-4 w-4" />
+                <div className="flex items-end gap-2">
+                  <div className="space-y-1">
+                    <div className="text-xs font-semibold text-slate-500">De</div>
+                    <Input type="date" className="w-36 bg-white" value={createdFromDraft}
+                      onChange={(e) => setCreatedFromDraft(e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-xs font-semibold text-slate-500">Até</div>
+                    <Input type="date" className="w-36 bg-white" value={createdToDraft}
+                      onChange={(e) => setCreatedToDraft(e.target.value)} />
+                  </div>
+                </div>
+                <Button onClick={handleApplyFilters} className="gap-2 bg-emerald-600 hover:bg-emerald-700">
+                  <Filter className="h-4 w-4" />
+                  Filtrar
                 </Button>
+                {hasActiveFilters && (
+                  <Button variant="ghost" size="icon" onClick={handleClearFilters} title="Limpar filtros">
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
               )}
             </div>
 

@@ -8,7 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, Download, FileJson, FileText, CheckCircle2, AlertTriangle, ChevronDown, Check, Search, Route, MapPin } from 'lucide-react';
+import { TrendingUp, Download, FileJson, FileText, CheckCircle2, AlertTriangle, ChevronDown, Check, Search, Route, MapPin, Filter } from 'lucide-react';
 import CaterfLayout from '@/components/caterf/CaterfLayout';
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Legend, Cell } from 'recharts';
 import html2canvas from 'html2canvas';
@@ -166,6 +166,7 @@ const frente_short = (f) => {
 const FRENTE_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#8b5cf6', '#ec4899'];
 
 function RelatoriosDTR({ diretoriaNome }) {
+    const [filtrosAbertos, setFiltrosAbertos] = useState(false);
     const [anoFiltro, setAnoFiltro] = useState([new Date().getFullYear().toString()]);
     const [rodoviaFiltro, setRodoviaFiltro] = useState([]);
     const [concessionariaFiltro, setConcessionariaFiltro] = useState([]);
@@ -312,14 +313,23 @@ function RelatoriosDTR({ diretoriaNome }) {
             <div className="max-w-6xl mx-auto px-4 mt-6 print:hidden">
                 <Card className="bg-white border border-gray-200 shadow-sm">
                     <CardContent className="p-4">
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <button
+                            type="button"
+                            onClick={() => setFiltrosAbertos(!filtrosAbertos)}
+                            className="flex items-center gap-2 w-full text-left"
+                        >
+                            <Filter className="h-4 w-4 text-gray-600" />
+                            <span className="font-semibold text-sm">Filtros</span>
+                            <span className="text-xs text-gray-400 font-medium ml-2">{totalVistorias} vistorias correspondentes</span>
+                            <ChevronDown className={`h-4 w-4 text-gray-400 ml-auto transition-transform ${filtrosAbertos ? 'rotate-180' : ''}`} />
+                        </button>
+                        {filtrosAbertos && (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
                             <div className="space-y-1"><label className="text-xs font-semibold text-gray-500 block">Ano</label><MultiSelect placeholder="Todos os Anos" options={anoOptions} selectedValues={anoFiltro} onChange={setAnoFiltro} /></div>
                             <div className="space-y-1"><label className="text-xs font-semibold text-gray-500 block">Rodovia</label><MultiSelect placeholder="Todas as Rodovias" options={rodoviaOptions} selectedValues={rodoviaFiltro} onChange={setRodoviaFiltro} /></div>
                             <div className="space-y-1"><label className="text-xs font-semibold text-gray-500 block">Concessionária</label><MultiSelect placeholder="Todas" options={concessionariaOptions} selectedValues={concessionariaFiltro} onChange={setConcessionariaFiltro} /></div>
                         </div>
-                        <div className="flex justify-end border-t border-gray-100 pt-3 mt-4">
-                            <span className="text-xs text-gray-400 font-medium">{totalVistorias} vistorias correspondentes</span>
-                        </div>
+                        )}
                     </CardContent>
                 </Card>
             </div>
@@ -498,6 +508,7 @@ export default function Relatorios() {
     // modulosFiltro: lista de tipo_modulo visíveis para este usuário (do hook)
     // Admin recebe [] = sem filtro; demais recebem todos os módulos da sua diretoria
 
+    const [filtrosAbertos, setFiltrosAbertos] = useState(false);
     const [anoFiltro, setAnoFiltro] = useState([new Date().getFullYear().toString()]);
     const [servicoFiltro, setServicoFiltro] = useState([]);
     const [municipioFiltro, setMunicipioFiltro] = useState([]);
@@ -687,8 +698,19 @@ export default function Relatorios() {
             {/* Barra de Filtros */}
             <div className="max-w-6xl mx-auto px-4 mt-6 print:hidden">
                 <Card className="bg-white border border-gray-200 shadow-sm">
-                    <CardContent className="p-4 space-y-4">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    <CardContent className="p-4">
+                        <button
+                            type="button"
+                            onClick={() => setFiltrosAbertos(!filtrosAbertos)}
+                            className="flex items-center gap-2 w-full text-left"
+                        >
+                            <Filter className="h-4 w-4 text-gray-600" />
+                            <span className="font-semibold text-sm">Filtros</span>
+                            <span className="text-xs text-gray-400 font-medium ml-2">{totalFiscalizacoes} fiscalizações correspondentes</span>
+                            <ChevronDown className={`h-4 w-4 text-gray-400 ml-auto transition-transform ${filtrosAbertos ? 'rotate-180' : ''}`} />
+                        </button>
+                        {filtrosAbertos && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mt-4">
                             {/* Ano — comum a todos os módulos */}
                             <div className="space-y-1">
                                 <label className="text-xs font-semibold text-gray-500 block">Ano</label>
@@ -737,11 +759,7 @@ export default function Relatorios() {
                                 </div>
                             )}
                         </div>
-                        <div className="flex justify-end border-t border-gray-100 pt-3">
-                            <div className="text-xs text-gray-400 font-medium">
-                                {totalFiscalizacoes} fiscalizações correspondentes
-                            </div>
-                        </div>
+                        )}
                     </CardContent>
                 </Card>
             </div>

@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { FileText, Clock, CheckCircle, AlertCircle, Download } from 'lucide-react';
+import { FileText, Clock, CheckCircle, AlertCircle, Download, Filter, ChevronDown } from 'lucide-react';
 import CatesaLayout from '@/components/camaras/CatesaLayout';
 
 
@@ -21,6 +21,7 @@ import CatesaLayout from '@/components/camaras/CatesaLayout';
 
 
 export default function AnaliseManifestacao() {
+    const [filtrosAbertos, setFiltrosAbertos] = useState(false);
     const [filtros, setFiltros] = useState({
         busca: '',
         camaraTecnica: '',
@@ -647,7 +648,21 @@ export default function AnaliseManifestacao() {
                 {/* Filtros */}
                 <Card className="mb-6">
                     <CardContent className="p-4">
-                        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                        <button
+                            type="button"
+                            onClick={() => setFiltrosAbertos(!filtrosAbertos)}
+                            className="flex items-center gap-2 w-full text-left"
+                        >
+                            <Filter className="h-4 w-4 text-gray-600" />
+                            <span className="font-semibold text-sm">Filtros</span>
+                            {(filtros.busca || filtros.camaraTecnica || filtros.status || filtros.dataInicio || filtros.dataFim) && (
+                                <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
+                            )}
+                            <ChevronDown className={`h-4 w-4 text-gray-400 ml-auto transition-transform ${filtrosAbertos ? 'rotate-180' : ''}`} />
+                        </button>
+                        {filtrosAbertos && (
+                        <>
+                        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-4">
                             <Input
                                 placeholder="Buscar TN..."
                                 value={filtros.busca}
@@ -696,6 +711,8 @@ export default function AnaliseManifestacao() {
                             >
                                 Limpar Filtros
                             </Button>
+                        )}
+                        </>
                         )}
                     </CardContent>
                 </Card>
