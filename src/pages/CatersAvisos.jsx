@@ -109,16 +109,8 @@ export default function CatersAvisos() {
 
             {/* Header */}
             <div className="flex flex-wrap items-end justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="grid h-10 w-10 place-items-center rounded-xl bg-amber-50">
-                  <Bell className="h-5 w-5 text-amber-600" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Avisos</h1>
-                  <p className="text-sm text-slate-500">
-                    {unreadCount > 0 ? `${unreadCount} não lido${unreadCount !== 1 ? 's' : ''}` : 'Tudo lido'}
-                  </p>
-                </div>
+              <div>
+                <h1 className="text-xs font-bold uppercase tracking-widest text-slate-400">Avisos</h1>
               </div>
               <Button
                 onClick={() => markAllMut.mutate()}

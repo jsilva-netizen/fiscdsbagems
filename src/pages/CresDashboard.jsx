@@ -4,7 +4,6 @@ import {
   ClipboardList,
   Scale,
   Gavel,
-  Construction,
 } from 'lucide-react';
 import CresLayout from '@/components/cres/CresLayout';
 
@@ -22,19 +21,9 @@ export default function CresDashboard() {
       <div className="min-h-full bg-slate-50">
         <div className="max-w-4xl mx-auto px-6 py-10 space-y-8">
 
-          {/* Banner */}
-          <div className="rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-700 p-8 text-white shadow-md">
-            <div className="flex items-center gap-4">
-              <div className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-white/20">
-                <Construction className="h-7 w-7 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-extrabold">Painel CRES</h1>
-                <p className="mt-1 text-violet-100 text-sm">
-                  Câmara Técnica de Regulação Econômica do Saneamento — em implementação
-                </p>
-              </div>
-            </div>
+          {/* Header */}
+          <div>
+            <h1 className="text-xs font-bold uppercase tracking-widest text-slate-400">Painel CRES</h1>
           </div>
 
           {/* Funcionalidades previstas */}

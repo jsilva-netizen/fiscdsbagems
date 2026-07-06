@@ -689,14 +689,8 @@ export default function GerenciarTermos() {
         <CamaraLayoutComponent>
             <div className="max-w-6xl mx-auto px-4 pt-8">
                 <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
-                    <div className="flex items-center gap-3">
-                        <div className="grid h-10 w-10 place-items-center rounded-xl bg-cyan-50">
-                            <FileText className="h-5 w-5 text-cyan-700" />
-                        </div>
-                        <div>
-                            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Notificações</h1>
-                            <p className="text-sm text-slate-500">{termos.length} termo{termos.length !== 1 ? 's' : ''} de notificação</p>
-                        </div>
+                    <div>
+                        <h1 className="text-xs font-bold uppercase tracking-widest text-slate-400">Notificações</h1>
                     </div>
                     <Button
                         onClick={() => {

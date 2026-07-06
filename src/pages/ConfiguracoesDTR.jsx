@@ -606,8 +606,7 @@ export default function ConfiguracoesDTR() {
                         </Button>
                     </Link>
                     <div>
-                        <h1 className="text-lg font-bold">Configurações DTR</h1>
-                        <p className="text-blue-200 text-xs">Tipos de ocorrência e traçado KML por rodovia</p>
+                        <h1 className="text-xs font-bold uppercase tracking-widest text-blue-200">Configurações DTR</h1>
                     </div>
                 </div>
             </div>

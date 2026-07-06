@@ -365,10 +365,7 @@ export default function PortalPrestadorHome() {
         <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
           <div className="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">Portal do Prestador</h1>
-              <p className="text-blue-200 text-xs mt-0.5">
-                Prestador: <span className="font-semibold text-white">{prestador?.nome || '—'}</span>
-              </p>
+              <h1 className="text-xs font-bold uppercase tracking-widest text-blue-200">Portal do Prestador</h1>
             </div>
             <Button
               variant="ghost"

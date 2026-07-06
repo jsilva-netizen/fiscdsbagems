@@ -446,8 +446,7 @@ export default function Checklists({ embedded = false }) {
                             </Button>
                         </Link>
                         <div>
-                            <h1 className="text-xl font-bold">Checklists Normativos</h1>
-                            <p className="text-blue-200 text-xs mt-0.5">Configure perguntas por tipo de unidade</p>
+                            <h1 className="text-xs font-bold uppercase tracking-widest text-blue-200">Checklists Normativos</h1>
                         </div>
                     </div>
                 </div>

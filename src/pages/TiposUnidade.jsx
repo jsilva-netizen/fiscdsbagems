@@ -146,10 +146,7 @@ export default function TiposUnidade({ embedded = false }) {
                                 </Button>
                             </Link>
                             <div>
-                                <h1 className="text-xl font-bold">Tipos de Unidade</h1>
-                                <p className="text-blue-200 text-xs mt-0.5">
-                                    <span className="font-semibold">{tipos.length}</span> tipos cadastrados
-                                </p>
+                                <h1 className="text-xs font-bold uppercase tracking-widest text-blue-200">Tipos de Unidade</h1>
                             </div>
                         </div>
                         <Button onClick={() => setShowForm(true)} className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow gap-1.5">

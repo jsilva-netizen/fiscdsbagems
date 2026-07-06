@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
-import { Search, Filter, Trash2, AlertTriangle, MapPin, ChevronRight, Calendar, CheckCircle2, Clock, Plus, RotateCcw, Loader2, Settings, ClipboardCheck } from 'lucide-react';
+import { Search, Filter, Trash2, AlertTriangle, MapPin, ChevronRight, Calendar, CheckCircle2, Clock, Plus, RotateCcw, Loader2, Settings } from 'lucide-react';
 import ExportarPDFConsolidado from '@/components/fiscalizacao/ExportarPDFConsolidado';
 import RelatorioFiscalizacao from '@/components/fiscalizacao/RelatorioFiscalizacao';
 import HistoricoFiscalizacao from '@/components/fiscalizacao/HistoricoFiscalizacao';
@@ -141,18 +141,8 @@ export default function Fiscalizacoes() {
             {/* Header */}
             <div className="max-w-6xl mx-auto px-4 pt-8">
                 <div className="flex items-start justify-between gap-4 flex-wrap">
-                    <div className="flex items-center gap-3">
-                        <div className="grid h-10 w-10 place-items-center rounded-xl bg-sky-50">
-                            <ClipboardCheck className="h-5 w-5 text-sky-700" />
-                        </div>
-                        <div>
-                            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Fiscalizações</h1>
-                            <p className="text-sm text-slate-500">
-                                <span className="font-semibold text-sky-700">{emAndamento}</span> em andamento
-                                {' • '}
-                                <span className="font-semibold text-emerald-700">{finalizadas}</span> finalizadas
-                            </p>
-                        </div>
+                    <div>
+                        <h1 className="text-xs font-bold uppercase tracking-widest text-slate-400">Histórico de Fiscalizações</h1>
                     </div>
                     <div className="flex items-center gap-2">
                         {isAdmin && (

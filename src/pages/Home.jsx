@@ -79,8 +79,7 @@ export default function Home() {
                             </svg>
                         </div>
                         <div className="flex-1 min-w-0">
-                            <h1 className="text-xl font-bold">SGO - Sistema de Gestão Operacional - AGEMS</h1>
-                            <p className="text-blue-200 text-sm truncate">{isAdmin ? 'Administração' : diretoriaNome}</p>
+                            <h1 className="text-xs font-bold uppercase tracking-widest text-blue-200 truncate">SGO - Sistema de Gestão Operacional - AGEMS</h1>
                         </div>
                         <SyncBar />
                         <Button

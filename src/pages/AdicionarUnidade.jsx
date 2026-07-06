@@ -199,10 +199,7 @@ export default function AdicionarUnidade() {
                         </Button>
                     </Link>
                     <div>
-                        <h1 className="text-xl font-bold">Adicionar Unidade</h1>
-                        <p className="text-blue-200 text-xs mt-0.5 truncate">
-                            {fiscalizacao?.municipio_nome} {fiscalizacao?.servicos?.length ? '• ' + fiscalizacao.servicos.join(', ') : ''}
-                        </p>
+                        <h1 className="text-xs font-bold uppercase tracking-widest text-blue-200">Adicionar Unidade</h1>
                     </div>
                 </div>
             </div>

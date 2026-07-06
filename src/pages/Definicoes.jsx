@@ -28,8 +28,7 @@ export default function Definicoes() {
                             </Button>
                         </Link>
                         <div>
-                            <h1 className="text-xl font-bold">Definições</h1>
-                            <p className="text-blue-200 text-xs mt-0.5">Configurações do sistema de fiscalização</p>
+                            <h1 className="text-xs font-bold uppercase tracking-widest text-blue-200">Definições</h1>
                         </div>
                     </div>
                     {/* Tabs */}

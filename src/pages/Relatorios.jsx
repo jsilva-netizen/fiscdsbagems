@@ -298,14 +298,8 @@ function RelatoriosDTR({ diretoriaNome }) {
             {/* Header */}
             <div className="max-w-6xl mx-auto px-4 pt-8">
                 <div className="flex items-start justify-between gap-4 flex-wrap">
-                    <div className="flex items-center gap-3">
-                        <div className="grid h-10 w-10 place-items-center rounded-xl bg-blue-50">
-                            <TrendingUp className="h-5 w-5 text-blue-700" />
-                        </div>
-                        <div>
-                            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Relatórios e Indicadores</h1>
-                            <p className="text-sm text-slate-500">{diretoriaNome}</p>
-                        </div>
+                    <div>
+                        <h1 className="text-xs font-bold uppercase tracking-widest text-slate-400">Relatórios e Indicadores</h1>
                     </div>
                     <div className="flex gap-2">
                         <Button onClick={exportarPDF} variant="outline" size="sm" className="gap-1.5 text-xs"><Download className="h-3.5 w-3.5" /> PDF</Button>
@@ -674,14 +668,8 @@ export default function Relatorios() {
             {/* Header */}
             <div className="max-w-6xl mx-auto px-4 pt-8">
                 <div className="flex items-start justify-between gap-4 flex-wrap">
-                    <div className="flex items-center gap-3">
-                        <div className="grid h-10 w-10 place-items-center rounded-xl bg-blue-50">
-                            <TrendingUp className="h-5 w-5 text-blue-700" />
-                        </div>
-                        <div>
-                            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Relatórios e Indicadores</h1>
-                            <p className="text-sm text-slate-500">{efetivaDiretoriaNome}</p>
-                        </div>
+                    <div>
+                        <h1 className="text-xs font-bold uppercase tracking-widest text-slate-400">Relatórios e Indicadores</h1>
                     </div>
                     <div className="flex gap-2">
                         <Button onClick={exportarPDF} variant="outline" size="sm" className="gap-1.5 text-xs">

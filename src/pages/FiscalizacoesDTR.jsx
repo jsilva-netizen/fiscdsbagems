@@ -94,14 +94,8 @@ export default function FiscalizacoesDTR() {
             {/* Header */}
             <div className="max-w-6xl mx-auto px-4 pt-8">
                 <div className="flex items-start justify-between gap-4 flex-wrap">
-                    <div className="flex items-center gap-3">
-                        <div className="grid h-10 w-10 place-items-center rounded-xl bg-sky-50">
-                            <Compass className="h-5 w-5 text-sky-700" />
-                        </div>
-                        <div>
-                            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Fiscalização</h1>
-                            <p className="text-sm text-slate-500">Histórico e execução de fiscalizações</p>
-                        </div>
+                    <div>
+                        <h1 className="text-xs font-bold uppercase tracking-widest text-slate-400">Histórico de Fiscalizações</h1>
                     </div>
                     <Link to={createPageUrl('NovaFiscalizacaoDTR')}>
                         <Button className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow gap-1.5">

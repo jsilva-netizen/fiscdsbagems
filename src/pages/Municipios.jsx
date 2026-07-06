@@ -33,10 +33,7 @@ export default function Municipios() {
                             </Button>
                         </Link>
                         <div>
-                            <h1 className="text-xl font-bold">Municípios do MS</h1>
-                            <p className="text-blue-200 text-xs mt-0.5">
-                                <span className="font-semibold">{municipios.length}</span> municípios cadastrados
-                            </p>
+                            <h1 className="text-xs font-bold uppercase tracking-widest text-blue-200">Municípios do MS</h1>
                         </div>
                     </div>
                 </div>

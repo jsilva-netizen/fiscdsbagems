@@ -276,8 +276,7 @@ export default function GerenciarUsuarios() {
                             </Button>
                         </Link>
                         <div>
-                            <h1 className="text-xl font-bold">Gestão de Usuários</h1>
-                            <p className="text-blue-200 text-xs mt-0.5">{usuarios.length} usuários cadastrados</p>
+                            <h1 className="text-xs font-bold uppercase tracking-widest text-blue-200">Gestão de Usuários</h1>
                         </div>
                     </div>
                 </div>

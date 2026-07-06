@@ -293,8 +293,7 @@ export default function PrestadoresServico({ embedded = false }) {
                             </Button>
                         </Link>
                         <div>
-                            <h1 className="text-2xl font-bold tracking-tight">{getPageTitleText()}</h1>
-                            <p className="text-blue-200 text-xs mt-0.5">Gestão de Cadastro e Serviços regulados pela AGEMS</p>
+                            <h1 className="text-xs font-bold uppercase tracking-widest text-blue-200">{getPageTitleText()}</h1>
                         </div>
                     </div>
                 </div>

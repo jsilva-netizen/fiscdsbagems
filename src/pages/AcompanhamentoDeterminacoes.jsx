@@ -274,8 +274,7 @@ export default function AcompanhamentoDeterminacoes() {
                             </Button>
                         </Link>
                         <div>
-                            <h1 className="text-xl font-bold">Acompanhamento de Determinações</h1>
-                            <p className="text-blue-200 text-xs mt-0.5">{determinacoes.length} determinações no total</p>
+                            <h1 className="text-xs font-bold uppercase tracking-widest text-blue-200">Acompanhamento de Determinações</h1>
                         </div>
                     </div>
                 </div>

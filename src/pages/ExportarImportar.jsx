@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Download, Upload, FileJson, CheckCircle2, AlertCircle, Loader2, Database, ArrowRight, Info } from 'lucide-react';
+import { Download, Upload, FileJson, CheckCircle2, AlertCircle, Loader2, ArrowRight, Info } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -419,10 +419,8 @@ export default function ExportarImportar() {
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
         <div className="max-w-3xl mx-auto px-4 py-5 flex items-center gap-3">
-          <Database className="h-6 w-6 text-indigo-300 flex-shrink-0" />
           <div>
-            <h1 className="text-xl font-bold">Exportar / Importar Dados</h1>
-            <p className="text-blue-200 text-xs mt-0.5">Migre fiscalizações finalizadas entre instâncias do app</p>
+            <h1 className="text-xs font-bold uppercase tracking-widest text-blue-200">Exportar / Importar Dados</h1>
           </div>
         </div>
       </div>

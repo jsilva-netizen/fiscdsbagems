@@ -96,10 +96,7 @@ export default function NovaFiscalizacao() {
                             </Button>
                         </Link>
                         <div>
-                            <h1 className="text-xl font-bold">
-                                Nova Fiscalização
-                            </h1>
-                            <p className="text-blue-200 text-xs">Módulo Saneamento Básico (DSB)</p>
+                            <h1 className="text-xs font-bold uppercase tracking-widest text-blue-200">Nova Fiscalização</h1>
                         </div>
                     </div>
                 </div>

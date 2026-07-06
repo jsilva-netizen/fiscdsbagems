@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Download, Loader2, Save, Send, ClipboardList } from 'lucide-react';
+import { Download, Loader2, Save, Send } from 'lucide-react';
 import CatesaLayout from '@/components/camaras/CatesaLayout';
  
 export default function PareceresTecnicos() {
@@ -190,14 +190,8 @@ export default function PareceresTecnicos() {
   return (
     <CatesaLayout>
       <div className="max-w-6xl mx-auto px-4 pt-8">
-        <div className="flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-50">
-            <ClipboardList className="h-5 w-5 text-indigo-700" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Pareceres</h1>
-            <p className="text-sm text-slate-500">Pareceres técnicos e remessas encaminhadas</p>
-          </div>
+        <div>
+          <h1 className="text-xs font-bold uppercase tracking-widest text-slate-400">Pareceres</h1>
         </div>
       </div>
       {loteAbertoId && (

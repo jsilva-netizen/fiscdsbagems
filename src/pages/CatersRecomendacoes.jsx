@@ -39,20 +39,12 @@ export default function CatersRecomendacoes() {
           <div className="mx-auto max-w-6xl space-y-6">
             {/* Header */}
             <div className="flex items-center gap-3">
-              <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-50">
-                <ClipboardList className="h-5 w-5 text-emerald-700" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Recomendações</h1>
-                <p className="text-sm text-slate-500">
-                  Visão geral por processo
-                  {totalOverdue > 0 && (
-                    <span className="ml-2 inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-xs font-bold text-red-700">
-                      {totalOverdue} vencida{totalOverdue !== 1 ? 's' : ''}
-                    </span>
-                  )}
-                </p>
-              </div>
+              <h1 className="text-xs font-bold uppercase tracking-widest text-slate-400">Recomendações</h1>
+              {totalOverdue > 0 && (
+                <span className="inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-xs font-bold text-red-700">
+                  {totalOverdue} vencida{totalOverdue !== 1 ? 's' : ''}
+                </span>
+              )}
             </div>
 
             {/* Busca */}
