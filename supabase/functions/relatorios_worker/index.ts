@@ -897,13 +897,17 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
     return null
   }
 
+  // Altura de cada linha de fotos (par de fotos lado a lado) — compartilhada com o
+  // cálculo prévio de "cabe no que resta da página?" feito antes de desenhar o registro.
+  const PHOTO_H = mm2pt(70)
+  const CAP_H   = mm2pt(7)
+  const PHOTO_ROW_H = PHOTO_H + CAP_H + mm2pt(2)
+
   // Photos as full-width rows INSIDE the table — single bordered cell per pair
-  const drawPhotoRows = async (fotosRaw: any[]) => {
+  const drawPhotoRows = async (fotosRaw: any[], cols: ColDef2[]) => {
     if (!fotosRaw.length) return
 
-    const PHOTO_H = mm2pt(70)
-    const CAP_H   = mm2pt(7)
-    const ROW_H   = PHOTO_H + CAP_H + mm2pt(2)
+    const ROW_H = PHOTO_ROW_H
 
     const prepared: { bytes: Uint8Array }[] = []
     for (let s = 0; s < fotosRaw.length; s += 8) {
@@ -916,7 +920,10 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
     }
 
     for (let i = 0; i < prepared.length; i += 2) {
-      if (yPos + ROW_H > pageHeight - bottomMargin) addPage()
+      if (yPos + ROW_H > pageHeight - bottomMargin) {
+        addPage()
+        drawHdrRow(cols)
+      }
 
       const hasBoth = !!prepared[i + 1]
       const halfW   = tableWidth / 2
@@ -1035,21 +1042,23 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
     ]
 
     const rowH = Math.max(...vals.map((v, ci) => calcH(v.v, cCols[ci].w)))
-    if (yPos + rowH > pageHeight - bottomMargin) {
+    const fotosRaw = Array.isArray(u.fotos_unidade) ? u.fotos_unidade : []
+    // Registro (linha + fotos) sempre junto: se o bloco inteiro não cabe no que resta
+    // da página atual, pula pra próxima página antes de desenhar qualquer parte dele.
+    const photoBlockH = Math.ceil(fotosRaw.length / 2) * PHOTO_ROW_H
+    if (yPos + rowH + photoBlockH > pageHeight - bottomMargin) {
       addPage()
       drawHdrRow(cCols)
     }
 
-    const fillArr: number[] | undefined = i % 2 === 1 ? [245, 245, 245] : undefined
     let x = margin
     for (let ci = 0; ci < cCols.length; ci++) {
-      drawCell2(vals[ci].v, x, yPos, cCols[ci].w, rowH, { center: vals[ci].c, fill: fillArr, justify: !vals[ci].c })
+      drawCell2(vals[ci].v, x, yPos, cCols[ci].w, rowH, { center: vals[ci].c, justify: !vals[ci].c })
       x += cCols[ci].w
     }
     yPos += rowH
 
-    const fotosRaw = Array.isArray(u.fotos_unidade) ? u.fotos_unidade : []
-    await drawPhotoRows(fotosRaw)
+    await drawPhotoRows(fotosRaw, cCols)
     progCount++
     try { await updateJob(adminClient, job.id, { progress_unidades: progCount, progress_fotos: gFotoNum }) } catch {}
   }
@@ -1076,21 +1085,23 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
     ]
 
     const rowH = Math.max(...vals.map((v, ci) => calcH(v.v, ncCols[ci].w)))
-    if (yPos + rowH > pageHeight - bottomMargin) {
+    const fotosRaw = Array.isArray(u.fotos_unidade) ? u.fotos_unidade : []
+    // Registro (linha + fotos) sempre junto: se o bloco inteiro não cabe no que resta
+    // da página atual, pula pra próxima página antes de desenhar qualquer parte dele.
+    const photoBlockH = Math.ceil(fotosRaw.length / 2) * PHOTO_ROW_H
+    if (yPos + rowH + photoBlockH > pageHeight - bottomMargin) {
       addPage()
       drawHdrRow(ncCols)
     }
 
-    const fillArr: number[] | undefined = i % 2 === 1 ? [245, 245, 245] : undefined
     let x = margin
     for (let ci = 0; ci < ncCols.length; ci++) {
-      drawCell2(vals[ci].v, x, yPos, ncCols[ci].w, rowH, { center: vals[ci].c, fill: fillArr, justify: !vals[ci].c })
+      drawCell2(vals[ci].v, x, yPos, ncCols[ci].w, rowH, { center: vals[ci].c, justify: !vals[ci].c })
       x += ncCols[ci].w
     }
     yPos += rowH
 
-    const fotosRaw = Array.isArray(u.fotos_unidade) ? u.fotos_unidade : []
-    await drawPhotoRows(fotosRaw)
+    await drawPhotoRows(fotosRaw, ncCols)
     progCount++
     try { await updateJob(adminClient, job.id, { progress_unidades: progCount, progress_fotos: gFotoNum }) } catch {}
   }
