@@ -533,9 +533,14 @@ export default function VistoriarOcorrenciaDTR() {
                 <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wide">{stepIdx + 1}. {selectedPer.toUpperCase()}</h2>
                 {itemsForPer.map((item, i) => {
                     const label = item.descricao || item.nome || `Item ${i + 1}`;
-                    const isSel = selectedItem?.id === item.id;
+                    // Os itens de fallback (TIPOS_FALLBACK) não têm "id" — comparar só por
+                    // item.id fazia `undefined === undefined` virar true pra todo mundo,
+                    // marcando todas as opções como selecionadas ao mesmo tempo.
+                    const itemKey = item.id || label;
+                    const selectedKey = selectedItem ? (selectedItem.id || (selectedItem.descricao || selectedItem.nome || '')) : null;
+                    const isSel = selectedKey != null && selectedKey === itemKey;
                     return (
-                        <RadioCard key={item.id || label} label={label} selected={isSel}
+                        <RadioCard key={itemKey} label={label} selected={isSel}
                             onSelect={() => {
                                 setEtapaObra('');
                                 setObservacao('');
