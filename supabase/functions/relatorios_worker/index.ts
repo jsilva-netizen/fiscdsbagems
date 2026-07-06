@@ -846,11 +846,15 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
         const lw = f.widthOfTextAtSize(ln, size)
         drawTextAt(ln, x + (w - lw) / 2, ty, size, { bold: opts?.bold })
       } else if (opts?.justify && !isLast) {
-        // Full justification: distribute space evenly between words
+        // Full justification: distribute space evenly between words — mas só quando isso
+        // não estica demais o texto. Em colunas estreitas (ex: PER), uma linha com só 2-3
+        // palavras curtas ficava com espaços gigantes entre elas ao preencher a coluna
+        // inteira; nesse caso cai pro alinhamento normal (mais legível que justificado).
         const words = ln.split(' ').filter((ww: string) => ww.length > 0)
-        if (words.length > 1) {
-          const totalWordW = words.reduce((acc: number, ww: string) => acc + f.widthOfTextAtSize(ww, size), 0)
-          const gapW = (availW - totalWordW) / (words.length - 1)
+        const normalSpaceW = f.widthOfTextAtSize(' ', size)
+        const totalWordW = words.length > 1 ? words.reduce((acc: number, ww: string) => acc + f.widthOfTextAtSize(ww, size), 0) : 0
+        const gapW = words.length > 1 ? (availW - totalWordW) / (words.length - 1) : 0
+        if (words.length > 1 && gapW <= normalSpaceW * 2.5) {
           let wx = x + CPAD_X
           for (const word of words) {
             page.drawText(word, { x: wx, y: pageHeight - ty, size, font: f, color: rgb(0, 0, 0) })
