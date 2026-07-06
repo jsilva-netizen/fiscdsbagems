@@ -99,7 +99,7 @@ export default function FiscalizacoesDTR() {
                     </div>
                     <Link to={createPageUrl('NovaFiscalizacaoDTR')}>
                         <Button className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow gap-1.5">
-                            <Plus className="h-4 w-4" /> Novo
+                            <Plus className="h-4 w-4" /> Nova Fiscalização
                         </Button>
                     </Link>
                 </div>
