@@ -16,14 +16,12 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@
 import { Search, Filter, Trash2, Calendar, Map, CheckCircle2, Clock, Plus, Compass, Loader2, Settings } from 'lucide-react';
 import RelatorioFiscalizacao from '@/components/fiscalizacao/RelatorioFiscalizacao';
 import CaterfLayout from '@/components/caterf/CaterfLayout';
-import { useModulo } from '@/hooks/useModulo';
 
 const DTR_MODULOS = ['rodovias_dtr', 'transportes_dtr', 'fiscal_dtr'];
 
 export default function FiscalizacoesDTR() {
     const queryClient = useQueryClient();
     const { user } = useAuth();
-    const { isAdmin } = useModulo();
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('todos');
     const [rodoviaFilter, setRodoviaFilter] = useState('todos');
@@ -100,14 +98,12 @@ export default function FiscalizacoesDTR() {
                         <h1 className="text-xs font-bold uppercase tracking-widest text-slate-400">Histórico de Fiscalizações</h1>
                     </div>
                     <div className="flex items-center gap-2">
-                        {isAdmin && (
-                            <Link to={createPageUrl('DefinicoesDTR')}>
-                                <Button variant="outline" size="sm" className="gap-1.5 text-xs">
-                                    <Settings className="h-3.5 w-3.5" />
-                                    Definições
-                                </Button>
-                            </Link>
-                        )}
+                        <Link to={createPageUrl('DefinicoesDTR')}>
+                            <Button variant="outline" size="sm" className="gap-1.5 text-xs">
+                                <Settings className="h-3.5 w-3.5" />
+                                Definições
+                            </Button>
+                        </Link>
                         <Link to={createPageUrl('NovaFiscalizacaoDTR')}>
                             <Button className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow gap-1.5">
                                 <Plus className="h-4 w-4" /> Nova Fiscalização
