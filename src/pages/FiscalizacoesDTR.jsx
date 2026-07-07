@@ -92,7 +92,7 @@ export default function FiscalizacoesDTR() {
         <CaterfLayout>
             <div className="min-h-full flex flex-col">
             {/* Header */}
-            <div className="max-w-6xl mx-auto px-4 pt-8">
+            <div className="max-w-6xl w-full mx-auto px-4 pt-8">
                 <h1 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">Histórico de Fiscalizações</h1>
                 <div className="flex items-center gap-2">
                     <Link to={createPageUrl('NovaFiscalizacaoDTR')} className="flex-1 min-w-0">
