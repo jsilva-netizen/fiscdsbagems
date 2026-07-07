@@ -114,7 +114,8 @@ export default function Fiscalizacoes() {
 
     const filtered = fiscalizacoes.filter(f => {
         const servicosStr = f.servicos?.join(' ').toLowerCase() || '';
-        const matchSearch = servicosStr.includes(search.toLowerCase());
+        const matchSearch = f.municipio_nome?.toLowerCase().includes(search.toLowerCase()) ||
+            servicosStr.includes(search.toLowerCase());
         const matchStatus = statusFilter === 'todos' || f.status === statusFilter;
         const matchServico = servicoFilter === 'todos' || (f.servicos && f.servicos.includes(servicoFilter));
         
@@ -182,7 +183,7 @@ export default function Fiscalizacoes() {
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                             <Input
-                                placeholder="Buscar por serviço..."
+                                placeholder="Buscar município ou serviço..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 className="pl-10 h-10 rounded-xl bg-white border-gray-200"
