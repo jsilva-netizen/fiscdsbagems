@@ -85,9 +85,11 @@ export default function CamaraLayout({ sigla, nome, diretoria, navItems = [], ch
               </svg>
             </Link>
 
-            <div className="flex-1 min-w-[88px]">
+            <div className="flex-1 min-w-[64px]">
               <h1 className="text-lg font-bold leading-tight whitespace-nowrap">{sigla}</h1>
-              <p className="text-blue-200 text-xs truncate">{nome}</p>
+              {/* Nome completo da câmara some quando o espaço aperta (mobile) — melhor
+                  mostrar só a sigla do que um nome cortado no meio. */}
+              <p className="hidden sm:block text-blue-200 text-xs truncate">{nome}</p>
             </div>
 
             {/* Status de sincronização */}

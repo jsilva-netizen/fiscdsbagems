@@ -114,8 +114,7 @@ export default function Fiscalizacoes() {
 
     const filtered = fiscalizacoes.filter(f => {
         const servicosStr = f.servicos?.join(' ').toLowerCase() || '';
-        const matchSearch = f.municipio_nome?.toLowerCase().includes(search.toLowerCase()) ||
-            servicosStr.includes(search.toLowerCase());
+        const matchSearch = servicosStr.includes(search.toLowerCase());
         const matchStatus = statusFilter === 'todos' || f.status === statusFilter;
         const matchServico = servicoFilter === 'todos' || (f.servicos && f.servicos.includes(servicoFilter));
         
@@ -147,9 +146,9 @@ export default function Fiscalizacoes() {
                     <div className="flex items-center gap-2">
                         {isAdmin && (
                             <Link to={createPageUrl('Definicoes')}>
-                                <Button variant="outline" size="sm" className="gap-1.5 text-xs">
-                                    <Settings className="h-3.5 w-3.5" />
-                                    Definições
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg sm:h-9 sm:w-auto sm:px-3 sm:gap-1.5">
+                                    <Settings className="h-4 w-4" />
+                                    <span className="hidden sm:inline text-xs">Definições</span>
                                 </Button>
                             </Link>
                         )}
@@ -166,29 +165,29 @@ export default function Fiscalizacoes() {
             {/* Filters */}
             <div className="max-w-6xl mx-auto px-4 py-4 space-y-3">
                 <div className="flex gap-2">
-                    <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                        <Input
-                            placeholder="Buscar município ou serviço..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="pl-10 h-11 rounded-xl bg-white border-gray-200"
-                        />
-                    </div>
                     <Button
                         variant="outline"
-                        size="icon"
-                        className={`h-11 w-11 rounded-xl border-gray-200 ${mostrarFiltros ? 'bg-indigo-50 border-indigo-300 text-indigo-600' : ''}`}
+                        className={`h-11 rounded-xl border-gray-200 gap-1.5 text-sm ${mostrarFiltros ? 'bg-indigo-50 border-indigo-300 text-indigo-600' : ''}`}
                         onClick={() => setMostrarFiltros(!mostrarFiltros)}
                     >
                         <Filter className="h-4 w-4" />
+                        Filtros
                     </Button>
                 </div>
 
-                {/* Filtros Avançados */}
+                {/* Filtros Avançados (busca inclusa) */}
                 {mostrarFiltros && (
                     <div className="space-y-3 p-4 bg-white rounded-2xl border border-gray-200 shadow-sm">
                         <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Filtros Avançados</p>
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <Input
+                                placeholder="Buscar por serviço..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="pl-10 h-10 rounded-xl bg-white border-gray-200"
+                            />
+                        </div>
                         <div className="grid grid-cols-2 gap-3">
                             <div>
                                 <label className="text-xs text-gray-500 font-semibold mb-1 block">Status</label>

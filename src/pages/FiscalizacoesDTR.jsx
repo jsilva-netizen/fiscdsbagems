@@ -54,8 +54,7 @@ export default function FiscalizacoesDTR() {
         const isDtr = DTR_MODULOS.includes(f.tipo_modulo);
         if (!isDtr) return false;
 
-        const matchSearch = (f.municipio_nome || '').toLowerCase().includes(search.toLowerCase()) ||
-            (f.rodovia || '').toLowerCase().includes(search.toLowerCase()) ||
+        const matchSearch = (f.rodovia || '').toLowerCase().includes(search.toLowerCase()) ||
             (f.prestador_servico_nome || '').toLowerCase().includes(search.toLowerCase());
 
         const matchStatus = statusFilter === 'todos' || f.status === statusFilter;
@@ -91,6 +90,7 @@ export default function FiscalizacoesDTR() {
 
     return (
         <CaterfLayout>
+            <div className="min-h-full flex flex-col">
             {/* Header */}
             <div className="max-w-6xl mx-auto px-4 pt-8">
                 <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -99,9 +99,9 @@ export default function FiscalizacoesDTR() {
                     </div>
                     <div className="flex items-center gap-2">
                         <Link to={createPageUrl('DefinicoesDTR')}>
-                            <Button variant="outline" size="sm" className="gap-1.5 text-xs">
-                                <Settings className="h-3.5 w-3.5" />
-                                Definições
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg sm:h-9 sm:w-auto sm:px-3 sm:gap-1.5">
+                                <Settings className="h-4 w-4" />
+                                <span className="hidden sm:inline text-xs">Definições</span>
                             </Button>
                         </Link>
                         <Link to={createPageUrl('NovaFiscalizacaoDTR')}>
@@ -115,30 +115,30 @@ export default function FiscalizacoesDTR() {
 
             {/* Content */}
             <div className="flex-1 max-w-6xl w-full mx-auto px-4 py-5 flex flex-col gap-4">
-                {/* Search Bar */}
+                {/* Filter toggle — busca e filtros ficam escondidos até o usuário pedir */}
                 <div className="flex gap-2">
-                    <div className="relative flex-1">
-                        <Search className="absolute left-3 top-3.5 h-4 w-4 text-gray-400" />
-                        <Input
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            placeholder="Buscar por rodovia, município..."
-                            className="pl-10 h-11 rounded-xl bg-white border-gray-200"
-                        />
-                    </div>
                     <Button
                         variant="outline"
-                        size="icon"
-                        className={`h-11 w-11 rounded-xl transition-all border ${mostrarFiltros ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+                        className={`h-11 rounded-xl transition-all border gap-1.5 text-sm ${mostrarFiltros ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}
                         onClick={() => setMostrarFiltros(!mostrarFiltros)}
                     >
-                        <Filter className="h-5 w-5" />
+                        <Filter className="h-4 w-4" />
+                        Filtros
                     </Button>
                 </div>
 
-                {/* Expanded Filters */}
+                {/* Expanded Filters (busca inclusa) */}
                 {mostrarFiltros && (
                     <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4 shadow-sm">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <Input
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                placeholder="Buscar por rodovia..."
+                                className="pl-10 h-10 rounded-xl bg-white border-gray-200"
+                            />
+                        </div>
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1">
                                 <label className="text-xs text-gray-500 font-medium">Status</label>
@@ -288,6 +288,12 @@ export default function FiscalizacoesDTR() {
                 </div>
             </div>
 
+            {/* Footer */}
+            <div className="mt-auto py-5 text-center text-xs text-gray-400 bg-white border-t border-gray-200">
+                AGEMS - Agência Estadual de Regulação de Serviços Públicos de MS
+            </div>
+            </div>
+
             {/* Delete Dialog */}
             <AlertDialog open={deleteConfirmation.open} onOpenChange={(open) => setDeleteConfirmation(prev => ({ ...prev, open }))}>
                 <AlertDialogContent className="max-w-sm rounded-2xl">
@@ -319,11 +325,6 @@ export default function FiscalizacoesDTR() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-
-            {/* Footer */}
-            <div className="py-5 text-center text-xs text-gray-400 bg-white border-t border-gray-200">
-                AGEMS - Agência Estadual de Regulação de Serviços Públicos de MS
-            </div>
         </CaterfLayout>
     );
 }
