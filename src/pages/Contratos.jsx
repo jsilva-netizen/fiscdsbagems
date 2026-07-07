@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { Repository } from '@/lib/offline/repository';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { createPageUrl } from '@/utils';
-import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -11,10 +9,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from '@/components/ui/alert-dialog';
-import { Plus, Edit2, Trash2, AlertTriangle, Eye, Loader2, Link2, MapPin, Settings2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, AlertTriangle, Loader2, Link2, MapPin } from 'lucide-react';
 import CaterfLayout from '@/components/caterf/CaterfLayout';
 
-export default function Contratos() {
+export default function Contratos({ embedded = false }) {
     const queryClient = useQueryClient();
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState(null);
@@ -117,8 +115,8 @@ export default function Contratos() {
         return found ? found.logo_url : null;
     };
 
-    return (
-        <CaterfLayout>
+    const content = (
+        <>
             <div>
                 {/* Header */}
                 <div className="max-w-6xl mx-auto px-4 pt-8">
@@ -127,12 +125,6 @@ export default function Contratos() {
                             <h1 className="text-xs font-bold uppercase tracking-widest text-slate-400">Contratos</h1>
                         </div>
                         <div className="flex gap-2">
-                            <Link to={createPageUrl('ConfiguracoesDTR')}>
-                                <Button variant="outline" className="border-indigo-200 text-indigo-700 hover:bg-indigo-50 rounded-xl gap-1.5">
-                                    <Settings2 className="h-4 w-4" />
-                                    Config. DTR
-                                </Button>
-                            </Link>
                             <Button onClick={() => { resetForm(); setShowForm(true); }} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow transition-all">
                                 <Plus className="h-4 w-4 mr-2" />
                                 Novo Contrato
@@ -373,6 +365,8 @@ export default function Contratos() {
             <div className="py-5 text-center text-xs text-slate-400 bg-white border-t border-slate-200">
                 AGEMS - Agência Estadual de Regulação de Serviços Públicos de MS
             </div>
-        </CaterfLayout>
+        </>
     );
+
+    return embedded ? content : <CaterfLayout>{content}</CaterfLayout>;
 }

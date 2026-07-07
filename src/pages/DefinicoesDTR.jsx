@@ -10,8 +10,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
     ArrowLeft, Upload, Download, FileSpreadsheet, Map as MapIcon, CheckCircle2,
-    AlertCircle, Loader2, RefreshCw, FileText, Trash2, Route
+    AlertCircle, Loader2, RefreshCw, FileText, Trash2, Route, Users
 } from 'lucide-react';
+import PrestadoresServico from './PrestadoresServico';
+import Contratos from './Contratos';
 
 // Colunas da planilha de ocorrências DTR:
 // Rodovia → opcional; deixar vazio = aplica-se a todas as rodovias
@@ -462,7 +464,7 @@ function TabTipos() {
 }
 
 // --- Aba: KML por Rodovia ---
-function TabKML() {
+function TabKML({ onNavigateContratos }) {
     const queryClient = useQueryClient();
     const [kmlStatus, setKmlStatus] = useState({}); // { [contratoId]: {type, message} }
     const fileInputRefs = useRef({});
@@ -519,9 +521,9 @@ function TabKML() {
                 <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
                     <Route className="h-8 w-8 text-gray-300 mx-auto mb-2" />
                     <p className="text-sm text-gray-400">Nenhum contrato/rodovia cadastrado.</p>
-                    <Link to={createPageUrl('Contratos')} className="text-xs text-indigo-500 hover:underline mt-1 block">
+                    <button onClick={onNavigateContratos} className="text-xs text-indigo-500 hover:underline mt-1 block">
                         Ir para Contratos →
-                    </Link>
+                    </button>
                 </div>
             ) : (
                 <div className="space-y-3">
@@ -591,52 +593,66 @@ function TabKML() {
     );
 }
 
+const TABS = [
+    { id: 'concessionarias', label: 'Concessionárias', icon: Users },
+    { id: 'contratos', label: 'Contratos', icon: FileText },
+    { id: 'tipos', label: 'Tipos de Ocorrência', icon: FileSpreadsheet },
+    { id: 'kml', label: 'Rodovias & KML', icon: MapIcon },
+];
+
 // --- Página Principal ---
-export default function ConfiguracoesDTR() {
-    const [tab, setTab] = useState('tipos');
+export default function DefinicoesDTR() {
+    const [activeTab, setActiveTab] = useState('concessionarias');
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col justify-between">
+        <div className="min-h-screen bg-gray-50 flex flex-col">
             {/* Header */}
             <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
-                <div className="max-w-2xl mx-auto px-4 py-5 flex items-center gap-3">
-                    <Link to={createPageUrl('Contratos')}>
-                        <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full">
-                            <ArrowLeft className="h-5 w-5" />
-                        </Button>
-                    </Link>
-                    <div>
-                        <h1 className="text-xs font-bold uppercase tracking-widest text-blue-200">Configurações DTR</h1>
+                <div className="max-w-4xl mx-auto px-4 py-5">
+                    <div className="flex items-center gap-3 pb-3">
+                        <Link to={createPageUrl('FiscalizacoesDTR')}>
+                            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full">
+                                <ArrowLeft className="h-5 w-5" />
+                            </Button>
+                        </Link>
+                        <div>
+                            <h1 className="text-xs font-bold uppercase tracking-widest text-blue-200">Definições — DTR</h1>
+                        </div>
                     </div>
-                </div>
-            </div>
-
-            {/* Tab bar */}
-            <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-                <div className="max-w-2xl mx-auto px-4 flex gap-0">
-                    <button
-                        onClick={() => setTab('tipos')}
-                        className={`flex items-center gap-1.5 px-4 py-3 text-xs font-semibold border-b-2 transition-colors ${tab === 'tipos' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-                    >
-                        <FileSpreadsheet className="h-4 w-4" /> Tipos de Ocorrência
-                    </button>
-                    <button
-                        onClick={() => setTab('kml')}
-                        className={`flex items-center gap-1.5 px-4 py-3 text-xs font-semibold border-b-2 transition-colors ${tab === 'kml' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-                    >
-                        <MapIcon className="h-4 w-4" /> Rodovias & KML
-                    </button>
+                    {/* Tabs */}
+                    <nav className="flex gap-1 overflow-x-auto">
+                        {TABS.map(({ id, label, icon: Icon }) => (
+                            <button
+                                key={id}
+                                onClick={() => setActiveTab(id)}
+                                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                                    activeTab === id
+                                        ? 'border-white text-white'
+                                        : 'border-transparent text-blue-200 hover:border-blue-300 hover:text-white'
+                                }`}
+                            >
+                                <Icon className="h-4 w-4 shrink-0" />
+                                {label}
+                            </button>
+                        ))}
+                    </nav>
                 </div>
             </div>
 
             {/* Content */}
-            <div className="flex-1 max-w-2xl w-full mx-auto px-4 py-5">
-                {tab === 'tipos' ? <TabTipos /> : <TabKML />}
-            </div>
-
-            {/* Footer */}
-            <div className="py-4 text-center text-xs text-gray-400 border-t border-gray-200 bg-white">
-                AGEMS — Configurações do Módulo DTR
+            <div className="flex-1">
+                {activeTab === 'concessionarias' && <PrestadoresServico embedded />}
+                {activeTab === 'contratos' && <Contratos embedded />}
+                {activeTab === 'tipos' && (
+                    <div className="max-w-2xl w-full mx-auto px-4 py-5">
+                        <TabTipos />
+                    </div>
+                )}
+                {activeTab === 'kml' && (
+                    <div className="max-w-2xl w-full mx-auto px-4 py-5">
+                        <TabKML onNavigateContratos={() => setActiveTab('contratos')} />
+                    </div>
+                )}
             </div>
         </div>
     );

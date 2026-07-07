@@ -73,7 +73,7 @@ import VistoriarUnidade from './pages/VistoriarUnidade';
 import PortalPrestadorHome from './pages/PortalPrestadorHome';
 import ResponderTermo from './pages/ResponderTermo';
 import Contratos from './pages/Contratos';
-import ConfiguracoesDTR from './pages/ConfiguracoesDTR';
+import DefinicoesDTR from './pages/DefinicoesDTR';
 import CatersDashboard from './pages/CatersDashboard';
 import CatersProcessos from './pages/CatersProcessos';
 import CatersProcessoDetalhe from './pages/CatersProcessoDetalhe';
@@ -92,7 +92,6 @@ import CretDashboard from './pages/CretDashboard';
 import CategasDashboard from './pages/CategasDashboard';
 import CateneDashboard from './pages/CateneDashboard';
 import CregDashboard from './pages/CregDashboard';
-import CaterfConcessionarias from './pages/CaterfConcessionarias';
 import __Layout from './Layout.jsx';
 
 
@@ -123,7 +122,7 @@ export const PAGES = {
     "PortalPrestadorHome": PortalPrestadorHome,
     "ResponderTermo": ResponderTermo,
     "Contratos": Contratos,
-    "ConfiguracoesDTR": ConfiguracoesDTR,
+    "DefinicoesDTR": DefinicoesDTR,
     "CatersDashboard": CatersDashboard,
     "CatersProcessos": CatersProcessos,
     "CatersProcessoDetalhe": CatersProcessoDetalhe,
@@ -142,7 +141,6 @@ export const PAGES = {
     "CategasDashboard": CategasDashboard,
     "CateneDashboard": CateneDashboard,
     "CregDashboard": CregDashboard,
-    "CaterfConcessionarias": CaterfConcessionarias,
 }
 
 export const pagesConfig = {

@@ -37,7 +37,7 @@ export default function Layout({ children, currentPageName }) {
         'CategasDashboard',
         'CateneDashboard',
         'CregDashboard',
-        'CaterfConcessionarias',
+        'DefinicoesDTR',
     ];
 
     if (fullscreenPages.includes(currentPageName)) {
