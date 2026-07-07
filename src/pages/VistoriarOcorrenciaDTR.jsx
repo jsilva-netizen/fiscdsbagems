@@ -30,16 +30,17 @@ const TIPOS_FALLBACK = [
 
 const BASE_STEPS = ['fotos', 'frente', 'per', 'descricao', 'tipo', 'sentido', 'observacao'];
 
-function RadioCard({ label, selected, onSelect }) {
+function RadioCard({ label, selected, onSelect, disabled }) {
     return (
         <button
             type="button"
-            onClick={onSelect}
+            onClick={disabled ? undefined : onSelect}
+            disabled={disabled}
             className={`w-full text-left rounded-2xl border px-4 py-4 transition-all flex items-center gap-3 ${
                 selected
                     ? 'bg-[#3d3d3d] text-white border-[#3d3d3d] shadow-md'
                     : 'bg-white text-gray-700 border-gray-200 hover:border-gray-400 active:bg-gray-50'
-            }`}
+            } ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
         >
             <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
                 selected ? 'border-white' : 'border-gray-400'
@@ -287,6 +288,7 @@ export default function VistoriarOcorrenciaDTR() {
 
     const salvarMutation = useMutation({
         mutationFn: async () => {
+            if (readOnly) throw new Error('Fiscalização finalizada — não é possível editar esta ocorrência.');
             const targetId = occurrenceId;
             let uId = targetId || '';
             const descricaoItem = selectedItem?.descricao || selectedItem?.nome || '';
@@ -340,6 +342,13 @@ export default function VistoriarOcorrenciaDTR() {
     const kmReady = !!occurrenceId || kmDataLoaded;
     const captureBlockedMessage = 'Carregando dados da rodovia...';
     const kmPreciso = gpsAccuracy != null && gpsAccuracy <= MIN_GPS_ACCURACY_M;
+
+    // Fiscalização finalizada: ocorrências existentes só podem ser visualizadas,
+    // nunca editadas — sem essa checagem, o wizard abria em modo de edição total
+    // (inclusive com o botão Salvar ativo) mesmo depois de a vistoria já ter sido
+    // encerrada.
+    const isFinalized = fisc?.status === 'finalizada';
+    const readOnly = !!occurrenceId && isFinalized;
 
     const currentStep = activeSteps[stepIdx];
     const isLastStep = stepIdx === activeSteps.length - 1;
@@ -436,12 +445,12 @@ export default function VistoriarOcorrenciaDTR() {
                         >
                             <ArrowRight className="h-5 w-5" />
                         </Button>
-                    ) : (
+                    ) : !readOnly ? (
                         <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8 px-3 rounded-lg flex-shrink-0"
                             onClick={() => salvarMutation.mutate()} disabled={salvarMutation.isPending}>
                             {salvarMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 mr-1" /> Salvar</>}
                         </Button>
-                    )}
+                    ) : null}
                 </div>
             </div>
         </div>
@@ -460,7 +469,7 @@ export default function VistoriarOcorrenciaDTR() {
                         onAddFoto={addFoto} onRemoveFoto={removeFoto}
                         onUpdateLegenda={updateLegenda}
                         onReorderFotos={(n) => { setFotos(n); setFotosDirty(true); }}
-                        fiscalizacaoId={fiscId} unidadeId={occurrenceId || 'novo-ponto'} isEditable={true}
+                        fiscalizacaoId={fiscId} unidadeId={occurrenceId || 'novo-ponto'} isEditable={!readOnly}
                         enableLegenda={false}
                         autoCapture={!occurrenceId && fotos.length === 0}
                         captureBlocked={!kmReady}
@@ -504,7 +513,7 @@ export default function VistoriarOcorrenciaDTR() {
             <div className="flex-1 max-w-md w-full mx-auto px-4 py-6 space-y-3">
                 <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wide">{stepIdx + 1}. FRENTES DA CONCESSÃO</h2>
                 {frentes.map(f => (
-                    <RadioCard key={f} label={f} selected={selectedFrente === f}
+                    <RadioCard key={f} label={f} selected={selectedFrente === f} disabled={readOnly}
                         onSelect={() => selectAndAdvance((v) => { setSelectedFrente(v); setSelectedPer(''); setSelectedItem(null); }, f)} />
                 ))}
             </div>
@@ -518,7 +527,7 @@ export default function VistoriarOcorrenciaDTR() {
             <div className="flex-1 max-w-md w-full mx-auto px-4 py-6 space-y-3">
                 <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wide">{stepIdx + 1}. FRENTE DE {selectedFrente}</h2>
                 {pers.map(p => (
-                    <RadioCard key={p} label={p} selected={selectedPer === p}
+                    <RadioCard key={p} label={p} selected={selectedPer === p} disabled={readOnly}
                         onSelect={() => selectAndAdvance((v) => { setSelectedPer(v); setSelectedItem(null); }, p)} />
                 ))}
             </div>
@@ -540,7 +549,7 @@ export default function VistoriarOcorrenciaDTR() {
                     const selectedKey = selectedItem ? (selectedItem.id || (selectedItem.descricao || selectedItem.nome || '')) : null;
                     const isSel = selectedKey != null && selectedKey === itemKey;
                     return (
-                        <RadioCard key={itemKey} label={label} selected={isSel}
+                        <RadioCard key={itemKey} label={label} selected={isSel} disabled={readOnly}
                             onSelect={() => {
                                 setEtapaObra('');
                                 setObservacao('');
@@ -560,7 +569,7 @@ export default function VistoriarOcorrenciaDTR() {
                 <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wide">{stepIdx + 1}. ETAPA DA OBRA</h2>
                 <p className="text-xs text-gray-500">{selectedItem?.descricao || selectedItem?.nome}</p>
                 {etapaOptions.map(etapa => (
-                    <RadioCard key={etapa} label={etapa} selected={etapaObra === etapa}
+                    <RadioCard key={etapa} label={etapa} selected={etapaObra === etapa} disabled={readOnly}
                         onSelect={() => {
                             setEtapaObra(etapa);
                             setObservacao(etapa);
@@ -577,9 +586,9 @@ export default function VistoriarOcorrenciaDTR() {
             <Header />
             <div className="flex-1 max-w-md w-full mx-auto px-4 py-6 space-y-3">
                 <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wide">{stepIdx + 1}. TIPO</h2>
-                <RadioCard label="Constatação" selected={tipoRegistro === 'constatacao'}
+                <RadioCard label="Constatação" selected={tipoRegistro === 'constatacao'} disabled={readOnly}
                     onSelect={() => selectAndAdvance(setTipoRegistro, 'constatacao')} />
-                <RadioCard label="Não Conformidade" selected={tipoRegistro === 'nc'}
+                <RadioCard label="Não Conformidade" selected={tipoRegistro === 'nc'} disabled={readOnly}
                     onSelect={() => selectAndAdvance(setTipoRegistro, 'nc')} />
                 {tipoRegistro === 'nc' && selectedItem?.nao_atendimento && (
                     <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 text-xs text-amber-700 space-y-1">
@@ -614,7 +623,7 @@ export default function VistoriarOcorrenciaDTR() {
                     </div>
                 )}
                 {['N', 'S', 'N/S'].map(s => (
-                    <RadioCard key={s} label={s} selected={sentido === s}
+                    <RadioCard key={s} label={s} selected={sentido === s} disabled={readOnly}
                         onSelect={() => selectAndAdvance(setSentido, s)} />
                 ))}
             </div>
@@ -653,22 +662,25 @@ export default function VistoriarOcorrenciaDTR() {
                     value={observacao}
                     onChange={e => setObservacao(e.target.value)}
                     placeholder="Observações..."
+                    readOnly={readOnly}
                     className="bg-white border-gray-200 text-gray-800 text-sm min-h-[120px] rounded-2xl resize-none"
                 />
             </div>
 
-            <div className="sticky bottom-0 bg-white border-t border-gray-200 px-4 py-3">
-                <Button
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-11"
-                    onClick={() => salvarMutation.mutate()}
-                    disabled={salvarMutation.isPending}
-                >
-                    {salvarMutation.isPending
-                        ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Salvando...</>
-                        : <><Save className="h-4 w-4 mr-2" /> Salvar Ocorrência</>
-                    }
-                </Button>
-            </div>
+            {!readOnly && (
+                <div className="sticky bottom-0 bg-white border-t border-gray-200 px-4 py-3">
+                    <Button
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-11"
+                        onClick={() => salvarMutation.mutate()}
+                        disabled={salvarMutation.isPending}
+                    >
+                        {salvarMutation.isPending
+                            ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Salvando...</>
+                            : <><Save className="h-4 w-4 mr-2" /> Salvar Ocorrência</>
+                        }
+                    </Button>
+                </div>
+            )}
         </div>
     );
 }
