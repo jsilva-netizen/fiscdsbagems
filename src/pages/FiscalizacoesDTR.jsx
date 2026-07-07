@@ -98,6 +98,15 @@ export default function FiscalizacoesDTR() {
                         <h1 className="text-xs font-bold uppercase tracking-widest text-slate-400">Histórico de Fiscalizações</h1>
                     </div>
                     <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            title="Filtros"
+                            className={`h-9 w-9 rounded-xl transition-all border ${mostrarFiltros ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+                            onClick={() => setMostrarFiltros(!mostrarFiltros)}
+                        >
+                            <Filter className="h-4 w-4" />
+                        </Button>
                         <Link to={createPageUrl('DefinicoesDTR')}>
                             <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg sm:h-9 sm:w-auto sm:px-3 sm:gap-1.5">
                                 <Settings className="h-4 w-4" />
@@ -115,19 +124,6 @@ export default function FiscalizacoesDTR() {
 
             {/* Content */}
             <div className="flex-1 max-w-6xl w-full mx-auto px-4 py-5 flex flex-col gap-4">
-                {/* Filter toggle — busca e filtros ficam escondidos até o usuário pedir */}
-                <div className="flex justify-end">
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        title="Filtros"
-                        className={`h-9 w-9 rounded-xl transition-all border ${mostrarFiltros ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}
-                        onClick={() => setMostrarFiltros(!mostrarFiltros)}
-                    >
-                        <Filter className="h-4 w-4" />
-                    </Button>
-                </div>
-
                 {/* Expanded Filters (busca inclusa) */}
                 {mostrarFiltros && (
                     <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4 shadow-sm">

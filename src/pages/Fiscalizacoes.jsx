@@ -145,6 +145,15 @@ export default function Fiscalizacoes() {
                         <h1 className="text-xs font-bold uppercase tracking-widest text-slate-400">Histórico de Fiscalizações</h1>
                     </div>
                     <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            title="Filtros"
+                            className={`h-9 w-9 rounded-xl border-gray-200 ${mostrarFiltros ? 'bg-indigo-50 border-indigo-300 text-indigo-600' : ''}`}
+                            onClick={() => setMostrarFiltros(!mostrarFiltros)}
+                        >
+                            <Filter className="h-4 w-4" />
+                        </Button>
                         {isAdmin && (
                             <Link to={createPageUrl('Definicoes')}>
                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg sm:h-9 sm:w-auto sm:px-3 sm:gap-1.5">
@@ -165,18 +174,6 @@ export default function Fiscalizacoes() {
 
             {/* Filters */}
             <div className="max-w-6xl mx-auto px-4 py-4 space-y-3">
-                <div className="flex justify-end">
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        title="Filtros"
-                        className={`h-9 w-9 rounded-xl border-gray-200 ${mostrarFiltros ? 'bg-indigo-50 border-indigo-300 text-indigo-600' : ''}`}
-                        onClick={() => setMostrarFiltros(!mostrarFiltros)}
-                    >
-                        <Filter className="h-4 w-4" />
-                    </Button>
-                </div>
-
                 {/* Filtros Avançados (busca inclusa) */}
                 {mostrarFiltros && (
                     <div className="space-y-3 p-4 bg-white rounded-2xl border border-gray-200 shadow-sm">
