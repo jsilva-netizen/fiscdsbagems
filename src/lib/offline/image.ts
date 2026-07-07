@@ -619,9 +619,13 @@ export async function compressFileToBlob(
     ctx.imageSmoothingQuality = 'high'
   } catch {}
   if (rotateToLandscape) {
-    ctx.translate(canvas.width, 0)
-    ctx.rotate(Math.PI / 2)
+    ctx.translate(0, canvas.height)
+    ctx.rotate(-Math.PI / 2)
     ctx.drawImage(img, 0, 0, w, h)
+    // O contexto 2D é persistente por canvas: sem resetar a transformação aqui, a
+    // marca d'água abaixo herdava a rotação e acabava desenhada fora do canto
+    // esperado (perto do meio da foto, como se ainda estivesse no retrato original).
+    ctx.setTransform(1, 0, 0, 1, 0, 0)
   } else {
     ctx.drawImage(img, 0, 0, w, h)
   }

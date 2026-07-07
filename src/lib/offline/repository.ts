@@ -2051,7 +2051,7 @@ export const Repository = {
         processed = await compressFileToBlob(file, MAX_DIMENSION, JPEG_QUALITY, { watermarkLines, exif: exifData, forceLandscape: true })
       } else {
         const watermarkLines = [`${codigoUnidade}, ${municipioNome} - MS`, `${formatDateBR(takenAt)} ${formatTimeBR(takenAt)}`, coordsText]
-        processed = await compressFileToBlob(file, MAX_DIMENSION, JPEG_QUALITY, { watermarkLines, exif: exifData })
+        processed = await compressFileToBlob(file, MAX_DIMENSION, JPEG_QUALITY, { watermarkLines, exif: exifData, forceLandscape: true })
       }
     } else {
       if (isDtrFisc) {
@@ -2061,7 +2061,7 @@ export const Repository = {
         const watermarkLines = [...(locLine ? [locLine] : []), `${formatDateBR(takenAt)} ${formatTimeBR(takenAt)}`]
         processed = await compressFileToBlob(file, MAX_DIMENSION, JPEG_QUALITY, { watermarkLines, forceLandscape: true })
       } else {
-        processed = await compressFileToBlob(file, MAX_DIMENSION, JPEG_QUALITY)
+        processed = await compressFileToBlob(file, MAX_DIMENSION, JPEG_QUALITY, { forceLandscape: true })
       }
     }
     if (processed.byteLength > MAX_PHOTO_BYTES) {
