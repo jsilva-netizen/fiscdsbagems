@@ -515,7 +515,7 @@ export default function VistoriarOcorrenciaDTR() {
                             <ArrowRight className="h-5 w-5" />
                         </Button>
                     ) : !readOnly ? (
-                        <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8 px-3 rounded-lg flex-shrink-0"
+                        <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm h-10 px-4 rounded-lg flex-shrink-0"
                             onClick={() => salvarMutation.mutate()} disabled={salvarMutation.isPending}>
                             {salvarMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 mr-1" /> Salvar</>}
                         </Button>
@@ -739,7 +739,7 @@ export default function VistoriarOcorrenciaDTR() {
             {!readOnly && (
                 <div className="sticky bottom-0 bg-white border-t border-gray-200 px-4 py-3">
                     <Button
-                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-11"
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-12 text-base"
                         onClick={() => salvarMutation.mutate()}
                         disabled={salvarMutation.isPending}
                     >

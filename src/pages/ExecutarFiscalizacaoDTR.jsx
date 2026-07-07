@@ -98,7 +98,7 @@ export default function ExecutarFiscalizacaoDTR() {
                         {!isFinalized && (
                             <Button
                                 size="sm"
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs h-8 px-3 rounded-lg"
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm h-10 px-4 rounded-lg"
                                 disabled={finalizarMutation.isPending}
                                 onClick={() => {
                                     if (confirm('Tem certeza que deseja finalizar esta vistoria? Não será possível adicionar mais ocorrências.')) {
