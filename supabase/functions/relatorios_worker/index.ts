@@ -975,12 +975,30 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
     }
   }
 
-  // ── Sort by PER (item_contrato) ───────────────────────────────────────────
-  const perSort = (a: any, b: any) =>
-    String(a.per || a.item_contrato || '').localeCompare(String(b.per || b.item_contrato || ''))
+  // ── Sort by PER → Rodovia → KM ────────────────────────────────────────────
+  // Converte "122+460" (km+metros) ou "122.46" (decimal) em número comparável;
+  // km vazio/inválido vai para o final do grupo em vez de quebrar a ordenação.
+  const parseKmToNumber = (kmStr: unknown): number => {
+    const s = String(kmStr || '').trim()
+    if (!s) return Number.POSITIVE_INFINITY
+    const plusMatch = s.match(/^(\d+)\s*\+\s*(\d+)/)
+    if (plusMatch) return Number(plusMatch[1]) + Number(plusMatch[2]) / 1000
+    const num = parseFloat(s.replace(',', '.'))
+    return Number.isFinite(num) ? num : Number.POSITIVE_INFINITY
+  }
 
-  const constatacoes = (unidades as any[]).filter((u: any) => u.tipo_ocorrencia === 'constatacao').sort(perSort)
-  const naoConformidades = (unidades as any[]).filter((u: any) => u.tipo_ocorrencia === 'nc').sort(perSort)
+  const perRodoviaKmSort = (a: any, b: any) => {
+    const perA = String(a.per || a.item_contrato || '')
+    const perB = String(b.per || b.item_contrato || '')
+    if (perA !== perB) return perA.localeCompare(perB)
+    const rodA = String(a.rodovia || fisc.rodovia || '')
+    const rodB = String(b.rodovia || fisc.rodovia || '')
+    if (rodA !== rodB) return rodA.localeCompare(rodB)
+    return parseKmToNumber(a.km) - parseKmToNumber(b.km)
+  }
+
+  const constatacoes = (unidades as any[]).filter((u: any) => u.tipo_ocorrencia === 'constatacao').sort(perRodoviaKmSort)
+  const naoConformidades = (unidades as any[]).filter((u: any) => u.tipo_ocorrencia === 'nc').sort(perRodoviaKmSort)
 
   // ── Column widths — portrait A4 (190 mm usable) ──────────────────────────
   const TW = tableWidth

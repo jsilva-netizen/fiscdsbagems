@@ -30,6 +30,71 @@ const TIPOS_FALLBACK = [
 
 const BASE_STEPS = ['fotos', 'frente', 'per', 'descricao', 'tipo', 'sentido', 'observacao'];
 
+// ─── Ordenação do checklist DTR ─────────────────────────────────────────────────
+// Regra:
+// 1. "Frentes da concessão" (1ª etapa) usa uma ordem fixa e manual (não segue
+//    numeração nem alfabeto — é a ordem combinada com a equipe de fiscalização).
+// 2. Todo o resto (PERs dentro de uma frente, itens dentro de um PER): se o rótulo
+//    começa com numeração (ex: "3.1.1"), ordena crescente por essa numeração; sem
+//    numeração, ordena em ordem alfabética (pt-BR, sem diferenciar maiúsculas/acentos).
+
+const FRENTE_ORDER = [
+    'RECUPERAÇÃO E MANUTENÇÃO',
+    'MELHORIAS OPERACIONAIS, DE AMPLIAÇÃO DE CAPACIDADE E DE MANUTENÇÃO DO NÍVEL DE SERVIÇO',
+    'CONSERVAÇÃO',
+    'SERVIÇOS OPERACIONAIS',
+];
+
+// Extrai o código numérico líder de um rótulo (ex: "3.1.1. Pavimento" → "3.1.1")
+const extractLeadingCode = (label) => {
+    const m = String(label || '').trim().match(/^(\d+(?:\.\d+)*)/);
+    return m ? m[1] : '';
+};
+
+// Compara dois códigos segmento a segmento como números — evita o bug de
+// ordenação lexicográfica onde "3.1.10" viria antes de "3.1.2".
+const compareCodes = (a, b) => {
+    const partsA = a.split('.').map(Number);
+    const partsB = b.split('.').map(Number);
+    const len = Math.max(partsA.length, partsB.length);
+    for (let i = 0; i < len; i++) {
+        const diff = (partsA[i] ?? 0) - (partsB[i] ?? 0);
+        if (diff !== 0) return diff;
+    }
+    return 0;
+};
+
+const isOutros = (label) => String(label || '').trim().toLowerCase() === 'outros';
+
+// Comparador geral: numeração crescente quando presente, senão ordem alfabética.
+// "Outros" é sempre a última opção, independente de numeração/alfabeto.
+const compareChecklistOption = (a, b) => {
+    const outrosA = isOutros(a);
+    const outrosB = isOutros(b);
+    if (outrosA && outrosB) return 0;
+    if (outrosA) return 1;
+    if (outrosB) return -1;
+    const codeA = extractLeadingCode(a);
+    const codeB = extractLeadingCode(b);
+    if (codeA && codeB) return compareCodes(codeA, codeB);
+    if (codeA && !codeB) return -1;
+    if (!codeA && codeB) return 1;
+    return String(a || '').trim().localeCompare(String(b || '').trim(), 'pt-BR', { sensitivity: 'base' });
+};
+
+// Ordena `list` conforme a posição de cada item em `order`; itens ausentes de
+// `order` vão para o final, preservando a ordem relativa original entre eles.
+const sortByFixedOrder = (list, order) => {
+    return [...list].sort((a, b) => {
+        const ia = order.indexOf(a);
+        const ib = order.indexOf(b);
+        if (ia === -1 && ib === -1) return 0;
+        if (ia === -1) return 1;
+        if (ib === -1) return -1;
+        return ia - ib;
+    });
+};
+
 function RadioCard({ label, selected, onSelect, disabled }) {
     return (
         <button
@@ -124,10 +189,13 @@ export default function VistoriarOcorrenciaDTR() {
         enabled: !!occurrenceId
     });
 
-    const frentes = [...new Set(tipos.map(t => t.frente).filter(Boolean))];
+    const frentes = sortByFixedOrder(
+        [...new Set(tipos.map(t => t.frente).filter(Boolean))],
+        FRENTE_ORDER
+    );
     const pers = [...new Set(
         tipos.filter(t => t.frente === selectedFrente).map(t => t.item_contrato).filter(Boolean)
-    )];
+    )].sort(compareChecklistOption);
     // Deduplica por descricao: mesma descrição pode existir para rodovias diferentes na planilha.
     // Prefere a versão com rodovia específica sobre a genérica (rodovia null).
     const itemsForPer = useMemo(() => {
@@ -143,7 +211,8 @@ export default function VistoriarOcorrenciaDTR() {
                 byDesc.set(key, item);
             }
         }
-        return [...byDesc.values()];
+        const items = [...byDesc.values()];
+        return items.sort((a, b) => compareChecklistOption(a.descricao || a.nome || '', b.descricao || b.nome || ''));
     }, [tipos, selectedFrente, selectedPer]);
 
     // Steps dinâmicos: insere 'etapa_obra' entre 'descricao' e 'tipo' quando o item tem etapas
