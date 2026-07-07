@@ -82,12 +82,19 @@ const compareChecklistOption = (a, b) => {
     return String(a || '').trim().localeCompare(String(b || '').trim(), 'pt-BR', { sensitivity: 'base' });
 };
 
+// Ignora diferenças de espaçamento/maiúsculas ao comparar rótulos vindos do banco
+// (ex: planilha importada com "DECAPACIDADE" em vez de "DE CAPACIDADE") — sem isso,
+// uma frente com espaçamento levemente diferente do esperado não batia com a lista
+// fixa e caía silenciosamente pro final da ordenação.
+const fingerprintLabel = (s) => String(s || '').toUpperCase().replace(/\s+/g, '');
+
 // Ordena `list` conforme a posição de cada item em `order`; itens ausentes de
 // `order` vão para o final, preservando a ordem relativa original entre eles.
 const sortByFixedOrder = (list, order) => {
+    const fingerprintedOrder = order.map(fingerprintLabel);
     return [...list].sort((a, b) => {
-        const ia = order.indexOf(a);
-        const ib = order.indexOf(b);
+        const ia = fingerprintedOrder.indexOf(fingerprintLabel(a));
+        const ib = fingerprintedOrder.indexOf(fingerprintLabel(b));
         if (ia === -1 && ib === -1) return 0;
         if (ia === -1) return 1;
         if (ib === -1) return -1;
