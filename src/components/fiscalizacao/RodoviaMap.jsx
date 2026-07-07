@@ -16,6 +16,9 @@ L.Icon.Default.mergeOptions({
     shadowUrl: markerShadow,
 });
 
+// Rotula 1 a cada N pontos de KM (os demais ficam só como pontinho clicável).
+const KM_LABEL_STEP = 5;
+
 // ── Icon factories ────────────────────────────────────────────────────────────
 
 function occurrenceIcon(index, isNC) {
@@ -44,6 +47,18 @@ function kmIcon(label) {
             box-shadow:0 1px 3px rgba(0,0,0,.4);
         ">KM ${label}</div>`;
     return L.divIcon({ html, className: '', iconSize: 'auto', iconAnchor: [16, 8], popupAnchor: [0, -10] });
+}
+
+// Ponto de KM sem rótulo de texto — usado entre os pontos "cheios" (ver KM_LABEL_STEP)
+// pra reduzir a poluição visual sem perder a possibilidade de consultar o KM (clique/popup).
+function kmDotIcon() {
+    const html = `
+        <div style="
+            width:8px;height:8px;border-radius:50%;
+            background:rgba(30,30,30,.75);border:1px solid #fff;
+            box-shadow:0 1px 2px rgba(0,0,0,.4);
+        "></div>`;
+    return L.divIcon({ html, className: '', iconSize: [8, 8], iconAnchor: [4, 4], popupAnchor: [0, -6] });
 }
 
 function gpsIcon() {
@@ -221,10 +236,15 @@ export default function RodoviaMap({ rodovia, fiscId, ocorrencias = [] }) {
                 zoomControl={true}
                 attributionControl={false}
             >
-                {/* ESRI satellite base */}
+                {/* ESRI satellite base — em rodovias/áreas rurais a imagem de alta resolução
+                    costuma acabar por volta do zoom 17; maxNativeZoom trava as requisições
+                    nesse nível e deixa o Leaflet ampliar (borrado) o último tile válido em
+                    vez de pedir um tile inexistente e mostrar o placeholder cinza da ESRI
+                    ("Map data not yet available"). */}
                 <TileLayer
                     url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
                     maxZoom={19}
+                    maxNativeZoom={17}
                 />
                 {/* ESRI vias e rótulos de ruas/rodovias */}
                 <TileLayer
@@ -259,12 +279,18 @@ export default function RodoviaMap({ rodovia, fiscId, ocorrencias = [] }) {
                     </>
                 )}
 
-                {/* KM markers */}
-                {kmPoints.map((pt, i) => (
-                    <Marker key={`km-${i}`} position={[pt.lat, pt.lng]} icon={kmIcon(pt.km)} zIndexOffset={100}>
-                        <Popup>KM {pt.km} — {pt.rodovia || rodovia}</Popup>
-                    </Marker>
-                ))}
+                {/* KM markers — rotula só 1 a cada KM_LABEL_STEP pontos pra não poluir o mapa;
+                    os demais viram um pontinho, mas continuam clicáveis (popup com o KM exato). */}
+                {kmPoints.map((pt, i) => {
+                    const showLabel = i % KM_LABEL_STEP === 0;
+                    return (
+                        <Marker key={`km-${i}`} position={[pt.lat, pt.lng]}
+                            icon={showLabel ? kmIcon(pt.km) : kmDotIcon()}
+                            zIndexOffset={showLabel ? 100 : 50}>
+                            <Popup>KM {pt.km} — {pt.rodovia || rodovia}</Popup>
+                        </Marker>
+                    );
+                })}
 
                 {/* Occurrence markers */}
                 {mappableOcs.map((oc, idx) => {
