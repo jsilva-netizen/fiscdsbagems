@@ -93,7 +93,7 @@ export default function CamaraLayout({ sigla, nome, diretoria, navItems = [], ch
             </div>
 
             {/* Status de sincronização */}
-            <SyncBar />
+            <SyncBar diretoria={diretoria} />
 
             {/* Admin: atalho para Usuários */}
             {isAdmin && (

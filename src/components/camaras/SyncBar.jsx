@@ -7,12 +7,18 @@ import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Wifi, WifiOff, RefreshCw, Download } from 'lucide-react';
+import { MODULOS_POR_DIRETORIA } from '@/hooks/useModulo';
 
 /**
  * Compact status box (online/offline, última sync, sincronizar, baixar backup) —
  * feito para ser embutido no canto superior direito do cabeçalho escuro (CamaraLayout/Home).
+ *
+ * @param {string} [diretoria] - 'dsb' | 'dtr' | 'dge'. Quando informado (CamaraLayout sempre
+ *   passa o da câmara atual), o backup local baixa só os dados desse módulo — a base local
+ *   (Dexie) guarda fiscalizações de todos os módulos misturadas, então sem esse filtro o
+ *   backup feito dentro do DTR, por exemplo, também levava fiscalizações do DSB junto.
  */
-export default function SyncBar() {
+export default function SyncBar({ diretoria } = {}) {
   const { online, lastSyncAt, refetchSyncStatus } = useSyncStatus?.() || { online: true, lastSyncAt: undefined, refetchSyncStatus: () => {} };
   const [syncing, setSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState('');
@@ -78,9 +84,46 @@ export default function SyncBar() {
       const { db } = await import('@/lib/offline/db');
       const JSZip = (await import('jszip')).default;
       const zip = new JSZip();
-      const tabelas = ['fiscalizacoes', 'unidades', 'respostas', 'constatacoes_manuais', 'recomendacoes', 'fila_mutacoes', 'fotos_local'];
-      const backup = {};
-      for (const t of tabelas) { if (db[t]) backup[t] = await db[t].toArray(); }
+
+      // A base local (Dexie) guarda fiscalizações de todos os módulos misturadas — sem
+      // filtrar por diretoria aqui, um backup feito dentro do DTR (por exemplo) também
+      // levaria fiscalizações do DSB (ou vice-versa) que não têm nada a ver com o módulo
+      // sendo usado no momento.
+      const modulosPermitidos = diretoria ? MODULOS_POR_DIRETORIA[diretoria] : null;
+      const todasFiscalizacoes = await db.fiscalizacoes.toArray();
+      const fiscalizacoesFiltradas = modulosPermitidos
+        ? todasFiscalizacoes.filter((f) => modulosPermitidos.includes(f.tipo_modulo))
+        : todasFiscalizacoes;
+      const fiscIds = new Set(fiscalizacoesFiltradas.map((f) => f.id));
+
+      const todasUnidades = await db.unidades.toArray();
+      const unidadesFiltradas = modulosPermitidos
+        ? todasUnidades.filter((u) => fiscIds.has(u.fiscalizacao_id))
+        : todasUnidades;
+      const unidadeIds = new Set(unidadesFiltradas.map((u) => u.id));
+
+      const filtrarPorUnidade = async (tabela) => {
+        const todos = await db[tabela].toArray();
+        return modulosPermitidos ? todos.filter((r) => unidadeIds.has(r.unidade_fiscalizada_id)) : todos;
+      };
+
+      const backup = {
+        fiscalizacoes: fiscalizacoesFiltradas,
+        unidades: unidadesFiltradas,
+        respostas: await filtrarPorUnidade('respostas'),
+        constatacoes_manuais: await filtrarPorUnidade('constatacoes_manuais'),
+        recomendacoes: await filtrarPorUnidade('recomendacoes'),
+        fila_mutacoes: modulosPermitidos
+          ? (await db.fila_mutacoes.toArray()).filter((m) => {
+              const p = m?.payload || {};
+              const candidateIds = [p?.id, p?.fiscalizacao_id, p?.unidade_fiscalizada_id].filter(Boolean);
+              return candidateIds.some((id) => fiscIds.has(id) || unidadeIds.has(id));
+            })
+          : await db.fila_mutacoes.toArray(),
+        fotos_local: modulosPermitidos
+          ? (await db.fotos_local.toArray()).filter((f) => unidadeIds.has(f.unidadeLocalId))
+          : await db.fotos_local.toArray()
+      };
       zip.file('dados.json', JSON.stringify(backup, null, 2));
       const unidadesList = backup.unidades || [];
       const fotosLocal = backup.fotos_local || [];
