@@ -93,32 +93,27 @@ export default function FiscalizacoesDTR() {
             <div className="min-h-full flex flex-col">
             {/* Header */}
             <div className="max-w-6xl mx-auto px-4 pt-8">
-                <div className="flex items-start justify-between gap-4 flex-wrap">
-                    <div>
-                        <h1 className="text-xs font-bold uppercase tracking-widest text-slate-400">Histórico de Fiscalizações</h1>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            title="Filtros"
-                            className={`h-9 w-9 rounded-xl transition-all border ${mostrarFiltros ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}
-                            onClick={() => setMostrarFiltros(!mostrarFiltros)}
-                        >
-                            <Filter className="h-4 w-4" />
+                <h1 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">Histórico de Fiscalizações</h1>
+                <div className="flex items-center gap-2">
+                    <Link to={createPageUrl('NovaFiscalizacaoDTR')} className="flex-1 min-w-0">
+                        <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow gap-1.5 h-12 px-5 text-base">
+                            <Plus className="h-5 w-5" /> Nova Fiscalização
                         </Button>
-                        <Link to={createPageUrl('DefinicoesDTR')}>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg sm:h-9 sm:w-auto sm:px-3 sm:gap-1.5">
-                                <Settings className="h-4 w-4" />
-                                <span className="hidden sm:inline text-xs">Definições</span>
-                            </Button>
-                        </Link>
-                        <Link to={createPageUrl('NovaFiscalizacaoDTR')}>
-                            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow gap-1.5 h-12 px-5 text-base">
-                                <Plus className="h-5 w-5" /> Nova Fiscalização
-                            </Button>
-                        </Link>
-                    </div>
+                    </Link>
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        title="Filtros"
+                        className={`h-9 w-9 rounded-xl transition-all border flex-shrink-0 ${mostrarFiltros ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+                        onClick={() => setMostrarFiltros(!mostrarFiltros)}
+                    >
+                        <Filter className="h-4 w-4" />
+                    </Button>
+                    <Link to={createPageUrl('DefinicoesDTR')}>
+                        <Button variant="ghost" size="icon" title="Definições" className="h-9 w-9 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl flex-shrink-0">
+                            <Settings className="h-4 w-4" />
+                        </Button>
+                    </Link>
                 </div>
             </div>
 

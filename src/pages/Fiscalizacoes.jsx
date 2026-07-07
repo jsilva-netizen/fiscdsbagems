@@ -140,35 +140,30 @@ export default function Fiscalizacoes() {
         <Layout>
             {/* Header */}
             <div className="max-w-6xl mx-auto px-4 pt-8">
-                <div className="flex items-start justify-between gap-4 flex-wrap">
-                    <div>
-                        <h1 className="text-xs font-bold uppercase tracking-widest text-slate-400">Histórico de Fiscalizações</h1>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            title="Filtros"
-                            className={`h-9 w-9 rounded-xl border-gray-200 ${mostrarFiltros ? 'bg-indigo-50 border-indigo-300 text-indigo-600' : ''}`}
-                            onClick={() => setMostrarFiltros(!mostrarFiltros)}
-                        >
-                            <Filter className="h-4 w-4" />
+                <h1 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">Histórico de Fiscalizações</h1>
+                <div className="flex items-center gap-2">
+                    <Link to={createPageUrl('NovaFiscalizacao')} className="flex-1 min-w-0">
+                        <Button className="w-full bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow gap-1.5 h-12 px-5 text-base">
+                            <Plus className="h-5 w-5" />
+                            Nova Fiscalização
                         </Button>
-                        {isAdmin && (
-                            <Link to={createPageUrl('Definicoes')}>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg sm:h-9 sm:w-auto sm:px-3 sm:gap-1.5">
-                                    <Settings className="h-4 w-4" />
-                                    <span className="hidden sm:inline text-xs">Definições</span>
-                                </Button>
-                            </Link>
-                        )}
-                        <Link to={createPageUrl('NovaFiscalizacao')}>
-                            <Button className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow gap-1.5 h-12 px-5 text-base">
-                                <Plus className="h-5 w-5" />
-                                Nova Fiscalização
+                    </Link>
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        title="Filtros"
+                        className={`h-9 w-9 rounded-xl border-gray-200 flex-shrink-0 ${mostrarFiltros ? 'bg-indigo-50 border-indigo-300 text-indigo-600' : ''}`}
+                        onClick={() => setMostrarFiltros(!mostrarFiltros)}
+                    >
+                        <Filter className="h-4 w-4" />
+                    </Button>
+                    {isAdmin && (
+                        <Link to={createPageUrl('Definicoes')}>
+                            <Button variant="ghost" size="icon" title="Definições" className="h-9 w-9 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl flex-shrink-0">
+                                <Settings className="h-4 w-4" />
                             </Button>
                         </Link>
-                    </div>
+                    )}
                 </div>
             </div>
 
