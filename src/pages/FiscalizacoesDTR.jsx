@@ -105,8 +105,8 @@ export default function FiscalizacoesDTR() {
                             </Button>
                         </Link>
                         <Link to={createPageUrl('NovaFiscalizacaoDTR')}>
-                            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow gap-1.5">
-                                <Plus className="h-4 w-4" /> Nova Fiscalização
+                            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow gap-1.5 h-12 px-5 text-base">
+                                <Plus className="h-5 w-5" /> Nova Fiscalização
                             </Button>
                         </Link>
                     </div>
@@ -116,14 +116,15 @@ export default function FiscalizacoesDTR() {
             {/* Content */}
             <div className="flex-1 max-w-6xl w-full mx-auto px-4 py-5 flex flex-col gap-4">
                 {/* Filter toggle — busca e filtros ficam escondidos até o usuário pedir */}
-                <div className="flex gap-2">
+                <div className="flex justify-end">
                     <Button
                         variant="outline"
-                        className={`h-11 rounded-xl transition-all border gap-1.5 text-sm ${mostrarFiltros ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+                        size="icon"
+                        title="Filtros"
+                        className={`h-9 w-9 rounded-xl transition-all border ${mostrarFiltros ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}
                         onClick={() => setMostrarFiltros(!mostrarFiltros)}
                     >
                         <Filter className="h-4 w-4" />
-                        Filtros
                     </Button>
                 </div>
 

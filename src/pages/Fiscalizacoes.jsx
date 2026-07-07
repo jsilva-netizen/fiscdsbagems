@@ -154,9 +154,9 @@ export default function Fiscalizacoes() {
                             </Link>
                         )}
                         <Link to={createPageUrl('NovaFiscalizacao')}>
-                            <Button className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow gap-1.5">
-                                <Plus className="h-4 w-4" />
-                                Nova
+                            <Button className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow gap-1.5 h-12 px-5 text-base">
+                                <Plus className="h-5 w-5" />
+                                Nova Fiscalização
                             </Button>
                         </Link>
                     </div>
@@ -165,14 +165,15 @@ export default function Fiscalizacoes() {
 
             {/* Filters */}
             <div className="max-w-6xl mx-auto px-4 py-4 space-y-3">
-                <div className="flex gap-2">
+                <div className="flex justify-end">
                     <Button
                         variant="outline"
-                        className={`h-11 rounded-xl border-gray-200 gap-1.5 text-sm ${mostrarFiltros ? 'bg-indigo-50 border-indigo-300 text-indigo-600' : ''}`}
+                        size="icon"
+                        title="Filtros"
+                        className={`h-9 w-9 rounded-xl border-gray-200 ${mostrarFiltros ? 'bg-indigo-50 border-indigo-300 text-indigo-600' : ''}`}
                         onClick={() => setMostrarFiltros(!mostrarFiltros)}
                     >
                         <Filter className="h-4 w-4" />
-                        Filtros
                     </Button>
                 </div>
 
