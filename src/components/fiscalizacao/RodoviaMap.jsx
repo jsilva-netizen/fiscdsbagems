@@ -226,6 +226,12 @@ export default function RodoviaMap({ rodovia, fiscId, ocorrencias = [] }) {
                     url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
                     maxZoom={19}
                 />
+                {/* ESRI vias e rótulos de ruas/rodovias */}
+                <TileLayer
+                    url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}"
+                    maxZoom={19}
+                    opacity={0.85}
+                />
                 {/* ESRI labels overlay */}
                 <TileLayer
                     url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
