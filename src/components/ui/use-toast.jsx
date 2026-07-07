@@ -107,7 +107,7 @@ function dispatch(action) {
   });
 }
 
-function toast({ ...props }) {
+function toast({ duration, ...props }) {
   const id = genId();
 
   const update = (props) =>
@@ -130,7 +130,7 @@ function toast({ ...props }) {
       },
     },
   });
-  addToRemoveQueue(id);
+  addToRemoveQueue(id, duration);
 
   return {
     id,

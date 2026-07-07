@@ -44,6 +44,22 @@ export default function SyncBar() {
         description: res.lastSyncAt ? `Atualizado em ${format(new Date(res.lastSyncAt), 'dd/MM HH:mm', { locale: ptBR })}` : 'Dados atualizados'
       });
       lastSyncToastDismissRef.current = t?.dismiss;
+      const { removedCount = 0, recreatedCount = 0 } = res.deletedRemotely || {};
+      if (removedCount > 0) {
+        toast({
+          title: 'Fiscalizações removidas em outro dispositivo',
+          description: `${removedCount} fiscalização(ões) foram excluídas em outro dispositivo e removidas localmente (sem alterações pendentes).`,
+          variant: 'destructive',
+          duration: 15000
+        });
+      }
+      if (recreatedCount > 0) {
+        toast({
+          title: 'Alterações offline preservadas',
+          description: `${recreatedCount} fiscalização(ões) foram excluídas em outro dispositivo, mas havia alterações salvas offline aqui — foram preservadas como nova(s) fiscalização(ões) e serão sincronizadas normalmente.`,
+          duration: 15000
+        });
+      }
     } catch (err) {
       setSyncProgress('Erro na sincronização');
       if (typeof lastSyncToastDismissRef.current === 'function') lastSyncToastDismissRef.current();

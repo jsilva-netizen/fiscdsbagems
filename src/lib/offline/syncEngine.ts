@@ -361,6 +361,13 @@ function errorInfo(err: any): { status?: number; code?: string; message: string 
 function isRetryableError(err: any): boolean {
   const { status, code, message } = errorInfo(err)
   const msg = message.toLowerCase()
+  // Violação de chave estrangeira (23503) não é um problema transitório — o pai
+  // (fiscalização/unidade) foi apagado em outro dispositivo e não vai "aparecer de
+  // novo" numa próxima tentativa. Tratar como retryable aqui era a causa do loop
+  // infinito de sincronização quando isso acontecia; correção primária é limpar a
+  // mutação órfã antes de tentar reenviá-la (ver pruneOutboxOrphans), isto é só
+  // uma rede de segurança contra corridas remanescentes.
+  if (code === '23503') return false
   if (status === 401 || status === 403) return true
   if (status === 408 || status === 409 || status === 429) return true
   if (typeof status === 'number' && status >= 500) return true
@@ -647,46 +654,209 @@ async function ensureBaseEntitiesEnqueued(): Promise<void> {
   }
 }
 
-async function pruneLocalByServerIds(): Promise<void> {
-  const { data: fiscRows, error: fiscErr } = await supabase.from('fiscalizacoes').select('id')
-  if (fiscErr) throw fiscErr
-  const serverFisc = new Set<string>((fiscRows || []).map((r: any) => r.id))
-  
-  if (serverFisc.size === 0) {
-    const localCount = await db.fiscalizacoes.count()
-    if (localCount > 0) {
-      console.warn('pruneLocalByServerIds: Server returned 0 fiscalizações, but local database has entries. Aborting prune to prevent data loss.')
-      return
+type PruneResult = {
+  prunedFiscalizacaoIds: string[]
+  recreatedFiscalizacoes: { oldId: string; newId: string }[]
+}
+
+const newLocalId = (): UUID => (crypto?.randomUUID?.() || Math.random().toString(36).slice(2)) as UUID
+
+const RECONCILE_CHILD_ENTITIES = ['unidades', 'respostas', 'constatacoes_manuais', 'recomendacoes', 'determinacoes', 'fotos', 'finalizacao_unidade']
+
+// Existe alguma mutação pendente/com erro (trabalho ainda não sincronizado) ou foto
+// local ainda não enviada, referenciando essa fiscalização ou qualquer uma das suas
+// unidades? Usado para decidir entre simplesmente remover (nada a perder) ou recriar
+// (preservar o que foi feito offline) quando a fiscalização some do servidor.
+async function hasUnsyncedWorkForFiscalizacao(fiscId: string, unidadeIds: string[]): Promise<boolean> {
+  const fiscMut = await db.fila_mutacoes
+    .where('entity').equals('fiscalizacoes')
+    .and((m) => String(m?.payload?.id || '') === fiscId && m.status !== 'done')
+    .count()
+  if (fiscMut > 0) return true
+
+  if (unidadeIds.length > 0) {
+    const unidadeIdSet = new Set(unidadeIds)
+    const childMut = await db.fila_mutacoes
+      .filter((m: any) => {
+        if (String(m?.status) === 'done') return false
+        if (!RECONCILE_CHILD_ENTITIES.includes(String(m?.entity || ''))) return false
+        const p = m?.payload || {}
+        const candidateId = String(p?.id || p?.unidade_fiscalizada_id || '')
+        return unidadeIdSet.has(candidateId)
+      })
+      .count()
+    if (childMut > 0) return true
+
+    const unsyncedFotos = await db.fotos_local
+      .filter((f: any) => !f?.syncedAt && unidadeIdSet.has(String(f?.unidadeLocalId || '')))
+      .count()
+    if (unsyncedFotos > 0) return true
+  }
+  return false
+}
+
+// Apaga localmente uma fiscalização e toda sua cascata (unidades, respostas,
+// constatações manuais, fotos, recomendações, determinações) mais qualquer mutação
+// na fila referente a ela ou suas unidades. Só deve ser chamada quando já se sabe que
+// não há trabalho offline pendente nessa árvore (ver hasUnsyncedWorkForFiscalizacao) —
+// caso contrário use recreateFiscalizacaoLocally.
+async function cascadeDeleteFiscalizacaoLocally(f: { id: UUID }): Promise<void> {
+  const unidadesLocal = await db.unidades.where('fiscalizacao_id').equals(f.id as any).toArray()
+  for (const u of unidadesLocal) {
+    const respostas = await db.respostas.where('unidade_fiscalizada_id').equals(u.id as any).toArray()
+    for (const r of respostas) await db.respostas.delete(r.id as any)
+    const constatacoes = await db.constatacoes_manuais.where('unidade_fiscalizada_id').equals(u.id as any).toArray()
+    for (const c of constatacoes) await db.constatacoes_manuais.delete(c.id as any)
+    const fotos = await db.fotos.where('unidade_fiscalizada_id').equals(u.id as any).toArray()
+    for (const ft of fotos) await db.fotos.delete((ft as any).id)
+    const recs = await db.recomendacoes.where('unidade_fiscalizada_id').equals(u.id as any).toArray()
+    for (const r of recs) await db.recomendacoes.delete(r.id as any)
+    const dets = await (db as any).determinacoes.where('unidade_fiscalizada_id').equals(u.id as any).toArray()
+    for (const d of dets) await (db as any).determinacoes.delete(d.id as any)
+    await db.fotos_local.where('unidadeLocalId').equals(u.id as any).delete()
+    await db.id_map.where('local_id').equals(u.id as any).delete()
+    await db.unidades.delete(u.id as any)
+  }
+  await db.fila_mutacoes.where('entity').equals('fiscalizacoes').and((m) => String(m?.payload?.id || '') === f.id).delete()
+  await db.id_map.where('local_id').equals(f.id as any).delete()
+  await db.fiscalizacoes.delete(f.id as any)
+}
+
+// A fiscalização sumiu do servidor (outro dispositivo excluiu), mas este dispositivo
+// tem trabalho offline não sincronizado nela — em vez de descartar esse levantamento de
+// campo, recriamos a fiscalização e toda sua árvore (unidades, respostas,
+// constatações, recomendações, determinações, fotos) com ids novos, como se fosse um
+// registro criado agora, e enfileiramos inserts frescos para o próximo envio.
+async function recreateFiscalizacaoLocally(f: { id: UUID }): Promise<string> {
+  const oldFiscId = String(f.id)
+  const oldFisc = await db.fiscalizacoes.get(oldFiscId as any)
+  if (!oldFisc) return oldFiscId
+
+  const unidadesLocal = await db.unidades.where('fiscalizacao_id').equals(oldFiscId as any).toArray()
+  const newFiscId = newLocalId()
+  const unidadeIdMap = new Map<string, string>()
+  for (const u of unidadesLocal) unidadeIdMap.set(String(u.id), newLocalId())
+
+  await db.fiscalizacoes.delete(oldFiscId as any)
+  await db.fiscalizacoes.put({ ...(oldFisc as any), id: newFiscId } as any)
+
+  for (const u of unidadesLocal) {
+    const oldUnidadeId = String(u.id)
+    const newUnidadeId = unidadeIdMap.get(oldUnidadeId)!
+
+    await db.respostas.where('unidade_fiscalizada_id').equals(oldUnidadeId as any)
+      .modify({ unidade_fiscalizada_id: newUnidadeId } as any)
+    await db.constatacoes_manuais.where('unidade_fiscalizada_id').equals(oldUnidadeId as any)
+      .modify({ unidade_fiscalizada_id: newUnidadeId } as any)
+    await db.recomendacoes.where('unidade_fiscalizada_id').equals(oldUnidadeId as any)
+      .modify({ unidade_fiscalizada_id: newUnidadeId } as any)
+    await (db as any).determinacoes.where('unidade_fiscalizada_id').equals(oldUnidadeId as any)
+      .modify({ unidade_fiscalizada_id: newUnidadeId })
+
+    // db.fotos é só um cache derivado de fotos_unidade — descarta, será reconstruído
+    // normalmente na próxima atualização de fotos dessa unidade.
+    await db.fotos.where('unidade_fiscalizada_id').equals(oldUnidadeId as any).delete()
+
+    // Fotos ainda não enviadas: nenhum upload real aconteceu sob o caminho antigo,
+    // então é seguro recalculá-lo com os ids novos.
+    await db.fotos_local.where('unidadeLocalId').equals(oldUnidadeId as any).and((x: any) => !x.syncedAt)
+      .modify((rec: any) => {
+        rec.unidadeLocalId = newUnidadeId
+        rec.storagePath = `fiscalizacoes/${newFiscId}/${newUnidadeId}/${rec.localId}.jpg`
+      })
+    // Fotos já enviadas antes da exclusão: mantém o caminho de armazenamento (o
+    // arquivo pode ainda existir lá), só reaponta a referência de unidade local.
+    await db.fotos_local.where('unidadeLocalId').equals(oldUnidadeId as any).and((x: any) => !!x.syncedAt)
+      .modify({ unidadeLocalId: newUnidadeId } as any)
+
+    await db.unidades.delete(oldUnidadeId as any)
+    await db.unidades.put({ ...(u as any), id: newUnidadeId, fiscalizacao_id: newFiscId } as any)
+  }
+
+  // Ids antigos não existem mais em lugar nenhum (nem local, nem servidor) — descarta
+  // mapeamentos e mutações que os referenciam.
+  const oldIds = new Set<string>([oldFiscId, ...unidadeIdMap.keys()])
+  for (const oldId of oldIds) {
+    await db.id_map.where('local_id').equals(oldId as any).delete()
+  }
+  await db.fila_mutacoes
+    .filter((m: any) => {
+      const p = m?.payload || {}
+      const candidateId = String(p?.id || p?.unidade_fiscalizada_id || p?.fiscalizacao_id || '')
+      return oldIds.has(candidateId)
+    })
+    .delete()
+
+  // Enfileira inserts frescos a partir do estado atual (já remapeado) — equivalente a
+  // criar essa fiscalização do zero agora, com tudo que foi levantado offline.
+  const newFisc = await db.fiscalizacoes.get(newFiscId as any)
+  if (newFisc) await enqueueMutation(newFisc, 'insert', 'fiscalizacoes')
+
+  for (const newUnidadeId of unidadeIdMap.values()) {
+    const newUnidade = await db.unidades.get(newUnidadeId as any)
+    if (!newUnidade) continue
+    await enqueueMutation(newUnidade, 'insert', 'unidades')
+
+    const respostas = await db.respostas.where('unidade_fiscalizada_id').equals(newUnidadeId as any).toArray()
+    for (const r of respostas) await enqueueMutation(r, 'insert', 'respostas')
+
+    const constatacoes = await db.constatacoes_manuais.where('unidade_fiscalizada_id').equals(newUnidadeId as any).toArray()
+    for (const c of constatacoes) await enqueueMutation(c, 'insert', 'constatacoes_manuais')
+
+    const recs = await db.recomendacoes.where('unidade_fiscalizada_id').equals(newUnidadeId as any).toArray()
+    for (const r of recs) await enqueueMutation(r, 'insert', 'recomendacoes')
+
+    const dets = await (db as any).determinacoes.where('unidade_fiscalizada_id').equals(newUnidadeId as any).toArray()
+    for (const d of dets) await enqueueMutation(d, 'insert', 'determinacoes')
+
+    const fotosUnidade = Array.isArray((newUnidade as any).fotos_unidade) ? (newUnidade as any).fotos_unidade : []
+    if (fotosUnidade.length > 0) {
+      await enqueueMutation({ unidade_fiscalizada_id: newUnidadeId, fotos_unidade: fotosUnidade }, 'update', 'fotos')
     }
   }
 
+  return newFiscId
+}
+
+// Detecta fiscalizações excluídas no servidor por outro dispositivo e reconcilia a
+// cópia local. Escopado aos IDs que já existem NESTE dispositivo (não faz mais um
+// select de toda a tabela do servidor) — barato o bastante para rodar em toda
+// sincronização, não só uma vez por dia.
+// Retorna null quando a checagem de existência falha (rede/servidor indisponível):
+// nesse caso NADA é apagado — nunca tratamos "não consegui checar" como "não existe
+// mais". Uma sincronização futura bem-sucedida reconcilia normalmente.
+async function pruneLocalByServerIds(): Promise<PruneResult | null> {
   const locals = await db.fiscalizacoes.toArray()
+  if (locals.length === 0) return { prunedFiscalizacaoIds: [], recreatedFiscalizacoes: [] }
+
+  const localIds = locals.map((f) => String(f.id))
+  let existing: Set<string>
+  try {
+    existing = await fetchExistingIds('fiscalizacoes', localIds)
+  } catch (err) {
+    console.warn('pruneLocalByServerIds: existence check failed, skipping this pass', err)
+    return null
+  }
+
+  const prunedFiscalizacaoIds: string[] = []
+  const recreatedFiscalizacoes: { oldId: string; newId: string }[] = []
+
   for (const f of locals) {
+    if (existing.has(String(f.id))) continue
     const pendingInsert = await db.fila_mutacoes.where('entity').equals('fiscalizacoes').and((m) => m.tipo === 'insert' && m.payload?.id === f.id && m.status !== 'done').first()
-    if (!serverFisc.has(f.id) && !pendingInsert) {
-      const unidadesLocal = await db.unidades.where('fiscalizacao_id').equals(f.id as any).toArray()
-      for (const u of unidadesLocal) {
-        const respostas = await db.respostas.where('unidade_fiscalizada_id').equals(u.id as any).toArray()
-        for (const r of respostas) {
-          await db.respostas.delete(r.id as any)
-        }
-        const constatacoes = await db.constatacoes_manuais.where('unidade_fiscalizada_id').equals(u.id as any).toArray()
-        for (const c of constatacoes) {
-          await db.constatacoes_manuais.delete(c.id as any)
-        }
-        const fotos = await db.fotos.where('unidade_fiscalizada_id').equals(u.id as any).toArray()
-        for (const ft of fotos) {
-          await db.fotos.delete((ft as any).id)
-        }
-        await db.unidades.delete(u.id as any)
-      }
-      const pendingMut = await db.fila_mutacoes.where('entity').equals('fiscalizacoes').and((m) => m.payload?.id === f.id).toArray()
-      if (pendingMut.length > 0) {
-        await db.fila_mutacoes.bulkDelete(pendingMut.map((m) => m.id as any))
-      }
-      await db.fiscalizacoes.delete(f.id as any)
+    if (pendingInsert) continue
+
+    const unidadeIds = (await db.unidades.where('fiscalizacao_id').equals(f.id as any).toArray()).map((u) => String(u.id))
+    if (await hasUnsyncedWorkForFiscalizacao(String(f.id), unidadeIds)) {
+      const newId = await recreateFiscalizacaoLocally(f)
+      recreatedFiscalizacoes.push({ oldId: String(f.id), newId })
+    } else {
+      await cascadeDeleteFiscalizacaoLocally(f)
+      prunedFiscalizacaoIds.push(String(f.id))
     }
   }
+
+  return { prunedFiscalizacaoIds, recreatedFiscalizacoes }
 }
 async function pushOne(entity: Entity, type: MutationType, payload: any) {
   const table = entityTableMap[entity]
@@ -1918,6 +2088,31 @@ async function hardResetLocalData(): Promise<void> {
   clearAllPreviewUrls()
 }
 
+export type HardResetResult =
+  | { ok: true }
+  | { ok: false; reason: 'pending_mutations' | 'pending_fotos'; count: number }
+
+// Última linha de defesa para suporte/admin: apaga TODOS os dados locais (equivalente
+// a limpar os dados do navegador manualmente, mas sem derrubar o service worker).
+// Nunca deve ser exposta direto num botão de uso rotineiro — recusa rodar se houver
+// qualquer mutação pendente/com erro na fila de sincronização ou foto local ainda não
+// enviada, a menos que `force: true` seja passado depois de o usuário confirmar
+// explicitamente quantos itens seriam perdidos.
+export async function requestHardReset(opts: { force?: boolean } = {}): Promise<HardResetResult> {
+  if (!opts.force) {
+    const pendingMutations = await db.fila_mutacoes.where('status').anyOf('pending', 'error').count()
+    if (pendingMutations > 0) {
+      return { ok: false, reason: 'pending_mutations', count: pendingMutations }
+    }
+    const pendingFotos = await db.fotos_local.filter((f: any) => !f?.syncedAt).count()
+    if (pendingFotos > 0) {
+      return { ok: false, reason: 'pending_fotos', count: pendingFotos }
+    }
+  }
+  await hardResetLocalData()
+  return { ok: true }
+}
+
 const isValidUuid = (v: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)
 
 export async function syncFotosWithProgress(onProgress?: (uploaded: number, total: number) => void): Promise<number> {
@@ -2237,7 +2432,15 @@ async function repairOutboxRespostasMissingId(): Promise<void> {
   }
 }
 
-async function pruneOutboxOrphans(): Promise<void> {
+// Entidades cujo alvo dá pra checar localmente. 'fotos' e 'finalizacao_unidade' não
+// têm um id de linha próprio — seu payload referencia a própria unidade, então a
+// checagem de existência usa a unidade como alvo.
+const OUTBOX_ORPHAN_CHECKABLE_ENTITIES = new Set([
+  'unidades', 'respostas', 'constatacoes_manuais', 'recomendacoes', 'determinacoes',
+  'fotos', 'finalizacao_unidade', 'fiscalizacoes', 'finalizacao_fiscalizacao', 'reabrir_fiscalizacao'
+])
+
+async function pruneOutboxOrphans(): Promise<number> {
   const [pendingOrError, unknownStatus] = await Promise.all([
     db.fila_mutacoes.where('status').anyOf('pending', 'error').toArray(),
     db.fila_mutacoes.filter((m: any) => !m?.status).toArray()
@@ -2248,10 +2451,12 @@ async function pruneOutboxOrphans(): Promise<void> {
   const existsIn = async (entity: string, id: any): Promise<boolean> => {
     try {
       if (!id) return false
-      if (entity === 'unidades') return !!(await db.unidades.get(id as any))
+      if (entity === 'unidades' || entity === 'fotos' || entity === 'finalizacao_unidade') return !!(await db.unidades.get(id as any))
       if (entity === 'respostas') return !!(await db.respostas.get(id as any))
       if (entity === 'constatacoes_manuais') return !!(await db.constatacoes_manuais.get(id as any))
       if (entity === 'recomendacoes') return !!(await db.recomendacoes.get(id as any))
+      if (entity === 'determinacoes') return !!(await (db as any).determinacoes.get(id as any))
+      if (entity === 'fiscalizacoes' || entity === 'finalizacao_fiscalizacao' || entity === 'reabrir_fiscalizacao') return !!(await db.fiscalizacoes.get(id as any))
       return true
     } catch {
       return true
@@ -2261,20 +2466,25 @@ async function pruneOutboxOrphans(): Promise<void> {
   for (const m of all as any[]) {
     const entity = String(m?.entity || '')
     const tipo = String(m?.tipo || '')
-    if (tipo === 'delete' || tipo === 'finalize' || tipo === 'reopen') continue
-    const pid = m?.payload?.id
+    // Mutações 'delete' legitimamente têm como alvo algo que já não existe mais
+    // localmente (é o objetivo delas) — nunca purgar com base nessa checagem.
+    // 'finalize'/'reopen', ao contrário, referenciam uma unidade/fiscalização que
+    // pode ter sido apagada em cascata por outro dispositivo — nesse caso são lixo
+    // e devem ser purgadas como qualquer outra mutação órfã.
+    if (tipo === 'delete') continue
+    if (!OUTBOX_ORPHAN_CHECKABLE_ENTITIES.has(entity)) continue
+    const pid = entity === 'fotos' ? (m?.payload?.id || m?.payload?.unidade_fiscalizada_id) : m?.payload?.id
     if (!pid) continue
-    if (entity === 'unidades' || entity === 'respostas' || entity === 'constatacoes_manuais' || entity === 'recomendacoes') {
-      const ok = await existsIn(entity, pid)
-      if (!ok) deletables.push(m.id as UUID)
-    }
+    const ok = await existsIn(entity, pid)
+    if (!ok) deletables.push(m.id as UUID)
   }
   if (deletables.length > 0) {
     await db.fila_mutacoes.bulkDelete(deletables as any)
   }
+  return deletables.length
 }
 
-async function runFullSyncInternal(onProgress?: (msg: string, isError?: boolean) => void): Promise<{ outbox: number; lastSyncAt?: string }> {
+async function runFullSyncInternal(onProgress?: (msg: string, isError?: boolean) => void): Promise<{ outbox: number; lastSyncAt?: string; deletedRemotely?: { removedCount: number; recreatedCount: number } }> {
   const log = (msg: string, isError = false) => { if (onProgress) onProgress(msg, isError) }
   
   log('Verificando conexão com o servidor...')
@@ -2306,25 +2516,26 @@ async function runFullSyncInternal(onProgress?: (msg: string, isError?: boolean)
   
   log('Reprocessando erros anteriores...')
   await retryOutboxErrors(true)
+
+  // Checagem de exclusões remotas: escopada aos IDs locais (fetchExistingIds), então
+  // é barata o bastante pra rodar em toda sincronização — sem gate de 24h. Se a
+  // checagem falhar (rede/servidor), pruneResult vem null e nada é apagado.
+  let pruneResult: Awaited<ReturnType<typeof pruneLocalByServerIds>> = null
+  try {
+    log('Verificando fiscalizações excluídas em outros dispositivos...')
+    pruneResult = await withTimeout(() => pruneLocalByServerIds(), 15000)
+  } catch {}
   try {
     const st = await db.estados_sync.get('global' as UUID)
-    const lastPruneAt = (st as any)?.last_prune_at as string | undefined
-    const shouldPrune = !lastPruneAt || (Number.isFinite(Date.parse(lastPruneAt)) && Date.now() - Date.parse(lastPruneAt) > 24 * 60 * 60 * 1000)
-    if (shouldPrune) {
-      try {
-        log('Limpando dados antigos...')
-        await withTimeout(() => pruneLocalByServerIds(), 30000)
-        await db.estados_sync.put({
-          ...(st as any),
-          id: 'global' as UUID,
-          entidade: 'global',
-          updated_at: now(),
-          last_prune_at: now()
-        } as any)
-      } catch {}
-    }
+    await db.estados_sync.put({
+      ...(st as any),
+      id: 'global' as UUID,
+      entidade: 'global',
+      updated_at: now(),
+      last_prune_at: now()
+    } as any)
   } catch {}
-  
+
   log('Enfileirando dados pendentes...')
   await ensureBaseEntitiesEnqueued()
 
@@ -2339,17 +2550,32 @@ async function runFullSyncInternal(onProgress?: (msg: string, isError?: boolean)
   try {
     await pruneOutboxOrphans()
   } catch {}
-  
+
   log('Enviando dados (Sync Up)...')
   await syncUp(onProgress)
-  
+
   log('Baixando dados (Sync Down)...')
   await syncDown(onProgress)
-  
+
   log('Sincronização finalizada.')
   const pending = await getOutboxCount()
   const { lastSyncAt } = await getLastSync()
-  return { outbox: pending, lastSyncAt }
+
+  const result: { outbox: number; lastSyncAt?: string; deletedRemotely?: { removedCount: number; recreatedCount: number } } = { outbox: pending, lastSyncAt }
+  if (pruneResult) {
+    const removedCount = pruneResult.prunedFiscalizacaoIds.length
+    const recreatedCount = pruneResult.recreatedFiscalizacoes.length
+    if (removedCount > 0 || recreatedCount > 0) {
+      result.deletedRemotely = { removedCount, recreatedCount }
+      if (removedCount > 0) {
+        log(`${removedCount} fiscalização(ões) foram excluídas em outro dispositivo e removidas localmente.`)
+      }
+      if (recreatedCount > 0) {
+        log(`${recreatedCount} fiscalização(ões) excluídas em outro dispositivo tinham alterações salvas offline aqui — foram preservadas como nova(s) fiscalização(ões).`)
+      }
+    }
+  }
+  return result
 }
 
 export async function syncUpForFiscalizacao(
@@ -2380,6 +2606,38 @@ export async function syncUpForFiscalizacao(
   try { await compactOutbox() } catch {}
   try { await repairOutboxRespostasMissingId() } catch {}
   try { await pruneOutboxOrphans() } catch {}
+
+  // Checagem pontual: essa fiscalização específica ainda existe no servidor? Isso
+  // fecha exatamente o caso relatado — "continuar" uma fiscalização offline que outro
+  // dispositivo já excluiu — antes de gastar uma tentativa de push que bateria numa
+  // violação de chave estrangeira (pai inexistente) e ficaria reentrando.
+  try {
+    const existsRemotely = await fetchExistingIds('fiscalizacoes', [fiscalizacaoId])
+    if (!existsRemotely.has(fiscalizacaoId)) {
+      const pendingInsert = await db.fila_mutacoes
+        .where('entity').equals('fiscalizacoes')
+        .and((m) => m.tipo === 'insert' && m.payload?.id === fiscalizacaoId && m.status !== 'done')
+        .first()
+      if (!pendingInsert) {
+        const localFisc = await db.fiscalizacoes.get(fiscalizacaoId as any)
+        if (localFisc) {
+          const localUnidadeIds = (await db.unidades.where('fiscalizacao_id').equals(fiscalizacaoId as any).toArray()).map((u) => String(u.id))
+          if (await hasUnsyncedWorkForFiscalizacao(fiscalizacaoId, localUnidadeIds)) {
+            emit('Fiscalização excluída em outro dispositivo — preservando alterações offline como nova fiscalização...', 0, 0, true)
+            await recreateFiscalizacaoLocally(localFisc)
+          } else {
+            emit('Fiscalização excluída em outro dispositivo — removendo localmente...', 0, 0, true)
+            await cascadeDeleteFiscalizacaoLocally(localFisc)
+          }
+          const pendingAfterPrune = await getOutboxCount()
+          return { outbox: pendingAfterPrune }
+        }
+      }
+    }
+  } catch {
+    // Falha ao checar existência: segue o fluxo normal — nunca assume exclusão
+    // com base numa checagem que não completou.
+  }
 
   // Identify units for this fiscalização
   const unidades = await db.unidades.where('fiscalizacao_id').equals(fiscalizacaoId as any).toArray()
@@ -2495,10 +2753,12 @@ export async function syncUpForFiscalizacao(
   return { outbox: pending }
 }
 
-const progressListeners = new Set<(msg: string, isError?: boolean) => void>()
-let currentSyncPromise: Promise<{ outbox: number; lastSyncAt?: string }> | null = null
+type RunFullSyncResult = { outbox: number; lastSyncAt?: string; deletedRemotely?: { removedCount: number; recreatedCount: number } }
 
-export async function runFullSync(onProgress?: (msg: string, isError?: boolean) => void): Promise<{ outbox: number; lastSyncAt?: string }> {
+const progressListeners = new Set<(msg: string, isError?: boolean) => void>()
+let currentSyncPromise: Promise<RunFullSyncResult> | null = null
+
+export async function runFullSync(onProgress?: (msg: string, isError?: boolean) => void): Promise<RunFullSyncResult> {
   if (onProgress) {
     progressListeners.add(onProgress)
   }

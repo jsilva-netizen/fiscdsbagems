@@ -32,9 +32,27 @@ if (import.meta.hot) {
   });
 }
 
+let swRegistration = null
+
 const updateSW = registerSW({
   immediate: true,
+  onRegisteredSW(_url, registration) {
+    swRegistration = registration
+  },
   onNeedRefresh() {
     updateSW(true)
   }
 })
+
+// registerSW só checa por uma versão nova uma vez, no carregamento inicial. Sem isso,
+// uma aba deixada aberta (ou só minimizada/restaurada — "fechar e abrir") podia nunca
+// perceber um novo deploy até um reload manual. registration.update() força o navegador
+// a reconsultar o service worker; quando há versão nova, onNeedRefresh (acima) já
+// aplica e recarrega sozinho — aqui só adiantamos a checagem, não mudamos como aplica.
+const checkForAppUpdate = () => { swRegistration?.update().catch(() => {}) }
+
+setInterval(checkForAppUpdate, 60 * 60 * 1000)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') checkForAppUpdate()
+})
+window.addEventListener('focus', checkForAppUpdate)
