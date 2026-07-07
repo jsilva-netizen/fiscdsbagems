@@ -1110,21 +1110,6 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
     try { await updateJob(adminClient, job.id, { progress_unidades: progCount, progress_fotos: gFotoNum }) } catch {}
   }
 
-  // ── Page numbers ─────────────────────────────────────────────────────────
-  const allPages = pdfDoc.getPages()
-  const totalPages = allPages.length
-  for (let i = 0; i < totalPages; i++) {
-    const pg = allPages[i]
-    const label = `Página ${i + 1} de ${totalPages}`
-    const textW = font.widthOfTextAtSize(label, 7)
-    pg.drawText(label, {
-      x: pageWidth - margin - textW,
-      y: mm2pt(6),
-      size: 7, font,
-      color: rgb(0.4, 0.4, 0.4)
-    })
-  }
-
   return await pdfDoc.save()
 }
 
