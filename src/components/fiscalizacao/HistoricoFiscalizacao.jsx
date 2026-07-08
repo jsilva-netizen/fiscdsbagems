@@ -74,8 +74,6 @@ const FIELD_LABELS = {
   artigo_portaria:       'Artigo da portaria',
   texto_determinacao:    'Texto da determinação',
   texto_recomendacao:    'Texto da recomendação',
-  // Relatórios
-  'status':              'Status',
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

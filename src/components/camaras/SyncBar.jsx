@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { useSyncStatus } from '@/lib/SyncStatusContext.jsx';
 import { runFullSync } from '@/lib/offline/syncEngine';
+import { db } from '@/lib/offline/db';
 import { useToast } from '@/components/ui/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
@@ -81,7 +82,6 @@ export default function SyncBar({ diretoria } = {}) {
   const handleBackup = async () => {
     try {
       toast({ title: 'Preparando backup', description: 'Coletando dados e fotos, isso pode levar alguns segundos...' });
-      const { db } = await import('@/lib/offline/db');
       const JSZip = (await import('jszip')).default;
       const zip = new JSZip();
 
