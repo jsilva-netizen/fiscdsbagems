@@ -9,6 +9,7 @@ import { createBrowserRouter, RouterProvider, Navigate, Outlet, useLocation } fr
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import { db } from '@/lib/offline/db';
+import { useOfflineReady } from '@/lib/offlineReady';
 
 const Login = lazy(() => import('@/pages/Login'));
 const Register = lazy(() => import('@/pages/Register'));
@@ -25,6 +26,22 @@ const RouteLoadingFallback = () => (
   </div>
 );
 
+// Só aparece na primeira instalação, enquanto o service worker termina de cachear
+// os chunks das páginas ainda lazy (ver useOfflineReady) — silenciosa de propósito
+// (sem texto, sem spinner), pensada como uma continuação visual da tela de login.
+const OfflineReadyTransition = () => (
+  <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-blue-950 via-blue-900 to-indigo-950">
+    <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center p-3 shadow-xl animate-pulse">
+      <svg viewBox="0 0 128 128" className="w-full h-full" aria-label="AGEMS">
+        <circle cx="64" cy="64" r="56" fill="none" stroke="#101010" strokeWidth="6" />
+        <polygon points="24,32 44,32 64,64 44,96 24,96 44,64" fill="#1FA463" />
+        <polygon points="44,32 64,32 84,64 64,96 44,96 64,64" fill="#1894F2" />
+        <polygon points="64,32 84,32 104,64 84,96 64,96 84,64" fill="#F6C713" />
+      </svg>
+    </div>
+  </div>
+);
+
 const RoleAwareLayout = ({ children, currentPageName }) => {
   const { user } = useAuth();
   if (user?.role === 'prestador') return <>{children}</>;
@@ -36,6 +53,7 @@ const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
   const location = useLocation();
   const [offlineBypass, setOfflineBypass] = useState({ checked: false, allow: false });
+  const assetsReady = useOfflineReady();
 
   useEffect(() => {
     let cancelled = false;
@@ -106,6 +124,10 @@ const ProtectedRoute = ({ children }) => {
       return children;
     }
     return <Navigate to="/login" replace />;
+  }
+
+  if (!assetsReady) {
+    return <OfflineReadyTransition />;
   }
 
   const pathname = location.pathname.replace(/^\//, '');

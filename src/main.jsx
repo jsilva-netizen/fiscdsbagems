@@ -5,6 +5,7 @@ import '@/index.css'
 import { registerSW } from 'virtual:pwa-register'
 import { OnlineStatusProvider } from '@/lib/OnlineStatusContext.jsx'
 import { SyncStatusProvider } from '@/lib/SyncStatusContext.jsx'
+import { markOfflineReady } from '@/lib/offlineReady'
 
 ;(async () => {
   try {
@@ -41,6 +42,13 @@ const updateSW = registerSW({
   },
   onNeedRefresh() {
     updateSW(true)
+  },
+  onOfflineReady() {
+    markOfflineReady()
+  },
+  onRegisterError() {
+    // Falhou ao registrar o SW — não faz sentido bloquear o app por isso.
+    markOfflineReady()
   }
 })
 
