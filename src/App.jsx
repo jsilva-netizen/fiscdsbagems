@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense, lazy } from 'react'
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
@@ -8,15 +8,22 @@ import { pagesConfig } from './pages.config'
 import { createBrowserRouter, RouterProvider, Navigate, Outlet, useLocation } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
-import Login from '@/pages/Login';
-import Register from '@/pages/Register';
-import ExportarImportar from '@/pages/ExportarImportar';
 import { db } from '@/lib/offline/db';
- 
+
+const Login = lazy(() => import('@/pages/Login'));
+const Register = lazy(() => import('@/pages/Register'));
+const ExportarImportar = lazy(() => import('@/pages/ExportarImportar'));
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
 const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
+
+const RouteLoadingFallback = () => (
+  <div className="fixed inset-0 flex flex-col items-center justify-center bg-white">
+    <img src="/logo.svg" alt="AGEMS" className="w-24 h-24 mb-4" />
+    <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-800 rounded-full animate-spin"></div>
+  </div>
+);
 
 const RoleAwareLayout = ({ children, currentPageName }) => {
   const { user } = useAuth();
@@ -88,22 +95,12 @@ const ProtectedRoute = ({ children }) => {
   }, [isLoading, isAuthenticated]);
 
   if (isLoading) {
-    return (
-      <div className="fixed inset-0 flex flex-col items-center justify-center bg-white">
-        <img src="/logo.svg" alt="AGEMS" className="w-24 h-24 mb-4" />
-        <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-800 rounded-full animate-spin"></div>
-      </div>
-    );
+    return <RouteLoadingFallback />;
   }
 
   if (!isAuthenticated) {
     if (!offlineBypass.checked) {
-      return (
-        <div className="fixed inset-0 flex flex-col items-center justify-center bg-white">
-          <img src="/logo.svg" alt="AGEMS" className="w-24 h-24 mb-4" />
-          <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-800 rounded-full animate-spin"></div>
-        </div>
-      );
+      return <RouteLoadingFallback />;
     }
     if (offlineBypass.allow) {
       return children;
@@ -141,14 +138,16 @@ function App() {
     {
       element: <RootShell />,
       children: [
-        { path: "/login", element: <Login /> },
-        { path: "/register", element: <Register /> },
+        { path: "/login", element: <Suspense fallback={<RouteLoadingFallback />}><Login /></Suspense> },
+        { path: "/register", element: <Suspense fallback={<RouteLoadingFallback />}><Register /></Suspense> },
         {
           path: "/",
           element: (
             <ProtectedRoute>
               <RoleAwareLayout currentPageName={mainPageKey}>
-                <MainPage />
+                <Suspense fallback={<RouteLoadingFallback />}>
+                  <MainPage />
+                </Suspense>
               </RoleAwareLayout>
             </ProtectedRoute>
           ),
@@ -158,7 +157,9 @@ function App() {
           element: (
             <ProtectedRoute>
               <RoleAwareLayout currentPageName={'ExportarImportar'}>
-                <ExportarImportar />
+                <Suspense fallback={<RouteLoadingFallback />}>
+                  <ExportarImportar />
+                </Suspense>
               </RoleAwareLayout>
             </ProtectedRoute>
           ),
@@ -168,7 +169,9 @@ function App() {
           element: (
             <ProtectedRoute>
               <RoleAwareLayout currentPageName={path}>
-                <Page />
+                <Suspense fallback={<RouteLoadingFallback />}>
+                  <Page />
+                </Suspense>
               </RoleAwareLayout>
             </ProtectedRoute>
           ),

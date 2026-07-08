@@ -10,6 +10,10 @@ export default defineConfig({
     include: ['leaflet', 'xlsx'],
   },
   build: {
+    // O chunk de vendor compartilhado (React/Router/Supabase/TanStack Query) fica
+    // em ~670kB — é o núcleo usado por toda rota após o code-splitting por página
+    // (ver pages.config.js), não um chunk de página específica crescendo sem controle.
+    chunkSizeWarningLimit: 700,
     commonjsOptions: {
       include: [/xlsx/, /node_modules/],
     },
