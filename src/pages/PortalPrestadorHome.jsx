@@ -4,21 +4,19 @@ import { Repository } from '@/lib/offline/repository';
 import { useAuth } from '@/lib/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { createPageUrl } from '@/utils';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { FileText, Clock, AlertTriangle, LogOut, Download, UploadCloud, Send } from 'lucide-react';
+import { FileText, Clock, AlertTriangle, Download, UploadCloud, Send } from 'lucide-react';
+import PortalPrestadorLayout from '@/components/portalPrestador/PortalPrestadorLayout';
 
 export default function PortalPrestadorHome() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [prestadorId, setPrestadorId] = useState(null);
-  const [saindo, setSaindo] = useState(false);
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('tns');
   const [defesaForms, setDefesaForms] = useState({});
@@ -359,68 +357,27 @@ export default function PortalPrestadorHome() {
   }, [autosAI, autosByRemessaId, defesaForms]);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-between">
-      <div>
-        {/* Header */}
-        <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
-          <div className="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between gap-4">
-            <div>
-              <h1 className="text-xs font-bold uppercase tracking-widest text-blue-200">Portal do Prestador</h1>
-            </div>
-            <Button
-              variant="ghost"
-              disabled={saindo}
-              className="text-white hover:bg-white/10 rounded-xl transition-all"
-              onClick={async () => {
-                if (saindo) return;
-                setSaindo(true);
-                try {
-                  await logout();
-                  navigate('/login', { replace: true });
-                } catch (err) {
-                  alert('Erro ao sair: ' + (err?.message || String(err)));
-                } finally {
-                  setSaindo(false);
-                }
-              }}
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Sair
-            </Button>
-          </div>
+    <PortalPrestadorLayout
+      prestadorNome={prestador?.nome}
+      navItems={[{ value: 'tns', label: 'TNs' }, { value: 'ais', label: 'Autos de Infração' }]}
+      activeValue={activeTab}
+      onNavChange={setActiveTab}
+    >
+      <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
+        {/* KPI Dashboard */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {cardsKpi.map((c) => (
+            <Card key={c.label} className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300">
+              <CardContent className="p-6 text-center">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">{c.label}</p>
+                <p className={`text-3xl font-extrabold ${c.valueClass}`}>{c.value}</p>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
-        {/* Main Content */}
-        <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
-          {/* KPI Dashboard */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {cardsKpi.map((c) => (
-              <Card key={c.label} className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300">
-                <CardContent className="p-6 text-center">
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">{c.label}</p>
-                  <p className={`text-3xl font-extrabold ${c.valueClass}`}>{c.value}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
-            <TabsList className="grid w-full grid-cols-2 max-w-md bg-gray-200/60 p-1 rounded-xl shadow-inner">
-              <TabsTrigger
-                value="tns"
-                className="rounded-lg py-2.5 font-bold transition-all data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow text-slate-600 hover:text-slate-900"
-              >
-                TNs
-              </TabsTrigger>
-              <TabsTrigger
-                value="ais"
-                className="rounded-lg py-2.5 font-bold transition-all data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow text-slate-600 hover:text-slate-900"
-              >
-                Autos de Infração
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="tns" className="space-y-4 focus-visible:outline-none">
+        {activeTab === 'tns' && (
+          <div className="space-y-4">
               {termosPublicados.length === 0 ? (
                 <Card className="bg-white border border-gray-200 rounded-2xl shadow-sm">
                   <CardContent className="p-12 text-center text-gray-500">
@@ -501,9 +458,11 @@ export default function PortalPrestadorHome() {
                   );
                 })
               )}
-            </TabsContent>
+          </div>
+        )}
 
-            <TabsContent value="ais" className="space-y-4 focus-visible:outline-none">
+        {activeTab === 'ais' && (
+          <div className="space-y-4">
               {autosAI.length === 0 ? (
                 <Card className="bg-white border border-gray-200 rounded-2xl shadow-sm">
                   <CardContent className="p-12 text-center text-gray-500">
@@ -797,15 +756,9 @@ export default function PortalPrestadorHome() {
                   })}
                 </div>
               )}
-            </TabsContent>
-          </Tabs>
-        </div>
+          </div>
+        )}
       </div>
-
-      {/* Footer */}
-      <div className="py-5 text-center text-xs text-slate-400 bg-white border-t border-slate-200 mt-12">
-        AGEMS - Agência Estadual de Regulação de Serviços Públicos de MS
-      </div>
-    </div>
+    </PortalPrestadorLayout>
   );
 }

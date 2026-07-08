@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import OptimizedImage from '@/components/fiscalizacao/OptimizedImage.jsx';
+import PortalPrestadorLayout from '@/components/portalPrestador/PortalPrestadorLayout';
 import { ArrowLeft, UploadCloud, CheckCircle, AlertCircle, Download, Image as ImageIcon } from 'lucide-react';
 
 export default function ResponderTermo() {
@@ -585,7 +586,8 @@ export default function ResponderTermo() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <PortalPrestadorLayout>
+      <div className="p-6">
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center gap-2 mb-6">
           <Link to={createPageUrl('PortalPrestadorHome')}>
@@ -1018,6 +1020,7 @@ export default function ResponderTermo() {
           </DialogContent>
         </Dialog>
       </div>
-    </div>
+      </div>
+    </PortalPrestadorLayout>
   );
 }
