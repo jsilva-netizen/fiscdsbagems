@@ -6,6 +6,7 @@ import { Repository } from '@/lib/offline/repository';
 import { snapToHighway, parseKMLSegments, snapToNearestKMLSegment, findNearestKmPoint, parseKMLKmPoints } from '@/utils/rodoviasGeoJSON';
 import PhotoGrid from '@/components/fiscalizacao/PhotoGrid';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ArrowLeft, ArrowRight, Loader2, Save } from 'lucide-react';
 
@@ -139,6 +140,7 @@ export default function VistoriarOcorrenciaDTR() {
     const [selectedFrente, setSelectedFrente] = useState('');
     const [selectedPer, setSelectedPer] = useState('');
     const [selectedItem, setSelectedItem] = useState(null);
+    const [perIsOutros, setPerIsOutros] = useState(false);
     const [tipoRegistro, setTipoRegistro] = useState('');
     const [etapaObra, setEtapaObra] = useState('');
     const [sentido, setSentido] = useState('');
@@ -311,7 +313,9 @@ export default function VistoriarOcorrenciaDTR() {
             t.item_contrato === per &&
             (t.descricao || t.nome) === (ocorrencia.nome_unidade || '')
         );
-        setSelectedItem(match || null);
+        setSelectedItem(match || (ocorrencia.nome_unidade ? { descricao: ocorrencia.nome_unidade } : null));
+        const perExists = tipos.some(t => t.frente === frente && t.item_contrato === per);
+        setPerIsOutros(!!per && !perExists);
         const tr = ocorrencia.tipo_ocorrencia;
         setTipoRegistro(tr === 'nc' || tr === 'constatacao' ? tr : '');
         setSentido(ocorrencia.sentido || '');
@@ -590,7 +594,7 @@ export default function VistoriarOcorrenciaDTR() {
                 <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wide">{stepIdx + 1}. FRENTES DA CONCESSÃO</h2>
                 {frentes.map(f => (
                     <RadioCard key={f} label={f} selected={selectedFrente === f} disabled={readOnly}
-                        onSelect={() => selectAndAdvance((v) => { setSelectedFrente(v); setSelectedPer(''); setSelectedItem(null); }, f)} />
+                        onSelect={() => selectAndAdvance((v) => { setSelectedFrente(v); setSelectedPer(''); setSelectedItem(null); setPerIsOutros(false); }, f)} />
                 ))}
             </div>
         </div>
@@ -603,14 +607,56 @@ export default function VistoriarOcorrenciaDTR() {
             <div className="flex-1 max-w-md w-full mx-auto px-4 py-6 space-y-3">
                 <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wide">{stepIdx + 1}. FRENTE DE {selectedFrente}</h2>
                 {pers.map(p => (
-                    <RadioCard key={p} label={p} selected={selectedPer === p} disabled={readOnly}
-                        onSelect={() => selectAndAdvance((v) => { setSelectedPer(v); setSelectedItem(null); }, p)} />
+                    <RadioCard key={p} label={p} selected={!perIsOutros && selectedPer === p} disabled={readOnly}
+                        onSelect={() => selectAndAdvance((v) => { setSelectedPer(v); setSelectedItem(null); setPerIsOutros(false); }, p)} />
                 ))}
+                <RadioCard label="Outros" selected={perIsOutros} disabled={readOnly}
+                    onSelect={() => { setPerIsOutros(true); setSelectedPer(''); setSelectedItem(null); }} />
+                {perIsOutros && (
+                    <Input
+                        value={selectedPer}
+                        onChange={e => setSelectedPer(e.target.value)}
+                        placeholder="Escreva o PER..."
+                        readOnly={readOnly}
+                        autoFocus
+                        className="bg-white border-gray-200 text-gray-800 text-sm rounded-2xl h-11"
+                    />
+                )}
             </div>
+            {perIsOutros && !readOnly && (
+                <div className="sticky bottom-0 bg-white border-t border-gray-200 px-4 py-3">
+                    <Button className="w-full bg-gray-900 hover:bg-gray-700 text-white rounded-xl h-11" onClick={goNext} disabled={!canProceed}>
+                        Próximo
+                    </Button>
+                </div>
+            )}
         </div>
     );
 
     // ─── DESCRIÇÃO / ITEM ────────────────────────────────────────────────────────
+    if (currentStep === 'descricao' && perIsOutros) return (
+        <div className="min-h-screen bg-[#e8eaed] flex flex-col">
+            <Header />
+            <div className="flex-1 max-w-md w-full mx-auto px-4 py-6 space-y-3">
+                <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wide">{stepIdx + 1}. {selectedPer.toUpperCase()}</h2>
+                <Textarea
+                    value={selectedItem?.descricao || ''}
+                    onChange={e => setSelectedItem({ descricao: e.target.value })}
+                    placeholder="Descreva o que foi observado..."
+                    readOnly={readOnly}
+                    className="bg-white border-gray-200 text-gray-800 text-sm min-h-[120px] rounded-2xl resize-none"
+                />
+            </div>
+            {!readOnly && (
+                <div className="sticky bottom-0 bg-white border-t border-gray-200 px-4 py-3">
+                    <Button className="w-full bg-gray-900 hover:bg-gray-700 text-white rounded-xl h-11" onClick={goNext} disabled={!canProceed}>
+                        Próximo
+                    </Button>
+                </div>
+            )}
+        </div>
+    );
+
     if (currentStep === 'descricao') return (
         <div className="min-h-screen bg-[#e8eaed] flex flex-col">
             <Header />
