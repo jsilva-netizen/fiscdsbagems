@@ -50,29 +50,38 @@
 import { lazy } from 'react';
 import __Layout from './Layout.jsx';
 
+// ─── Fluxo de fiscalização (campo) ──────────────────────────────────────────
+// Estas páginas precisam estar 100% disponíveis offline assim que o app carrega,
+// sem depender do precache assíncrono do service worker (que roda em paralelo ao
+// login/sync e pode não ter terminado quando o fiscal perde sinal em campo). Por
+// isso ficam com import estático de verdade — juntas pesam pouco (~200kB) — em vez
+// de lazy() como o resto do app.
+import AdicionarUnidade from './pages/AdicionarUnidade';
+import ExecutarFiscalizacao from './pages/ExecutarFiscalizacao';
+import ExecutarFiscalizacaoDTR from './pages/ExecutarFiscalizacaoDTR';
+import Fiscalizacoes from './pages/Fiscalizacoes';
+import FiscalizacoesDTR from './pages/FiscalizacoesDTR';
+import Home from './pages/Home';
+import NovaFiscalizacao from './pages/NovaFiscalizacao';
+import NovaFiscalizacaoDTR from './pages/NovaFiscalizacaoDTR';
+import VistoriarOcorrenciaDTR from './pages/VistoriarOcorrenciaDTR';
+import VistoriarUnidade from './pages/VistoriarUnidade';
+
+// ─── Resto do app (admin, dashboards, relatórios, câmaras técnicas) ────────
+// Uso de escritório com internet confiável — seguro carregar sob demanda.
 const AcompanhamentoDeterminacoes = lazy(() => import('./pages/AcompanhamentoDeterminacoes'));
-const AdicionarUnidade = lazy(() => import('./pages/AdicionarUnidade'));
 const AnalisarResposta = lazy(() => import('./pages/AnalisarResposta'));
 const AnaliseManifestacao = lazy(() => import('./pages/AnaliseManifestacao'));
 const Checklists = lazy(() => import('./pages/Checklists'));
 const DetalhePrestador = lazy(() => import('./pages/DetalhePrestador'));
-const ExecutarFiscalizacao = lazy(() => import('./pages/ExecutarFiscalizacao'));
-const ExecutarFiscalizacaoDTR = lazy(() => import('./pages/ExecutarFiscalizacaoDTR'));
-const Fiscalizacoes = lazy(() => import('./pages/Fiscalizacoes'));
-const FiscalizacoesDTR = lazy(() => import('./pages/FiscalizacoesDTR'));
 const GerenciarTermos = lazy(() => import('./pages/GerenciarTermos'));
 const GerenciarUsuarios = lazy(() => import('./pages/GerenciarUsuarios'));
 const GestaoAutos = lazy(() => import('./pages/GestaoAutos'));
-const Home = lazy(() => import('./pages/Home'));
 const Municipios = lazy(() => import('./pages/Municipios'));
-const NovaFiscalizacao = lazy(() => import('./pages/NovaFiscalizacao'));
-const NovaFiscalizacaoDTR = lazy(() => import('./pages/NovaFiscalizacaoDTR'));
 const PareceresTecnicos = lazy(() => import('./pages/PareceresTecnicos'));
 const PrestadoresServico = lazy(() => import('./pages/PrestadoresServico'));
 const Relatorios = lazy(() => import('./pages/Relatorios'));
 const TiposUnidade = lazy(() => import('./pages/TiposUnidade'));
-const VistoriarOcorrenciaDTR = lazy(() => import('./pages/VistoriarOcorrenciaDTR'));
-const VistoriarUnidade = lazy(() => import('./pages/VistoriarUnidade'));
 const PortalPrestadorHome = lazy(() => import('./pages/PortalPrestadorHome'));
 const ResponderTermo = lazy(() => import('./pages/ResponderTermo'));
 const Contratos = lazy(() => import('./pages/Contratos'));
