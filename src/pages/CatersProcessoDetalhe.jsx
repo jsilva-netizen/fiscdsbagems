@@ -1480,11 +1480,8 @@ export default function CatersProcessoDetalhe() {
         open={showAiDialog}
         onOpenChange={(open) => { setShowAiDialog(open); if (!open) setAiJobId(null); }}
         recommendations={recs}
-        onApplyProcessSuggestion={async (proc) => {
-          await updateProcMut.mutateAsync(proc);
-        }}
-        onCreateRecommendationSuggestion={async (rec) => {
-          await createRecMut.mutateAsync(rec);
+        onApplyRecommendationMatch={async (recommendationId, data) => {
+          await updateRecMut.mutateAsync({ id: recommendationId, data });
         }}
         onAppendRecommendationNote={async (rec, rationale) => {
           const appended = [rec.notes, `[IA] ${rationale}`].filter(Boolean).join('\n\n');

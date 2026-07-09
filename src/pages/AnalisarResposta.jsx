@@ -9,8 +9,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { Download, CheckCircle, XCircle, AlertCircle, Eye, Lock } from 'lucide-react';
+import { Download, CheckCircle, XCircle, AlertCircle, Eye, Lock, Sparkles, Loader2 } from 'lucide-react';
 import CatesaLayout from '@/components/camaras/CatesaLayout';
+import CatesaAiAnalysisDialog from '@/components/camaras/CatesaAiAnalysisDialog';
+import { enqueueCatesaAiJob } from '@/lib/catesa/aiJobs';
 
 
 
@@ -29,6 +31,11 @@ export default function AnalisarResposta() {
     });
     const [confirmDialog, setConfirmDialog] = useState({ open: false, determinacao: null });
     const [signedEvidencias, setSignedEvidencias] = useState({});
+
+    // Análise por IA
+    const [aiJobId, setAiJobId] = useState(null);
+    const [showAiDialog, setShowAiDialog] = useState(false);
+    const [aiBusy, setAiBusy] = useState(false);
 
     const formatDateBr = (input) => {
         if (!input) return 'N/A';
@@ -197,6 +204,40 @@ export default function AnalisarResposta() {
             setAnaliseForm({ status: '', manifestacao_prestador: '', descricao_atendimento: '', dentro_prazo: true });
         }
     });
+
+    const aplicarVeredictoIAMutation = useMutation({
+        mutationFn: async ({ determinacaoId, verdict, rationale }) => {
+            const status = verdict === 'adequate' ? 'atendida' : 'nao_atendida';
+            const resposta = respostas.find(r => r.determinacao_id === determinacaoId);
+            const notaIA = `[IA] ${rationale}`;
+            if (resposta) {
+                const descricao = [resposta.descricao_atendimento, notaIA].filter(Boolean).join('\n\n');
+                return Repository.updateRespostaDeterminacaoOnline(resposta.id, { status, descricao_atendimento: descricao });
+            }
+            return Repository.createRespostaDeterminacaoOnline({
+                determinacao_id: determinacaoId,
+                status,
+                descricao_atendimento: notaIA,
+                data_resposta: new Date().toISOString(),
+                dentro_prazo: true
+            });
+        },
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['respostas-determinacao'] }),
+        onError: (err) => alert('Erro ao aplicar veredito da IA: ' + (err?.message || String(err)))
+    });
+
+    const handleAnalyzeWithAi = async () => {
+        try {
+            setAiBusy(true);
+            const jobId = await enqueueCatesaAiJob(termoId);
+            setAiJobId(jobId);
+            setShowAiDialog(true);
+        } catch (err) {
+            alert('Erro ao iniciar análise por IA: ' + (err?.message || String(err)));
+        } finally {
+            setAiBusy(false);
+        }
+    };
 
     const { data: autosExistentes = [] } = useQuery({
         queryKey: ['autos-da-fiscalizacao', fiscalizacao?.id],
@@ -539,12 +580,21 @@ export default function AnalisarResposta() {
                 {/* Info do TN */}
                 <Card className="border border-gray-200 rounded-2xl shadow-sm bg-white mb-6">
                     <CardHeader>
-                        <CardTitle>{termo.numero_termo_notificacao || termo.numero_termo}</CardTitle>
-                        {termo.numero_rfp && (
-                            <p className="text-sm text-blue-600 font-medium mt-1">
-                                {formatRelatorioTN(termo)}
-                            </p>
-                        )}
+                        <div className="flex items-start justify-between gap-3">
+                            <div>
+                                <CardTitle>{termo.numero_termo_notificacao || termo.numero_termo}</CardTitle>
+                                {termo.numero_rfp && (
+                                    <p className="text-sm text-blue-600 font-medium mt-1">
+                                        {formatRelatorioTN(termo)}
+                                    </p>
+                                )}
+                            </div>
+                            <Button variant="outline" size="sm" className="gap-2 text-violet-700 hover:bg-violet-50 shrink-0"
+                                disabled={aiBusy} onClick={handleAnalyzeWithAi}>
+                                {aiBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                                Analisar com IA
+                            </Button>
+                        </div>
                     </CardHeader>
                     <CardContent>
                         <div className="grid grid-cols-2 gap-4 text-sm">
@@ -925,6 +975,16 @@ export default function AnalisarResposta() {
                         </div>
                     </div>
                 )}
+
+                <CatesaAiAnalysisDialog
+                    jobId={aiJobId}
+                    open={showAiDialog}
+                    onOpenChange={(open) => { setShowAiDialog(open); if (!open) setAiJobId(null); }}
+                    determinacoes={determinacoes}
+                    onApplyVerdict={(determinacaoId, verdict, rationale) => {
+                        aplicarVeredictoIAMutation.mutate({ determinacaoId, verdict, rationale });
+                    }}
+                />
 
             </div>
         </CatesaLayout>

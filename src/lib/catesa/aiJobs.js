@@ -2,33 +2,30 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { invokeEdgeFunction } from '@/lib/edgeFunctions';
 
-export async function enqueueCatersAiJob(payload) {
-  const data = await invokeEdgeFunction('caters_ai_enqueue', payload);
+export async function enqueueCatesaAiJob(termoId) {
+  const data = await invokeEdgeFunction('catesa_ai_enqueue', { termo_id: termoId });
   if (!data?.job_id) throw new Error('Falha ao criar job de IA.');
   return data.job_id;
 }
 
-export async function fetchCatersAiJobStatus(jobId) {
-  return invokeEdgeFunction('caters_ai_status', { job_id: jobId });
+export async function fetchCatesaAiJobStatus(jobId) {
+  return invokeEdgeFunction('catesa_ai_status', { job_id: jobId });
 }
 
-export async function markCatersAiJobReviewed(jobId, userId) {
+export async function markCatesaAiJobReviewed(jobId, userId) {
   const { error } = await supabase
-    .from('caters_ai_jobs')
+    .from('catesa_ai_jobs')
     .update({ reviewed_at: new Date().toISOString(), reviewed_by: userId })
     .eq('id', jobId);
   if (error) throw error;
 }
 
 const ACTIVE_STATUSES = new Set(['queued', 'processing']);
-// Se o job não terminar nesse tempo, para de tentar e avisa o usuário em vez
-// de deixar o spinner girando pra sempre (ex.: edge function não implantada,
-// GEMINI_API_KEY ausente, worker nunca disparado).
 const MAX_WAIT_MS = 90000;
 
-// Faz polling de um job de IA do CATERS até ele chegar a 'done' ou 'error'.
-// Uso: const { job, error } = useCatersAiJob(jobId);
-export function useCatersAiJob(jobId) {
+// Faz polling de um job de IA da CATESA até ele chegar a 'done' ou 'error'.
+// Uso: const { job, error } = useCatesaAiJob(jobId);
+export function useCatesaAiJob(jobId) {
   const [job, setJob] = useState(null);
   const [error, setError] = useState(null);
   const stoppedRef = useRef(false);
@@ -43,7 +40,7 @@ export function useCatersAiJob(jobId) {
     let intervalId;
     const poll = async () => {
       try {
-        const data = await fetchCatersAiJobStatus(jobId);
+        const data = await fetchCatesaAiJobStatus(jobId);
         if (stoppedRef.current) return;
         if (data?.status === 'not_found') {
           stoppedRef.current = true;

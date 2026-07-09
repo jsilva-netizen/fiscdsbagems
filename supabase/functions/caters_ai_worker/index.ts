@@ -46,34 +46,30 @@ function arrayBufferToBase64(buf: ArrayBuffer): string {
   return btoa(binary)
 }
 
-const RECOMMENDATION_SCHEMA = {
-  type: 'OBJECT',
-  properties: {
-    item_code: { type: 'STRING' },
-    description: { type: 'STRING' },
-    category: { type: 'STRING' },
-    priority: { type: 'STRING', enum: ['baixa', 'media', 'alta', 'critica'] },
-    promised_due_at: { type: 'STRING', description: 'Data YYYY-MM-DD, se identificável no documento' }
-  },
-  required: ['description']
-}
-
 const EXTRACT_PDF_SCHEMA = {
   type: 'OBJECT',
   properties: {
-    process: {
-      type: 'OBJECT',
-      properties: {
-        process_number: { type: 'STRING' },
-        municipality: { type: 'STRING' },
-        object: { type: 'STRING' },
-        fatal_date: { type: 'STRING', description: 'Data YYYY-MM-DD, se identificável' }
+    matches: {
+      type: 'ARRAY',
+      description: 'Uma entrada por recomendação já cadastrada que o documento efetivamente aborda.',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          recommendation_id: { type: 'STRING' },
+          titular_response: { type: 'STRING', description: 'Resumo da ação relatada pelo município para essa recomendação' },
+          promised_due_at: { type: 'STRING', description: 'Novo prazo mencionado no documento, formato YYYY-MM-DD, se houver' },
+          status_suggestion: { type: 'STRING', enum: ['pendente', 'em_andamento', 'vencido', 'cumprido'] }
+        },
+        required: ['recommendation_id', 'titular_response']
       }
     },
-    recommendations: { type: 'ARRAY', items: RECOMMENDATION_SCHEMA },
-    confidence_notes: { type: 'STRING', description: 'Observações sobre campos incertos ou não encontrados no PDF' }
+    unmatched_notes: {
+      type: 'STRING',
+      description: 'Conteúdo relevante do documento que não corresponde a nenhuma recomendação cadastrada'
+    },
+    confidence_notes: { type: 'STRING', description: 'Observações sobre campos incertos ou trechos ambíguos do PDF' }
   },
-  required: ['recommendations']
+  required: ['matches']
 }
 
 const ANALYZE_RESPONSE_SCHEMA = {
@@ -88,13 +84,28 @@ const ANALYZE_RESPONSE_SCHEMA = {
         properties: {
           recommendation_id: { type: 'STRING' },
           verdict: { type: 'STRING', enum: ['adequate', 'needs_revision'] },
-          rationale: { type: 'STRING' }
+          rationale: { type: 'STRING' },
+          evidence_reviewed: { type: 'BOOLEAN', description: 'true se evidências anexadas foram de fato examinadas' }
         },
         required: ['recommendation_id', 'verdict', 'rationale']
       }
     }
   },
   required: ['verdict', 'rationale']
+}
+
+// Máximos para conter tamanho/custo da requisição — evidências além disso
+// ficam só citadas por texto (nome do arquivo), sem serem anexadas ao Gemini.
+const MAX_EVIDENCE_TOTAL = 6
+const MAX_EVIDENCE_PER_RECOMMENDATION = 2
+
+function guessMimeFromPath(path: string): string | null {
+  const ext = String(path || '').split('.').pop()?.toLowerCase()
+  if (ext === 'jpg' || ext === 'jpeg') return 'image/jpeg'
+  if (ext === 'png') return 'image/png'
+  if (ext === 'webp') return 'image/webp'
+  if (ext === 'pdf') return 'application/pdf'
+  return null
 }
 
 class GeminiRateLimitError extends Error {}
@@ -141,14 +152,21 @@ async function processExtractPdf(adminClient: any, job: any) {
   const pdfBuf = await pdfRes.arrayBuffer()
   const base64 = arrayBufferToBase64(pdfBuf)
 
+  const input = job.input_text ? JSON.parse(job.input_text) : { existing_recommendations: [] }
+  const existingRecs = Array.isArray(input.existing_recommendations) ? input.existing_recommendations : []
+
   const prompt =
-    'Você é um assistente de uma agência reguladora brasileira. Leia o PDF anexado ' +
-    '(um relatório de fiscalização, ofício ou termo de notificação) e extraia: ' +
-    'dados do processo (número, município, objeto, data fatal se houver) e a lista ' +
-    'de recomendações/determinações endereçadas ao município ou prestador, cada uma ' +
-    'com descrição, código do item (se houver), categoria, prioridade e prazo prometido ' +
-    '(se identificável). Se um campo não estiver claro no documento, deixe-o de fora ' +
-    'em vez de inventar. Registre em confidence_notes qualquer incerteza relevante.'
+    'Você é um assistente de uma agência reguladora brasileira. O PDF anexado é a ' +
+    'resposta de um município/prestador a recomendações que JÁ ESTÃO CADASTRADAS no ' +
+    'sistema (lista abaixo, com id, item_code e description). Leia o documento e, para ' +
+    'cada recomendação da lista que ele efetivamente aborda, extraia um resumo da ação ' +
+    'relatada (titular_response) e, se houver, um novo prazo mencionado (promised_due_at) ' +
+    'e uma sugestão de status (status_suggestion). Use o "id" de cada recomendação da ' +
+    'lista como recommendation_id — não invente ids nem crie recomendações novas. Se um ' +
+    'trecho do documento não corresponder a nenhuma recomendação da lista, resuma-o em ' +
+    'unmatched_notes em vez de forçar uma correspondência. Registre em confidence_notes ' +
+    'qualquer ambiguidade relevante.\n\n' +
+    `Recomendações cadastradas:\n${JSON.stringify(existingRecs)}`
 
   const result = await callGemini(
     [{ inline_data: { mime_type: 'application/pdf', data: base64 } }, { text: prompt }],
@@ -159,18 +177,54 @@ async function processExtractPdf(adminClient: any, job: any) {
 
 async function processAnalyzeResponse(adminClient: any, job: any) {
   const input = job.input_text ? JSON.parse(job.input_text) : { recommendations: [], municipality_response_notes: null }
+  const recommendations = Array.isArray(input.recommendations) ? input.recommendations : []
 
-  const prompt =
+  const introText =
     'Você é um assistente de uma agência reguladora brasileira analisando se a resposta ' +
-    'de um município/prestador atende adequadamente às recomendações de uma fiscalização. ' +
-    'Para cada recomendação (campo "description"), compare com a resposta correspondente ' +
-    '(campo "titular_response") e com as observações gerais da resposta municipal ' +
-    '(municipality_response_notes). Dê um veredito por recomendação ("adequate" ou ' +
-    '"needs_revision") com justificativa curta, e um veredito geral. Use o "id" de cada ' +
-    'recomendação como recommendation_id.\n\n' +
-    `Dados:\n${JSON.stringify(input)}`
+    'de um prestador/município atende adequadamente às determinações/recomendações de uma ' +
+    'fiscalização. Para cada recomendação, compare três coisas: (1) o que foi determinado ' +
+    '— campo "determinacao_descricao" quando existir (a exigência original e mais autoritativa), ' +
+    'caindo para "description" quando não houver determinação vinculada; (2) o que o prestador ' +
+    'respondeu — "resposta_manifestacao_prestador"/"resposta_descricao_atendimento" (resposta ' +
+    'oficial registrada) e "titular_response" (campo legado, se preenchido); e (3) as evidências ' +
+    'anexadas, fornecidas a seguir como imagens/PDFs rotulados com o id da recomendação — verifique ' +
+    'se elas de fato comprovam o que a resposta alega, e não apenas se existem. Considere também ' +
+    '"resposta_status" e "resposta_dentro_prazo". Se a resposta afirma algo que a evidência não ' +
+    'sustenta (ou não há evidência anexada para uma alegação que dependeria dela), marque ' +
+    '"needs_revision" e explique o motivo. Marque evidence_reviewed=true apenas na recomendação ' +
+    'cuja(s) evidência(s) anexada(s) você efetivamente examinou nas imagens/PDFs fornecidos. Dê um ' +
+    'veredito por recomendação e um veredito geral. Use o "id" de cada recomendação como ' +
+    'recommendation_id.\n\n' +
+    `Dados das recomendações (sem as evidências, anexadas separadamente abaixo):\n${JSON.stringify(
+      recommendations.map(({ evidence_refs, ...rest }: any) => rest)
+    )}\n\n` +
+    `Observações gerais da resposta municipal: ${input.municipality_response_notes || '(nenhuma)'}`
 
-  const result = await callGemini([{ text: prompt }], ANALYZE_RESPONSE_SCHEMA)
+  const parts: any[] = [{ text: introText }]
+  let evidenceCount = 0
+  for (const rec of recommendations) {
+    const refs = Array.isArray(rec.evidence_refs) ? rec.evidence_refs.slice(0, MAX_EVIDENCE_PER_RECOMMENDATION) : []
+    for (const ref of refs) {
+      if (evidenceCount >= MAX_EVIDENCE_TOTAL) break
+      const mime = guessMimeFromPath(ref.path)
+      if (!mime) continue
+      try {
+        const { data: signed, error: signErr } = await adminClient.storage.from(ref.bucket).createSignedUrl(ref.path, 300)
+        if (signErr || !signed?.signedUrl) continue
+        const fileRes = await fetch(signed.signedUrl)
+        if (!fileRes.ok) continue
+        const buf = await fileRes.arrayBuffer()
+        parts.push({ text: `Evidência anexada à recomendação ${rec.id}:` })
+        parts.push({ inline_data: { mime_type: mime, data: arrayBufferToBase64(buf) } })
+        evidenceCount++
+      } catch {
+        // Evidência individual inacessível não deve derrubar a análise inteira.
+      }
+    }
+    if (evidenceCount >= MAX_EVIDENCE_TOTAL) break
+  }
+
+  const result = await callGemini(parts, ANALYZE_RESPONSE_SCHEMA)
   await updateJob(adminClient, job.id, { status: 'done', result_json: result })
 }
 

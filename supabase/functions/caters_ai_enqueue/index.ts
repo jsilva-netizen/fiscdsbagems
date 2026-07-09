@@ -101,19 +101,113 @@ serve(async (req) => {
     .maybeSingle()
   if (!processRow) return jsonResponse({ error: 'process_not_found' }, 404)
 
+  // Extrai {bucket, path} de uma referência de evidência em qualquer formato
+  // usado no projeto: string (storage:// ou URL pública/assinada), {bucket,path}
+  // ou {url}. Espelha Repository.parseStorageUrl / evidenciaKey do frontend.
+  function resolveEvidenceRef(ev: any): { bucket: string; path: string } | null {
+    const parseUrl = (raw: string) => {
+      if (!raw) return null
+      if (raw.startsWith('storage://')) {
+        const remainder = raw.slice('storage://'.length)
+        const slash = remainder.indexOf('/')
+        if (slash === -1) return null
+        return { bucket: remainder.slice(0, slash), path: remainder.slice(slash + 1).split('?')[0] }
+      }
+      const markers = ['/storage/v1/object/public/', '/storage/v1/object/sign/']
+      for (const marker of markers) {
+        const idx = raw.indexOf(marker)
+        if (idx === -1) continue
+        const remainder = raw.slice(idx + marker.length)
+        const slash = remainder.indexOf('/')
+        if (slash === -1) continue
+        return { bucket: remainder.slice(0, slash), path: remainder.slice(slash + 1).split('?')[0] }
+      }
+      return null
+    }
+    if (!ev) return null
+    if (typeof ev === 'string') return parseUrl(ev.trim())
+    if (ev?.bucket && ev?.path) return { bucket: String(ev.bucket), path: String(ev.path) }
+    if (typeof ev?.url === 'string') return parseUrl(ev.url.trim())
+    return null
+  }
+
   let inputText: string | null = null
+  if (jobType === 'extract_pdf') {
+    // O PDF é a resposta do município a recomendações JÁ CADASTRADAS — o worker
+    // precisa da lista atual pra casar cada trecho do documento com o
+    // recommendation_id certo, em vez de inventar recomendações novas.
+    const { data: existingRecs } = await adminClient
+      .from('caters_recommendations')
+      .select('id, item_code, description')
+      .eq('process_id', processId)
+    inputText = JSON.stringify({ existing_recommendations: existingRecs || [] })
+  }
   if (jobType === 'analyze_response') {
     const { data: recs } = await adminClient
       .from('caters_recommendations')
-      .select('id, description, titular_response')
+      .select('id, description, titular_response, evidence_url, determinacao_id')
       .eq('process_id', processId)
     const { data: muniResp } = await adminClient
       .from('caters_municipality_responses')
       .select('notes')
       .eq('process_id', processId)
       .maybeSingle()
+
+    const determinacaoIds = [...new Set((recs || []).map((r: any) => r.determinacao_id).filter(Boolean))]
+
+    const [{ data: determinacoes }, { data: respostasDet }] = determinacaoIds.length
+      ? await Promise.all([
+          adminClient.from('determinacoes').select('id, descricao, prazo').in('id', determinacaoIds),
+          adminClient
+            .from('respostas_determinacao')
+            .select('determinacao_id, manifestacao_prestador, descricao_atendimento, status, dentro_prazo, evidencias, data_resposta')
+            .in('determinacao_id', determinacaoIds)
+        ])
+      : [{ data: [] }, { data: [] }]
+
+    const determinacaoById = new Map((determinacoes || []).map((d: any) => [d.id, d]))
+    // Se houver mais de uma resposta pra mesma determinação, fica com a mais recente.
+    const respostaByDeterminacao = new Map<string, any>()
+    for (const r of respostasDet || []) {
+      const cur = respostaByDeterminacao.get(r.determinacao_id)
+      if (!cur || new Date(r.data_resposta) > new Date(cur.data_resposta)) {
+        respostaByDeterminacao.set(r.determinacao_id, r)
+      }
+    }
+
+    const enrichedRecs = (recs || []).map((r: any) => {
+      const det = r.determinacao_id ? determinacaoById.get(r.determinacao_id) : null
+      const resp = r.determinacao_id ? respostaByDeterminacao.get(r.determinacao_id) : null
+
+      const evidenceRefs: { bucket: string; path: string }[] = []
+      const seen = new Set<string>()
+      const addRef = (ev: any) => {
+        const ref = resolveEvidenceRef(ev)
+        if (!ref) return
+        const key = `${ref.bucket}:${ref.path}`
+        if (seen.has(key)) return
+        seen.add(key)
+        evidenceRefs.push(ref)
+      }
+      if (r.evidence_url) addRef(r.evidence_url)
+      for (const ev of Array.isArray(resp?.evidencias) ? resp.evidencias : []) addRef(ev)
+
+      return {
+        id: r.id,
+        description: r.description,
+        titular_response: r.titular_response,
+        determinacao_descricao: det?.descricao || null,
+        determinacao_prazo: det?.prazo || null,
+        resposta_manifestacao_prestador: resp?.manifestacao_prestador || null,
+        resposta_descricao_atendimento: resp?.descricao_atendimento || null,
+        resposta_status: resp?.status || null,
+        resposta_dentro_prazo: resp?.dentro_prazo ?? null,
+        evidence_refs: evidenceRefs
+      }
+    })
+
     inputText = JSON.stringify({
-      recommendations: recs || [],
+      recommendations: enrichedRecs,
       municipality_response_notes: muniResp?.notes || null
     })
   }
