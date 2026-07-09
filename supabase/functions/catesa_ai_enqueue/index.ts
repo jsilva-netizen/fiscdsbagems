@@ -189,16 +189,22 @@ serve(async (req) => {
     .single()
   if (jobErr) return jsonResponse({ error: 'job_create_failed', details: jobErr.message }, 500)
 
+  // IMPORTANTE: sem waitUntil, o runtime derruba a function assim que a
+  // resposta abaixo é enviada, matando esse fetch em voo antes de sair —
+  // o job fica preso em 'queued' pra sempre. waitUntil mantém a tarefa viva
+  // em segundo plano depois da resposta.
+  const kickWorker = fetch(`${supabaseUrl.replace(/\/$/, '')}/functions/v1/catesa_ai_worker`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${serviceKey}`,
+      'apikey': serviceKey,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ job_id: jobRow.id })
+  }).catch(() => {})
   try {
-    fetch(`${supabaseUrl.replace(/\/$/, '')}/functions/v1/catesa_ai_worker`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${serviceKey}`,
-        'apikey': serviceKey,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ job_id: jobRow.id })
-    }).catch(() => {})
+    // @ts-ignore - EdgeRuntime é um global da Supabase, não existe nos tipos padrão do Deno
+    EdgeRuntime.waitUntil(kickWorker)
   } catch {}
 
   return jsonResponse({ job_id: jobRow.id })
