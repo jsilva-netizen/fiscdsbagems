@@ -36,5 +36,32 @@ export async function uploadCatersFile({ processId, kind, file }) {
   });
   if (error) throw error;
   const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-  return { url: data.publicUrl };
+  return { url: data.publicUrl, bucket: BUCKET, path };
+}
+
+// Recupera bucket/path a partir de uma URL pública ou assinada do Storage —
+// usado para reconstruir a referência do arquivo em documentos antigos que
+// só têm a URL salva (ex.: campos padrão em caters_processes).
+export function parseCatersFileRef(url) {
+  const raw = String(url || '').trim();
+  if (!raw) return null;
+  const publicMarker = '/storage/v1/object/public/';
+  const signMarker = '/storage/v1/object/sign/';
+  let marker = '';
+  let idx = raw.indexOf(publicMarker);
+  if (idx !== -1) marker = publicMarker;
+  else {
+    idx = raw.indexOf(signMarker);
+    if (idx !== -1) marker = signMarker;
+  }
+  if (!marker) return null;
+  const remainder = raw.slice(idx + marker.length);
+  const slash = remainder.indexOf('/');
+  if (slash === -1) return null;
+  const bucket = remainder.slice(0, slash);
+  let path = remainder.slice(slash + 1);
+  const q = path.indexOf('?');
+  if (q !== -1) path = path.slice(0, q);
+  if (!bucket || !path) return null;
+  return { bucket, path };
 }

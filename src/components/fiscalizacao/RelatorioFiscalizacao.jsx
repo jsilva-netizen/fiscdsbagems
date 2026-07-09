@@ -1,11 +1,11 @@
 import React from 'react';
-import { supabase } from '@/lib/supabase';
 import { useSyncStatus } from '@/lib/SyncStatusContext.jsx';
 import { getSyncPendingForFiscalizacao, runFullSync } from '@/lib/offline/syncEngine';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Loader2, FileText, RefreshCcw } from 'lucide-react';
 import { db } from '@/lib/offline/db';
+import { invokeEdgeFunction } from '@/lib/edgeFunctions';
 
 export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = false, showButtonsOnly = false }) {
     const queryClient = useQueryClient();
@@ -25,52 +25,6 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
     const [error, setError] = React.useState(null);
     const [pendingLocal, setPendingLocal] = React.useState({ outboxCount: 0, fotosCount: 0 });
     const syncStatus = useSyncStatus?.() || { online: true, sessionValid: true, outboxCount: 0, lastSyncAt: undefined };
-
-    const ensureAuth = async () => {
-        const { data, error } = await supabase.auth.getSession();
-        if (error) throw error;
-        return data?.session?.access_token;
-    };
-
-    const invokeEdgeFunction = async (functionName, body, { retryOnAuthError = true } = {}) => {
-        const baseUrl = import.meta.env.VITE_SUPABASE_URL;
-        const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-        const jwt = await ensureAuth();
-        if (!jwt) throw new Error('Sessão inválida. Faça login novamente.');
-        if (!baseUrl || !anonKey) throw new Error('Configuração do Supabase ausente (URL/ANON_KEY).');
-
-        const url = `${String(baseUrl).replace(/\/$/, '')}/functions/v1/${functionName}`;
-        const res = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'apikey': anonKey,
-                'Authorization': `Bearer ${anonKey}`,
-                'x-user-jwt': jwt,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(body || {})
-        });
-
-        let json = null;
-        try {
-            json = await res.json();
-        } catch {
-            json = null;
-        }
-        if (!res.ok) {
-            // Token de sessão pode ter expirado entre carregar a tela e essa chamada.
-            // Tenta renovar a sessão uma vez antes de propagar o erro pro usuário.
-            if (res.status === 401 && retryOnAuthError) {
-                const { data, error } = await supabase.auth.refreshSession();
-                if (!error && data?.session?.access_token) {
-                    return invokeEdgeFunction(functionName, body, { retryOnAuthError: false });
-                }
-            }
-            const msg = json?.error || json?.message || `Erro ${res.status}`;
-            throw new Error(msg);
-        }
-        return json;
-    };
 
     const resolveServerFiscalizacaoId = async () => {
         const localFiscId = typeof fiscalizacao.id === 'string' ? fiscalizacao.id : undefined;

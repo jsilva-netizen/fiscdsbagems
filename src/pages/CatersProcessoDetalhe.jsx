@@ -27,6 +27,7 @@ import {
   Link2,
   CalendarClock,
   Ban,
+  Sparkles,
 } from 'lucide-react';
 import CatersLayout from '@/components/caters/CatersLayout';
 import { fetchProcessById, updateProcess, formatProcessStatus, importFromFiscalizacao } from '@/lib/caters/processes';
@@ -41,8 +42,10 @@ import {
 } from '@/lib/caters/recommendations';
 import { fetchMunicipalityResponse, upsertMunicipalityResponse } from '@/lib/caters/municipalityResponses';
 import { fetchHistory, createHistory, deleteHistory, HISTORY_ACTION_LABELS, HISTORY_ACTION_OPTIONS } from '@/lib/caters/history';
-import { fetchExtraDocuments, createExtraDocument, deleteExtraDocument, uploadCatersFile } from '@/lib/caters/documents';
+import { fetchExtraDocuments, createExtraDocument, deleteExtraDocument, uploadCatersFile, parseCatersFileRef } from '@/lib/caters/documents';
 import { fetchDeadlineExtensions, createDeadlineExtension, deleteDeadlineExtension } from '@/lib/caters/deadlineExtensions';
+import { enqueueCatersAiJob } from '@/lib/caters/aiJobs';
+import AiSuggestionReviewDialog from '@/components/caters/AiSuggestionReviewDialog';
 import { formatIsoDateHuman, daysFromToday, addDaysToIsoDate } from '@/lib/caters/dates';
 import { createPageUrl } from '@/utils';
 import { Button } from '@/components/ui/button';
@@ -147,6 +150,11 @@ export default function CatersProcessoDetalhe() {
   // Dilação de prazo
   const [dilacaoForm, setDilacaoForm] = useState(EMPTY_DILACAO);
   const [showDilacaoForm, setShowDilacaoForm] = useState(false);
+
+  // Análise por IA
+  const [aiJobId, setAiJobId] = useState(null);
+  const [showAiDialog, setShowAiDialog] = useState(false);
+  const [aiBusyKey, setAiBusyKey] = useState(null);
 
   // ── Queries ───────────────────────────────────────────────────────────
 
@@ -378,6 +386,43 @@ export default function CatersProcessoDetalhe() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['caters-deadline-extensions', processId] }),
     onError: (e) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
   });
+
+  // ── Análise por IA ────────────────────────────────────────────────────
+  const handleAnalyzePdfWithAi = async (fileUrl) => {
+    const ref = parseCatersFileRef(fileUrl);
+    if (!ref) {
+      toast({ title: 'Não foi possível localizar o arquivo no Storage.', variant: 'destructive' });
+      return;
+    }
+    try {
+      setAiBusyKey(fileUrl);
+      const jobId = await enqueueCatersAiJob({
+        job_type: 'extract_pdf',
+        process_id: processId,
+        storage_bucket: ref.bucket,
+        storage_path: ref.path,
+      });
+      setAiJobId(jobId);
+      setShowAiDialog(true);
+    } catch (e) {
+      toast({ title: 'Erro ao iniciar análise por IA', description: e.message, variant: 'destructive' });
+    } finally {
+      setAiBusyKey(null);
+    }
+  };
+
+  const handleAnalyzeResponseWithAi = async () => {
+    try {
+      setAiBusyKey('resposta');
+      const jobId = await enqueueCatersAiJob({ job_type: 'analyze_response', process_id: processId });
+      setAiJobId(jobId);
+      setShowAiDialog(true);
+    } catch (e) {
+      toast({ title: 'Erro ao iniciar análise por IA', description: e.message, variant: 'destructive' });
+    } finally {
+      setAiBusyKey(null);
+    }
+  };
 
   // ── Data ──────────────────────────────────────────────────────────────
   const process = procQ.data;
@@ -887,6 +932,12 @@ export default function CatersProcessoDetalhe() {
                   </div>
 
                   <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-5">
+                    <Button variant="ghost" size="sm" className="gap-2 text-violet-700 hover:bg-violet-50"
+                      disabled={aiBusyKey === 'resposta'}
+                      onClick={handleAnalyzeResponseWithAi}>
+                      {aiBusyKey === 'resposta' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                      Analisar resposta com IA
+                    </Button>
                     <Button variant="ghost" size="sm" className="gap-2"
                       onClick={() => setRespForm((f) => ({ ...f, received_at: new Date().toISOString().slice(0, 10) }))}>
                       <CalendarDays className="h-4 w-4" />
@@ -1086,6 +1137,14 @@ export default function CatersProcessoDetalhe() {
                                 Abrir
                               </a>
                             )}
+                            {hasFile && field !== 'cronograma_url' && (
+                              <button type="button" disabled={aiBusyKey === process[field]}
+                                onClick={() => handleAnalyzePdfWithAi(process[field])}
+                                className="inline-flex items-center gap-1 rounded-lg border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100 disabled:opacity-60">
+                                {aiBusyKey === process[field] ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                                Analisar com IA
+                              </button>
+                            )}
                             <label className={cn(
                               'inline-flex cursor-pointer items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm',
                               uploadStdDocMut.isPending ? 'cursor-not-allowed opacity-60' : '',
@@ -1160,6 +1219,11 @@ export default function CatersProcessoDetalhe() {
                             className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100">
                             <Eye className="h-3.5 w-3.5" />
                           </a>
+                          <button type="button" title="Analisar com IA" disabled={aiBusyKey === d.file_url}
+                            onClick={() => handleAnalyzePdfWithAi(d.file_url)}
+                            className="rounded-md p-1.5 text-violet-600 hover:bg-violet-50 disabled:opacity-60">
+                            {aiBusyKey === d.file_url ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                          </button>
                           <button type="button" onClick={() => deleteExtraMut.mutate(d.id)}
                             className="rounded-md p-1.5 text-red-500 hover:bg-red-50">
                             <Trash2 className="h-3.5 w-3.5" />
@@ -1410,6 +1474,23 @@ export default function CatersProcessoDetalhe() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <AiSuggestionReviewDialog
+        jobId={aiJobId}
+        open={showAiDialog}
+        onOpenChange={(open) => { setShowAiDialog(open); if (!open) setAiJobId(null); }}
+        recommendations={recs}
+        onApplyProcessSuggestion={async (proc) => {
+          await updateProcMut.mutateAsync(proc);
+        }}
+        onCreateRecommendationSuggestion={async (rec) => {
+          await createRecMut.mutateAsync(rec);
+        }}
+        onAppendRecommendationNote={async (rec, rationale) => {
+          const appended = [rec.notes, `[IA] ${rationale}`].filter(Boolean).join('\n\n');
+          await updateRecMut.mutateAsync({ id: rec.id, data: { notes: appended } });
+        }}
+      />
     </CatersLayout>
   );
 }
