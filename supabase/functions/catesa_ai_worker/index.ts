@@ -82,26 +82,49 @@ const ANALYZE_SCHEMA = {
 
 class GeminiRateLimitError extends Error {}
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+// Não existe nenhum mecanismo separado que reprocesse um job que ficou
+// 'queued' por rate limit — o enqueue só invoca o worker uma vez, mirando
+// esse job específico. Por isso o retry com backoff acontece aqui dentro,
+// na mesma invocação (o enqueue já aguarda o worker terminar mesmo).
+const RATE_LIMIT_RETRY_DELAYS_MS = [5000, 15000]
+
 async function callGemini(parts: any[], responseSchema: unknown): Promise<any> {
   const apiKey = Deno.env.get('GEMINI_API_KEY') || ''
   if (!apiKey) throw new Error('GEMINI_API_KEY não configurada')
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts }],
-        generationConfig: {
-          responseMimeType: 'application/json',
-          responseSchema
-        }
-      })
-    }
-  )
+  let lastRateLimitBody = ''
+  for (let attempt = 0; attempt <= RATE_LIMIT_RETRY_DELAYS_MS.length; attempt++) {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts }],
+          generationConfig: {
+            responseMimeType: 'application/json',
+            responseSchema
+          }
+        })
+      }
+    )
 
-  if (res.status === 429) throw new GeminiRateLimitError('rate_limited')
+    if (res.status === 429) {
+      lastRateLimitBody = await res.text().catch(() => '')
+      console.warn(`catesa_ai_worker: Gemini 429 (tentativa ${attempt + 1}/${RATE_LIMIT_RETRY_DELAYS_MS.length + 1})`, lastRateLimitBody.slice(0, 800))
+      if (attempt < RATE_LIMIT_RETRY_DELAYS_MS.length) {
+        await sleep(RATE_LIMIT_RETRY_DELAYS_MS[attempt])
+        continue
+      }
+      throw new GeminiRateLimitError(lastRateLimitBody.slice(0, 500) || 'rate_limited')
+    }
+    return await parseGeminiResponse(res)
+  }
+  throw new GeminiRateLimitError(lastRateLimitBody.slice(0, 500) || 'rate_limited')
+}
+
+async function parseGeminiResponse(res: Response): Promise<any> {
   if (!res.ok) {
     const text = await res.text().catch(() => '')
     throw new Error(`Gemini ${res.status}: ${text.slice(0, 500)}`)
@@ -170,8 +193,14 @@ async function handleJob(adminClient: any, job: any) {
     console.log(`catesa_ai_worker: job ${job.id} concluído`)
   } catch (err) {
     if (err instanceof GeminiRateLimitError) {
-      console.warn(`catesa_ai_worker: job ${job.id} rate-limited pelo Gemini, reenfileirando`)
-      await updateJob(adminClient, job.id, { status: 'queued' })
+      // callGemini já tentou de novo com backoff antes de chegar aqui — não
+      // existe nenhum mecanismo separado que reprocesse um job 'queued'
+      // sozinho, então esgotado o retry isso já é uma falha de verdade.
+      console.error(`catesa_ai_worker: job ${job.id} excedeu limite de taxa do Gemini após retries`, err.message)
+      await updateJob(adminClient, job.id, {
+        status: 'error',
+        error_message: 'Limite de requisições do Gemini excedido (mesmo após retry). Tente novamente em alguns minutos.'
+      })
       return
     }
     console.error(`catesa_ai_worker: job ${job.id} falhou`, err)
