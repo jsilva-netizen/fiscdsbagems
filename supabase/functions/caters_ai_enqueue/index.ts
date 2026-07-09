@@ -227,26 +227,30 @@ serve(async (req) => {
     .single()
   if (jobErr) return jsonResponse({ error: 'job_create_failed', details: jobErr.message }, 500)
 
-  // Dispara o worker diretamente por fetch (fire-and-forget) em vez de uma
-  // RPC de "kick" — mais simples e auto-contido do que o padrão usado em
-  // relatorios_enqueue, cuja RPC de disparo nunca chegou a ser versionada.
-  // IMPORTANTE: sem waitUntil, o runtime derruba a function assim que a
-  // resposta abaixo é enviada, matando esse fetch em voo antes de sair —
-  // o job fica preso em 'queued' pra sempre. waitUntil mantém a tarefa viva
-  // em segundo plano depois da resposta.
-  const kickWorker = fetch(`${supabaseUrl.replace(/\/$/, '')}/functions/v1/caters_ai_worker`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${serviceKey}`,
-      'apikey': serviceKey,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ job_id: jobRow.id })
-  }).catch(() => {})
+  // Dispara o worker diretamente por fetch, AGUARDANDO a resposta — fire-
+  // and-forget (mesmo com EdgeRuntime.waitUntil) se mostrou pouco confiável
+  // aqui: sem aguardar, o runtime pode derrubar a function assim que a
+  // resposta é enviada, matando o fetch em voo, e o job fica preso em
+  // 'queued' pra sempre sem nenhum erro visível. Aguardar deixa o enqueue
+  // mais lento (dura o tempo da análise inteira), mas é confiável e loga
+  // qualquer falha do worker aqui mesmo.
   try {
-    // @ts-ignore - EdgeRuntime é um global da Supabase, não existe nos tipos padrão do Deno
-    EdgeRuntime.waitUntil(kickWorker)
-  } catch {}
+    const kickRes = await fetch(`${supabaseUrl.replace(/\/$/, '')}/functions/v1/caters_ai_worker`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${serviceKey}`,
+        'apikey': serviceKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ job_id: jobRow.id })
+    })
+    if (!kickRes.ok) {
+      const text = await kickRes.text().catch(() => '')
+      console.error('caters_ai_enqueue: falha ao invocar caters_ai_worker', kickRes.status, text)
+    }
+  } catch (err) {
+    console.error('caters_ai_enqueue: erro ao invocar caters_ai_worker', err)
+  }
 
   return jsonResponse({ job_id: jobRow.id })
 })

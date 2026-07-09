@@ -164,13 +164,17 @@ async function processAnalyzeTermo(adminClient: any, job: any) {
 }
 
 async function handleJob(adminClient: any, job: any) {
+  console.log(`catesa_ai_worker: processando job ${job.id}`)
   try {
     await processAnalyzeTermo(adminClient, job)
+    console.log(`catesa_ai_worker: job ${job.id} concluído`)
   } catch (err) {
     if (err instanceof GeminiRateLimitError) {
+      console.warn(`catesa_ai_worker: job ${job.id} rate-limited pelo Gemini, reenfileirando`)
       await updateJob(adminClient, job.id, { status: 'queued' })
       return
     }
+    console.error(`catesa_ai_worker: job ${job.id} falhou`, err)
     await updateJob(adminClient, job.id, { status: 'error', error_message: err?.message || String(err) })
   }
 }
@@ -181,7 +185,13 @@ serve(async (req) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
-  if (!supabaseUrl || !serviceKey) return jsonResponse({ error: 'server_misconfigured' }, 500)
+  if (!supabaseUrl || !serviceKey) {
+    console.error('catesa_ai_worker: server_misconfigured — SUPABASE_URL/SERVICE_ROLE_KEY ausentes')
+    return jsonResponse({ error: 'server_misconfigured' }, 500)
+  }
+  if (!Deno.env.get('GEMINI_API_KEY')) {
+    console.error('catesa_ai_worker: GEMINI_API_KEY ausente')
+  }
 
   let payload: any = {}
   try {
@@ -197,8 +207,11 @@ serve(async (req) => {
   try {
     jobs = await claimJobs(adminClient, specificJobId ? 1 : 5, specificJobId)
   } catch (err: any) {
+    console.error('catesa_ai_worker: claim_failed', err)
     return jsonResponse({ error: 'claim_failed', details: err?.message }, 500)
   }
+
+  console.log(`catesa_ai_worker: ${jobs.length} job(s) reclamado(s)${specificJobId ? ` (job_id=${specificJobId})` : ''}`)
 
   for (const job of jobs) {
     await handleJob(adminClient, job)
