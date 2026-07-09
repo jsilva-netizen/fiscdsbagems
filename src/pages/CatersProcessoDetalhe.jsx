@@ -388,7 +388,10 @@ export default function CatersProcessoDetalhe() {
   });
 
   // ── Análise por IA ────────────────────────────────────────────────────
-  const handleAnalyzePdfWithAi = async (fileUrl) => {
+  // jobType: 'extract_pdf' (relatório de fiscalização → cadastra recomendações
+  // novas) ou 'match_response_pdf' (ofício de resposta → casa com recomendações
+  // já cadastradas, extraindo ação/prazo relatados).
+  const handleAnalyzePdfWithAi = async (fileUrl, jobType) => {
     const ref = parseCatersFileRef(fileUrl);
     if (!ref) {
       toast({ title: 'Não foi possível localizar o arquivo no Storage.', variant: 'destructive' });
@@ -397,7 +400,7 @@ export default function CatersProcessoDetalhe() {
     try {
       setAiBusyKey(fileUrl);
       const jobId = await enqueueCatersAiJob({
-        job_type: 'extract_pdf',
+        job_type: jobType,
         process_id: processId,
         storage_bucket: ref.bucket,
         storage_path: ref.path,
@@ -573,11 +576,11 @@ export default function CatersProcessoDetalhe() {
   ];
 
   const STD_DOCS = [
-    { field: 'relatorio_url', kind: 'relatorio', label: 'Relatório de Fiscalização', icon: FileText },
-    { field: 'termo_notificacao_url', kind: 'termo', label: 'Termo de Notificação', icon: Bell },
-    { field: 'ar_digitalizado_url', kind: 'ar', label: 'AR Digitalizado', icon: Mail },
-    { field: 'oficio_resposta_url', kind: 'oficio', label: 'Ofício de Resposta', icon: Reply },
-    { field: 'cronograma_url', kind: 'cronograma', label: 'Cronograma', icon: CalendarDays },
+    { field: 'relatorio_url', kind: 'relatorio', label: 'Relatório de Fiscalização', icon: FileText, aiJobType: 'extract_pdf' },
+    { field: 'termo_notificacao_url', kind: 'termo', label: 'Termo de Notificação', icon: Bell, aiJobType: null },
+    { field: 'ar_digitalizado_url', kind: 'ar', label: 'AR Digitalizado', icon: Mail, aiJobType: null },
+    { field: 'oficio_resposta_url', kind: 'oficio', label: 'Ofício de Resposta', icon: Reply, aiJobType: 'match_response_pdf' },
+    { field: 'cronograma_url', kind: 'cronograma', label: 'Cronograma', icon: CalendarDays, aiJobType: null },
   ];
 
   return (
@@ -1113,7 +1116,7 @@ export default function CatersProcessoDetalhe() {
                       Falha no upload: {uploadStdDocMut.error?.message}
                     </div>
                   )}
-                  {STD_DOCS.map(({ field, kind, label, icon: Icon }) => {
+                  {STD_DOCS.map(({ field, kind, label, icon: Icon, aiJobType }) => {
                     const hasFile = !!process[field];
                     return (
                       <div key={field} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -1137,12 +1140,12 @@ export default function CatersProcessoDetalhe() {
                                 Abrir
                               </a>
                             )}
-                            {hasFile && field !== 'cronograma_url' && (
+                            {hasFile && aiJobType && (
                               <button type="button" disabled={aiBusyKey === process[field]}
-                                onClick={() => handleAnalyzePdfWithAi(process[field])}
+                                onClick={() => handleAnalyzePdfWithAi(process[field], aiJobType)}
                                 className="inline-flex items-center gap-1 rounded-lg border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100 disabled:opacity-60">
                                 {aiBusyKey === process[field] ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-                                Analisar com IA
+                                {aiJobType === 'extract_pdf' ? 'Extrair recomendações' : 'Analisar com IA'}
                               </button>
                             )}
                             <label className={cn(
@@ -1219,8 +1222,10 @@ export default function CatersProcessoDetalhe() {
                             className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100">
                             <Eye className="h-3.5 w-3.5" />
                           </a>
-                          <button type="button" title="Analisar com IA" disabled={aiBusyKey === d.file_url}
-                            onClick={() => handleAnalyzePdfWithAi(d.file_url)}
+                          <button type="button"
+                            title={/relat[oó]rio/i.test(d.title || '') ? 'Extrair recomendações com IA' : 'Analisar com IA (comparar com recomendações)'}
+                            disabled={aiBusyKey === d.file_url}
+                            onClick={() => handleAnalyzePdfWithAi(d.file_url, /relat[oó]rio/i.test(d.title || '') ? 'extract_pdf' : 'match_response_pdf')}
                             className="rounded-md p-1.5 text-violet-600 hover:bg-violet-50 disabled:opacity-60">
                             {aiBusyKey === d.file_url ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
                           </button>
@@ -1480,6 +1485,9 @@ export default function CatersProcessoDetalhe() {
         open={showAiDialog}
         onOpenChange={(open) => { setShowAiDialog(open); if (!open) setAiJobId(null); }}
         recommendations={recs}
+        onCreateRecommendationSuggestion={async (rec) => {
+          await createRecMut.mutateAsync(rec);
+        }}
         onApplyRecommendationMatch={async (recommendationId, data) => {
           await updateRecMut.mutateAsync({ id: recommendationId, data });
         }}

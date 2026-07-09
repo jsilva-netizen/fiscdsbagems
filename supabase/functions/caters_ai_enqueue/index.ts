@@ -63,14 +63,14 @@ serve(async (req) => {
   if (!jwt) return jsonResponse({ error: 'unauthorized' }, 401)
 
   const jobType = String(payload?.job_type || '')
-  if (jobType !== 'extract_pdf' && jobType !== 'analyze_response') {
+  if (jobType !== 'extract_pdf' && jobType !== 'match_response_pdf' && jobType !== 'analyze_response') {
     return jsonResponse({ error: 'invalid_job_type' }, 400)
   }
 
   const processId = String(payload?.process_id || '')
   if (!processId) return jsonResponse({ error: 'missing_process_id' }, 400)
 
-  if (jobType === 'extract_pdf') {
+  if (jobType === 'extract_pdf' || jobType === 'match_response_pdf') {
     if (!payload?.storage_bucket || !payload?.storage_path) {
       return jsonResponse({ error: 'missing_storage_reference' }, 400)
     }
@@ -132,10 +132,10 @@ serve(async (req) => {
   }
 
   let inputText: string | null = null
-  if (jobType === 'extract_pdf') {
-    // O PDF é a resposta do município a recomendações JÁ CADASTRADAS — o worker
-    // precisa da lista atual pra casar cada trecho do documento com o
-    // recommendation_id certo, em vez de inventar recomendações novas.
+  if (jobType === 'match_response_pdf') {
+    // O PDF é o ofício de resposta do município a recomendações JÁ
+    // CADASTRADAS — o worker precisa da lista atual pra casar cada trecho do
+    // documento com o recommendation_id certo, em vez de inventar recomendações novas.
     const { data: existingRecs } = await adminClient
       .from('caters_recommendations')
       .select('id, item_code, description')
@@ -217,8 +217,8 @@ serve(async (req) => {
     .insert({
       job_type: jobType,
       process_id: processId,
-      storage_bucket: jobType === 'extract_pdf' ? String(payload.storage_bucket) : null,
-      storage_path: jobType === 'extract_pdf' ? String(payload.storage_path) : null,
+      storage_bucket: (jobType === 'extract_pdf' || jobType === 'match_response_pdf') ? String(payload.storage_bucket) : null,
+      storage_path: (jobType === 'extract_pdf' || jobType === 'match_response_pdf') ? String(payload.storage_path) : null,
       input_text: inputText,
       status: 'queued',
       requested_by: user.id

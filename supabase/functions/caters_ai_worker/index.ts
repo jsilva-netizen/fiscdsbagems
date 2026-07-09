@@ -46,7 +46,35 @@ function arrayBufferToBase64(buf: ArrayBuffer): string {
   return btoa(binary)
 }
 
+// extract_pdf: lê o Relatório de Fiscalização (documento fundador do
+// processo) e cadastra TODAS as recomendações encontradas — recomendações
+// novas, não casamento com nada existente.
 const EXTRACT_PDF_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    recommendations: {
+      type: 'ARRAY',
+      description: 'Todas as recomendações/determinações endereçadas ao município ou prestador encontradas no relatório.',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          item_code: { type: 'STRING' },
+          description: { type: 'STRING' },
+          category: { type: 'STRING' },
+          priority: { type: 'STRING', enum: ['baixa', 'media', 'alta', 'critica'] },
+          promised_due_at: { type: 'STRING', description: 'Data YYYY-MM-DD, se identificável no documento' }
+        },
+        required: ['description']
+      }
+    },
+    confidence_notes: { type: 'STRING', description: 'Observações sobre campos incertos ou não encontrados no relatório' }
+  },
+  required: ['recommendations']
+}
+
+// match_response_pdf: lê o Ofício de Resposta do município e casa cada
+// trecho com uma recomendação JÁ CADASTRADA (por id) — não cria nada novo.
+const MATCH_RESPONSE_SCHEMA = {
   type: 'OBJECT',
   properties: {
     matches: {
@@ -141,7 +169,7 @@ async function callGemini(parts: any[], responseSchema: unknown): Promise<any> {
   return JSON.parse(text)
 }
 
-async function processExtractPdf(adminClient: any, job: any) {
+async function fetchPdfAsBase64(adminClient: any, job: any): Promise<string> {
   const { data: signed, error: signErr } = await adminClient.storage
     .from(job.storage_bucket)
     .createSignedUrl(job.storage_path, 300)
@@ -150,27 +178,49 @@ async function processExtractPdf(adminClient: any, job: any) {
   const pdfRes = await fetch(signed.signedUrl)
   if (!pdfRes.ok) throw new Error(`Falha ao baixar PDF: ${pdfRes.status}`)
   const pdfBuf = await pdfRes.arrayBuffer()
-  const base64 = arrayBufferToBase64(pdfBuf)
+  return arrayBufferToBase64(pdfBuf)
+}
+
+async function processExtractPdf(adminClient: any, job: any) {
+  const base64 = await fetchPdfAsBase64(adminClient, job)
+
+  const prompt =
+    'Você é um assistente de uma agência reguladora brasileira. Leia o Relatório de ' +
+    'Fiscalização em PDF anexado e extraia TODAS as recomendações/determinações ' +
+    'endereçadas ao município ou prestador, cada uma com descrição, código do item (se ' +
+    'houver), categoria, prioridade e prazo prometido (se identificável). Não pule ' +
+    'nenhuma recomendação encontrada no documento. Se um campo não estiver claro, deixe-o ' +
+    'de fora em vez de inventar. Registre em confidence_notes qualquer incerteza relevante.'
+
+  const result = await callGemini(
+    [{ inline_data: { mime_type: 'application/pdf', data: base64 } }, { text: prompt }],
+    EXTRACT_PDF_SCHEMA
+  )
+  await updateJob(adminClient, job.id, { status: 'done', result_json: result })
+}
+
+async function processMatchResponsePdf(adminClient: any, job: any) {
+  const base64 = await fetchPdfAsBase64(adminClient, job)
 
   const input = job.input_text ? JSON.parse(job.input_text) : { existing_recommendations: [] }
   const existingRecs = Array.isArray(input.existing_recommendations) ? input.existing_recommendations : []
 
   const prompt =
-    'Você é um assistente de uma agência reguladora brasileira. O PDF anexado é a ' +
-    'resposta de um município/prestador a recomendações que JÁ ESTÃO CADASTRADAS no ' +
-    'sistema (lista abaixo, com id, item_code e description). Leia o documento e, para ' +
-    'cada recomendação da lista que ele efetivamente aborda, extraia um resumo da ação ' +
-    'relatada (titular_response) e, se houver, um novo prazo mencionado (promised_due_at) ' +
-    'e uma sugestão de status (status_suggestion). Use o "id" de cada recomendação da ' +
-    'lista como recommendation_id — não invente ids nem crie recomendações novas. Se um ' +
-    'trecho do documento não corresponder a nenhuma recomendação da lista, resuma-o em ' +
-    'unmatched_notes em vez de forçar uma correspondência. Registre em confidence_notes ' +
-    'qualquer ambiguidade relevante.\n\n' +
+    'Você é um assistente de uma agência reguladora brasileira. O PDF anexado é o ' +
+    'ofício de resposta de um município/prestador a recomendações que JÁ ESTÃO ' +
+    'CADASTRADAS no sistema (lista abaixo, com id, item_code e description). Leia o ' +
+    'documento e, para cada recomendação da lista que ele efetivamente aborda, extraia ' +
+    'um resumo da ação relatada (titular_response) e, se houver, um novo prazo ' +
+    'mencionado (promised_due_at) e uma sugestão de status (status_suggestion). Use o ' +
+    '"id" de cada recomendação da lista como recommendation_id — não invente ids nem ' +
+    'crie recomendações novas. Se um trecho do documento não corresponder a nenhuma ' +
+    'recomendação da lista, resuma-o em unmatched_notes em vez de forçar uma ' +
+    'correspondência. Registre em confidence_notes qualquer ambiguidade relevante.\n\n' +
     `Recomendações cadastradas:\n${JSON.stringify(existingRecs)}`
 
   const result = await callGemini(
     [{ inline_data: { mime_type: 'application/pdf', data: base64 } }, { text: prompt }],
-    EXTRACT_PDF_SCHEMA
+    MATCH_RESPONSE_SCHEMA
   )
   await updateJob(adminClient, job.id, { status: 'done', result_json: result })
 }
@@ -232,6 +282,8 @@ async function handleJob(adminClient: any, job: any) {
   try {
     if (job.job_type === 'extract_pdf') {
       await processExtractPdf(adminClient, job)
+    } else if (job.job_type === 'match_response_pdf') {
+      await processMatchResponsePdf(adminClient, job)
     } else if (job.job_type === 'analyze_response') {
       await processAnalyzeResponse(adminClient, job)
     } else {

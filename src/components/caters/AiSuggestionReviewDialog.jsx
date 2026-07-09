@@ -14,6 +14,7 @@ import { useCatersAiJob, markCatersAiJobReviewed } from '@/lib/caters/aiJobs';
 import { useAuth } from '@/lib/AuthContext';
 
 const STATUS_OPTIONS = ['pendente', 'em_andamento', 'vencido', 'cumprido'];
+const PRIORITY_OPTIONS = ['baixa', 'media', 'alta', 'critica'];
 
 function verdictBadge(verdict) {
   if (verdict === 'adequate') {
@@ -31,20 +32,38 @@ export default function AiSuggestionReviewDialog({
   open,
   onOpenChange,
   recommendations = [],
+  onCreateRecommendationSuggestion,
   onApplyRecommendationMatch,
   onAppendRecommendationNote,
 }) {
   const { user } = useAuth();
   const { job, error } = useCatersAiJob(open ? jobId : null);
+  const [recDrafts, setRecDrafts] = useState([]);
+  const [createdRecIdx, setCreatedRecIdx] = useState(() => new Set());
   const [matchDrafts, setMatchDrafts] = useState([]);
   const [appliedMatchIdx, setAppliedMatchIdx] = useState(() => new Set());
 
   useEffect(() => {
     if (job?.status === 'done' && job?.job_type === 'extract_pdf') {
+      setRecDrafts((job.result_json?.recommendations || []).map((r) => ({ ...r })));
+      setCreatedRecIdx(new Set());
+    }
+    if (job?.status === 'done' && job?.job_type === 'match_response_pdf') {
       setMatchDrafts((job.result_json?.matches || []).map((m) => ({ ...m })));
       setAppliedMatchIdx(new Set());
     }
   }, [job]);
+
+  const createRecommendation = async (idx) => {
+    await onCreateRecommendationSuggestion(recDrafts[idx]);
+    setCreatedRecIdx((s) => new Set(s).add(idx));
+  };
+
+  const createAllRecommendations = async () => {
+    for (let i = 0; i < recDrafts.length; i++) {
+      if (!createdRecIdx.has(i)) await createRecommendation(i);
+    }
+  };
 
   const applyMatch = async (idx) => {
     const m = matchDrafts[idx];
@@ -99,6 +118,77 @@ export default function AiSuggestionReviewDialog({
         )}
 
         {job?.status === 'done' && job.job_type === 'extract_pdf' && (
+          <div className="space-y-5">
+            {job.result_json?.confidence_notes && (
+              <div className="rounded-md border border-violet-200 bg-violet-50 px-3 py-2 text-xs text-violet-800">
+                <span className="font-semibold">Observações da IA: </span>
+                {job.result_json.confidence_notes}
+              </div>
+            )}
+
+            <section className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-semibold text-slate-900">
+                  Recomendações encontradas no relatório ({recDrafts.length})
+                </div>
+                {recDrafts.length > 0 && (
+                  <Button size="sm" variant="outline" className="gap-1" onClick={createAllRecommendations}>
+                    <CheckCheck className="h-3.5 w-3.5" />
+                    Adicionar todas
+                  </Button>
+                )}
+              </div>
+              {recDrafts.map((rec, idx) => (
+                <div key={idx} className="rounded-xl border border-slate-200 p-3 space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="col-span-2 space-y-1">
+                      <Label className="text-xs">Descrição</Label>
+                      <textarea
+                        rows={2}
+                        value={rec.description || ''}
+                        onChange={(e) => setRecDrafts((d) => d.map((r, i) => i === idx ? { ...r, description: e.target.value } : r))}
+                        className="w-full rounded-md border border-input bg-background px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Código do item</Label>
+                      <Input className="h-8 text-xs" value={rec.item_code || ''}
+                        onChange={(e) => setRecDrafts((d) => d.map((r, i) => i === idx ? { ...r, item_code: e.target.value } : r))} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Prioridade</Label>
+                      <select
+                        value={rec.priority || 'media'}
+                        onChange={(e) => setRecDrafts((d) => d.map((r, i) => i === idx ? { ...r, priority: e.target.value } : r))}
+                        className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+                      >
+                        {PRIORITY_OPTIONS.map((p) => <option key={p} value={p}>{p}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    {!createdRecIdx.has(idx) ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1"
+                        disabled={!rec.description?.trim()}
+                        onClick={() => createRecommendation(idx)}
+                      >
+                        <Check className="h-3.5 w-3.5" />
+                        Adicionar recomendação
+                      </Button>
+                    ) : (
+                      <span className="text-xs font-semibold text-emerald-600">Adicionada</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </section>
+          </div>
+        )}
+
+        {job?.status === 'done' && job.job_type === 'match_response_pdf' && (
           <div className="space-y-5">
             {job.result_json?.confidence_notes && (
               <div className="rounded-md border border-violet-200 bg-violet-50 px-3 py-2 text-xs text-violet-800">
