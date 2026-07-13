@@ -4,6 +4,7 @@ import { createPageUrl } from '@/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Repository } from '@/lib/offline/repository';
 import { snapToHighway, parseKMLSegments, snapToNearestKMLSegment, findNearestKmPoint, parseKMLKmPoints } from '@/utils/rodoviasGeoJSON';
+import JSZip from 'jszip';
 import PhotoGrid from '@/components/fiscalizacao/PhotoGrid';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -145,6 +146,7 @@ export default function VistoriarOcorrenciaDTR() {
     const [fixProgress, setFixProgress] = useState('');
     const [fixError, setFixError] = useState(null);
     const [fixLogs, setFixLogs] = useState([]);
+    const [selectedZip, setSelectedZip] = useState(null);
     const [selectedFrente, setSelectedFrente] = useState('');
     const [selectedPer, setSelectedPer] = useState('');
     const [selectedItem, setSelectedItem] = useState(null);
@@ -537,6 +539,18 @@ export default function VistoriarOcorrenciaDTR() {
         };
 
         try {
+            let loadedZip = null;
+            if (selectedZip) {
+                log(`Lendo arquivo ZIP enviado pelo usuário: ${selectedZip.name}...`);
+                try {
+                    loadedZip = await JSZip.loadAsync(selectedZip);
+                    log(`ZIP lido com sucesso. Fotos originais serão recuperadas dele.`);
+                } catch (zipErr) {
+                    log(`ERRO ao ler arquivo ZIP: ${zipErr.message}`);
+                    throw new Error(`Falha ao ler ZIP: ${zipErr.message}`);
+                }
+            }
+
             log(`Carregando ocorrências da fiscalização ID: ${fiscId}`);
             // 1. Carrega unidades da fiscalização do Supabase
             const { data: unidades, error: uErr } = await supabase
@@ -657,17 +671,48 @@ export default function VistoriarOcorrenciaDTR() {
                         continue;
                     }
 
-                    log(`    Baixando imagem do Storage (caminho: ${parsed.path})...`);
-                    const { data: blob, error: dlErr } = await supabase.storage.from(parsed.bucket).download(parsed.path);
-                    if (dlErr || !blob) {
-                        log(`    ERRO ao baixar imagem: ${dlErr?.message || 'Blob vazio'}`);
-                        continue;
+                    let imageBlob = null;
+                    if (loadedZip) {
+                        const occNum = String(i + 1).padStart(2, '0');
+                        const photoNum = String(j + 1);
+                        const expectedPrefix = `Ocorrencia_${occNum}_`;
+                        const expectedSuffix = `_Foto_${photoNum}.jpg`;
+
+                        let matchedFile = null;
+                        loadedZip.forEach((relativePath, zipEntry) => {
+                            const filename = relativePath.split('/').pop() || '';
+                            const fnLower = filename.toLowerCase();
+                            if (fnLower.startsWith(expectedPrefix.toLowerCase()) && fnLower.endsWith(expectedSuffix.toLowerCase())) {
+                                matchedFile = zipEntry;
+                            }
+                        });
+
+                        if (matchedFile) {
+                            log(`    [ZIP] Encontrada foto original no ZIP: "${matchedFile.name}"`);
+                            try {
+                                imageBlob = await matchedFile.async('blob');
+                            } catch (zReadErr) {
+                                log(`    [ZIP] ERRO ao ler foto do ZIP: ${zReadErr.message}`);
+                            }
+                        } else {
+                            log(`    [ZIP] AVISO: Foto ${photoNum} da ocorrência ${occNum} não encontrada no ZIP.`);
+                        }
                     }
 
-                    log(`    Imagem baixada (${Math.round(blob.size / 1024)} KB). Carregando Canvas...`);
+                    if (!imageBlob) {
+                        log(`    Baixando imagem do Storage (caminho: ${parsed.path})...`);
+                        const { data: dlBlob, error: dlErr } = await supabase.storage.from(parsed.bucket).download(parsed.path);
+                        if (dlErr || !dlBlob) {
+                            log(`    ERRO ao baixar imagem: ${dlErr?.message || 'Blob vazio'}`);
+                            continue;
+                        }
+                        imageBlob = dlBlob;
+                    }
+
+                    log(`    Imagem obtida (${Math.round(imageBlob.size / 1024)} KB). Carregando Canvas...`);
                     // Carrega imagem no Canvas
                     const img = new Image();
-                    const objectUrl = URL.createObjectURL(blob);
+                    const objectUrl = URL.createObjectURL(imageBlob);
                     try {
                         await new Promise((resolve, reject) => {
                             img.onload = () => resolve();
@@ -747,10 +792,10 @@ export default function VistoriarOcorrenciaDTR() {
                     const newMaxW = Math.max(...newFitted.map(t => ctx.measureText(t).width));
                     const maxW = Math.max(oldMaxW, newMaxW);
 
-                    // Box estendido para cobertura total garantida (35% extra de largura e altura ampliada)
-                    const boxW = Math.min(canvas.width - padding * 2, Math.ceil(maxW * 1.35) + padding * 4);
-                    const maskBoxH = boxH + Math.round(fontSize * 0.5);
-                    const maskBoxY = Math.max(padding / 2, boxY - Math.round(fontSize * 0.25));
+                    // Box ajustado para ser elegante e proporcional, com cobertura perfeita e sem excessos
+                    const boxW = Math.min(canvas.width - padding * 2, Math.ceil(maxW * 1.08) + padding * 2);
+                    const maskBoxH = boxH + Math.round(fontSize * 0.1);
+                    const maskBoxY = Math.max(padding / 2, boxY - Math.round(fontSize * 0.05));
                     const boxX = padding;
 
                     // 1. Cobre o box antigo com um box totalmente opaco (para apagar o texto antigo)
@@ -1133,6 +1178,18 @@ export default function VistoriarOcorrenciaDTR() {
                                 Erro: {fixError}
                             </p>
                         )}
+                        <div className="space-y-1.5 p-2.5 bg-slate-50 rounded-xl border border-slate-100 mt-1">
+                            <label className="text-[10px] font-semibold text-slate-600 block">
+                                Opcional: Restaurar fotos originais a partir de ZIP local
+                            </label>
+                            <input
+                                type="file"
+                                accept=".zip"
+                                onChange={(e) => setSelectedZip(e.target.files?.[0] || null)}
+                                disabled={fixingDtr}
+                                className="w-full text-[10px] text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-[10px] file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 border border-slate-200 rounded-lg p-1 bg-white cursor-pointer"
+                            />
+                        </div>
                         <Button
                             size="sm"
                             disabled={fixingDtr}
