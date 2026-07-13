@@ -8,7 +8,10 @@ import PhotoGrid from '@/components/fiscalizacao/PhotoGrid';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, ArrowRight, Loader2, Save } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Loader2, Save, RotateCcw } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { invokeEdgeFunction } from '@/lib/edgeFunctions';
+import { db } from '@/lib/offline/db';
 
 const TIPOS_FALLBACK = [
     { frente: 'RECUPERAÇÃO E MANUTENÇÃO', item_contrato: '3.1.1 Pavimento', descricao: 'Exsudação', nome: 'Exsudação', nao_atendimento: null, prazo_dias_padrao: null },
@@ -138,6 +141,9 @@ export default function VistoriarOcorrenciaDTR() {
     const [fotosDirty, setFotosDirty] = useState(false);
     const fotosCarregadasRef = useRef(null);
     const kmLockedByPhotoRef = useRef(false);
+    const [fixingDtr, setFixingDtr] = useState(false);
+    const [fixProgress, setFixProgress] = useState('');
+    const [fixError, setFixError] = useState(null);
     const [selectedFrente, setSelectedFrente] = useState('');
     const [selectedPer, setSelectedPer] = useState('');
     const [selectedItem, setSelectedItem] = useState(null);
@@ -517,6 +523,228 @@ export default function VistoriarOcorrenciaDTR() {
         observacao: 'Observação'
     }[currentStep] || '';
 
+    const handleFixFinalizedInspection = async () => {
+        if (!confirm('Deseja recalcular todos os KMs desta fiscalização a partir das coordenadas reais das fotos e atualizar as marcas d\'água das imagens?')) return;
+        setFixingDtr(true);
+        setFixError(null);
+        setFixProgress('Carregando ocorrências...');
+        try {
+            // 1. Carrega unidades da fiscalização do Supabase
+            const { data: unidades, error: uErr } = await supabase
+                .from('unidades_fiscalizadas')
+                .select('*')
+                .eq('fiscalizacao_id', fiscId);
+            if (uErr) throw uErr;
+            if (!unidades || unidades.length === 0) throw new Error('Nenhuma ocorrência encontrada para esta fiscalização.');
+
+            // 2. Carrega os kmPoints da rodovia
+            setFixProgress('Carregando referências de KM...');
+            const rodoviaId = fisc?.rodovia;
+            if (!rodoviaId) throw new Error('Rodovia da fiscalização não especificada.');
+            let pts = kmPoints;
+            if (!pts || pts.length === 0) {
+                pts = await Repository.getKmPointsForRodovia(rodoviaId);
+            }
+            if (!pts || pts.length === 0) {
+                // Tenta baixar KML
+                const kmlText = await Repository.downloadKMLForRodovia(rodoviaId);
+                if (kmlText) {
+                    pts = parseKMLKmPoints(kmlText);
+                }
+            }
+            if (!pts || pts.length === 0) {
+                throw new Error(`Não foi possível carregar as referências de KM para a rodovia ${rodoviaId}.`);
+            }
+
+            // 3. Processa cada ocorrência
+            for (let i = 0; i < unidades.length; i++) {
+                const u = unidades[i];
+                setFixProgress(`Processando ocorrência ${i + 1}/${unidades.length} (${u.nome_unidade || 'Sem Nome'})...`);
+
+                const lat = u.latitude;
+                const lng = u.longitude;
+                if (!lat || !lng) {
+                    console.log(`Ocorrência ${u.id} sem coordenadas válidas.`);
+                    continue;
+                }
+
+                // Acha o ponto do KML mais próximo
+                const nearest = findNearestKmPoint(pts, lat, lng);
+                if (!nearest) {
+                    console.log(`Não foi possível achar vizinho para ${lat}, ${lng}`);
+                    continue;
+                }
+
+                const correctKm = nearest.km;
+                const correctRodovia = nearest.rodovia || rodoviaId;
+
+                // Atualiza a tabela local (Dexie) e Supabase
+                await db.unidades.update(u.id, { km: correctKm, rodovia: correctRodovia });
+                const { error: updErr } = await supabase
+                    .from('unidades_fiscalizadas')
+                    .update({ km: correctKm, rodovia: correctRodovia })
+                    .eq('id', u.id);
+                if (updErr) throw updErr;
+
+                // Processa fotos
+                const fotosList = Array.isArray(u.fotos_unidade) ? u.fotos_unidade : [];
+                for (let j = 0; j < fotosList.length; j++) {
+                    const f = fotosList[j];
+                    setFixProgress(`Processando ocorrência ${i + 1}/${unidades.length} - Foto ${j + 1}/${fotosList.length}...`);
+
+                    const parsed = Repository.parseStorageUrl(f.url);
+                    if (!parsed) continue;
+
+                    // Baixa a imagem do Storage
+                    const { data: blob, error: dlErr } = await supabase.storage.from(parsed.bucket).download(parsed.path);
+                    if (dlErr || !blob) {
+                        console.error('Erro ao baixar foto:', dlErr);
+                        continue;
+                    }
+
+                    // Carrega imagem no Canvas
+                    const img = new Image();
+                    const objectUrl = URL.createObjectURL(blob);
+                    await new Promise((resolve, reject) => {
+                        img.onload = () => resolve();
+                        img.onerror = reject;
+                        img.src = objectUrl;
+                    });
+                    URL.revokeObjectURL(objectUrl);
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.naturalWidth || img.width;
+                    canvas.height = img.naturalHeight || img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+
+                    // Re-desenha a marca d'água
+                    const base = Math.max(canvas.width, canvas.height);
+                    const padding = Math.max(10, Math.round(base * 0.015));
+                    const fontSize = Math.max(14, Math.round(base * 0.028));
+                    ctx.save();
+                    ctx.font = `600 ${fontSize}px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
+                    ctx.textBaseline = 'bottom';
+
+                    // Reconstruindo linhas antiga e nova
+                    const pad2 = (n) => String(n).padStart(2, '0');
+                    const formatDateBR = (d) => `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${d.getFullYear()}`;
+                    const formatTimeBR = (d) => `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+                    
+                    const takenAt = f.data_hora ? new Date(f.data_hora) : new Date();
+                    const dateText = `${formatDateBR(takenAt)} ${formatTimeBR(takenAt)}`;
+                    const coordsText = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+
+                    // Formata KM decimal
+                    const formatKmWatermark = (kmVal) => {
+                      if (!kmVal) return '';
+                      if (String(kmVal).includes('+')) return kmVal;
+                      const num = parseFloat(kmVal);
+                      if (isNaN(num)) return kmVal;
+                      const intPart = Math.floor(num);
+                      const meters = Math.round((num - intPart) * 1000);
+                      return meters > 0 ? `${intPart}+${meters}m` : String(intPart);
+                    };
+
+                    const oldLocLine = `${u.rodovia || rodoviaId} KM ${formatKmWatermark(u.km)} ${u.sentido || ''}`.trim();
+                    const newLocLine = `${correctRodovia} KM ${formatKmWatermark(correctKm)} ${u.sentido || ''}`.trim();
+
+                    const oldLines = [oldLocLine, dateText, coordsText];
+                    const newLines = [newLocLine, dateText, coordsText];
+
+                    const maxTextW = Math.max(10, canvas.width - padding * 4);
+                    const fitLine = (txt) => {
+                        const raw = String(txt || '');
+                        if (ctx.measureText(raw).width <= maxTextW) return raw;
+                        const ellipsis = '…';
+                        let s = raw;
+                        while (s.length > 1 && ctx.measureText(`${s}${ellipsis}`).width > maxTextW) {
+                            s = s.slice(0, -1);
+                        }
+                        return `${s}${ellipsis}`;
+                    };
+
+                    const oldFitted = oldLines.map(fitLine);
+                    const newFitted = newLines.map(fitLine);
+
+                    const lineGap = Math.round(fontSize * 0.25);
+                    const heights = oldFitted.length * fontSize + (oldFitted.length - 1) * lineGap;
+                    const boxH = heights + padding * 2;
+                    const yBottom = canvas.height - padding;
+                    const boxY = Math.max(padding, canvas.height - boxH - padding);
+
+                    const oldMaxW = Math.max(...oldFitted.map(t => ctx.measureText(t).width));
+                    const newMaxW = Math.max(...newFitted.map(t => ctx.measureText(t).width));
+                    const maxW = Math.max(oldMaxW, newMaxW);
+
+                    const boxW = Math.min(canvas.width - padding * 2, Math.ceil(maxW) + padding * 2);
+                    const boxX = padding;
+
+                    // 1. Cobre o box antigo com um box totalmente opaco (para apagar o texto antigo)
+                    ctx.fillStyle = '#000000';
+                    const r = Math.max(8, Math.round(fontSize * 0.4));
+                    ctx.beginPath();
+                    ctx.moveTo(boxX + r, boxY);
+                    ctx.arcTo(boxX + boxW, boxY, boxX + boxW, boxY + boxH, r);
+                    ctx.arcTo(boxX + boxW, boxY + boxH, boxX, boxY + boxH, r);
+                    ctx.arcTo(boxX, boxY + boxH, boxX, boxY, r);
+                    ctx.arcTo(boxX, boxY, boxX + boxW, boxY, r);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // 2. Desenha o novo box com opacidade padrão
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+                    ctx.beginPath();
+                    ctx.moveTo(boxX + r, boxY);
+                    ctx.arcTo(boxX + boxW, boxY, boxX + boxW, boxY + boxH, r);
+                    ctx.arcTo(boxX + boxW, boxY + boxH, boxX, boxY + boxH, r);
+                    ctx.arcTo(boxX, boxY + boxH, boxX, boxY, r);
+                    ctx.arcTo(boxX, boxY, boxX + boxW, boxY, r);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // 3. Escreve o texto por cima
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.97)';
+                    let y = yBottom;
+                    for (let k = newFitted.length - 1; k >= 0; k--) {
+                        ctx.fillText(newFitted[k], boxX + padding, y);
+                        y -= fontSize + lineGap;
+                    }
+                    ctx.restore();
+
+                    // Comprime canvas para Blob
+                    const newBlob = await new Promise((resolve) => {
+                        canvas.toBlob(resolve, 'image/jpeg', 0.88);
+                    });
+
+                    if (newBlob) {
+                        // Faz o upload substituindo no Storage (upsert: true)
+                        const { error: upErr } = await supabase.storage
+                            .from(parsed.bucket)
+                            .upload(parsed.path, newBlob, { upsert: true, contentType: 'image/jpeg' });
+                        if (upErr) throw upErr;
+                    }
+                }
+            }
+
+            // 4. Força re-geração do relatório chamando o relatorios_enqueue
+            setFixProgress('Re-gerando relatório...');
+            await invokeEdgeFunction('relatorios_enqueue', { fiscalizacao_id: fiscId });
+
+            setFixProgress('Concluído! Recarregando os dados...');
+            queryClient.invalidateQueries({ queryKey: ['unidades', fiscId] });
+            queryClient.invalidateQueries({ queryKey: ['unidade', occurrenceId] });
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+
+        } catch (err) {
+            console.error('[Fix Finalized Fisc Error]', err);
+            setFixError(err?.message || String(err));
+            setFixingDtr(false);
+        }
+    };
+
     const Header = () => (
         <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md sticky top-0 z-10">
             <div className="max-w-md mx-auto px-4 py-4">
@@ -781,6 +1009,33 @@ export default function VistoriarOcorrenciaDTR() {
         <div className="min-h-screen bg-[#e8eaed] flex flex-col">
             <Header />
             <div className="flex-1 max-w-md w-full mx-auto px-4 py-6 space-y-4">
+                {isFinalized && (
+                    <div className="bg-white border border-indigo-100 rounded-2xl p-4 shadow-sm space-y-3">
+                        <h3 className="text-xs font-bold text-indigo-800 uppercase tracking-wider flex items-center gap-1.5">
+                            <RotateCcw className="h-3.5 w-3.5" /> Suporte & Correção (DTR)
+                        </h3>
+                        <p className="text-[11px] text-gray-600 leading-relaxed">
+                            Esta fiscalização está finalizada. Caso os KMs e marcas d'água estejam incorretos devido a falhas de movimentação de GPS, clique abaixo para recalcular todos os KMs a partir das coordenadas reais das fotos e regerar as imagens no servidor.
+                        </p>
+                        {fixError && (
+                            <p className="text-[10px] bg-rose-50 border border-rose-100 text-rose-700 p-2 rounded-lg font-mono">
+                                Erro: {fixError}
+                            </p>
+                        )}
+                        <Button
+                            size="sm"
+                            disabled={fixingDtr}
+                            onClick={handleFixFinalizedInspection}
+                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-medium h-9 flex items-center justify-center gap-1.5"
+                        >
+                            {fixingDtr ? (
+                                <><Loader2 className="h-3.5 w-3.5 animate-spin" /> {fixProgress}</>
+                            ) : (
+                                <><RotateCcw className="h-3.5 w-3.5" /> Corrigir KM e Marcas d'Água</>
+                            )}
+                        </Button>
+                    </div>
+                )}
                 <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wide">{stepIdx + 1}. OBSERVAÇÃO</h2>
 
                 {/* Resumo do registro */}
