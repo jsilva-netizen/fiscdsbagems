@@ -741,14 +741,24 @@ export default function VistoriarOcorrenciaDTR() {
                     ctx.font = `600 ${fontSize}px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
                     ctx.textBaseline = 'bottom';
 
-                    // Reconstruindo linhas antiga e nova
+                    // Reconstruindo linhas antiga e nova usando coordenadas específicas de cada foto
                     const pad2 = (n) => String(n).padStart(2, '0');
                     const formatDateBR = (d) => `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${d.getFullYear()}`;
                     const formatTimeBR = (d) => `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
                     
+                    const photoLat = typeof f.latitude === 'number' && !isNaN(f.latitude) ? f.latitude : lat;
+                    const photoLng = typeof f.longitude === 'number' && !isNaN(f.longitude) ? f.longitude : lng;
+
+                    // Acha o ponto do KML mais próximo para esta foto específica
+                    const nearestPhoto = findNearestKmPoint(pts, photoLat, photoLng);
+                    const photoKm = nearestPhoto ? nearestPhoto.km : correctKm;
+                    const photoRodovia = nearestPhoto ? (nearestPhoto.rodovia || rodoviaId) : correctRodovia;
+
+                    log(`    - Foto ${j + 1}/${fotosList.length}: GPS=[${photoLat.toFixed(6)}, ${photoLng.toFixed(6)}] | Resolvido=[${photoRodovia} KM ${photoKm}]`);
+
                     const takenAt = f.data_hora ? new Date(f.data_hora) : new Date();
                     const dateText = `${formatDateBR(takenAt)} ${formatTimeBR(takenAt)}`;
-                    const coordsText = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+                    const coordsText = `${photoLat.toFixed(6)}, ${photoLng.toFixed(6)}`;
 
                     // Formata KM decimal
                     const formatKmWatermark = (kmVal) => {
@@ -762,7 +772,7 @@ export default function VistoriarOcorrenciaDTR() {
                     };
 
                     const oldLocLine = `${u.rodovia || rodoviaId} KM ${formatKmWatermark(u.km)} ${u.sentido || ''}`.trim();
-                    const newLocLine = `${correctRodovia} KM ${formatKmWatermark(correctKm)} ${u.sentido || ''}`.trim();
+                    const newLocLine = `${photoRodovia} KM ${formatKmWatermark(photoKm)} ${u.sentido || ''}`.trim();
 
                     const oldLines = [oldLocLine, dateText, coordsText];
                     const newLines = [newLocLine, dateText, coordsText];
@@ -851,6 +861,10 @@ export default function VistoriarOcorrenciaDTR() {
                         pathsToDelete.push(parsed.path);
                         f.path = newPath;
                         f.url = `storage://${parsed.bucket}/${newPath}`;
+                        f.latitude = photoLat;
+                        f.longitude = photoLng;
+                        f.resolucao_km = photoKm;
+                        f.resolucao_rodovia = photoRodovia;
                         fotosList[j] = f;
                     }
                 }
