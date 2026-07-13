@@ -555,34 +555,31 @@ export default function VistoriarOcorrenciaDTR() {
 
             log(`Carregadas ${unidades.length} ocorrências.`);
 
-            // Cache para armazenar os pontos de KM por rodovia
-            const pointsCache = new Map();
-            
-            const getPointsFor = async (rod) => {
-                const cleanRod = String(rod || '').trim();
-                if (!cleanRod) return [];
-                if (pointsCache.has(cleanRod)) return pointsCache.get(cleanRod);
-
-                log(`Carregando referências KML para a rodovia: ${cleanRod}...`);
-                let pts = await Repository.getKmPointsForRodovia(cleanRod);
-                if (!pts || pts.length === 0) {
-                    log(`  KML local para ${cleanRod} vazio, baixando do Storage...`);
-                    const kmlText = await Repository.downloadKMLForRodovia(cleanRod);
-                    if (kmlText) {
-                        pts = parseKMLKmPoints(kmlText);
-                        log(`  KML para ${cleanRod} baixado e parseado: ${pts?.length || 0} pontos encontrados.`);
-                    }
-                }
-                if (!pts || pts.length === 0) {
-                    log(`  AVISO: Não foi possível carregar referências KML para ${cleanRod}.`);
-                } else {
-                    log(`  Carregados ${pts.length} pontos de referência para ${cleanRod}.`);
-                }
-                pointsCache.set(cleanRod, pts || []);
-                return pts || [];
-            };
-
             const rodoviaId = fisc?.rodovia;
+            log(`Identificando rodovia da fiscalização: ${rodoviaId}`);
+            if (!rodoviaId) {
+                log('ERRO: Rodovia da fiscalização não especificada no cabeçalho.');
+                throw new Error('Rodovia da fiscalização não especificada.');
+            }
+
+            log(`Baixando arquivo KML bruto da rodovia ${rodoviaId} para obter atributos detalhados...`);
+            const kmlText = await Repository.downloadKMLForRodovia(rodoviaId);
+            let pts = null;
+            if (kmlText) {
+                log('Parseando arquivo KML bruto...');
+                pts = parseKMLKmPoints(kmlText);
+                log(`KML bruto parseado com sucesso: ${pts?.length || 0} pontos importados.`);
+            } else {
+                log('AVISO: Não foi possível baixar o KML bruto. Tentando banco local como fallback...');
+                pts = await Repository.getKmPointsForRodovia(rodoviaId);
+            }
+
+            if (!pts || pts.length === 0) {
+                log(`ERRO: Não foi possível carregar referências do KML para a rodovia ${rodoviaId}.`);
+                throw new Error(`Referências KML indisponíveis para a rodovia ${rodoviaId}.`);
+            }
+
+            log(`Total de pontos de referência ativos: ${pts.length}`);
 
             // 3. Processa cada ocorrência
             for (let i = 0; i < unidades.length; i++) {
@@ -598,29 +595,16 @@ export default function VistoriarOcorrenciaDTR() {
                     continue;
                 }
 
-                // Identifica a rodovia da ocorrência (seja a atual da ocorrência ou fallback da fiscalização)
-                const occurrenceRodovia = u.rodovia || rodoviaId;
-                if (!occurrenceRodovia) {
-                    log(`  -> Ignorada: sem rodovia definida na ocorrência ou na fiscalização.`);
-                    continue;
-                }
-
-                const pts = await getPointsFor(occurrenceRodovia);
-                if (!pts || pts.length === 0) {
-                    log(`  -> Ignorada: sem pontos KML para a rodovia ${occurrenceRodovia}.`);
-                    continue;
-                }
-
                 // Acha o ponto do KML mais próximo
-                log(`  Buscando ponto KML mais próximo em ${occurrenceRodovia}...`);
+                log(`  Buscando ponto KML mais próximo...`);
                 const nearest = findNearestKmPoint(pts, lat, lng);
                 if (!nearest) {
-                    log(`  -> Ignorada: não foi possível encontrar um ponto KML próximo em ${occurrenceRodovia}.`);
+                    log(`  -> Ignorada: não foi possível encontrar um ponto KML próximo.`);
                     continue;
                 }
 
                 const correctKm = nearest.km;
-                const correctRodovia = nearest.rodovia || occurrenceRodovia;
+                const correctRodovia = nearest.rodovia || rodoviaId;
                 log(`  -> KM Calculado: ${correctKm} | Rodovia: ${correctRodovia} (Distância: ${nearest.distanceMeters}m)`);
 
                 // Processa fotos
