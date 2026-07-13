@@ -245,7 +245,11 @@ export default function PhotoGrid({
                     mimeType: saved.mimeType,
                     width: saved.width,
                     height: saved.height,
-                    data_hora: capture?.takenAt || new Date().toISOString()
+                    data_hora: capture?.takenAt || new Date().toISOString(),
+                    resolvedKm: saved.resolvedKm,
+                    resolvedRodovia: saved.resolvedRodovia,
+                    latitude: saved.resolvedLat || capture?.latitude,
+                    longitude: saved.resolvedLng || capture?.longitude
                 });
                 setUploadProgress(1);
             } catch (err) {
@@ -405,7 +409,11 @@ export default function PhotoGrid({
                                 mimeType: saved.mimeType,
                                 width: saved.width,
                                 height: saved.height,
-                                data_hora: dataHoraFoto
+                                data_hora: dataHoraFoto,
+                                resolvedKm: saved.resolvedKm,
+                                resolvedRodovia: saved.resolvedRodovia,
+                                latitude: saved.resolvedLat || capture?.latitude,
+                                longitude: saved.resolvedLng || capture?.longitude
                             };
                             onAddFoto(novaFoto);
                             processados++;

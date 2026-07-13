@@ -3,6 +3,7 @@ import { enqueueMutation } from './syncEngine'
 import { compressFileToBlob, MAX_DIMENSION, JPEG_QUALITY, MAX_PHOTOS_PER_UNIDADE, MAX_PHOTO_BYTES } from './image'
 import { getOrCreatePreviewUrl, revokePreviewUrl } from './photoPreviewCache'
 import { supabase } from '@/lib/supabase'
+import { findNearestKmPoint } from '@/utils/rodoviasGeoJSON'
 
 const now = () => new Date().toISOString()
 function withTimeout<T>(fn: () => Promise<T>, timeoutMs = 12000): Promise<T> {
@@ -2018,6 +2019,29 @@ export const Repository = {
     if (!municipioNome) municipioNome = 'SEM MUNICÍPIO'
     const isDtrFisc = ['rodovias_dtr', 'transportes_dtr', 'fiscal_dtr'].includes(fiscTipoModulo)
 
+    // KM e Rodovia vêm EXCLUSIVAMENTE do ponto KML mais próximo à coordenada
+    // da foto. Sem fallbacks — toda fiscalização DTR tem pontos KML válidos.
+    let resolvedKm = ''
+    let resolvedRodovia = ''
+    if (hasCapture && isDtrFisc) {
+      try {
+        // Usa a rodovia da fiscalização apenas para saber qual KML consultar
+        const fiscRodovia = context?.rodovia || (lookupFiscId ? String((await db.fiscalizacoes.get(lookupFiscId as any))?.rodovia || '') : '')
+        if (fiscRodovia) {
+          const pts = await Repository.getKmPointsForRodovia(fiscRodovia)
+          if (pts && pts.length > 0) {
+            const nearest = findNearestKmPoint(pts, capture!.latitude, capture!.longitude)
+            if (nearest) {
+              resolvedKm = nearest.km || ''
+              resolvedRodovia = nearest.rodovia || ''
+            }
+          }
+        }
+      } catch {
+        // sem pontos KML: km e rodovia ficam vazios
+      }
+    }
+
     // Formata KM decimal ("115.2") como "115+200m"; valores já formatados passam direto
     const formatKmWatermark = (km: string): string => {
       if (!km) return ''
@@ -2030,10 +2054,11 @@ export const Repository = {
     }
 
     // Monta linha de localização DTR: "{Rodovia} KM {km} {Sentido}"
+    // Usa resolvedKm (calculado da coordenada da foto) em vez de context.km
     const buildDtrLocLine = (): string => {
       const parts: string[] = []
-      if (context?.rodovia) parts.push(context.rodovia)
-      const kmFmt = formatKmWatermark(context?.km || '')
+      if (resolvedRodovia) parts.push(resolvedRodovia)
+      const kmFmt = formatKmWatermark(resolvedKm)
       if (kmFmt) parts.push(`KM ${kmFmt}`)
       if (context?.sentido) parts.push(context.sentido)
       return parts.join(' ')
@@ -2084,7 +2109,14 @@ export const Repository = {
     }
     await db.fotos_local.add(item)
     const previewUrl = localFotoPreviewUrl(item)
-    return { ...item, previewUrl }
+    return {
+      ...item,
+      previewUrl,
+      resolvedKm: resolvedKm || undefined,
+      resolvedRodovia: resolvedRodovia || undefined,
+      resolvedLat: capture?.latitude || undefined,
+      resolvedLng: capture?.longitude || undefined
+    }
   },
 
   async listLocalFotos(unidadeId: string): Promise<OfflineFoto[]> {

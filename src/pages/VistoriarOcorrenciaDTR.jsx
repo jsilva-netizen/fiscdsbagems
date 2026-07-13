@@ -137,6 +137,7 @@ export default function VistoriarOcorrenciaDTR() {
     const [fotos, setFotos] = useState([]);
     const [fotosDirty, setFotosDirty] = useState(false);
     const fotosCarregadasRef = useRef(null);
+    const kmLockedByPhotoRef = useRef(false);
     const [selectedFrente, setSelectedFrente] = useState('');
     const [selectedPer, setSelectedPer] = useState('');
     const [selectedItem, setSelectedItem] = useState(null);
@@ -277,8 +278,13 @@ export default function VistoriarOcorrenciaDTR() {
                 const { latitude: lat, longitude: lng, accuracy } = pos.coords;
                 setGpsAccuracy(accuracy);
                 setGpsError(null);
-                setLocation({ lat, lng });
-                resolveKm(lat, lng);
+                // Só atualiza coordenadas e KM/rodovia se nenhuma foto já travou o valor.
+                // Após a primeira foto, a localização e o KM ficam fixos na coordenada da foto
+                // para garantir que tabela = marca d'água.
+                if (!kmLockedByPhotoRef.current) {
+                    setLocation({ lat, lng });
+                    resolveKm(lat, lng);
+                }
                 setGettingLocation(false);
                 // Continua observando (não limpa o watch): a cada posição nova, o KM é
                 // recalculado, refinando conforme o GPS converge ou o veículo avança.
@@ -462,12 +468,30 @@ export default function VistoriarOcorrenciaDTR() {
         observacao: true,
     }[currentStep] ?? true;
 
-    const addFoto = (f) => { setFotos(p => [...p, f]); setFotosDirty(true); };
+    const addFoto = (f) => {
+        setFotos(p => [...p, f]);
+        setFotosDirty(true);
+        // Sincroniza KM/rodovia e Coordenadas do state com o valor da primeira foto
+        // de forma que tanto a tabela quanto a marca d'água usem a mesma coordenada e KM válidos.
+        // Trava a localização e o KM para que o watchPosition não sobrescreva depois.
+        if (!kmLockedByPhotoRef.current) {
+            if (f.resolvedKm) setKm(f.resolvedKm);
+            if (f.resolvedRodovia) setRodoviaSnapped(f.resolvedRodovia);
+            if (f.latitude && f.longitude) {
+                setLocation({ lat: f.latitude, lng: f.longitude });
+            }
+            kmLockedByPhotoRef.current = true;
+        }
+    };
     const removeFoto = (i) => {
         setFotos(p => {
+            const list = p.filter((_, j) => j !== i);
+            if (list.length === 0) {
+                kmLockedByPhotoRef.current = false;
+            }
             const alvo = p[i];
             if (alvo?.localId) Repository.deleteLocalFoto(alvo.localId).catch(() => {});
-            return p.filter((_, j) => j !== i);
+            return list;
         });
         setFotosDirty(true);
     };
