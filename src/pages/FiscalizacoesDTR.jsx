@@ -13,9 +13,11 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from '@/components/ui/alert-dialog';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
-import { Search, Filter, Trash2, Calendar, Map, CheckCircle2, Clock, Plus, Compass, Loader2, Settings } from 'lucide-react';
+import { Search, Filter, Trash2, Calendar, Map, CheckCircle2, Clock, Plus, Compass, Loader2, Settings, Download } from 'lucide-react';
 import RelatorioFiscalizacao from '@/components/fiscalizacao/RelatorioFiscalizacao';
 import CaterfLayout from '@/components/caterf/CaterfLayout';
+import JSZip from 'jszip';
+import { supabase } from '@/lib/supabase';
 
 const DTR_MODULOS = ['rodovias_dtr', 'transportes_dtr', 'fiscal_dtr'];
 
@@ -29,6 +31,109 @@ export default function FiscalizacoesDTR() {
     const [dataFim, setDataFim] = useState('');
     const [mostrarFiltros, setMostrarFiltros] = useState(false);
     const [deleteConfirmation, setDeleteConfirmation] = useState({ open: false, fiscId: null, step: 1, inputValue: '' });
+    const [downloadingFiscId, setDownloadingFiscId] = useState(null);
+    const [downloadProgress, setDownloadProgress] = useState('');
+
+    const handleDownloadPhotos = async (e, fiscalizacao) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        setDownloadingFiscId(fiscalizacao.id);
+        setDownloadProgress('Carregando dados...');
+        try {
+            // 1. Carrega unidades da fiscalização ordenadas por ordem e data
+            const { data: unidades, error: uErr } = await supabase
+                .from('unidades_fiscalizadas')
+                .select('id, ordem, nome_unidade, km, rodovia, fotos_unidade, created_at')
+                .eq('fiscalizacao_id', fiscalizacao.id)
+                .order('ordem', { ascending: true, nullsFirst: true })
+                .order('created_at', { ascending: true });
+
+            if (uErr) throw uErr;
+            if (!unidades || unidades.length === 0) {
+                alert('Nenhuma ocorrência ou foto encontrada nesta fiscalização.');
+                setDownloadingFiscId(null);
+                return;
+            }
+
+            // Conta fotos totais
+            let totalFotos = 0;
+            const unidadesComFotos = [];
+            unidades.forEach((u, idx) => {
+                const list = Array.isArray(u.fotos_unidade) ? u.fotos_unidade : [];
+                if (list.length > 0) {
+                    totalFotos += list.length;
+                    unidadesComFotos.push({ u, idx, list });
+                }
+            });
+
+            if (totalFotos === 0) {
+                alert('Nenhuma foto encontrada nesta fiscalização.');
+                setDownloadingFiscId(null);
+                return;
+            }
+
+            setDownloadProgress(`Iniciando (${totalFotos} fotos)...`);
+            const zip = new JSZip();
+
+            // 2. Faz o download das fotos em paralelo/sequência
+            let baixadas = 0;
+            for (const { u, idx, list } of unidadesComFotos) {
+                const occNum = String(idx + 1).padStart(2, '0');
+                const kmClean = String(u.km || '').replace(/[+/]/g, '-').trim();
+
+                for (let j = 0; j < list.length; j++) {
+                    const f = list[j];
+                    setDownloadProgress(`Baixando ${baixadas + 1}/${totalFotos}...`);
+
+                    const parsed = Repository.parseStorageUrl(f.url) || { bucket: f.bucket, path: f.path };
+                    if (!parsed || !parsed.bucket || !parsed.path) {
+                        baixadas++;
+                        continue;
+                    }
+
+                    try {
+                        const { data: blob, error: dlErr } = await supabase.storage
+                            .from(parsed.bucket)
+                            .download(parsed.path);
+
+                        if (dlErr) throw dlErr;
+
+                        if (blob) {
+                            const filename = `Ocorrencia_${occNum}${kmClean ? `_KM_${kmClean}` : ''}_Foto_${j + 1}.jpg`;
+                            zip.file(filename, blob);
+                        }
+                    } catch (err) {
+                        console.error('Falha ao baixar foto:', f.url, err);
+                    }
+                    baixadas++;
+                }
+            }
+
+            setDownloadProgress('Criando ZIP...');
+            const content = await zip.generateAsync({ type: 'blob' });
+
+            // 3. Salva o arquivo no navegador do usuário
+            const rodoviaClean = String(fiscalizacao.rodovia || 'DTR').replace(/\s+/g, '_');
+            const dataFmt = format(new Date(fiscalizacao.data_inicio || new Date()), 'yyyy-MM-dd');
+            const zipFilename = `Fotos_Fiscalizacao_${rodoviaClean}_${dataFmt}.zip`;
+
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(content);
+            link.download = zipFilename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
+
+            setDownloadProgress('');
+            setDownloadingFiscId(null);
+        } catch (err) {
+            console.error('[Download Photos Error]', err);
+            alert('Falha ao baixar fotos: ' + (err?.message || String(err)));
+            setDownloadingFiscId(null);
+        }
+    };
 
     const { data: fiscalizacoes = [], isLoading } = useQuery({
         queryKey: ['fiscalizacoes'],
@@ -251,15 +356,31 @@ export default function FiscalizacoesDTR() {
 
                                             {/* Actions */}
                                             <div className="flex flex-col gap-1.5 border-t border-gray-100 pt-2.5 mt-1">
-                                                {isFinalized ? (
-                                                    <div className="flex gap-2">
-                                                        <RelatorioFiscalizacao fiscalizacao={f} />
-                                                    </div>
-                                                ) : (
-                                                    <span className="text-xs font-semibold text-indigo-600 hover:text-indigo-700">
-                                                        Continuar inspeção →
-                                                    </span>
-                                                )}
+                                                <div className="flex items-center justify-between gap-2 flex-wrap">
+                                                    {isFinalized ? (
+                                                        <div className="flex gap-2">
+                                                            <RelatorioFiscalizacao fiscalizacao={f} />
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-xs font-semibold text-indigo-600 hover:text-indigo-700">
+                                                            Continuar inspeção →
+                                                        </span>
+                                                    )}
+
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="border-indigo-100 hover:bg-indigo-50 hover:text-indigo-700 text-indigo-600 rounded-xl h-9 font-medium text-xs flex items-center gap-1.5 ml-auto"
+                                                        disabled={downloadingFiscId === f.id}
+                                                        onClick={(e) => handleDownloadPhotos(e, f)}
+                                                    >
+                                                        {downloadingFiscId === f.id ? (
+                                                            <><Loader2 className="h-3.5 w-3.5 animate-spin" /> {downloadProgress}</>
+                                                        ) : (
+                                                            <><Download className="h-3.5 w-3.5" /> Baixar Fotos (ZIP)</>
+                                                        )}
+                                                    </Button>
+                                                </div>
                                                 <div className="flex justify-end">
                                                     <Button
                                                         variant="ghost"
