@@ -799,11 +799,37 @@ export default function VistoriarOcorrenciaDTR() {
                             const WM_MAX_LINES = 3; // localização (opcional) / data-hora / coordenadas
                             const wmBoxH = WM_MAX_LINES * wmFontSize + (WM_MAX_LINES - 1) * wmLineGap + wmPadding * 2;
 
-                            // Largura: sempre a imagem inteira — o texto começa perto da borda esquerda
-                            // mas seu comprimento (e portanto onde a caixa termina) varia com o conteúdo,
-                            // então não há como adivinhar um percentual seguro sem medir o texto.
+                            // Largura: usar a foto inteira funciona para não cortar a marca, mas inunda o
+                            // Tesseract com cenário da foto (asfalto, céu etc.) que vira ruído preto/branco
+                            // após a binarização e atrapalha a segmentação automática de texto — o OCR passa
+                            // a falhar bem mais. Em vez de adivinhar um percentual fixo (o bug original) ou
+                            // usar a largura inteira (ruído demais), medimos com a MESMA fonte do desenho o
+                            // texto que realmente estava gravado nesta foto antiga (linha de localização
+                            // salva em `u`, mais data/hora e coordenadas no formato fixo), aplicando a mesma
+                            // função de "encolher com reticências" do desenho original. Isso reproduz
+                            // exatamente até onde a caixa se estende, com folga de segurança.
+                            const measureCtx = cropCanvas.getContext('2d');
+                            measureCtx.font = `600 ${wmFontSize}px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
+                            const wmMaxTextW = Math.max(10, img.naturalWidth - wmPadding * 4);
+                            const fitWmLine = (text) => {
+                                const raw = String(text || '');
+                                if (measureCtx.measureText(raw).width <= wmMaxTextW) return raw;
+                                const ellipsis = '…';
+                                let s = raw;
+                                while (s.length > 1 && measureCtx.measureText(`${s}${ellipsis}`).width > wmMaxTextW) {
+                                    s = s.slice(0, -1);
+                                }
+                                return `${s}${ellipsis}`;
+                            };
+                            const oldLocLineGuess = `${u.rodovia || rodoviaId || ''} KM ${u.km || ''} ${u.sentido || ''}`.trim();
+                            const wmCandidateLines = [oldLocLineGuess, '00/00/0000 00:00:00', '-00.000000, -000.000000'].map(fitWmLine);
+                            const wmMeasuredW = Math.max(0, ...wmCandidateLines.map((t) => measureCtx.measureText(t).width));
+                            const wmBoxW = Math.min(img.naturalWidth - wmPadding * 2, Math.ceil(wmMeasuredW) + wmPadding * 2);
+
                             const cropX = 0;
-                            const cropW = img.naturalWidth;
+                            // +60% de folga sobre a largura medida, para tolerar diferenças de fonte entre
+                            // navegadores/dispositivos que geraram fotos antigas, sem arrastar a foto toda.
+                            const cropW = Math.min(img.naturalWidth, Math.round(wmBoxW * 1.6));
                             // Altura: fórmula real da caixa + margem de segurança para variação de fontes
                             // entre navegadores/dispositivos que geraram fotos antigas.
                             const cropH = Math.min(img.naturalHeight, Math.round(wmBoxH * 1.4) + wmPadding);
