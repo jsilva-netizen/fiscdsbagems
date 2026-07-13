@@ -578,18 +578,12 @@ export default function VistoriarOcorrenciaDTR() {
                 const correctKm = nearest.km;
                 const correctRodovia = nearest.rodovia || rodoviaId;
 
-                // Atualiza a tabela local (Dexie) e Supabase
-                await db.unidades.update(u.id, { km: correctKm, rodovia: correctRodovia });
-                const { error: updErr } = await supabase
-                    .from('unidades_fiscalizadas')
-                    .update({ km: correctKm, rodovia: correctRodovia })
-                    .eq('id', u.id);
-                if (updErr) throw updErr;
-
                 // Processa fotos
-                const fotosList = Array.isArray(u.fotos_unidade) ? u.fotos_unidade : [];
+                const fotosList = Array.isArray(u.fotos_unidade) ? [...u.fotos_unidade] : [];
+                const pathsToDelete = [];
+
                 for (let j = 0; j < fotosList.length; j++) {
-                    const f = fotosList[j];
+                    const f = { ...fotosList[j] };
                     setFixProgress(`Processando ocorrência ${i + 1}/${unidades.length} - Foto ${j + 1}/${fotosList.length}...`);
 
                     const parsed = Repository.parseStorageUrl(f.url);
@@ -718,11 +712,46 @@ export default function VistoriarOcorrenciaDTR() {
                     });
 
                     if (newBlob) {
+                        // Gera um novo caminho/nome para a foto para contornar cache do CDN (Cloudflare)
+                        const newPhotoId = window.crypto?.randomUUID ? window.crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
+                        const newPath = `fiscalizacoes/${fiscId}/${u.id}/${newPhotoId}.jpg`;
+
                         // Faz o upload substituindo no Storage (upsert: true)
                         const { error: upErr } = await supabase.storage
                             .from(parsed.bucket)
-                            .upload(parsed.path, newBlob, { upsert: true, contentType: 'image/jpeg' });
+                            .upload(newPath, newBlob, { upsert: true, contentType: 'image/jpeg' });
                         if (upErr) throw upErr;
+
+                        // Guarda o caminho antigo para remoção no final
+                        pathsToDelete.push(parsed.path);
+
+                        // Atualiza a URL e o Path da foto no array
+                        f.path = newPath;
+                        f.url = `storage://${parsed.bucket}/${newPath}`;
+                        fotosList[j] = f;
+                    }
+                }
+
+                // Atualiza a tabela local (Dexie) e Supabase com fotos e KMs
+                const updatedFields = {
+                    km: correctKm,
+                    rodovia: correctRodovia,
+                    fotos_unidade: fotosList
+                };
+                await db.unidades.update(u.id, updatedFields);
+                const { error: updErr } = await supabase
+                    .from('unidades_fiscalizadas')
+                    .update(updatedFields)
+                    .eq('id', u.id);
+                if (updErr) throw updErr;
+
+                // Deleta as fotos antigas do Storage (limpeza silenciosa)
+                if (pathsToDelete.length > 0) {
+                    try {
+                        const parsedBucket = Repository.parseStorageUrl(u.fotos_unidade?.[0]?.url)?.bucket || 'fotos_fiscalizacao';
+                        await supabase.storage.from(parsedBucket).remove(pathsToDelete);
+                    } catch (delErr) {
+                        console.error('Falha ao limpar fotos antigas:', delErr);
                     }
                 }
             }
