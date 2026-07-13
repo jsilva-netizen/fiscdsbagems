@@ -654,6 +654,20 @@ export default function VistoriarOcorrenciaDTR() {
                 if (occurrenceLat && occurrenceLat > 0) occurrenceLat = -occurrenceLat;
                 if (occurrenceLng && occurrenceLng > 0) occurrenceLng = -occurrenceLng;
 
+                // Corrige supressão de dígitos nas coordenadas da ocorrência (ex: 9 -> 19, 1 ou 2 -> 51 ou 52)
+                if (occurrenceLat) {
+                    const absOLat = Math.abs(occurrenceLat);
+                    if (absOLat >= 8.0 && absOLat <= 9.999999) {
+                        occurrenceLat = -(absOLat + 10.0);
+                    }
+                }
+                if (occurrenceLng) {
+                    const absOLng = Math.abs(occurrenceLng);
+                    if (absOLng >= 1.0 && absOLng <= 2.999999) {
+                        occurrenceLng = -(absOLng + 50.0);
+                    }
+                }
+
                 let correctKm = u.km || null;
                 let correctRodovia = u.rodovia || rodoviaId;
 
@@ -840,6 +854,18 @@ export default function VistoriarOcorrenciaDTR() {
                     // Força sinal negativo nas coordenadas desta foto (Hemisfério Sul/Ocidental)
                     if (photoLat > 0) photoLat = -photoLat;
                     if (photoLng > 0) photoLng = -photoLng;
+
+                    // Corrige supressão de dígitos nas coordenadas desta foto (ex: 9 -> 19, 1 ou 2 -> 51 ou 52)
+                    const absLat = Math.abs(photoLat);
+                    if (absLat >= 8.0 && absLat <= 9.999999) {
+                        photoLat = -(absLat + 10.0);
+                        log(`    [OCR CORREÇÃO] Latitude corrigida de ${(-absLat).toFixed(6)} para ${photoLat.toFixed(6)} (dígito 1 adicionado)`);
+                    }
+                    const absLng = Math.abs(photoLng);
+                    if (absLng >= 1.0 && absLng <= 2.999999) {
+                        photoLng = -(absLng + 50.0);
+                        log(`    [OCR CORREÇÃO] Longitude corrigida de ${(-absLng).toFixed(6)} para ${photoLng.toFixed(6)} (dígito 5 adicionado)`);
+                    }
 
                     // Acha o ponto do KML mais próximo para esta foto específica
                     const nearestPhoto = findNearestKmPoint(pts, photoLat, photoLng);
