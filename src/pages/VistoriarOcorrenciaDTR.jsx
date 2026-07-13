@@ -555,34 +555,34 @@ export default function VistoriarOcorrenciaDTR() {
 
             log(`Carregadas ${unidades.length} ocorrências.`);
 
-            // 2. Carrega os kmPoints da rodovia
-            const rodoviaId = fisc?.rodovia;
-            log(`Identificando rodovia: ${rodoviaId}`);
-            if (!rodoviaId) {
-                log('ERRO: Rodovia da fiscalização não especificada no cabeçalho.');
-                throw new Error('Rodovia da fiscalização não especificada.');
-            }
+            // Cache para armazenar os pontos de KM por rodovia
+            const pointsCache = new Map();
+            
+            const getPointsFor = async (rod) => {
+                const cleanRod = String(rod || '').trim();
+                if (!cleanRod) return [];
+                if (pointsCache.has(cleanRod)) return pointsCache.get(cleanRod);
 
-            log('Carregando pontos de referência do KML...');
-            let pts = kmPoints;
-            if (!pts || pts.length === 0) {
-                log('Buscando pontos KML do repositório local...');
-                pts = await Repository.getKmPointsForRodovia(rodoviaId);
-            }
-            if (!pts || pts.length === 0) {
-                log('KML local vazio, baixando do Storage do Supabase...');
-                const kmlText = await Repository.downloadKMLForRodovia(rodoviaId);
-                if (kmlText) {
-                    pts = parseKMLKmPoints(kmlText);
-                    log(`KML baixado e parseado: ${pts?.length || 0} pontos encontrados.`);
+                log(`Carregando referências KML para a rodovia: ${cleanRod}...`);
+                let pts = await Repository.getKmPointsForRodovia(cleanRod);
+                if (!pts || pts.length === 0) {
+                    log(`  KML local para ${cleanRod} vazio, baixando do Storage...`);
+                    const kmlText = await Repository.downloadKMLForRodovia(cleanRod);
+                    if (kmlText) {
+                        pts = parseKMLKmPoints(kmlText);
+                        log(`  KML para ${cleanRod} baixado e parseado: ${pts?.length || 0} pontos encontrados.`);
+                    }
                 }
-            }
-            if (!pts || pts.length === 0) {
-                log(`ERRO: Não foi possível carregar referências KML para a rodovia ${rodoviaId}.`);
-                throw new Error(`Não foi possível carregar as referências de KM para a rodovia ${rodoviaId}.`);
-            }
+                if (!pts || pts.length === 0) {
+                    log(`  AVISO: Não foi possível carregar referências KML para ${cleanRod}.`);
+                } else {
+                    log(`  Carregados ${pts.length} pontos de referência para ${cleanRod}.`);
+                }
+                pointsCache.set(cleanRod, pts || []);
+                return pts || [];
+            };
 
-            log(`Carregados ${pts.length} pontos de referência de KM.`);
+            const rodoviaId = fisc?.rodovia;
 
             // 3. Processa cada ocorrência
             for (let i = 0; i < unidades.length; i++) {
@@ -598,16 +598,29 @@ export default function VistoriarOcorrenciaDTR() {
                     continue;
                 }
 
+                // Identifica a rodovia da ocorrência (seja a atual da ocorrência ou fallback da fiscalização)
+                const occurrenceRodovia = u.rodovia || rodoviaId;
+                if (!occurrenceRodovia) {
+                    log(`  -> Ignorada: sem rodovia definida na ocorrência ou na fiscalização.`);
+                    continue;
+                }
+
+                const pts = await getPointsFor(occurrenceRodovia);
+                if (!pts || pts.length === 0) {
+                    log(`  -> Ignorada: sem pontos KML para a rodovia ${occurrenceRodovia}.`);
+                    continue;
+                }
+
                 // Acha o ponto do KML mais próximo
-                log('  Buscando ponto KML mais próximo...');
+                log(`  Buscando ponto KML mais próximo em ${occurrenceRodovia}...`);
                 const nearest = findNearestKmPoint(pts, lat, lng);
                 if (!nearest) {
-                    log(`  -> Ignorada: não foi possível encontrar um ponto KML próximo a ${lat}, ${lng}.`);
+                    log(`  -> Ignorada: não foi possível encontrar um ponto KML próximo em ${occurrenceRodovia}.`);
                     continue;
                 }
 
                 const correctKm = nearest.km;
-                const correctRodovia = nearest.rodovia || rodoviaId;
+                const correctRodovia = nearest.rodovia || occurrenceRodovia;
                 log(`  -> KM Calculado: ${correctKm} | Rodovia: ${correctRodovia} (Distância: ${nearest.distanceMeters}m)`);
 
                 // Processa fotos
@@ -728,29 +741,32 @@ export default function VistoriarOcorrenciaDTR() {
                     const newMaxW = Math.max(...newFitted.map(t => ctx.measureText(t).width));
                     const maxW = Math.max(oldMaxW, newMaxW);
 
-                    const boxW = Math.min(canvas.width - padding * 2, Math.ceil(maxW) + padding * 2);
+                    // Box estendido para cobertura total garantida (35% extra de largura e altura ampliada)
+                    const boxW = Math.min(canvas.width - padding * 2, Math.ceil(maxW * 1.35) + padding * 4);
+                    const maskBoxH = boxH + Math.round(fontSize * 0.5);
+                    const maskBoxY = Math.max(padding / 2, boxY - Math.round(fontSize * 0.25));
                     const boxX = padding;
 
                     // 1. Cobre o box antigo com um box totalmente opaco (para apagar o texto antigo)
                     ctx.fillStyle = '#000000';
                     const r = Math.max(8, Math.round(fontSize * 0.4));
                     ctx.beginPath();
-                    ctx.moveTo(boxX + r, boxY);
-                    ctx.arcTo(boxX + boxW, boxY, boxX + boxW, boxY + boxH, r);
-                    ctx.arcTo(boxX + boxW, boxY + boxH, boxX, boxY + boxH, r);
-                    ctx.arcTo(boxX, boxY + boxH, boxX, boxY, r);
-                    ctx.arcTo(boxX, boxY, boxX + boxW, boxY, r);
+                    ctx.moveTo(boxX + r, maskBoxY);
+                    ctx.arcTo(boxX + boxW, maskBoxY, boxX + boxW, maskBoxY + maskBoxH, r);
+                    ctx.arcTo(boxX + boxW, maskBoxY + maskBoxH, boxX, maskBoxY + maskBoxH, r);
+                    ctx.arcTo(boxX, maskBoxY + maskBoxH, boxX, maskBoxY, r);
+                    ctx.arcTo(boxX, maskBoxY, boxX + boxW, maskBoxY, r);
                     ctx.closePath();
                     ctx.fill();
 
                     // 2. Desenha o novo box com opacidade padrão
                     ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
                     ctx.beginPath();
-                    ctx.moveTo(boxX + r, boxY);
-                    ctx.arcTo(boxX + boxW, boxY, boxX + boxW, boxY + boxH, r);
-                    ctx.arcTo(boxX + boxW, boxY + boxH, boxX, boxY + boxH, r);
-                    ctx.arcTo(boxX, boxY + boxH, boxX, boxY, r);
-                    ctx.arcTo(boxX, boxY, boxX + boxW, boxY, r);
+                    ctx.moveTo(boxX + r, maskBoxY);
+                    ctx.arcTo(boxX + boxW, maskBoxY, boxX + boxW, maskBoxY + maskBoxH, r);
+                    ctx.arcTo(boxX + boxW, maskBoxY + maskBoxH, boxX, maskBoxY + maskBoxH, r);
+                    ctx.arcTo(boxX, maskBoxY + maskBoxH, boxX, maskBoxY, r);
+                    ctx.arcTo(boxX, maskBoxY, boxX + boxW, maskBoxY, r);
                     ctx.closePath();
                     ctx.fill();
 
