@@ -906,8 +906,8 @@ export default function VistoriarOcorrenciaDTR() {
                     const newMaxW = Math.max(...newFitted.map(t => ctx.measureText(t).width));
                     const maxW = Math.max(oldMaxW, newMaxW);
 
-                    // Box ajustado para ser elegante e proporcional, com cobertura perfeita e sem excessos
-                    const boxW = Math.min(canvas.width - padding * 2, Math.ceil(maxW * 1.08) + padding * 2);
+                    // Box ajustado para ser elegante e proporcional, com cobertura perfeita e sem excessos (aumento de 10% de largura de segurança)
+                    const boxW = Math.min(canvas.width - padding * 2, Math.ceil(maxW * 1.18) + padding * 2);
                     const maskBoxH = boxH + Math.round(fontSize * 0.1);
                     const maskBoxY = Math.max(padding / 2, boxY - Math.round(fontSize * 0.05));
                     const boxX = padding;
