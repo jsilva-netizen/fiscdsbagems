@@ -616,7 +616,16 @@ export default function VistoriarOcorrenciaDTR() {
                 const pathsToDelete = [];
 
                 for (let j = 0; j < fotosList.length; j++) {
-                    const f = { ...fotosList[j] };
+                    let f = fotosList[j];
+                    if (typeof f === 'string') {
+                        f = { url: f };
+                    } else if (f && typeof f === 'object') {
+                        f = { ...f };
+                    } else {
+                        log(`  - Foto ${j + 1}/${fotosList.length}: Objeto inválido.`);
+                        continue;
+                    }
+
                     log(`  - Foto ${j + 1}/${fotosList.length}: ${f.url ? f.url.substring(0, 50) + '...' : 'Sem URL'}`);
 
                     const parsed = Repository.parseStorageUrl(f.url);
