@@ -2,6 +2,7 @@ import { db, UUID } from './db'
 import { supabase } from '@/lib/supabase'
 import { base64ToBlob } from './image'
 import { clearAllPreviewUrls, revokeManyPreviewUrls } from './photoPreviewCache'
+import { parseKMLKmPoints } from '@/utils/rodoviasGeoJSON'
 
 type Entity =
   | 'fiscalizacoes'
@@ -1851,9 +1852,42 @@ async function pullEntity(entity: Entity, since?: string) {
         case 'prestadores':
           await db.prestadores.bulkPut(normalizedRows)
           break
-        case 'contratos':
-          await db.contratos.bulkPut(normalizedRows)
+        case 'contratos': {
+          const enrichedRows = [...normalizedRows]
+          for (const c of enrichedRows) {
+            if (c.kml_url) {
+              try {
+                // Parse storage URL sem importar a classe Repository para evitar dependência circular
+                let parsed = null
+                const url = c.kml_url
+                if (typeof url === 'string' && url.startsWith('storage://')) {
+                  const remainder = url.slice('storage://'.length)
+                  const slash = remainder.indexOf('/')
+                  if (slash !== -1) {
+                    const bucket = remainder.slice(0, slash)
+                    const path = remainder.slice(slash + 1)
+                    parsed = { bucket, path }
+                  }
+                }
+                
+                if (parsed) {
+                  const { data, error } = await supabase.storage.from(parsed.bucket).download(parsed.path)
+                  if (!error && data) {
+                    const text = await data.text()
+                    const pts = parseKMLKmPoints(text)
+                    if (pts && pts.length > 0) {
+                      c.km_points = pts
+                    }
+                  }
+                }
+              } catch (err) {
+                console.error('[Sync KML Contrato]', c.id, err)
+              }
+            }
+          }
+          await db.contratos.bulkPut(enrichedRows)
           break
+        }
       }
     }
   }
