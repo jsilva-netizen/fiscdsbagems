@@ -33,6 +33,26 @@ const TIPOS_FALLBACK = [
     { frente: 'SERVIÇOS OPERACIONAIS', item_contrato: '3.4.5.1 Atendimento Médico de Emergência', descricao: 'Ausência de ambulância / serviço médico', nome: 'Ausência de ambulância', nao_atendimento: '3.4.5.1. Disponibilização de serviço de atendimento médico de emergência 24:00 horas por dia, inclusive sábados, domingos e feriados.', prazo_dias_padrao: 1 },
 ];
 
+const loadTesseract = () => {
+    return new Promise((resolve, reject) => {
+        if (window.Tesseract) {
+            resolve(window.Tesseract);
+            return;
+        }
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/tesseract.js@5.1.0/dist/tesseract.min.js';
+        script.onload = () => {
+            if (window.Tesseract) {
+                resolve(window.Tesseract);
+            } else {
+                reject(new Error('Objeto global Tesseract não encontrado.'));
+            }
+        };
+        script.onerror = () => reject(new Error('Falha ao baixar Tesseract da CDN.'));
+        document.head.appendChild(script);
+    });
+};
+
 const BASE_STEPS = ['fotos', 'frente', 'per', 'descricao', 'tipo', 'sentido', 'observacao'];
 
 // ─── Ordenação do checklist DTR ─────────────────────────────────────────────────
@@ -556,7 +576,8 @@ export default function VistoriarOcorrenciaDTR() {
             const { data: unidades, error: uErr } = await supabase
                 .from('unidades_fiscalizadas')
                 .select('*')
-                .eq('fiscalizacao_id', fiscId);
+                .eq('fiscalizacao_id', fiscId)
+                .order('ordem', { ascending: true });
             
             if (uErr) {
                 log(`ERRO ao carregar ocorrências: ${uErr.message}`);
@@ -622,26 +643,20 @@ export default function VistoriarOcorrenciaDTR() {
                 log(`Processando ocorrência ${i + 1}/${unidades.length}: "${u.nome_unidade || 'Sem Nome'}" (ID: ${u.id.substring(0,8)})`);
                 setFixProgress(`Ocorrência ${i + 1}/${unidades.length}...`);
 
-                const lat = u.latitude;
-                const lng = u.longitude;
-                log(`  Coordenadas Ocorrência: Lat=${lat}, Lng=${lng}`);
-                if (!lat || !lng) {
-                    log(`  -> Ignorada: ocorrência sem coordenadas de GPS.`);
-                    continue;
-                }
+                let occurrenceLat = typeof u.latitude === 'number' && !isNaN(u.latitude) ? u.latitude : null;
+                let occurrenceLng = typeof u.longitude === 'number' && !isNaN(u.longitude) ? u.longitude : null;
+                let correctKm = u.km || null;
+                let correctRodovia = u.rodovia || rodoviaId;
 
-                // Acha o ponto do KML mais próximo
-                log(`  Buscando ponto KML mais próximo...`);
-                const nearest = findNearestKmPoint(pts, lat, lng);
-                if (!nearest) {
-                    log(`  -> Ignorada: não foi possível encontrar um ponto KML próximo.`);
-                    continue;
+                log(`  Coordenadas Iniciais Ocorrência: Lat=${occurrenceLat}, Lng=${occurrenceLng}`);
+                if (occurrenceLat && occurrenceLng) {
+                    const nearest = findNearestKmPoint(pts, occurrenceLat, occurrenceLng);
+                    if (nearest) {
+                        correctKm = nearest.km;
+                        correctRodovia = nearest.rodovia || u.rodovia || rodoviaId;
+                        log(`  -> KM Pré-calculado Inicial: ${correctKm} | Rodovia: ${correctRodovia} (Distância: ${nearest.distanceMeters}m)`);
+                    }
                 }
-
-                log(`  Ponto KML mais próximo encontrado: ${JSON.stringify(nearest)}`);
-                const correctKm = nearest.km;
-                const correctRodovia = nearest.rodovia || u.rodovia || rodoviaId;
-                log(`  -> KM Resolvido: ${correctKm} | Rodovia Resolvida: ${correctRodovia} (Distância: ${nearest.distanceMeters}m)`);
 
                 // Processa fotos
                 const fotosList = Array.isArray(u.fotos_unidade) ? [...u.fotos_unidade] : [];
@@ -676,13 +691,14 @@ export default function VistoriarOcorrenciaDTR() {
                         const occNum = String(i + 1).padStart(2, '0');
                         const photoNum = String(j + 1);
                         const expectedPrefix = `Ocorrencia_${occNum}_`;
-                        const expectedSuffix = `_Foto_${photoNum}.jpg`;
+                        const expectedSuffix = `_Foto_${photoNum}`;
 
                         let matchedFile = null;
                         loadedZip.forEach((relativePath, zipEntry) => {
                             const filename = relativePath.split('/').pop() || '';
                             const fnLower = filename.toLowerCase();
-                            if (fnLower.startsWith(expectedPrefix.toLowerCase()) && fnLower.endsWith(expectedSuffix.toLowerCase())) {
+                            const nameWithoutExt = fnLower.replace(/\.(jpg|jpeg|png)$/, '');
+                            if (nameWithoutExt.startsWith(expectedPrefix.toLowerCase()) && nameWithoutExt.endsWith(expectedSuffix.toLowerCase())) {
                                 matchedFile = zipEntry;
                             }
                         });
@@ -696,6 +712,16 @@ export default function VistoriarOcorrenciaDTR() {
                             }
                         } else {
                             log(`    [ZIP] AVISO: Foto ${photoNum} da ocorrência ${occNum} não encontrada no ZIP.`);
+                            const zipFiles = [];
+                            loadedZip.forEach((path) => {
+                                const clean = path.split('/').pop() || '';
+                                if (clean.toLowerCase().match(/\.(jpg|jpeg|png)$/)) {
+                                    zipFiles.push(clean);
+                                }
+                            });
+                            if (zipFiles.length > 0) {
+                                log(`    [ZIP DIAGNÓSTICO] Imagens no ZIP: ${zipFiles.slice(0, 8).join(', ')}...`);
+                            }
                         }
                     }
 
@@ -726,6 +752,94 @@ export default function VistoriarOcorrenciaDTR() {
                     }
                     URL.revokeObjectURL(objectUrl);
 
+                    let photoLat = typeof f.latitude === 'number' && !isNaN(f.latitude) ? f.latitude : occurrenceLat;
+                    let photoLng = typeof f.longitude === 'number' && !isNaN(f.longitude) ? f.longitude : occurrenceLng;
+
+                    // Se carregado do ZIP, priorizamos ler a coordenada da marca d'água antiga via OCR!
+                    if (loadedZip) {
+                        try {
+                            log(`    [OCR] Executando OCR na marca d'água antiga para obter coordenadas...`);
+                            const TesseractLib = await loadTesseract();
+
+                            // Cria canvas temporário para o crop
+                            const cropCanvas = document.createElement('canvas');
+                            // A marca d'água fica na parte inferior esquerda.
+                            const cropW = Math.round(img.naturalWidth * 0.42);
+                            const cropH = Math.round(img.naturalHeight * 0.22);
+                            const cropX = Math.round(img.naturalWidth * 0.01);
+                            const cropY = img.naturalHeight - cropH - Math.round(img.naturalHeight * 0.01);
+
+                            cropCanvas.width = cropW;
+                            cropCanvas.height = cropH;
+                            const cropCtx = cropCanvas.getContext('2d');
+                            cropCtx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+
+                            // Grayscale e binarização invertida (texto preto em fundo branco)
+                            const imgData = cropCtx.getImageData(0, 0, cropW, cropH);
+                            const pix = imgData.data;
+                            for (let p = 0; p < pix.length; p += 4) {
+                                const r = pix[p];
+                                const g = pix[p+1];
+                                const b = pix[p+2];
+                                const brightness = (r + g + b) / 3;
+                                const val = brightness > 120 ? 0 : 255;
+                                pix[p] = val;
+                                pix[p+1] = val;
+                                pix[p+2] = val;
+                            }
+                            cropCtx.putImageData(imgData, 0, 0);
+
+                            const ocrResult = await TesseractLib.recognize(cropCanvas, 'eng', {
+                                tessedit_char_whitelist: '0123456789.-, \n'
+                            });
+
+                            const ocrText = ocrResult?.data?.text || '';
+                            log(`    [OCR] Texto cru lido: "${ocrText.replace(/\n/g, ' | ')}"`);
+
+                            const sanitizedText = ocrText
+                                .replace(/[oO]/g, '0')
+                                .replace(/[iIl]/g, '1')
+                                .replace(/[sS]/g, '5');
+
+                            const coordRegex = /(-?\d{1,2}\.\d{4,8})[\s,]+(-?\d{1,3}\.\d{4,8})/;
+                            const match = sanitizedText.match(coordRegex);
+                            if (match) {
+                                const parsedLat = parseFloat(match[1]);
+                                const parsedLng = parseFloat(match[2]);
+                                if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
+                                    photoLat = parsedLat;
+                                    photoLng = parsedLng;
+                                    log(`    [OCR] Sucesso! Coordenadas extraídas da marca d'água: Lat=${photoLat.toFixed(6)}, Lng=${photoLng.toFixed(6)}`);
+                                }
+                            } else {
+                                log(`    [OCR] AVISO: Coordenadas não encontradas no texto lido.`);
+                            }
+                        } catch (ocrErr) {
+                            log(`    [OCR] ERRO ao ler marca d'água: ${ocrErr.message}`);
+                        }
+                    }
+
+                    if (photoLat === null || photoLng === null || isNaN(photoLat) || isNaN(photoLng)) {
+                        log(`    [AVISO] Foto sem coordenadas (OCR falhou ou indisponível). Pulando gravação de marca d'água desta foto.`);
+                        continue;
+                    }
+
+                    // Acha o ponto do KML mais próximo para esta foto específica
+                    const nearestPhoto = findNearestKmPoint(pts, photoLat, photoLng);
+                    const photoKm = nearestPhoto ? nearestPhoto.km : (correctKm || '');
+                    const photoRodovia = nearestPhoto ? (nearestPhoto.rodovia || rodoviaId) : (correctRodovia || rodoviaId);
+
+                    log(`    - Foto ${j + 1}/${fotosList.length}: GPS=[${photoLat.toFixed(6)}, ${photoLng.toFixed(6)}] | Resolvido=[${photoRodovia} KM ${photoKm}]`);
+
+                    // Atualiza coordenadas gerais da ocorrência caso ainda estejam nulas
+                    if (!occurrenceLat || isNaN(occurrenceLat)) {
+                        occurrenceLat = photoLat;
+                        occurrenceLng = photoLng;
+                        correctKm = photoKm;
+                        correctRodovia = photoRodovia;
+                        log(`    -> Coordenadas principais da ocorrência definidas a partir desta foto: Lat=${occurrenceLat.toFixed(6)}, Lng=${occurrenceLng.toFixed(6)}`);
+                    }
+
                     const canvas = document.createElement('canvas');
                     canvas.width = img.naturalWidth || img.width;
                     canvas.height = img.naturalHeight || img.height;
@@ -746,16 +860,6 @@ export default function VistoriarOcorrenciaDTR() {
                     const formatDateBR = (d) => `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${d.getFullYear()}`;
                     const formatTimeBR = (d) => `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
                     
-                    const photoLat = typeof f.latitude === 'number' && !isNaN(f.latitude) ? f.latitude : lat;
-                    const photoLng = typeof f.longitude === 'number' && !isNaN(f.longitude) ? f.longitude : lng;
-
-                    // Acha o ponto do KML mais próximo para esta foto específica
-                    const nearestPhoto = findNearestKmPoint(pts, photoLat, photoLng);
-                    const photoKm = nearestPhoto ? nearestPhoto.km : correctKm;
-                    const photoRodovia = nearestPhoto ? (nearestPhoto.rodovia || rodoviaId) : correctRodovia;
-
-                    log(`    - Foto ${j + 1}/${fotosList.length}: GPS=[${photoLat.toFixed(6)}, ${photoLng.toFixed(6)}] | Resolvido=[${photoRodovia} KM ${photoKm}]`);
-
                     const takenAt = f.data_hora ? new Date(f.data_hora) : new Date();
                     const dateText = `${formatDateBR(takenAt)} ${formatTimeBR(takenAt)}`;
                     const coordsText = `${photoLat.toFixed(6)}, ${photoLng.toFixed(6)}`;
@@ -776,7 +880,6 @@ export default function VistoriarOcorrenciaDTR() {
 
                     const oldLines = [oldLocLine, dateText, coordsText];
                     const newLines = [newLocLine, dateText, coordsText];
-
                     const maxTextW = Math.max(10, canvas.width - padding * 4);
                     const fitLine = (txt) => {
                         const raw = String(txt || '');
@@ -871,6 +974,8 @@ export default function VistoriarOcorrenciaDTR() {
 
                 log('  Atualizando ocorrência localmente e no banco...');
                 const updatedFields = {
+                    latitude: occurrenceLat,
+                    longitude: occurrenceLng,
                     km: correctKm,
                     rodovia: correctRodovia,
                     fotos_unidade: fotosList
