@@ -804,9 +804,13 @@ export default function VistoriarOcorrenciaDTR() {
                             const coordRegex = /(-?\d{1,2}\.\d{4,8})[\s,]+(-?\d{1,3}\.\d{4,8})/;
                             const match = sanitizedText.match(coordRegex);
                             if (match) {
-                                const parsedLat = parseFloat(match[1]);
-                                const parsedLng = parseFloat(match[2]);
+                                let parsedLat = parseFloat(match[1]);
+                                let parsedLng = parseFloat(match[2]);
                                 if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
+                                    // Garante que as coordenadas sejam sempre negativas (Mato Grosso do Sul está no hemisfério sul/ocidental)
+                                    if (parsedLat > 0) parsedLat = -parsedLat;
+                                    if (parsedLng > 0) parsedLng = -parsedLng;
+                                    
                                     photoLat = parsedLat;
                                     photoLng = parsedLng;
                                     log(`    [OCR] Sucesso! Coordenadas extraídas da marca d'água: Lat=${photoLat.toFixed(6)}, Lng=${photoLng.toFixed(6)}`);
