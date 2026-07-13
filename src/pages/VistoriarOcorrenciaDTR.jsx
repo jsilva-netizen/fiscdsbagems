@@ -144,6 +144,7 @@ export default function VistoriarOcorrenciaDTR() {
     const [fixingDtr, setFixingDtr] = useState(false);
     const [fixProgress, setFixProgress] = useState('');
     const [fixError, setFixError] = useState(null);
+    const [fixLogs, setFixLogs] = useState([]);
     const [selectedFrente, setSelectedFrente] = useState('');
     const [selectedPer, setSelectedPer] = useState('');
     const [selectedItem, setSelectedItem] = useState(null);
@@ -527,83 +528,125 @@ export default function VistoriarOcorrenciaDTR() {
         if (!confirm('Deseja recalcular todos os KMs desta fiscalização a partir das coordenadas reais das fotos e atualizar as marcas d\'água das imagens?')) return;
         setFixingDtr(true);
         setFixError(null);
-        setFixProgress('Carregando ocorrências...');
+        setFixLogs([]);
+        setFixProgress('Iniciando...');
+        
+        const log = (msg) => {
+            console.log(`[DTR-FIX] ${msg}`);
+            setFixLogs(prev => [...prev, msg]);
+        };
+
         try {
+            log(`Carregando ocorrências da fiscalização ID: ${fiscId}`);
             // 1. Carrega unidades da fiscalização do Supabase
             const { data: unidades, error: uErr } = await supabase
                 .from('unidades_fiscalizadas')
                 .select('*')
                 .eq('fiscalizacao_id', fiscId);
-            if (uErr) throw uErr;
-            if (!unidades || unidades.length === 0) throw new Error('Nenhuma ocorrência encontrada para esta fiscalização.');
+            
+            if (uErr) {
+                log(`ERRO ao carregar ocorrências: ${uErr.message}`);
+                throw uErr;
+            }
+            if (!unidades || unidades.length === 0) {
+                log('Nenhuma ocorrência encontrada nesta fiscalização.');
+                throw new Error('Nenhuma ocorrência encontrada para esta fiscalização.');
+            }
+
+            log(`Carregadas ${unidades.length} ocorrências.`);
 
             // 2. Carrega os kmPoints da rodovia
-            setFixProgress('Carregando referências de KM...');
             const rodoviaId = fisc?.rodovia;
-            if (!rodoviaId) throw new Error('Rodovia da fiscalização não especificada.');
+            log(`Identificando rodovia: ${rodoviaId}`);
+            if (!rodoviaId) {
+                log('ERRO: Rodovia da fiscalização não especificada no cabeçalho.');
+                throw new Error('Rodovia da fiscalização não especificada.');
+            }
+
+            log('Carregando pontos de referência do KML...');
             let pts = kmPoints;
             if (!pts || pts.length === 0) {
+                log('Buscando pontos KML do repositório local...');
                 pts = await Repository.getKmPointsForRodovia(rodoviaId);
             }
             if (!pts || pts.length === 0) {
-                // Tenta baixar KML
+                log('KML local vazio, baixando do Storage do Supabase...');
                 const kmlText = await Repository.downloadKMLForRodovia(rodoviaId);
                 if (kmlText) {
                     pts = parseKMLKmPoints(kmlText);
+                    log(`KML baixado e parseado: ${pts?.length || 0} pontos encontrados.`);
                 }
             }
             if (!pts || pts.length === 0) {
+                log(`ERRO: Não foi possível carregar referências KML para a rodovia ${rodoviaId}.`);
                 throw new Error(`Não foi possível carregar as referências de KM para a rodovia ${rodoviaId}.`);
             }
+
+            log(`Carregados ${pts.length} pontos de referência de KM.`);
 
             // 3. Processa cada ocorrência
             for (let i = 0; i < unidades.length; i++) {
                 const u = unidades[i];
-                setFixProgress(`Processando ocorrência ${i + 1}/${unidades.length} (${u.nome_unidade || 'Sem Nome'})...`);
+                log(`Processando ocorrência ${i + 1}/${unidades.length}: "${u.nome_unidade || 'Sem Nome'}" (ID: ${u.id.substring(0,8)})`);
+                setFixProgress(`Ocorrência ${i + 1}/${unidades.length}...`);
 
                 const lat = u.latitude;
                 const lng = u.longitude;
+                log(`  Coordenadas: Lat=${lat}, Lng=${lng}`);
                 if (!lat || !lng) {
-                    console.log(`Ocorrência ${u.id} sem coordenadas válidas.`);
+                    log(`  -> Ignorada: ocorrência sem coordenadas de GPS.`);
                     continue;
                 }
 
                 // Acha o ponto do KML mais próximo
+                log('  Buscando ponto KML mais próximo...');
                 const nearest = findNearestKmPoint(pts, lat, lng);
                 if (!nearest) {
-                    console.log(`Não foi possível achar vizinho para ${lat}, ${lng}`);
+                    log(`  -> Ignorada: não foi possível encontrar um ponto KML próximo a ${lat}, ${lng}.`);
                     continue;
                 }
 
                 const correctKm = nearest.km;
                 const correctRodovia = nearest.rodovia || rodoviaId;
+                log(`  -> KM Calculado: ${correctKm} | Rodovia: ${correctRodovia} (Distância: ${nearest.distanceMeters}m)`);
 
                 // Processa fotos
                 const fotosList = Array.isArray(u.fotos_unidade) ? [...u.fotos_unidade] : [];
+                log(`  Possui ${fotosList.length} fotos salvas.`);
                 const pathsToDelete = [];
 
                 for (let j = 0; j < fotosList.length; j++) {
                     const f = { ...fotosList[j] };
-                    setFixProgress(`Processando ocorrência ${i + 1}/${unidades.length} - Foto ${j + 1}/${fotosList.length}...`);
+                    log(`  - Foto ${j + 1}/${fotosList.length}: ${f.url ? f.url.substring(0, 50) + '...' : 'Sem URL'}`);
 
                     const parsed = Repository.parseStorageUrl(f.url);
-                    if (!parsed) continue;
-
-                    // Baixa a imagem do Storage
-                    const { data: blob, error: dlErr } = await supabase.storage.from(parsed.bucket).download(parsed.path);
-                    if (dlErr || !blob) {
-                        console.error('Erro ao baixar foto:', dlErr);
+                    if (!parsed) {
+                        log(`    -> Ignorada: URL de foto inválida ou local (não é storage://): ${f.url}`);
                         continue;
                     }
 
+                    log(`    Baixando imagem do Storage (caminho: ${parsed.path})...`);
+                    const { data: blob, error: dlErr } = await supabase.storage.from(parsed.bucket).download(parsed.path);
+                    if (dlErr || !blob) {
+                        log(`    ERRO ao baixar imagem: ${dlErr?.message || 'Blob vazio'}`);
+                        continue;
+                    }
+
+                    log(`    Imagem baixada (${Math.round(blob.size / 1024)} KB). Carregando Canvas...`);
                     // Carrega imagem no Canvas
                     const img = new Image();
                     const objectUrl = URL.createObjectURL(blob);
-                    await new Promise((resolve, reject) => {
-                        img.onload = () => resolve();
-                        img.onerror = reject;
-                        img.src = objectUrl;
-                    });
+                    try {
+                        await new Promise((resolve, reject) => {
+                            img.onload = () => resolve();
+                            img.onerror = reject;
+                            img.src = objectUrl;
+                        });
+                    } catch (canvasLoadErr) {
+                        log(`    ERRO ao carregar imagem no Canvas: ${canvasLoadErr.message}`);
+                        URL.revokeObjectURL(objectUrl);
+                        continue;
+                    }
                     URL.revokeObjectURL(objectUrl);
 
                     const canvas = document.createElement('canvas');
@@ -612,6 +655,7 @@ export default function VistoriarOcorrenciaDTR() {
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0);
 
+                    log(`    Redesenhando marca d'água no Canvas (${canvas.width}x${canvas.height})...`);
                     // Re-desenha a marca d'água
                     const base = Math.max(canvas.width, canvas.height);
                     const padding = Math.max(10, Math.round(base * 0.015));
@@ -712,27 +756,26 @@ export default function VistoriarOcorrenciaDTR() {
                     });
 
                     if (newBlob) {
-                        // Gera um novo caminho/nome para a foto para contornar cache do CDN (Cloudflare)
                         const newPhotoId = window.crypto?.randomUUID ? window.crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
                         const newPath = `fiscalizacoes/${fiscId}/${u.id}/${newPhotoId}.jpg`;
+                        log(`    Salvando nova imagem corrigida no Storage: ${newPath}...`);
 
-                        // Faz o upload substituindo no Storage (upsert: true)
                         const { error: upErr } = await supabase.storage
                             .from(parsed.bucket)
                             .upload(newPath, newBlob, { upsert: true, contentType: 'image/jpeg' });
-                        if (upErr) throw upErr;
+                        if (upErr) {
+                            log(`    ERRO ao fazer upload da imagem: ${upErr.message}`);
+                            throw upErr;
+                        }
 
-                        // Guarda o caminho antigo para remoção no final
                         pathsToDelete.push(parsed.path);
-
-                        // Atualiza a URL e o Path da foto no array
                         f.path = newPath;
                         f.url = `storage://${parsed.bucket}/${newPath}`;
                         fotosList[j] = f;
                     }
                 }
 
-                // Atualiza a tabela local (Dexie) e Supabase com fotos e KMs
+                log('  Atualizando ocorrência localmente e no banco...');
                 const updatedFields = {
                     km: correctKm,
                     rodovia: correctRodovia,
@@ -743,10 +786,14 @@ export default function VistoriarOcorrenciaDTR() {
                     .from('unidades_fiscalizadas')
                     .update(updatedFields)
                     .eq('id', u.id);
-                if (updErr) throw updErr;
+                if (updErr) {
+                    log(`  ERRO ao salvar no Supabase: ${updErr.message}`);
+                    throw updErr;
+                }
 
-                // Deleta as fotos antigas do Storage (limpeza silenciosa)
+                // Deleta as fotos antigas do Storage
                 if (pathsToDelete.length > 0) {
+                    log(`  Limpando ${pathsToDelete.length} imagens obsoletas do Storage...`);
                     try {
                         const parsedBucket = Repository.parseStorageUrl(u.fotos_unidade?.[0]?.url)?.bucket || 'fotos_fiscalizacao';
                         await supabase.storage.from(parsedBucket).remove(pathsToDelete);
@@ -756,19 +803,22 @@ export default function VistoriarOcorrenciaDTR() {
                 }
             }
 
-            // 4. Força re-geração do relatório chamando o relatorios_enqueue
+            log('Enfileirando re-geração do relatório no servidor...');
             setFixProgress('Re-gerando relatório...');
-            await invokeEdgeFunction('relatorios_enqueue', { fiscalizacao_id: fiscId });
+            const eqRes = await invokeEdgeFunction('relatorios_enqueue', { fiscalizacao_id: fiscId });
+            log(`Solicitação enviada. Job ID: ${eqRes?.job_id || 'Indefinido'}`);
 
-            setFixProgress('Concluído! Recarregando os dados...');
+            log('Concluído com sucesso! Recarregando página em instantes...');
+            setFixProgress('Concluído!');
             queryClient.invalidateQueries({ queryKey: ['unidades', fiscId] });
             queryClient.invalidateQueries({ queryKey: ['unidade', occurrenceId] });
             setTimeout(() => {
                 window.location.reload();
-            }, 1500);
+            }, 2500);
 
         } catch (err) {
             console.error('[Fix Finalized Fisc Error]', err);
+            log(`FALHA CRÍTICA: ${err?.message || String(err)}`);
             setFixError(err?.message || String(err));
             setFixingDtr(false);
         }
@@ -1063,6 +1113,13 @@ export default function VistoriarOcorrenciaDTR() {
                                 <><RotateCcw className="h-3.5 w-3.5" /> Corrigir KM e Marcas d'Água</>
                             )}
                         </Button>
+                        {fixLogs.length > 0 && (
+                            <div className="bg-gray-50 border border-gray-100 rounded-lg p-2.5 max-h-[160px] overflow-y-auto font-mono text-[9px] text-gray-500 space-y-1 mt-2">
+                                {fixLogs.map((lg, idx) => (
+                                    <div key={idx} className="leading-normal">{lg}</div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 )}
                 <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wide">{stepIdx + 1}. OBSERVAÇÃO</h2>
