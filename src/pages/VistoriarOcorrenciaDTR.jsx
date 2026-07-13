@@ -626,11 +626,15 @@ export default function VistoriarOcorrenciaDTR() {
                         continue;
                     }
 
-                    log(`  - Foto ${j + 1}/${fotosList.length}: ${f.url ? f.url.substring(0, 50) + '...' : 'Sem URL'}`);
+                    let parsed = Repository.parseStorageUrl(f.url);
+                    if (!parsed && f.bucket && f.path) {
+                        parsed = { bucket: f.bucket, path: f.path };
+                    }
 
-                    const parsed = Repository.parseStorageUrl(f.url);
-                    if (!parsed) {
-                        log(`    -> Ignorada: URL de foto inválida ou local (não é storage://): ${f.url}`);
+                    log(`  - Foto ${j + 1}/${fotosList.length}: URL=${f.url ? f.url.substring(0, 45) + '...' : 'Sem URL'}, Bucket=${f.bucket || '—'}, Path=${f.path || '—'}`);
+
+                    if (!parsed || !parsed.bucket || !parsed.path) {
+                        log(`    -> Ignorada: Foto sem referência válida de Storage (URL ou Bucket/Path): ${JSON.stringify(f)}`);
                         continue;
                     }
 
