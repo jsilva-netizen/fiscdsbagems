@@ -784,13 +784,30 @@ export default function VistoriarOcorrenciaDTR() {
                             log(`    [OCR] Executando OCR na marca d'água antiga para obter coordenadas...`);
                             const TesseractLib = await loadTesseract();
 
-                            // Cria canvas temporário para o crop
+                            // Cria canvas temporário para o crop.
+                            // A marca d'água é desenhada (drawWatermark, em image.ts) com uma caixa cujo
+                            // tamanho depende de `base = max(largura, altura)` da própria foto — um recorte
+                            // com porcentagens fixas de largura/altura não acompanha isso e corta a marca
+                            // em fotos com proporção diferente ou com linha de localização mais longa
+                            // (ex: nome de rodovia/município extenso). Por isso recalculamos a mesma
+                            // fórmula usada no desenho para saber exatamente onde a caixa termina.
                             const cropCanvas = document.createElement('canvas');
-                            // A marca d'água fica na parte inferior esquerda.
-                            const cropW = Math.round(img.naturalWidth * 0.42);
-                            const cropH = Math.round(img.naturalHeight * 0.22);
-                            const cropX = Math.round(img.naturalWidth * 0.01);
-                            const cropY = img.naturalHeight - cropH - Math.round(img.naturalHeight * 0.01);
+                            const wmBase = Math.max(img.naturalWidth, img.naturalHeight);
+                            const wmPadding = Math.max(10, Math.round(wmBase * 0.015));
+                            const wmFontSize = Math.max(14, Math.round(wmBase * 0.028));
+                            const wmLineGap = Math.round(wmFontSize * 0.25);
+                            const WM_MAX_LINES = 3; // localização (opcional) / data-hora / coordenadas
+                            const wmBoxH = WM_MAX_LINES * wmFontSize + (WM_MAX_LINES - 1) * wmLineGap + wmPadding * 2;
+
+                            // Largura: sempre a imagem inteira — o texto começa perto da borda esquerda
+                            // mas seu comprimento (e portanto onde a caixa termina) varia com o conteúdo,
+                            // então não há como adivinhar um percentual seguro sem medir o texto.
+                            const cropX = 0;
+                            const cropW = img.naturalWidth;
+                            // Altura: fórmula real da caixa + margem de segurança para variação de fontes
+                            // entre navegadores/dispositivos que geraram fotos antigas.
+                            const cropH = Math.min(img.naturalHeight, Math.round(wmBoxH * 1.4) + wmPadding);
+                            const cropY = Math.max(0, img.naturalHeight - cropH);
 
                             cropCanvas.width = cropW;
                             cropCanvas.height = cropH;
