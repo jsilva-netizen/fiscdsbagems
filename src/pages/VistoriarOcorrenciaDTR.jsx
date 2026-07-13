@@ -831,13 +831,14 @@ export default function VistoriarOcorrenciaDTR() {
 
                     log(`    - Foto ${j + 1}/${fotosList.length}: GPS=[${photoLat.toFixed(6)}, ${photoLng.toFixed(6)}] | Resolvido=[${photoRodovia} KM ${photoKm}]`);
 
-                    // Atualiza coordenadas gerais da ocorrência caso ainda estejam nulas
-                    if (!occurrenceLat || isNaN(occurrenceLat)) {
+                    // Atualiza os dados principais da ocorrência na tabela para refletir exatamente os da primeira imagem de cada ocorrência
+                    const isFirstPhotoOrFirstValid = j === 0 || !occurrenceLat || isNaN(occurrenceLat);
+                    if (isFirstPhotoOrFirstValid) {
                         occurrenceLat = photoLat;
                         occurrenceLng = photoLng;
                         correctKm = photoKm;
                         correctRodovia = photoRodovia;
-                        log(`    -> Coordenadas principais da ocorrência definidas a partir desta foto: Lat=${occurrenceLat.toFixed(6)}, Lng=${occurrenceLng.toFixed(6)}`);
+                        log(`    -> [Tabela Ocorrência] Atualizado para refletir a Foto ${j + 1}: Lat=${occurrenceLat.toFixed(6)}, Lng=${occurrenceLng.toFixed(6)} | KM=${correctKm} | Rodovia=${correctRodovia}`);
                     }
 
                     const canvas = document.createElement('canvas');
