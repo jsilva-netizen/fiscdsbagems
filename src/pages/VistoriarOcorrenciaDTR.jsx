@@ -867,11 +867,30 @@ export default function VistoriarOcorrenciaDTR() {
                                 .replace(/[iIl]/g, '1')
                                 .replace(/[sS]/g, '5');
 
-                            const coordRegex = /(-?\d{1,2}\.\d{4,8})[\s,]+(-?\d{1,3}\.\d{4,8})/;
+                            // Tokens "soltos" de dígitos+ponto — não travamos a posição do ponto aqui
+                            // porque o Tesseract às vezes lê os dígitos certos mas posiciona o ponto uma
+                            // casa depois do correto (ex: "563.141686" em vez de "56.3141686", mesma
+                            // sequência de dígitos "563141686"). A reconstrução correta é feita abaixo
+                            // por contagem de dígitos, não pela posição que o OCR "viu".
+                            const coordRegex = /(-?[\d.]{6,11})[\s,]+(-?[\d.]{6,11})/;
                             const match = sanitizedText.match(coordRegex);
+                            // Coordenadas em MS sempre têm exatamente 2 dígitos inteiros (formato
+                            // "XX.Xxxxxx"). Reconstrói nesse formato fixo a partir da sequência de dígitos
+                            // pura, ignorando onde o Tesseract posicionou o ponto — corrige o deslocamento
+                            // de ponto decimal sem depender de sorte na leitura da posição do "."
+                            // Quando faltam dígitos (provável supressão do dígito líder pelo OCR), mantém
+                            // a posição decimal original lida; a correção de supressão logo abaixo
+                            // devolve o dígito faltante usando os limites conhecidos de MS.
+                            const normalizeOcrCoord = (raw) => {
+                                const digitsOnly = String(raw || '').replace(/[^0-9]/g, '');
+                                if (digitsOnly.length >= 8) {
+                                    return parseFloat(`${digitsOnly.slice(0, 2)}.${digitsOnly.slice(2)}`);
+                                }
+                                return parseFloat(raw);
+                            };
                             if (match) {
-                                let parsedLat = parseFloat(match[1]);
-                                let parsedLng = parseFloat(match[2]);
+                                let parsedLat = normalizeOcrCoord(match[1]);
+                                let parsedLng = normalizeOcrCoord(match[2]);
                                 if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
                                     // Garante que as coordenadas sejam sempre negativas (Mato Grosso do Sul está no hemisfério sul/ocidental)
                                     if (parsedLat > 0) parsedLat = -parsedLat;
