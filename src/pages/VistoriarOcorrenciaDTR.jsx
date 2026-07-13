@@ -469,6 +469,10 @@ export default function VistoriarOcorrenciaDTR() {
     const isLastStep = stepIdx === activeSteps.length - 1;
 
     const goBack = () => {
+        if (isFinalized) {
+            navigate(createPageUrl('FiscalizacoesDTR'));
+            return;
+        }
         if (stepIdx === 0) {
             if (fotos.length > 0 && !occurrenceId) {
                 if (!confirm('Sair agora? As fotos podem ser perdidas.')) return;
@@ -645,6 +649,11 @@ export default function VistoriarOcorrenciaDTR() {
 
                 let occurrenceLat = typeof u.latitude === 'number' && !isNaN(u.latitude) ? u.latitude : null;
                 let occurrenceLng = typeof u.longitude === 'number' && !isNaN(u.longitude) ? u.longitude : null;
+                
+                // Força sinal negativo nas coordenadas da ocorrência vindas do banco (Hemisfério Sul/Ocidental)
+                if (occurrenceLat && occurrenceLat > 0) occurrenceLat = -occurrenceLat;
+                if (occurrenceLng && occurrenceLng > 0) occurrenceLng = -occurrenceLng;
+
                 let correctKm = u.km || null;
                 let correctRodovia = u.rodovia || rodoviaId;
 
@@ -827,6 +836,10 @@ export default function VistoriarOcorrenciaDTR() {
                         log(`    [AVISO] Foto sem coordenadas (OCR falhou ou indisponível). Pulando gravação de marca d'água desta foto.`);
                         continue;
                     }
+
+                    // Força sinal negativo nas coordenadas desta foto (Hemisfério Sul/Ocidental)
+                    if (photoLat > 0) photoLat = -photoLat;
+                    if (photoLng > 0) photoLng = -photoLng;
 
                     // Acha o ponto do KML mais próximo para esta foto específica
                     const nearestPhoto = findNearestKmPoint(pts, photoLat, photoLng);
