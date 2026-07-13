@@ -569,6 +569,27 @@ export default function VistoriarOcorrenciaDTR() {
                 log('Parseando arquivo KML bruto...');
                 pts = parseKMLKmPoints(kmlText);
                 log(`KML bruto parseado com sucesso: ${pts?.length || 0} pontos importados.`);
+                
+                // Diagnóstico do primeiro ponto para verificar atributos no console de log
+                try {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(kmlText, 'application/xml');
+                    const firstPm = doc.querySelector('Placemark');
+                    if (firstPm) {
+                        const sds = [];
+                        for (const sd of firstPm.querySelectorAll('SimpleData')) {
+                            sds.push(`${sd.getAttribute('name')}: "${sd.textContent.trim()}"`);
+                        }
+                        const ds = [];
+                        for (const d of firstPm.querySelectorAll('Data')) {
+                            const v = d.querySelector('value')?.textContent || '';
+                            ds.push(`${d.getAttribute('name')}: "${v.trim()}"`);
+                        }
+                        log(`[DIAGNÓSTICO KML] Exemplo de colunas no KML: SimpleData=[${sds.join(', ')}], Data=[${ds.join(', ')}]`);
+                    }
+                } catch (diagErr) {
+                    log(`Erro ao rodar diagnóstico de colunas KML: ${diagErr.message}`);
+                }
             } else {
                 log('AVISO: Não foi possível baixar o KML bruto. Tentando banco local como fallback...');
                 pts = await Repository.getKmPointsForRodovia(rodoviaId);
@@ -589,7 +610,7 @@ export default function VistoriarOcorrenciaDTR() {
 
                 const lat = u.latitude;
                 const lng = u.longitude;
-                log(`  Coordenadas: Lat=${lat}, Lng=${lng}`);
+                log(`  Coordenadas Ocorrência: Lat=${lat}, Lng=${lng}`);
                 if (!lat || !lng) {
                     log(`  -> Ignorada: ocorrência sem coordenadas de GPS.`);
                     continue;
@@ -603,9 +624,10 @@ export default function VistoriarOcorrenciaDTR() {
                     continue;
                 }
 
+                log(`  Ponto KML mais próximo encontrado: ${JSON.stringify(nearest)}`);
                 const correctKm = nearest.km;
-                const correctRodovia = nearest.rodovia || rodoviaId;
-                log(`  -> KM Calculado: ${correctKm} | Rodovia: ${correctRodovia} (Distância: ${nearest.distanceMeters}m)`);
+                const correctRodovia = nearest.rodovia || u.rodovia || rodoviaId;
+                log(`  -> KM Resolvido: ${correctKm} | Rodovia Resolvida: ${correctRodovia} (Distância: ${nearest.distanceMeters}m)`);
 
                 // Processa fotos
                 const fotosList = Array.isArray(u.fotos_unidade) ? [...u.fotos_unidade] : [];

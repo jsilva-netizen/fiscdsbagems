@@ -77,15 +77,17 @@ export const RODOVIAS_TRACKS = {
   }
 };
 
-// Lê um campo por nome via ExtendedData > SimpleData[name=x] ou ExtendedData > Data[name=x] > value
 function readExtendedDataField(pm, fieldName) {
+  const target = String(fieldName || '').trim().toLowerCase();
   for (const sd of pm.querySelectorAll('SimpleData')) {
-    if ((sd.getAttribute('name') || '').toLowerCase() === fieldName) {
+    const name = String(sd.getAttribute('name') || '').trim().toLowerCase();
+    if (name === target) {
       return sd.textContent.trim();
     }
   }
   for (const d of pm.querySelectorAll('Data')) {
-    if ((d.getAttribute('name') || '').toLowerCase() === fieldName) {
+    const name = String(d.getAttribute('name') || '').trim().toLowerCase();
+    if (name === target) {
       const v = d.querySelector('value');
       if (v) return v.textContent.trim();
     }
