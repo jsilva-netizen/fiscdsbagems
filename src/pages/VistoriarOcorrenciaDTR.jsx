@@ -817,13 +817,10 @@ export default function VistoriarOcorrenciaDTR() {
             const eqRes = await invokeEdgeFunction('relatorios_enqueue', { fiscalizacao_id: fiscId });
             log(`Solicitação enviada. Job ID: ${eqRes?.job_id || 'Indefinido'}`);
 
-            log('Concluído com sucesso! Recarregando página em instantes...');
+            log('Concluído com sucesso! Os dados foram atualizados e o laudo PDF foi enfileirado para re-geração.');
             setFixProgress('Concluído!');
             queryClient.invalidateQueries({ queryKey: ['unidades', fiscId] });
             queryClient.invalidateQueries({ queryKey: ['unidade', occurrenceId] });
-            setTimeout(() => {
-                window.location.reload();
-            }, 2500);
 
         } catch (err) {
             console.error('[Fix Finalized Fisc Error]', err);
