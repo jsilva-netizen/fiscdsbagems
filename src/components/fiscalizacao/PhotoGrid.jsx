@@ -45,12 +45,12 @@ export default function PhotoGrid({
     const [signedByKey, setSignedByKey] = useState({});
     const lastGpsFixAtRef = useRef(0);
     const GPS_FIX_MAX_AGE_MS = 2 * 60 * 1000;
-    const GPS_FALLBACK_MAX_AGE_MS = 10 * 60 * 1000;
     const captureResetTimerRef = useRef(null);
     const autoCaptureAttemptedRef = useRef(false);
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
     const streamRef = useRef(null);
+    const watchIdRef = useRef(null);
     const [showCamera, setShowCamera] = useState(false);
 
     const fotoKey = (foto, index) => {
@@ -85,11 +85,14 @@ export default function PhotoGrid({
         return url;
     };
 
-    // Limpa stream WebRTC ao desmontar
+    // Limpa stream WebRTC e watch de GPS ao desmontar
     useEffect(() => {
         return () => {
             if (streamRef.current) {
                 streamRef.current.getTracks().forEach(t => t.stop());
+            }
+            if (watchIdRef.current != null && navigator.geolocation?.clearWatch) {
+                navigator.geolocation.clearWatch(watchIdRef.current);
             }
         };
     }, []);
@@ -152,27 +155,6 @@ export default function PhotoGrid({
         };
     }, [fotosList]);
 
-    const getValidatedGpsFix = async () => {
-        if (!('geolocation' in navigator) || !navigator.geolocation) {
-            throw new Error('Geolocalização não suportada neste dispositivo.');
-        }
-        const position = await new Promise((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(
-                resolve,
-                reject,
-                { enableHighAccuracy: true, timeout: 25000, maximumAge: 10000 }
-            );
-        });
-        const coords = position?.coords;
-        const latitude = typeof coords?.latitude === 'number' ? coords.latitude : NaN;
-        const longitude = typeof coords?.longitude === 'number' ? coords.longitude : NaN;
-        const accuracy = typeof coords?.accuracy === 'number' ? coords.accuracy : Infinity;
-        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-            throw new Error('Coordenadas GPS indisponíveis. Aguarde o sinal e tente novamente.');
-        }
-        return { latitude, longitude, accuracy, takenAt: new Date().toISOString() };
-    };
-
     const getCachedGpsFix = () => {
         const fix = lastGpsFixRef.current;
         if (!fix) return null;
@@ -183,26 +165,49 @@ export default function PhotoGrid({
         return fix;
     };
 
-    const getGpsFixWithFallback = async () => {
-        const cached = getCachedGpsFix();
-        if (cached) return cached;
+    // GPS nunca bloqueia a câmera: um watch em segundo plano vai atualizando
+    // lastGpsFixRef/lastGpsFixAtRef assim que novas posições chegam, e a foto usa o que
+    // estiver disponível no exato momento da captura (ou nada, se o sinal ainda não resolveu).
+    const applyGpsFix = (position) => {
+        const coords = position?.coords;
+        const latitude = typeof coords?.latitude === 'number' ? coords.latitude : NaN;
+        const longitude = typeof coords?.longitude === 'number' ? coords.longitude : NaN;
+        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
+        const accuracy = typeof coords?.accuracy === 'number' ? coords.accuracy : Infinity;
+        lastGpsFixRef.current = { latitude, longitude, accuracy, takenAt: new Date().toISOString() };
+        lastGpsFixAtRef.current = Date.now();
+    };
+
+    const startGpsWatch = () => {
+        if (watchIdRef.current != null) return;
+        if (!navigator.geolocation?.watchPosition) return;
         try {
-            const fix = await getValidatedGpsFix();
-            lastGpsFixRef.current = fix;
+            watchIdRef.current = navigator.geolocation.watchPosition(
+                applyGpsFix,
+                () => {},
+                { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 }
+            );
+        } catch {}
+    };
+
+    const stopGpsWatch = () => {
+        if (watchIdRef.current != null && navigator.geolocation?.clearWatch) {
+            navigator.geolocation.clearWatch(watchIdRef.current);
+        }
+        watchIdRef.current = null;
+    };
+
+    // Semeia lastGpsFixRef com um fix já conhecido (preset do chamador, ou cache recente
+    // desta sessão) antes do watch começar a atualizar — só para ter algo o quanto antes.
+    const seedGpsFixIfNeeded = () => {
+        if (getCachedGpsFix()) return;
+        const hasPreset =
+            presetGpsFix &&
+            typeof presetGpsFix.latitude === 'number' && Number.isFinite(presetGpsFix.latitude) &&
+            typeof presetGpsFix.longitude === 'number' && Number.isFinite(presetGpsFix.longitude);
+        if (hasPreset) {
+            lastGpsFixRef.current = presetGpsFix;
             lastGpsFixAtRef.current = Date.now();
-            return fix;
-        } catch (err) {
-            const fallback = lastGpsFixRef.current;
-            const fallbackAge = Date.now() - (lastGpsFixAtRef.current || 0);
-            const okFallback =
-                fallback &&
-                typeof fallback.latitude === 'number' &&
-                Number.isFinite(fallback.latitude) &&
-                typeof fallback.longitude === 'number' &&
-                Number.isFinite(fallback.longitude) &&
-                fallbackAge <= GPS_FALLBACK_MAX_AGE_MS;
-            if (okFallback) return fallback;
-            throw err;
         }
     };
 
@@ -211,6 +216,7 @@ export default function PhotoGrid({
             streamRef.current.getTracks().forEach(t => t.stop());
             streamRef.current = null;
         }
+        stopGpsWatch();
         setShowCamera(false);
     };
 
@@ -266,32 +272,15 @@ export default function PhotoGrid({
         if (isCapturing || isUploading) return;
         // Se getUserMedia não disponível, cai no input nativo
         if (!navigator.mediaDevices?.getUserMedia) {
-            return openWithGpsGate(cameraInputRef);
+            openNativeCameraInput(cameraInputRef);
+            return;
         }
         setIsCapturing(true);
-        // GPS primeiro — reaproveita o fix já resolvido pelo chamador (ex: o mesmo
-        // usado para achar o KM) quando disponível, em vez de buscar de novo. Buscar
-        // de novo aqui somaria uma segunda espera de GPS em cima da que já rolou
-        // antes do botão liberar, o que é inaceitável com o carro em movimento.
-        const hasPreset =
-            presetGpsFix &&
-            typeof presetGpsFix.latitude === 'number' && Number.isFinite(presetGpsFix.latitude) &&
-            typeof presetGpsFix.longitude === 'number' && Number.isFinite(presetGpsFix.longitude);
-        if (hasPreset) {
-            lastGpsFixRef.current = presetGpsFix;
-            lastGpsFixAtRef.current = Date.now();
-        } else {
-            try {
-                const fix = await getGpsFixWithFallback();
-                lastGpsFixRef.current = fix;
-                lastGpsFixAtRef.current = Date.now();
-            } catch (err) {
-                setIsCapturing(false);
-                alert(err?.message || String(err));
-                return;
-            }
-        }
-        // Abre stream da câmera
+        // GPS nunca bloqueia a abertura da câmera (ver applyGpsFix/startGpsWatch): usamos o
+        // que já tivermos (preset do chamador ou cache recente) e deixamos o watch em segundo
+        // plano ir melhorando o fix enquanto o fiscal enquadra a foto.
+        seedGpsFixIfNeeded();
+        startGpsWatch();
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: {
@@ -308,24 +297,18 @@ export default function PhotoGrid({
         } catch {
             setIsCapturing(false);
             // Permissão negada ou não suportado: fallback para input nativo
-            openWithGpsGate(cameraInputRef);
+            openNativeCameraInput(cameraInputRef);
         }
     };
 
-    const openWithGpsGate = async (ref) => {
+    const openNativeCameraInput = (ref) => {
         if (isCapturing || isUploading) return;
-        try {
-            setIsCapturing(true);
-            if (captureResetTimerRef.current) clearTimeout(captureResetTimerRef.current);
-            captureResetTimerRef.current = setTimeout(() => setIsCapturing(false), 30000);
-            const fix = await getGpsFixWithFallback();
-            lastGpsFixRef.current = fix;
-            lastGpsFixAtRef.current = Date.now();
-            ref?.current?.click();
-        } catch (err) {
-            setIsCapturing(false);
-            alert(err?.message || String(err));
-        }
+        setIsCapturing(true);
+        if (captureResetTimerRef.current) clearTimeout(captureResetTimerRef.current);
+        captureResetTimerRef.current = setTimeout(() => setIsCapturing(false), 30000);
+        seedGpsFixIfNeeded();
+        startGpsWatch();
+        ref?.current?.click();
     };
 
     const handleFileSelect = async (e) => {
@@ -338,18 +321,10 @@ export default function PhotoGrid({
         }
 
         const isGallery = e.target === fileInputRef.current;
-        let gpsFix = lastGpsFixRef.current;
-        if (!isGallery) {
-            try {
-                gpsFix = gpsFix || await getGpsFixWithFallback();
-                lastGpsFixRef.current = gpsFix;
-                lastGpsFixAtRef.current = Date.now();
-            } catch (err) {
-                alert(err?.message || String(err));
-                e.target.value = '';
-                return;
-            }
-        }
+        // Não espera GPS aqui: usa o que o watch (iniciado ao abrir a câmera/picker) já
+        // capturou até agora. Se nada chegou ainda, a foto é salva sem coordenadas.
+        const gpsFix = isGallery ? null : lastGpsFixRef.current;
+        if (!isGallery) stopGpsWatch();
 
             const filesArray = Array.from(files);
             const allowed = Math.max(0, MAX_PHOTOS_PER_UNIDADE - (fotos?.length || 0));
@@ -385,7 +360,7 @@ export default function PhotoGrid({
                             let capture = null;
                             if (isGallery) {
                                 capture = await extractCaptureFromImageFile(file);
-                            } else {
+                            } else if (gpsFix) {
                                 capture = { latitude: gpsFix.latitude, longitude: gpsFix.longitude, takenAt: new Date().toISOString() };
                             }
                             const saved = await Repository.addLocalFotoFromFile(
@@ -447,34 +422,61 @@ export default function PhotoGrid({
             <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleFileSelect} className="hidden" />
             <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleFileSelect} className="hidden" />
 
-            {/* Big empty-state button (modo DTR) */}
+            {/* Big empty-state buttons (modo DTR) */}
             {bigButton && fotosList.length === 0 && isEditable && (
-                <button
-                    type="button"
-                    onClick={() => void openCamera()}
-                    disabled={isUploading || isCapturing || captureBlocked}
-                    className="w-full py-16 rounded-2xl border-2 border-dashed border-blue-300 bg-blue-50 hover:bg-blue-100 active:bg-blue-200 transition-colors flex flex-col items-center justify-center gap-3 disabled:opacity-60"
-                >
-                    {captureBlocked ? (
-                        <>
-                            <Loader2 className="h-12 w-12 text-blue-400 animate-spin" />
-                            <span className="text-sm font-semibold text-blue-500">{captureBlockedMessage}</span>
-                        </>
-                    ) : (isUploading || isCapturing) ? (
-                        <>
-                            <Loader2 className="h-12 w-12 text-blue-400 animate-spin" />
-                            <span className="text-sm font-semibold text-blue-500">
-                                {isCapturing ? 'Aguardando GPS e câmera...' : `Salvando... ${uploadProgress}/${totalUploads}`}
-                            </span>
-                        </>
-                    ) : (
-                        <>
-                            <CameraIcon className="h-14 w-14 text-blue-400" />
-                            <span className="text-lg font-bold text-blue-600">Registrar Imagem</span>
-                            <span className="text-xs text-blue-400">Toque para abrir a câmera</span>
-                        </>
-                    )}
-                </button>
+                <div className="space-y-3">
+                    <button
+                        type="button"
+                        onClick={() => void openCamera()}
+                        disabled={isUploading || isCapturing || captureBlocked}
+                        className="w-full py-16 rounded-2xl border-2 border-dashed border-blue-300 bg-blue-50 hover:bg-blue-100 active:bg-blue-200 transition-colors flex flex-col items-center justify-center gap-3 disabled:opacity-60"
+                    >
+                        {captureBlocked ? (
+                            <>
+                                <Loader2 className="h-12 w-12 text-blue-400 animate-spin" />
+                                <span className="text-sm font-semibold text-blue-500">{captureBlockedMessage}</span>
+                            </>
+                        ) : (isUploading || isCapturing) ? (
+                            <>
+                                <Loader2 className="h-12 w-12 text-blue-400 animate-spin" />
+                                <span className="text-sm font-semibold text-blue-500">
+                                    {isCapturing ? 'Aguardando GPS e câmera...' : `Salvando... ${uploadProgress}/${totalUploads}`}
+                                </span>
+                            </>
+                        ) : (
+                            <>
+                                <CameraIcon className="h-14 w-14 text-blue-400" />
+                                <span className="text-lg font-bold text-blue-600">Registrar Imagem</span>
+                                <span className="text-xs text-blue-400">Toque para abrir a câmera</span>
+                            </>
+                        )}
+                    </button>
+
+                    {/* Importar da galeria: mesmo pipeline da captura (EXIF GPS → KM mais
+                        próximo → marca d'água), só que pra fotos já tiradas com a câmera
+                        nativa do aparelho — ver handleFileSelect (ramo isGallery). */}
+                    <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploading || isCapturing || captureBlocked}
+                        className="w-full py-16 rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100 active:bg-gray-200 transition-colors flex flex-col items-center justify-center gap-3 disabled:opacity-60"
+                    >
+                        {(isUploading || isCapturing) ? (
+                            <>
+                                <Loader2 className="h-12 w-12 text-gray-400 animate-spin" />
+                                <span className="text-sm font-semibold text-gray-500">
+                                    {isCapturing ? 'Aguardando GPS e câmera...' : `Salvando... ${uploadProgress}/${totalUploads}`}
+                                </span>
+                            </>
+                        ) : (
+                            <>
+                                <ImageIcon className="h-14 w-14 text-gray-400" />
+                                <span className="text-lg font-bold text-gray-600">Importar da Galeria</span>
+                                <span className="text-xs text-gray-400">Escolha uma foto já tirada</span>
+                            </>
+                        )}
+                    </button>
+                </div>
             )}
 
             {/* Header padrão (exibido quando NÃO é bigButton vazio) */}
