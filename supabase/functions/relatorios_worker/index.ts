@@ -16,9 +16,10 @@ const corsHeaders = {
 // estourar esse limite em fiscalizações com muitas unidades/fotos, matando a function antes
 // mesmo de chegar no upload. Por isso a geração já sai em partes: cada ~10MB de fotos
 // embutidas fecha uma parte, sobe pro Storage e descarta aquele PDFDocument da memória antes
-// de montar a próxima — o relatório inteiro nunca existe de uma vez só em memória. O
-// download (relatorios_download) remonta as partes num único PDF sob demanda, também sem
-// nunca persistir esse PDF unificado no Storage.
+// de montar a próxima — o relatório inteiro nunca existe de uma vez só em memória. Quando há
+// mais de uma parte, o download busca cada uma (signed_url) e junta tudo num único PDF no
+// navegador (ver relatorios_status e RelatorioFiscalizacao.jsx), mostrando o progresso da
+// montagem pro usuário — o PDF final unificado nunca é persistido no Storage.
 const PART_PHOTO_BYTES_THRESHOLD = 10 * 1024 * 1024
 const PART_MAX_UNIDADES = 40
 
@@ -65,8 +66,8 @@ async function uploadReportPart(adminClient: any, fiscalizacaoId: string, index:
 }
 
 // Se o relatório saiu em 1 parte só (o caso comum), renomeia pra latest.pdf — mantém o
-// caminho "rápido" de download (signed_url direto) pra maioria dos relatórios, que não
-// precisa passar pelo remontador relatorios_download.
+// caminho "rápido" de download (signed_url direto) pra maioria dos relatórios, sem precisar
+// que o app baixe e junte partes no navegador.
 async function finalizeReportParts(adminClient: any, fiscalizacaoId: string, partsCount: number): Promise<string> {
   const basePath = `fiscalizacoes/${fiscalizacaoId}`
   if (partsCount <= 1) {

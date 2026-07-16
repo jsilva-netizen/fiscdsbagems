@@ -5,10 +5,10 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Loader2, FileText, RefreshCcw } from 'lucide-react';
 import { db } from '@/lib/offline/db';
-import { invokeEdgeFunction, invokeEdgeFunctionBinary } from '@/lib/edgeFunctions';
+import { invokeEdgeFunction } from '@/lib/edgeFunctions';
 
 // Relatório pronto pra baixar: ou tem signed_url (caminho de 1 arquivo), ou é multi-parte
-// (parts_count > 1) e o download é remontado sob demanda por relatorios_download.
+// (parts_count > 1) — nesse caso o app baixa cada parte e junta tudo no navegador.
 const isJobReady = (st) => st?.status === 'done' && (!!st?.signed_url || Number(st?.parts_count || 1) > 1);
 
 export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = false, showButtonsOnly = false }) {
@@ -28,6 +28,8 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
     });
     const [error, setError] = React.useState(null);
     const [pendingLocal, setPendingLocal] = React.useState({ outboxCount: 0, fotosCount: 0 });
+    // Progresso da montagem de relatórios multi-parte: { phase: 'baixando'|'montando', current?, total? }
+    const [downloadStep, setDownloadStep] = React.useState(null);
     const syncStatus = useSyncStatus?.() || { online: true, sessionValid: true, outboxCount: 0, lastSyncAt: undefined };
 
     const resolveServerFiscalizacaoId = async () => {
@@ -310,13 +312,36 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
         };
     }, [fiscalizacao?.id]);
 
-    const baixarPartesUnificadas = async (selectedJobId) => {
-        const { blob, filename } = await invokeEdgeFunctionBinary('relatorios_download', { job_id: selectedJobId });
+    // Relatórios divididos em várias partes (fiscalizações com muitas fotos, acima do limite
+    // de 50MB por objeto do Storage) não têm um único arquivo pra abrir direto: o app baixa
+    // cada parte (signed_url) e junta tudo num único PDF aqui mesmo, mostrando o progresso
+    // pro usuário em vez de travar sem feedback num request só.
+    const baixarPartesUnificadas = async (partUrls, fiscalizacaoId) => {
+        const total = partUrls.length;
+        const partBytesList = [];
+        for (let i = 0; i < total; i++) {
+            setDownloadStep({ phase: 'baixando', current: i + 1, total });
+            const res = await fetch(partUrls[i]);
+            if (!res.ok) throw new Error(`Falha ao baixar parte ${i + 1} de ${total} (${res.status}).`);
+            partBytesList.push(new Uint8Array(await res.arrayBuffer()));
+        }
+
+        setDownloadStep({ phase: 'montando' });
+        const { PDFDocument } = await import('pdf-lib');
+        const merged = await PDFDocument.create();
+        for (const partBytes of partBytesList) {
+            const part = await PDFDocument.load(partBytes);
+            const pages = await merged.copyPages(part, part.getPageIndices());
+            for (const p of pages) merged.addPage(p);
+        }
+        const mergedBytes = await merged.save();
+
+        const blob = new Blob([mergedBytes], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
         try {
             const a = document.createElement('a');
             a.href = url;
-            a.download = filename || 'relatorio.pdf';
+            a.download = `relatorio-${fiscalizacaoId || 'fiscalizacao'}.pdf`;
             document.body.appendChild(a);
             a.click();
             a.remove();
@@ -336,11 +361,12 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
                 window.open(data.signed_url, '_blank', 'noopener,noreferrer');
                 return;
             }
-            // Relatórios divididos em várias partes (fiscalizações com muitas fotos, acima do
-            // limite de 50MB por objeto do Storage) não têm signed_url — a montagem final em
-            // um único PDF acontece sob demanda em relatorios_download.
-            if ((data?.parts_count || 1) > 1 && data?.status === 'done') {
-                await baixarPartesUnificadas(selectedJobId);
+            if (Array.isArray(data?.part_urls) && data.part_urls.length > 0 && data?.status === 'done') {
+                try {
+                    await baixarPartesUnificadas(data.part_urls, data.fiscalizacao_id);
+                } finally {
+                    setDownloadStep(null);
+                }
                 return;
             }
             setError('Relatório ainda não está pronto para download.');
@@ -357,6 +383,12 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
 
     const isRunning = job?.status && job.status !== 'done' && job.status !== 'error';
     const isDone = isJobReady(job);
+    const isDownloading = !!downloadStep;
+    const downloadStepLabel = downloadStep?.phase === 'baixando'
+        ? `Baixando parte ${downloadStep.current} de ${downloadStep.total}...`
+        : downloadStep?.phase === 'montando'
+            ? 'Montando PDF...'
+            : null;
     const localOutbox = pendingLocal?.outboxCount || 0;
     const localFotos = pendingLocal?.fotosCount || 0;
     const canRequest = isOnlineAndReady && localOutbox === 0 && localFotos === 0;
@@ -384,6 +416,12 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
                         {typeof job.progress_fotos === 'number' ? ` | Fotos: ${job.progress_fotos}` : ''}
                     </div>
                 ) : null}
+                {downloadStepLabel ? (
+                    <div className="text-xs text-gray-600 mb-2 w-full flex items-center gap-1.5">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        {downloadStepLabel}
+                    </div>
+                ) : null}
             </>
         );
     }
@@ -401,14 +439,14 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
                         }
                         solicitarGeracao();
                     }}
-                    disabled={!isOnlineAndReady || isRequesting || isSyncingBeforeReport || isRunning}
+                    disabled={!isOnlineAndReady || isRequesting || isSyncingBeforeReport || isRunning || isDownloading}
                     className="bg-blue-600 hover:bg-blue-700 h-9 rounded-xl font-medium"
                     size="sm"
                 >
-                    {isRequesting || isSyncingBeforeReport || isRunning ? (
+                    {isRequesting || isSyncingBeforeReport || isRunning || isDownloading ? (
                         <>
                             <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            {isSyncingBeforeReport ? 'Sincronizando...' : 'Gerando...'}
+                            {isSyncingBeforeReport ? 'Sincronizando...' : isDownloading ? downloadStepLabel : 'Gerando...'}
                         </>
                     ) : (
                         <>
@@ -425,7 +463,7 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
                             e.stopPropagation();
                             solicitarGeracao();
                         }}
-                        disabled={!isOnlineAndReady || isRequesting || isSyncingBeforeReport || isRunning}
+                        disabled={!isOnlineAndReady || isRequesting || isSyncingBeforeReport || isRunning || isDownloading}
                         variant="outline"
                         className="text-orange-600 border-orange-200 hover:bg-orange-50 h-9 rounded-xl"
                         size="sm"
@@ -457,6 +495,12 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
                     {typeof job.progress_fotos === 'number' ? ` | Fotos: ${job.progress_fotos}` : ''}
                 </div>
             ) : null}
+            {downloadStepLabel ? (
+                <div className="text-xs text-gray-600 mb-2 w-full flex items-center gap-1.5">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    {downloadStepLabel}
+                </div>
+            ) : null}
             <div className="flex gap-2 items-center">
                 <Button
                     onClick={(e) => {
@@ -468,14 +512,14 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
                         }
                         solicitarGeracao();
                     }}
-                    disabled={!isOnlineAndReady || isRequesting || isSyncingBeforeReport || isRunning}
+                    disabled={!isOnlineAndReady || isRequesting || isSyncingBeforeReport || isRunning || isDownloading}
                     className="bg-blue-600 hover:bg-blue-700 h-9 rounded-xl font-medium"
                     size="sm"
                 >
-                    {isRequesting || isSyncingBeforeReport || isRunning ? (
+                    {isRequesting || isSyncingBeforeReport || isRunning || isDownloading ? (
                         <>
                             <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            {isSyncingBeforeReport ? 'Sincronizando...' : 'Gerando...'}
+                            {isSyncingBeforeReport ? 'Sincronizando...' : isDownloading ? downloadStepLabel : 'Gerando...'}
                         </>
                     ) : (
                         <>
@@ -492,7 +536,7 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
                             e.stopPropagation();
                             solicitarGeracao();
                         }}
-                        disabled={!isOnlineAndReady || isRequesting || isSyncingBeforeReport || isRunning}
+                        disabled={!isOnlineAndReady || isRequesting || isSyncingBeforeReport || isRunning || isDownloading}
                         variant="outline"
                         className="text-orange-600 border-orange-200 hover:bg-orange-50 h-9 rounded-xl"
                         size="sm"

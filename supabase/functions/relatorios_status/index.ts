@@ -97,13 +97,25 @@ serve(async (req) => {
   const partsCount = Number(job.parts_count || 1)
 
   // Relatórios divididos em múltiplas partes (para caber no limite de 50MB do Storage no
-  // plano Free) não têm mais um único objeto para assinar — o download desses passa pela
-  // function relatorios_download, que remonta as partes sob demanda.
+  // plano Free) não têm um único objeto pra assinar. Nesse caso devolvemos uma signed_url
+  // por parte — o app baixa e junta tudo num único PDF no navegador, mostrando o progresso
+  // pro usuário em vez de deixar a montagem inteira "escondida" numa function.
   let signed_url: string | undefined
+  let part_urls: string[] | undefined
   if (job.status === 'done' && job.storage_path && partsCount <= 1) {
     const { data, error } = await adminClient.storage.from('relatorios_fiscalizacao').createSignedUrl(job.storage_path, 3600)
     if (error) return jsonResponse({ error: 'signed_url_failed', details: error.message }, 500)
     signed_url = data.signedUrl
+  } else if (job.status === 'done' && partsCount > 1) {
+    const basePath = `fiscalizacoes/${job.fiscalizacao_id}`
+    const urls: string[] = []
+    for (let i = 0; i < partsCount; i++) {
+      const path = `${basePath}/latest_part${i + 1}.pdf`
+      const { data, error } = await adminClient.storage.from('relatorios_fiscalizacao').createSignedUrl(path, 3600)
+      if (error) return jsonResponse({ error: 'signed_url_failed', details: error.message }, 500)
+      urls.push(data.signedUrl)
+    }
+    part_urls = urls
   }
 
   return jsonResponse({
@@ -115,6 +127,7 @@ serve(async (req) => {
     error_message: job.error_message,
     storage_path: job.storage_path,
     parts_count: partsCount,
-    signed_url
+    signed_url,
+    part_urls
   })
 })
