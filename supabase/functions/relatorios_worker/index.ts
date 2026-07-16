@@ -9,49 +9,74 @@ const corsHeaders = {
   'Access-Control-Max-Age': '86400'
 }
 
-// Storage no plano Free do Supabase rejeita objetos acima de 50MB (teto da plataforma,
-// não configurável via file_size_limit do bucket). PDFs de fiscalizações com muitas fotos
-// podem passar disso, então dividimos em partes menores e o download remonta tudo depois
-// (ver relatorios_download), sem nunca persistir o PDF unificado no Storage.
-const MAX_CHUNK_BYTES = 45 * 1024 * 1024
+// Duas restrições independentes do plano Free do Supabase levam ao mesmo desenho: (1)
+// Storage rejeita objetos de Storage acima de 50MB (teto da plataforma, não configurável),
+// e (2) a própria Edge Function tem um limite de memória fixo — montar o PDF inteiro (todas
+// as páginas + todas as fotos embutidas) em um único PDFDocument antes de salvar pode
+// estourar esse limite em fiscalizações com muitas unidades/fotos, matando a function antes
+// mesmo de chegar no upload. Por isso a geração já sai em partes: cada ~10MB de fotos
+// embutidas fecha uma parte, sobe pro Storage e descarta aquele PDFDocument da memória antes
+// de montar a próxima — o relatório inteiro nunca existe de uma vez só em memória. O
+// download (relatorios_download) remonta as partes num único PDF sob demanda, também sem
+// nunca persistir esse PDF unificado no Storage.
+const PART_PHOTO_BYTES_THRESHOLD = 10 * 1024 * 1024
+const PART_MAX_UNIDADES = 40
 
-async function splitPdfIntoChunks(pdfBytes: Uint8Array, maxBytesPerChunk: number): Promise<Uint8Array[]> {
-  const source = await PDFDocument.load(pdfBytes)
-  const totalPages = source.getPageCount()
+function partStoragePath(fiscalizacaoId: string, index: number) {
+  return `fiscalizacoes/${fiscalizacaoId}/latest_part${index + 1}.pdf`
+}
 
-  let numChunks = Math.max(2, Math.ceil(pdfBytes.length / maxBytesPerChunk))
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const pagesPerChunk = Math.max(1, Math.ceil(totalPages / numChunks))
-    const chunks: Uint8Array[] = []
-    let oversized = false
-
-    for (let start = 0; start < totalPages; start += pagesPerChunk) {
-      const end = Math.min(start + pagesPerChunk, totalPages)
-      const indices = Array.from({ length: end - start }, (_, i) => start + i)
-      const chunkDoc = await PDFDocument.create()
-      const pages = await chunkDoc.copyPages(source, indices)
-      for (const p of pages) chunkDoc.addPage(p)
-      const chunkBytes = await chunkDoc.save()
-      if (chunkBytes.byteLength > maxBytesPerChunk && pagesPerChunk > 1) {
-        oversized = true
-        break
-      }
-      chunks.push(chunkBytes)
+async function clearRelatorioStorageFolder(adminClient: any, fiscalizacaoId: string) {
+  const bucket = 'relatorios_fiscalizacao'
+  const basePath = `fiscalizacoes/${fiscalizacaoId}`
+  try {
+    let offset = 0
+    for (let pageIdx = 0; pageIdx < 20; pageIdx++) {
+      const { data, error } = await adminClient.storage.from(bucket).list(basePath, { limit: 100, offset })
+      if (error) return
+      const items = Array.isArray(data) ? data : []
+      if (items.length === 0) return
+      const toDelete = items.filter((it: any) => it?.name).map((it: any) => `${basePath}/${String(it.name)}`)
+      if (toDelete.length > 0) await adminClient.storage.from(bucket).remove(toDelete)
+      offset += items.length
+      if (items.length < 100) return
     }
+  } catch {}
+}
 
-    if (!oversized) return chunks
-    numChunks++
+async function uploadReportPart(adminClient: any, fiscalizacaoId: string, index: number, bytes: Uint8Array) {
+  const path = partStoragePath(fiscalizacaoId, index)
+  const { error } = await adminClient.storage.from('relatorios_fiscalizacao').upload(path, bytes, {
+    contentType: 'application/pdf',
+    upsert: true
+  })
+  if (error) {
+    if (/exceeded the maximum allowed size/i.test(String(error.message || ''))) {
+      const mb = (bytes.length / (1024 * 1024)).toFixed(1)
+      throw new Error(
+        `Uma das partes do PDF gerado (${mb} MB) ainda excede o limite de armazenamento permitido. ` +
+          'Reduza a quantidade de fotos anexadas às unidades fiscalizadas e tente novamente, ' +
+          'ou contate o suporte para revisar o limite configurado.'
+      )
+    }
+    throw new Error(error.message)
   }
+  return path
+}
 
-  // Última tentativa: 1 página por parte (bound inferior — cada página, isolada, deve caber).
-  const chunks: Uint8Array[] = []
-  for (let i = 0; i < totalPages; i++) {
-    const chunkDoc = await PDFDocument.create()
-    const [page] = await chunkDoc.copyPages(source, [i])
-    chunkDoc.addPage(page)
-    chunks.push(await chunkDoc.save())
+// Se o relatório saiu em 1 parte só (o caso comum), renomeia pra latest.pdf — mantém o
+// caminho "rápido" de download (signed_url direto) pra maioria dos relatórios, que não
+// precisa passar pelo remontador relatorios_download.
+async function finalizeReportParts(adminClient: any, fiscalizacaoId: string, partsCount: number): Promise<string> {
+  const basePath = `fiscalizacoes/${fiscalizacaoId}`
+  if (partsCount <= 1) {
+    const from = partStoragePath(fiscalizacaoId, 0)
+    const to = `${basePath}/latest.pdf`
+    const { error } = await adminClient.storage.from('relatorios_fiscalizacao').move(from, to)
+    if (error) throw new Error(error.message)
+    return to
   }
-  return chunks
+  return partStoragePath(fiscalizacaoId, 0)
 }
 
 function jsonResponse(body: unknown, status = 200) {
@@ -198,7 +223,7 @@ async function claimJobs(adminClient: any, limit: number, specificJobId?: string
 // ROTEADOR DE TEMPLATES — seleciona o gerador de PDF pelo tipo_modulo
 // Adicionar novos módulos aqui quando implementados (ex: DTR, DGE)
 // ====================================================================
-async function generatePdfForJob(adminClient: any, job: any): Promise<Uint8Array> {
+async function generatePdfForJob(adminClient: any, job: any): Promise<number> {
   const { data: fiscMod } = await adminClient
     .from('fiscalizacoes')
     .select('tipo_modulo')
@@ -219,7 +244,7 @@ async function generatePdfForJob(adminClient: any, job: any): Promise<Uint8Array
 // STUB: Template DTR — Laudo de Rodovia
 // Implementação completa na Fase 4, quando o módulo DTR estiver definido.
 // ====================================================================
-async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
+async function generatePdfDTR(adminClient: any, job: any): Promise<number> {
   const { data: fisc, error: fiscErr } = await adminClient
     .from('fiscalizacoes')
     .select('*')
@@ -705,10 +730,6 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
     return 'Média (Atenção)'
   }
 
-  const pdfDoc = await PDFDocument.create()
-  const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
-  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
-
   const pageSize: [number, number] = [mm2pt(210), mm2pt(297)]
   const pageWidth = pageSize[0]
   const pageHeight = pageSize[1]
@@ -721,13 +742,43 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
   const tableWidth = pageWidth - 2 * margin
   const rowHeight = mm2pt(7)
 
-  let page = pdfDoc.addPage(pageSize)
+  // pdfDoc/font/fontBold/page são reatribuídos a cada nova "parte" (ver startNewPart) —
+  // cada parte é um PDFDocument próprio, salvo e enviado ao Storage antes da próxima
+  // começar, pra nunca ter o relatório inteiro em memória de uma vez.
+  let pdfDoc: any
+  let font: any
+  let fontBold: any
+  let page: any
   let yPos = topMargin
+  let partIndex = 0
+  let partPhotoBytes = 0
+  let partRecordCount = 0
+  let partHasContent = false
 
   const addPage = () => {
     page = pdfDoc.addPage(pageSize)
     yPos = topMargin
   }
+
+  // Não chama addPage() aqui: os pontos de chamada decidem quando (e se) precisam de uma
+  // página nova — startNewPart só troca o documento/fontes por baixo.
+  const startNewPart = async () => {
+    pdfDoc = await PDFDocument.create()
+    font = await pdfDoc.embedFont(StandardFonts.Helvetica)
+    fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
+  }
+
+  const finishPart = async () => {
+    const bytes = await pdfDoc.save()
+    await uploadReportPart(adminClient, String(job.fiscalizacao_id), partIndex, bytes)
+    partIndex++
+    partPhotoBytes = 0
+    partRecordCount = 0
+    partHasContent = false
+  }
+
+  await startNewPart()
+  addPage()
 
   const drawRectTop = (x: number, yTop: number, w: number, h: number, fill?: any, border = false) => {
     page.drawRectangle({
@@ -953,8 +1004,8 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
   const PHOTO_ROW_H = PHOTO_H + CAP_H + mm2pt(2)
 
   // Photos as full-width rows INSIDE the table — single bordered cell per pair
-  const drawPhotoRows = async (fotosRaw: any[], cols: ColDef2[]) => {
-    if (!fotosRaw.length) return
+  const drawPhotoRows = async (fotosRaw: any[], cols: ColDef2[]): Promise<number> => {
+    if (!fotosRaw.length) return 0
 
     const ROW_H = PHOTO_ROW_H
 
@@ -1018,6 +1069,8 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
 
       yPos += ROW_H
     }
+
+    return prepared.reduce((sum, p) => sum + (p?.bytes?.length || 0), 0)
   }
 
   // ── Sort by PER → Rodovia → KM ────────────────────────────────────────────
@@ -1125,9 +1178,18 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
     }
     yPos += rowH
 
-    await drawPhotoRows(fotosRaw, cCols)
+    partPhotoBytes += await drawPhotoRows(fotosRaw, cCols)
+    partRecordCount++
+    partHasContent = true
     progCount++
     try { await updateJob(adminClient, job.id, { progress_unidades: progCount, progress_fotos: gFotoNum }) } catch {}
+
+    if (partPhotoBytes >= PART_PHOTO_BYTES_THRESHOLD || partRecordCount >= PART_MAX_UNIDADES) {
+      await finishPart()
+      await startNewPart()
+      addPage()
+      drawHdrRow(cCols)
+    }
   }
 
   yPos += mm2pt(8)
@@ -1168,12 +1230,25 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<Uint8Array> {
     }
     yPos += rowH
 
-    await drawPhotoRows(fotosRaw, ncCols)
+    partPhotoBytes += await drawPhotoRows(fotosRaw, ncCols)
+    partRecordCount++
+    partHasContent = true
     progCount++
     try { await updateJob(adminClient, job.id, { progress_unidades: progCount, progress_fotos: gFotoNum }) } catch {}
+
+    const isLastRecord = i === naoConformidades.length - 1
+    if (!isLastRecord && (partPhotoBytes >= PART_PHOTO_BYTES_THRESHOLD || partRecordCount >= PART_MAX_UNIDADES)) {
+      await finishPart()
+      await startNewPart()
+      addPage()
+      drawHdrRow(ncCols)
+    }
   }
 
-  return await pdfDoc.save()
+  // Mesmo sem nenhuma constatação/NC (partHasContent nunca vira true), a parte atual já tem
+  // os títulos/cabeçalhos das seções VIII/IX desenhados e precisa ser enviada.
+  if (partHasContent || partIndex === 0) await finishPart()
+  return partIndex
 }
 
 // ====================================================================
@@ -1480,10 +1555,6 @@ async function generatePdfDSB(adminClient: any, job: any) {
     mapeamentosNumeracao.push(mapeamentoUnidade)
   }
 
-  const pdfDoc = await PDFDocument.create()
-  const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
-  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
-
   const pageSize: [number, number] = [mm2pt(210), mm2pt(297)]
   const pageWidth = pageSize[0]
   const pageHeight = pageSize[1]
@@ -1496,13 +1567,56 @@ async function generatePdfDSB(adminClient: any, job: any) {
   const tableWidth = pageWidth - 2 * margin
   const rowHeight = mm2pt(7)
 
-  let page = pdfDoc.addPage(pageSize)
+  // pdfDoc/font/fontBold/page são reatribuídos a cada nova "parte" (ver startNewPart) —
+  // cada parte é um PDFDocument próprio, salvo e enviado ao Storage antes da próxima
+  // começar, pra nunca ter o relatório inteiro em memória de uma vez.
+  let pdfDoc: any
+  let font: any
+  let fontBold: any
+  let page: any
   let yPos = topMargin
+  let globalPageIndex = 0
+  let partFirstGlobalIndex = 0
+  let partIndex = 0
+  let partPhotoBytes = 0
+  let partUnidadeCount = 0
+  let partHasContent = false
 
   const addPage = () => {
     page = pdfDoc.addPage(pageSize)
+    globalPageIndex++
     yPos = topMargin
   }
+
+  // Não chama addPage() aqui: no DSB, cada unidade já chama addPage() incondicionalmente
+  // no início do laço, e no gatilho de flush isso evitaria uma página em branco extra.
+  const startNewPart = async () => {
+    pdfDoc = await PDFDocument.create()
+    font = await pdfDoc.embedFont(StandardFonts.Helvetica)
+    fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
+    partFirstGlobalIndex = globalPageIndex
+  }
+
+  const finishPart = async () => {
+    const partPages = pdfDoc.getPages()
+    const footerSize = 8
+    const footerPaddingY = mm2pt(6)
+    for (let i = 0; i < partPages.length; i++) {
+      const pg = partPages[i]
+      const label = `Página ${partFirstGlobalIndex + i + 1}`
+      const textW = font.widthOfTextAtSize(label, footerSize)
+      pg.drawText(label, { x: pageWidth - margin - textW, y: footerPaddingY, size: footerSize, font, color: rgb(0.35, 0.35, 0.35) })
+    }
+    const bytes = await pdfDoc.save()
+    await uploadReportPart(adminClient, String(job.fiscalizacao_id), partIndex, bytes)
+    partIndex++
+    partPhotoBytes = 0
+    partUnidadeCount = 0
+    partHasContent = false
+  }
+
+  await startNewPart()
+  addPage()
 
   const drawRectTop = (x: number, yTop: number, w: number, h: number, fill?: any, border = false) => {
     page.drawRectangle({
@@ -2086,6 +2200,7 @@ async function generatePdfDSB(adminClient: any, job: any) {
     const constatacoesManuais = todasConstatacoesManuais.filter((m) => m.unidade_fiscalizada_id === unidade.id && hasText(m?.descricao))
     const fotosRaw = Array.isArray(unidade.fotos_unidade) ? unidade.fotos_unidade : []
     const mapeamento = mapeamentosNumeracao[idx]
+    let unidadePhotoBytes = 0
 
     addPage()
     yPos = topMargin
@@ -2301,7 +2416,10 @@ async function generatePdfDSB(adminClient: any, job: any) {
         })
 
         for (const p of prepared) {
-          if (p?.bytes) fotosOk.push(p)
+          if (p?.bytes) {
+            fotosOk.push(p)
+            unidadePhotoBytes += p.bytes.length
+          }
         }
 
         processedFotos += chunk.length
@@ -2380,24 +2498,22 @@ async function generatePdfDSB(adminClient: any, job: any) {
       offsetGlobalFiguras += fotosOk.length
     }
 
+    partPhotoBytes += unidadePhotoBytes
+    partUnidadeCount++
+    partHasContent = true
+
     await maybeUpdateFotosProgress(true)
     await updateJob(adminClient, job.id, { progress_unidades: idx + 1 })
+
+    const isLastUnidade = idx === (unidades || []).length - 1
+    if (!isLastUnidade && (partPhotoBytes >= PART_PHOTO_BYTES_THRESHOLD || partUnidadeCount >= PART_MAX_UNIDADES)) {
+      await finishPart()
+      await startNewPart()
+    }
   }
 
-  const pages = pdfDoc.getPages()
-  const totalPages = pages.length
-  const footerSize = 8
-  const footerPaddingY = mm2pt(6)
-  for (let i = 0; i < totalPages; i++) {
-    const page = pages[i]
-    const label = `Página ${i + 1} de ${totalPages}`
-    const textW = font.widthOfTextAtSize(label, footerSize)
-    const x = pageWidth - margin - textW
-    const y = footerPaddingY
-    page.drawText(label, { x, y, size: footerSize, font, color: rgb(0.35, 0.35, 0.35) })
-  }
-
-  return await pdfDoc.save()
+  if (partHasContent) await finishPart()
+  return partIndex
 }
 
 serve(async (req) => {
@@ -2436,33 +2552,6 @@ serve(async (req) => {
   const job_id = payload?.job_id ? String(payload.job_id) : undefined
 
   const adminClient = createClient(supabaseUrl, serviceKey)
-  const pruneRelatoriosStorageForFiscalizacao = async (fiscalizacaoId: string, keepNames: string[] = ['latest.pdf']) => {
-    const bucket = 'relatorios_fiscalizacao'
-    const basePath = `fiscalizacoes/${fiscalizacaoId}`
-    const keepSet = new Set(keepNames)
-    try {
-      let offset = 0
-      for (let pageIdx = 0; pageIdx < 20; pageIdx++) {
-        const { data, error } = await adminClient.storage.from(bucket).list(basePath, {
-          limit: 100,
-          offset
-        })
-        if (error) return
-        const items = Array.isArray(data) ? data : []
-        if (items.length === 0) return
-        const toDelete = items
-          .filter((it: any) => it && it.name && !keepSet.has(String(it.name)))
-          .map((it: any) => `${basePath}/${String(it.name)}`)
-        if (toDelete.length > 0) {
-          await adminClient.storage.from(bucket).remove(toDelete)
-        }
-        offset += items.length
-        if (items.length < 100) return
-      }
-    } catch {}
-  }
-
-  const partFileName = (index: number, total: number) => (total <= 1 ? 'latest.pdf' : `latest_part${index + 1}.pdf`)
 
   const claimed = await claimJobs(adminClient, Math.max(1, Math.min(limit, 10)), job_id)
   if (!claimed.length) return jsonResponse({ processed: 0 })
@@ -2471,34 +2560,14 @@ serve(async (req) => {
   for (const job of claimed) {
     try {
       await updateJob(adminClient, job.id, { status: 'processing', error_message: null })
-      const pdfBytes = await generatePdfForJob(adminClient, job)
-      const chunks = pdfBytes.length > MAX_CHUNK_BYTES ? await splitPdfIntoChunks(pdfBytes, MAX_CHUNK_BYTES) : [pdfBytes]
+      // Limpa qualquer parte de uma tentativa anterior antes de gerar — a geração já sobe
+      // cada parte pro Storage progressivamente (ver generatePdfDSB/DTR), então não dá pra
+      // saber de antemão quais nomes "manter".
+      await clearRelatorioStorageFolder(adminClient, String(job.fiscalizacao_id))
+      const partsCount = await generatePdfForJob(adminClient, job)
+      const storage_path = await finalizeReportParts(adminClient, String(job.fiscalizacao_id), partsCount)
 
-      const basePath = `fiscalizacoes/${job.fiscalizacao_id}`
-      const keepNames = chunks.map((_, i) => partFileName(i, chunks.length))
-      await pruneRelatoriosStorageForFiscalizacao(String(job.fiscalizacao_id), keepNames)
-
-      for (let i = 0; i < chunks.length; i++) {
-        const partPath = `${basePath}/${partFileName(i, chunks.length)}`
-        const { error: upErr } = await adminClient.storage.from('relatorios_fiscalizacao').upload(partPath, chunks[i], {
-          contentType: 'application/pdf',
-          upsert: true
-        })
-        if (upErr) {
-          if (/exceeded the maximum allowed size/i.test(String(upErr.message || ''))) {
-            const mb = (chunks[i].length / (1024 * 1024)).toFixed(1)
-            throw new Error(
-              `Uma das partes do PDF gerado (${mb} MB) ainda excede o limite de armazenamento permitido. ` +
-                'Reduza a quantidade de fotos anexadas às unidades fiscalizadas e tente novamente, ' +
-                'ou contate o suporte para revisar o limite configurado.'
-            )
-          }
-          throw new Error(upErr.message)
-        }
-      }
-
-      const storage_path = `${basePath}/${partFileName(0, chunks.length)}`
-      await updateJob(adminClient, job.id, { status: 'done', storage_path, parts_count: chunks.length })
+      await updateJob(adminClient, job.id, { status: 'done', storage_path, parts_count: partsCount })
       try {
         await adminClient.from('relatorios_jobs').delete().eq('fiscalizacao_id', job.fiscalizacao_id).neq('id', job.id)
       } catch {}
