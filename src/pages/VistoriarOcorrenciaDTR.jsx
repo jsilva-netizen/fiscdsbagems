@@ -156,6 +156,9 @@ export default function VistoriarOcorrenciaDTR() {
     const searchParams = new URLSearchParams(loc.search);
     const fiscId = searchParams.get('fiscId');
     const occurrenceId = searchParams.get('id');
+    // Vindo do botão "Importar da Galeria" (tela anterior): abre o seletor de arquivos
+    // direto, em vez da câmera, ao montar a página.
+    const autoCaptureMode = searchParams.get('modo') === 'galeria' ? 'gallery' : 'camera';
 
     const [stepIdx, setStepIdx] = useState(0);
     const [fotos, setFotos] = useState([]);
@@ -1185,6 +1188,7 @@ export default function VistoriarOcorrenciaDTR() {
                         fiscalizacaoId={fiscId} unidadeId={occurrenceId || 'novo-ponto'} isEditable={!readOnly}
                         enableLegenda={false}
                         autoCapture={!occurrenceId && fotos.length === 0}
+                        autoCaptureMode={autoCaptureMode}
                         captureBlocked={!kmReady}
                         captureBlockedMessage={captureBlockedMessage}
                         presetGpsFix={!occurrenceId && location ? { latitude: location.lat, longitude: location.lng, accuracy: gpsAccuracy ?? undefined, takenAt: new Date().toISOString() } : null}

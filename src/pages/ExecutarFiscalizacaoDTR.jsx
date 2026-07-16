@@ -6,7 +6,7 @@ import { runFullSync } from '@/lib/offline/syncEngine';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Loader2, MapPin, ChevronRight, Camera } from 'lucide-react';
+import { ArrowLeft, Loader2, MapPin, ChevronRight, Camera, Image as ImageIcon } from 'lucide-react';
 import RodoviaMap from '@/components/fiscalizacao/RodoviaMap';
 
 export default function ExecutarFiscalizacaoDTR() {
@@ -118,15 +118,23 @@ export default function ExecutarFiscalizacaoDTR() {
                     </div>
                 </div>
 
-                {/* Botão Registrar Imagem */}
-                <div className="max-w-md w-full mx-auto px-4 pt-3 pb-2 flex-shrink-0">
+                {/* Botões Registrar Imagem / Importar da Galeria */}
+                <div className="max-w-md w-full mx-auto px-4 pt-3 pb-2 flex-shrink-0 space-y-2">
                     {!isFinalized ? (
-                        <Link to={createPageUrl('VistoriarOcorrenciaDTR') + `?fiscId=${fisc.id}`}>
-                            <Button className="w-full h-14 text-base bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-2xl flex items-center justify-center gap-3 shadow-md">
-                                <Camera className="h-5 w-5" />
-                                Registrar Imagem
-                            </Button>
-                        </Link>
+                        <>
+                            <Link to={createPageUrl('VistoriarOcorrenciaDTR') + `?fiscId=${fisc.id}`}>
+                                <Button className="w-full h-14 text-base bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-2xl flex items-center justify-center gap-3 shadow-md">
+                                    <Camera className="h-5 w-5" />
+                                    Registrar Imagem
+                                </Button>
+                            </Link>
+                            <Link to={createPageUrl('VistoriarOcorrenciaDTR') + `?fiscId=${fisc.id}&modo=galeria`}>
+                                <Button variant="outline" className="w-full h-14 text-base border-gray-300 text-gray-700 hover:bg-gray-100 font-bold rounded-2xl flex items-center justify-center gap-3">
+                                    <ImageIcon className="h-5 w-5" />
+                                    Importar da Galeria
+                                </Button>
+                            </Link>
+                        </>
                     ) : (
                         <div className="w-full h-14 flex items-center justify-center bg-gray-100 rounded-2xl border border-dashed border-gray-300">
                             <p className="text-sm text-gray-400">Vistoria finalizada</p>

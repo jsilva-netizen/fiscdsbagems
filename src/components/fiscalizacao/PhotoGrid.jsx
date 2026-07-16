@@ -24,6 +24,7 @@ export default function PhotoGrid({
     enableLegenda = true,
     watermarkContext = null,
     autoCapture = false,
+    autoCaptureMode = 'camera',
     captureBlocked = false,
     captureBlockedMessage = 'Aguarde...',
     presetGpsFix = null
@@ -104,11 +105,16 @@ export default function PhotoGrid({
         videoRef.current.play().catch(() => {});
     }, [showCamera]);
 
-    // Auto-abre câmera na montagem quando autoCapture=true e sem fotos
+    // Auto-abre câmera (ou galeria, se autoCaptureMode='gallery') na montagem quando
+    // autoCapture=true e sem fotos
     useEffect(() => {
         if (!autoCapture || autoCaptureAttemptedRef.current || fotosList.length > 0 || captureBlocked) return;
         autoCaptureAttemptedRef.current = true;
-        void openCamera();
+        if (autoCaptureMode === 'gallery') {
+            fileInputRef.current?.click();
+        } else {
+            void openCamera();
+        }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [captureBlocked]);
 
