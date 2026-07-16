@@ -2432,7 +2432,17 @@ serve(async (req) => {
         contentType: 'application/pdf',
         upsert: true
       })
-      if (upErr) throw new Error(upErr.message)
+      if (upErr) {
+        if (/exceeded the maximum allowed size/i.test(String(upErr.message || ''))) {
+          const mb = (pdfBytes.length / (1024 * 1024)).toFixed(1)
+          throw new Error(
+            `O PDF gerado (${mb} MB) excede o limite de armazenamento permitido para relatórios. ` +
+              'Reduza a quantidade de fotos anexadas às unidades fiscalizadas e tente novamente, ' +
+              'ou contate o suporte para revisar o limite configurado.'
+          )
+        }
+        throw new Error(upErr.message)
+      }
 
       await updateJob(adminClient, job.id, { status: 'done', storage_path })
       try {

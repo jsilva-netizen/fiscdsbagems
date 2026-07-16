@@ -118,6 +118,12 @@ file_size_limit = "50MiB"
 # allowed_mime_types = ["image/png", "image/jpeg"]
 # objects_path = "./images"
 
+# Relatorios DSB/DTR embutem fotos de todas as unidades fiscalizadas no PDF final e podem
+# ultrapassar o limite global (50MiB) em fiscalizacoes maiores. Ver migration 130.
+[storage.buckets.relatorios_fiscalizacao]
+public = false
+file_size_limit = "300MiB"
+
 # Allow connections via S3 compatible clients
 [storage.s3_protocol]
 enabled = true
