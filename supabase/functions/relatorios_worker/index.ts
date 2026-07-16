@@ -9,6 +9,51 @@ const corsHeaders = {
   'Access-Control-Max-Age': '86400'
 }
 
+// Storage no plano Free do Supabase rejeita objetos acima de 50MB (teto da plataforma,
+// não configurável via file_size_limit do bucket). PDFs de fiscalizações com muitas fotos
+// podem passar disso, então dividimos em partes menores e o download remonta tudo depois
+// (ver relatorios_download), sem nunca persistir o PDF unificado no Storage.
+const MAX_CHUNK_BYTES = 45 * 1024 * 1024
+
+async function splitPdfIntoChunks(pdfBytes: Uint8Array, maxBytesPerChunk: number): Promise<Uint8Array[]> {
+  const source = await PDFDocument.load(pdfBytes)
+  const totalPages = source.getPageCount()
+
+  let numChunks = Math.max(2, Math.ceil(pdfBytes.length / maxBytesPerChunk))
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const pagesPerChunk = Math.max(1, Math.ceil(totalPages / numChunks))
+    const chunks: Uint8Array[] = []
+    let oversized = false
+
+    for (let start = 0; start < totalPages; start += pagesPerChunk) {
+      const end = Math.min(start + pagesPerChunk, totalPages)
+      const indices = Array.from({ length: end - start }, (_, i) => start + i)
+      const chunkDoc = await PDFDocument.create()
+      const pages = await chunkDoc.copyPages(source, indices)
+      for (const p of pages) chunkDoc.addPage(p)
+      const chunkBytes = await chunkDoc.save()
+      if (chunkBytes.byteLength > maxBytesPerChunk && pagesPerChunk > 1) {
+        oversized = true
+        break
+      }
+      chunks.push(chunkBytes)
+    }
+
+    if (!oversized) return chunks
+    numChunks++
+  }
+
+  // Última tentativa: 1 página por parte (bound inferior — cada página, isolada, deve caber).
+  const chunks: Uint8Array[] = []
+  for (let i = 0; i < totalPages; i++) {
+    const chunkDoc = await PDFDocument.create()
+    const [page] = await chunkDoc.copyPages(source, [i])
+    chunkDoc.addPage(page)
+    chunks.push(await chunkDoc.save())
+  }
+  return chunks
+}
+
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -2391,10 +2436,10 @@ serve(async (req) => {
   const job_id = payload?.job_id ? String(payload.job_id) : undefined
 
   const adminClient = createClient(supabaseUrl, serviceKey)
-  const pruneRelatoriosStorageForFiscalizacao = async (fiscalizacaoId: string) => {
+  const pruneRelatoriosStorageForFiscalizacao = async (fiscalizacaoId: string, keepNames: string[] = ['latest.pdf']) => {
     const bucket = 'relatorios_fiscalizacao'
     const basePath = `fiscalizacoes/${fiscalizacaoId}`
-    const keepName = 'latest.pdf'
+    const keepSet = new Set(keepNames)
     try {
       let offset = 0
       for (let pageIdx = 0; pageIdx < 20; pageIdx++) {
@@ -2406,7 +2451,7 @@ serve(async (req) => {
         const items = Array.isArray(data) ? data : []
         if (items.length === 0) return
         const toDelete = items
-          .filter((it: any) => it && it.name && String(it.name) !== keepName)
+          .filter((it: any) => it && it.name && !keepSet.has(String(it.name)))
           .map((it: any) => `${basePath}/${String(it.name)}`)
         if (toDelete.length > 0) {
           await adminClient.storage.from(bucket).remove(toDelete)
@@ -2417,6 +2462,8 @@ serve(async (req) => {
     } catch {}
   }
 
+  const partFileName = (index: number, total: number) => (total <= 1 ? 'latest.pdf' : `latest_part${index + 1}.pdf`)
+
   const claimed = await claimJobs(adminClient, Math.max(1, Math.min(limit, 10)), job_id)
   if (!claimed.length) return jsonResponse({ processed: 0 })
 
@@ -2425,26 +2472,33 @@ serve(async (req) => {
     try {
       await updateJob(adminClient, job.id, { status: 'processing', error_message: null })
       const pdfBytes = await generatePdfForJob(adminClient, job)
+      const chunks = pdfBytes.length > MAX_CHUNK_BYTES ? await splitPdfIntoChunks(pdfBytes, MAX_CHUNK_BYTES) : [pdfBytes]
 
-      await pruneRelatoriosStorageForFiscalizacao(String(job.fiscalizacao_id))
-      const storage_path = `fiscalizacoes/${job.fiscalizacao_id}/latest.pdf`
-      const { error: upErr } = await adminClient.storage.from('relatorios_fiscalizacao').upload(storage_path, pdfBytes, {
-        contentType: 'application/pdf',
-        upsert: true
-      })
-      if (upErr) {
-        if (/exceeded the maximum allowed size/i.test(String(upErr.message || ''))) {
-          const mb = (pdfBytes.length / (1024 * 1024)).toFixed(1)
-          throw new Error(
-            `O PDF gerado (${mb} MB) excede o limite de armazenamento permitido para relatórios. ` +
-              'Reduza a quantidade de fotos anexadas às unidades fiscalizadas e tente novamente, ' +
-              'ou contate o suporte para revisar o limite configurado.'
-          )
+      const basePath = `fiscalizacoes/${job.fiscalizacao_id}`
+      const keepNames = chunks.map((_, i) => partFileName(i, chunks.length))
+      await pruneRelatoriosStorageForFiscalizacao(String(job.fiscalizacao_id), keepNames)
+
+      for (let i = 0; i < chunks.length; i++) {
+        const partPath = `${basePath}/${partFileName(i, chunks.length)}`
+        const { error: upErr } = await adminClient.storage.from('relatorios_fiscalizacao').upload(partPath, chunks[i], {
+          contentType: 'application/pdf',
+          upsert: true
+        })
+        if (upErr) {
+          if (/exceeded the maximum allowed size/i.test(String(upErr.message || ''))) {
+            const mb = (chunks[i].length / (1024 * 1024)).toFixed(1)
+            throw new Error(
+              `Uma das partes do PDF gerado (${mb} MB) ainda excede o limite de armazenamento permitido. ` +
+                'Reduza a quantidade de fotos anexadas às unidades fiscalizadas e tente novamente, ' +
+                'ou contate o suporte para revisar o limite configurado.'
+            )
+          }
+          throw new Error(upErr.message)
         }
-        throw new Error(upErr.message)
       }
 
-      await updateJob(adminClient, job.id, { status: 'done', storage_path })
+      const storage_path = `${basePath}/${partFileName(0, chunks.length)}`
+      await updateJob(adminClient, job.id, { status: 'done', storage_path, parts_count: chunks.length })
       try {
         await adminClient.from('relatorios_jobs').delete().eq('fiscalizacao_id', job.fiscalizacao_id).neq('id', job.id)
       } catch {}

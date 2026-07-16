@@ -5,7 +5,11 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Loader2, FileText, RefreshCcw } from 'lucide-react';
 import { db } from '@/lib/offline/db';
-import { invokeEdgeFunction } from '@/lib/edgeFunctions';
+import { invokeEdgeFunction, invokeEdgeFunctionBinary } from '@/lib/edgeFunctions';
+
+// Relatório pronto pra baixar: ou tem signed_url (caminho de 1 arquivo), ou é multi-parte
+// (parts_count > 1) e o download é remontado sob demanda por relatorios_download.
+const isJobReady = (st) => st?.status === 'done' && (!!st?.signed_url || Number(st?.parts_count || 1) > 1);
 
 export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = false, showButtonsOnly = false }) {
     const queryClient = useQueryClient();
@@ -68,7 +72,7 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
                     localStorage.setItem(`${key}:data`, JSON.stringify(st));
                 } catch {}
             }
-            if (st.status === 'done' && !st?.signed_url) {
+            if (st.status === 'done' && !isJobReady(st)) {
                 try { 
                     localStorage.removeItem(key); 
                     localStorage.removeItem(`${key}:data`); 
@@ -213,7 +217,7 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
                     setError(null);
                     return;
                 }
-                if (data?.status === 'done' && !data?.signed_url) {
+                if (data?.status === 'done' && !isJobReady(data)) {
                     stopped = true;
                     clearInterval(intervalId);
                     try {
@@ -238,7 +242,7 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
                     localStorage.setItem(`${key}:data`, JSON.stringify(data));
                 } catch {}
                 
-                if (data?.status === 'done' && data?.signed_url) {
+                if (isJobReady(data)) {
                     stopped = true;
                     clearInterval(intervalId);
                     setJobId(null);
@@ -306,6 +310,21 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
         };
     }, [fiscalizacao?.id]);
 
+    const baixarPartesUnificadas = async (selectedJobId) => {
+        const { blob, filename } = await invokeEdgeFunctionBinary('relatorios_download', { job_id: selectedJobId });
+        const url = URL.createObjectURL(blob);
+        try {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename || 'relatorio.pdf';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        } finally {
+            setTimeout(() => URL.revokeObjectURL(url), 10000);
+        }
+    };
+
     const baixarJob = async (selectedJobId) => {
         try {
             const data = await invokeEdgeFunction('relatorios_status', { job_id: selectedJobId });
@@ -315,9 +334,16 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
             }
             if (data?.signed_url) {
                 window.open(data.signed_url, '_blank', 'noopener,noreferrer');
-            } else {
-                setError('Relatório ainda não está pronto para download.');
+                return;
             }
+            // Relatórios divididos em várias partes (fiscalizações com muitas fotos, acima do
+            // limite de 50MB por objeto do Storage) não têm signed_url — a montagem final em
+            // um único PDF acontece sob demanda em relatorios_download.
+            if ((data?.parts_count || 1) > 1 && data?.status === 'done') {
+                await baixarPartesUnificadas(selectedJobId);
+                return;
+            }
+            setError('Relatório ainda não está pronto para download.');
         } catch (err) {
             console.error('Erro ao obter URL de download:', err);
             const msg = err?.message || 'Erro ao obter URL de download.'
@@ -330,7 +356,7 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
     };
 
     const isRunning = job?.status && job.status !== 'done' && job.status !== 'error';
-    const isDone = job?.status === 'done' && !!job?.signed_url;
+    const isDone = isJobReady(job);
     const localOutbox = pendingLocal?.outboxCount || 0;
     const localFotos = pendingLocal?.fotosCount || 0;
     const canRequest = isOnlineAndReady && localOutbox === 0 && localFotos === 0;

@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2.97.0'
+import { PDFDocument } from 'https://esm.sh/pdf-lib@1.17.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,6 +16,10 @@ function jsonResponse(body: unknown, status = 200) {
   })
 }
 
+// Relatórios divididos em várias partes (para caber no limite de 50MB por objeto do
+// Storage no plano Free) são remontados aqui, sob demanda, a cada download. O PDF final
+// unificado só existe na memória desta invocação — nunca é gravado no Storage, então o
+// limite de 50MB nunca se aplica a ele.
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders })
   if (req.method !== 'POST') return jsonResponse({ error: 'method_not_allowed' }, 405)
@@ -63,8 +68,7 @@ serve(async (req) => {
   if (!jwt) return jsonResponse({ error: 'unauthorized' }, 401)
 
   const job_id = String(payload?.job_id || '')
-  const fiscalizacao_id = String(payload?.fiscalizacao_id || '')
-  if (!job_id && !fiscalizacao_id) return jsonResponse({ error: 'missing_job_id' }, 400)
+  if (!job_id) return jsonResponse({ error: 'missing_job_id' }, 400)
 
   const userClient = createClient(supabaseUrl, anonKey)
   const adminClient = createClient(supabaseUrl, serviceKey)
@@ -74,47 +78,42 @@ serve(async (req) => {
   if (!user) return jsonResponse({ error: 'unauthorized' }, 401)
 
   const { data: profile } = await adminClient.from('profiles').select('role, ativo').eq('id', user.id).maybeSingle()
-
-  const selectCols = 'id, fiscalizacao_id, requested_by, status, progress_unidades, progress_fotos, error_message, storage_path, parts_count, created_at, updated_at'
-  const { data: job, error: jobErr } = job_id
-    ? await adminClient
-        .from('relatorios_jobs')
-        .select(selectCols)
-        .eq('id', job_id)
-        .maybeSingle()
-    : await adminClient
-        .from('relatorios_jobs')
-        .select(selectCols)
-        .eq('fiscalizacao_id', fiscalizacao_id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-  if (jobErr) return jsonResponse({ error: 'job_fetch_failed', details: jobErr.message }, 500)
-  if (!job) return jsonResponse({ status: 'not_found' }, 200)
-
   if (profile?.ativo !== true) return jsonResponse({ error: 'forbidden' }, 403)
 
-  const partsCount = Number(job.parts_count || 1)
+  const { data: job, error: jobErr } = await adminClient
+    .from('relatorios_jobs')
+    .select('id, fiscalizacao_id, status, storage_path, parts_count')
+    .eq('id', job_id)
+    .maybeSingle()
+  if (jobErr) return jsonResponse({ error: 'job_fetch_failed', details: jobErr.message }, 500)
+  if (!job || job.status !== 'done' || !job.storage_path) return jsonResponse({ error: 'job_not_found' }, 404)
 
-  // Relatórios divididos em múltiplas partes (para caber no limite de 50MB do Storage no
-  // plano Free) não têm mais um único objeto para assinar — o download desses passa pela
-  // function relatorios_download, que remonta as partes sob demanda.
-  let signed_url: string | undefined
-  if (job.status === 'done' && job.storage_path && partsCount <= 1) {
-    const { data, error } = await adminClient.storage.from('relatorios_fiscalizacao').createSignedUrl(job.storage_path, 3600)
-    if (error) return jsonResponse({ error: 'signed_url_failed', details: error.message }, 500)
-    signed_url = data.signedUrl
+  const partsCount = Math.max(1, Number(job.parts_count || 1))
+  const basePath = `fiscalizacoes/${job.fiscalizacao_id}`
+  const partName = (index: number) => (partsCount <= 1 ? 'latest.pdf' : `latest_part${index + 1}.pdf`)
+
+  try {
+    const merged = await PDFDocument.create()
+    for (let i = 0; i < partsCount; i++) {
+      const path = `${basePath}/${partName(i)}`
+      const { data, error } = await adminClient.storage.from('relatorios_fiscalizacao').download(path)
+      if (error || !data) throw new Error(`Falha ao baixar parte ${i + 1}/${partsCount}: ${error?.message || 'não encontrada'}`)
+      const bytes = new Uint8Array(await data.arrayBuffer())
+      const part = await PDFDocument.load(bytes)
+      const pages = await merged.copyPages(part, part.getPageIndices())
+      for (const p of pages) merged.addPage(p)
+    }
+    const mergedBytes = await merged.save()
+
+    return new Response(mergedBytes, {
+      status: 200,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="relatorio-${job.fiscalizacao_id}.pdf"`
+      }
+    })
+  } catch (err: any) {
+    return jsonResponse({ error: 'merge_failed', details: String(err?.message || err || '') }, 500)
   }
-
-  return jsonResponse({
-    id: job.id,
-    fiscalizacao_id: job.fiscalizacao_id,
-    status: job.status,
-    progress_unidades: job.progress_unidades,
-    progress_fotos: job.progress_fotos,
-    error_message: job.error_message,
-    storage_path: job.storage_path,
-    parts_count: partsCount,
-    signed_url
-  })
 })

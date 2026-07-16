@@ -119,21 +119,24 @@ export const deleteFiscalizacaoComImagens = async (fiscalizacaoId) => {
   const { error: delRespDetErr } = await supabase.from('respostas_determinacao').delete().eq('fiscalizacao_id', serverId)
   if (delRespDetErr) throw delRespDetErr
 
-  // Remover relatório gerado (se existir) do Storage
+  // Remover relatório gerado (se existir) do Storage. Relatórios grandes ficam divididos em
+  // várias partes (latest_part1.pdf, latest_part2.pdf...) para caber no limite de 50MB do
+  // Storage no plano Free, então listamos a pasta inteira em vez de confiar num único
+  // storage_path.
   try {
-    const { data: jobs } = await supabase.from('relatorios_jobs').select('id,storage_path').eq('fiscalizacao_id', serverId)
-    const paths = []
-    for (const j of jobs || []) {
-      if (j?.storage_path) paths.push(j.storage_path)
-      else if (j?.id) paths.push(`fiscalizacoes/${serverId}/${j.id}.pdf`)
+    const basePath = `fiscalizacoes/${serverId}`
+    let offset = 0
+    for (let pageIdx = 0; pageIdx < 20; pageIdx++) {
+      const { data: items, error } = await supabase.storage.from('relatorios_fiscalizacao').list(basePath, { limit: 100, offset })
+      if (error || !Array.isArray(items) || items.length === 0) break
+      const toDelete = items.filter((it) => it?.name).map((it) => `${basePath}/${String(it.name)}`)
+      if (toDelete.length > 0) {
+        await supabase.storage.from('relatorios_fiscalizacao').remove(toDelete)
+      }
+      offset += items.length
+      if (items.length < 100) break
     }
-    const uniq = Array.from(new Set(paths.filter(Boolean)))
-    if (uniq.length > 0) {
-      await supabase.storage.from('relatorios_fiscalizacao').remove(uniq)
-    }
-    if ((jobs || []).length > 0) {
-      await supabase.from('relatorios_jobs').delete().eq('fiscalizacao_id', serverId)
-    }
+    await supabase.from('relatorios_jobs').delete().eq('fiscalizacao_id', serverId)
   } catch {}
 
   // Remover arquivos ligados aos Termos de Notificação desta fiscalização
