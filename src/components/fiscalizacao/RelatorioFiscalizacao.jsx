@@ -1,7 +1,7 @@
 import React from 'react';
 import { useSyncStatus } from '@/lib/SyncStatusContext.jsx';
 import { getSyncPendingForFiscalizacao, runFullSync } from '@/lib/offline/syncEngine';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Loader2, FileText, RefreshCcw } from 'lucide-react';
 import { db } from '@/lib/offline/db';
@@ -10,27 +10,34 @@ import { invokeEdgeFunction } from '@/lib/edgeFunctions';
 // Relatório pronto pra baixar: ou tem signed_url (caminho de 1 arquivo), ou é multi-parte
 // (parts_count > 1) — nesse caso o app baixa cada parte e junta tudo no navegador.
 const isJobReady = (st) => st?.status === 'done' && (!!st?.signed_url || Number(st?.parts_count || 1) > 1);
+const isActiveStatus = (st) => st?.status === 'queued' || st?.status === 'processing';
+
+// O localStorage é por domínio do site, não por projeto Supabase. Incluir a URL do projeto
+// na chave garante que, ao trocar de banco/ambiente (ex: migração de projeto Supabase), o
+// cache de "último job" antigo fica automaticamente órfão em vez de continuar sendo lido
+// como se fosse válido no backend novo.
+const STORAGE_NAMESPACE = (() => {
+    try {
+        const url = String(import.meta.env.VITE_SUPABASE_URL || '');
+        const match = /^https?:\/\/([^./]+)/.exec(url);
+        return match ? match[1] : 'default';
+    } catch {
+        return 'default';
+    }
+})();
+
+const relatorioJobKey = (fiscalizacaoId) => `relatorio_last_job:${STORAGE_NAMESPACE}:${String(fiscalizacaoId)}`;
 
 export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = false, showButtonsOnly = false }) {
     const queryClient = useQueryClient();
     const [isRequesting, setIsRequesting] = React.useState(false);
     const [isSyncingBeforeReport, setIsSyncingBeforeReport] = React.useState(false);
-    const [jobId, setJobId] = React.useState(null);
-    const [job, setJob] = React.useState(() => {
-        // Carregar do localStorage imediatamente
-        try {
-            const key = `relatorio_last_job:${String(fiscalizacao.id)}`;
-            const stored = localStorage.getItem(`${key}:data`);
-            return stored ? JSON.parse(stored) : null;
-        } catch {
-            return null;
-        }
-    });
     const [error, setError] = React.useState(null);
     const [pendingLocal, setPendingLocal] = React.useState({ outboxCount: 0, fotosCount: 0 });
     // Progresso da montagem de relatórios multi-parte: { phase: 'baixando'|'montando', current?, total? }
     const [downloadStep, setDownloadStep] = React.useState(null);
     const syncStatus = useSyncStatus?.() || { online: true, sessionValid: true, outboxCount: 0, lastSyncAt: undefined };
+    const isOnlineAndReady = syncStatus.online && syncStatus.sessionValid;
 
     const resolveServerFiscalizacaoId = async () => {
         const localFiscId = typeof fiscalizacao.id === 'string' ? fiscalizacao.id : undefined;
@@ -40,90 +47,78 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
         return map?.server_id || (localFiscId || fiscalizacao.id);
     };
 
-    const carregarUltimoJob = async () => {
-        try {
+    // Chave compartilhada pelo React Query entre as instâncias showStatusOnly e
+    // showButtonsOnly da MESMA fiscalização: ambas leem/escrevem o mesmo cache, então
+    // gerar um relatório numa instância atualiza a outra automaticamente (mesmo objeto
+    // de estado, sem precisar levantar estado pro componente pai).
+    const jobQueryKey = React.useMemo(
+        () => ['relatorio_job_status', STORAGE_NAMESPACE, String(fiscalizacao.id)],
+        [fiscalizacao?.id]
+    );
+
+    const { data: job, error: queryError } = useQuery({
+        queryKey: jobQueryKey,
+        queryFn: async () => {
             const fiscalizacao_id = await resolveServerFiscalizacaoId();
-            const key = `relatorio_last_job:${String(fiscalizacao_id)}`;
-            let lastJobId = null;
             try {
-                lastJobId = localStorage.getItem(key);
+                const st = await invokeEdgeFunction('relatorios_status', { fiscalizacao_id });
+                if (st?.status === 'not_found') return null;
+                if (st?.status === 'done' && !isJobReady(st)) return null;
+                return st;
+            } catch (err) {
+                const msg = String(err?.message || '').toLowerCase();
+                if (msg.includes('job_not_found') || msg.includes('500') || msg.includes('internal server error')) {
+                    return null;
+                }
+                if (msg.includes('unauthorized') || msg.includes('forbidden')) {
+                    // Checagem passiva ("já existe relatório?") — sessão instável ou sem
+                    // permissão não deve virar um erro alarmante pro usuário aqui; ele
+                    // ainda pode tentar gerar o relatório manualmente pelo botão.
+                    const silent = new Error(err?.message || 'unauthorized');
+                    silent.silent = true;
+                    throw silent;
+                }
+                throw err;
+            }
+        },
+        initialData: () => {
+            try {
+                const stored = localStorage.getItem(`${relatorioJobKey(fiscalizacao.id)}:data`);
+                return stored ? JSON.parse(stored) : undefined;
             } catch {
-                lastJobId = null;
+                return undefined;
             }
-            const st = lastJobId
-                ? await invokeEdgeFunction('relatorios_status', { job_id: lastJobId })
-                : await invokeEdgeFunction('relatorios_status', { fiscalizacao_id });
-            if (st?.status === 'not_found') {
-                try { 
-                    localStorage.removeItem(key); 
-                    localStorage.removeItem(`${key}:data`); 
-                } catch {}
-                setJob(null);
-                setJobId(null);
-                setError(null);
-                return;
-            }
-            if (!st) {
-                setJob(null);
-                setJobId(null);
-                return;
-            }
-            if (st?.id) {
-                try {
-                    localStorage.setItem(key, String(st.id));
-                    localStorage.setItem(`${key}:data`, JSON.stringify(st));
-                } catch {}
-            }
-            if (st.status === 'done' && !isJobReady(st)) {
-                try { 
-                    localStorage.removeItem(key); 
-                    localStorage.removeItem(`${key}:data`); 
-                } catch {}
-                setJob(null);
-                setJobId(null);
-                return;
-            }
-            setJob(st);
-            const active = st.status === 'queued' || st.status === 'processing';
-            setJobId(active ? (st?.id || lastJobId) : null);
-        } catch (err) {
-        console.error('Erro ao carregar histórico de relatórios:', err);
-        const msg = err?.message || 'Erro ao carregar histórico de relatórios.'
-        if (
-            String(msg).toLowerCase().includes('job_not_found') ||
-            String(msg).toLowerCase().includes('500') ||
-            String(msg).toLowerCase().includes('internal server error')
-        ) {
-            try {
-                const fiscalizacao_id = await resolveServerFiscalizacaoId();
-                const key = `relatorio_last_job:${String(fiscalizacao_id)}`;
+        },
+        enabled: isOnlineAndReady,
+        staleTime: 0,
+        retry: false,
+        refetchInterval: (query) => (isActiveStatus(query.state.data) ? 3000 : false),
+        refetchIntervalInBackground: true,
+    });
+
+    React.useEffect(() => {
+        if (queryError && !queryError.silent) {
+            console.error('Erro ao carregar histórico de relatórios:', queryError);
+            setError(queryError.message || 'Erro ao carregar histórico de relatórios.');
+        }
+    }, [queryError]);
+
+    // Mantém uma cópia local pra pintura instantânea (antes da 1ª resposta de rede) na
+    // próxima vez que a página carregar.
+    React.useEffect(() => {
+        try {
+            const key = `${relatorioJobKey(fiscalizacao.id)}:data`;
+            if (job) {
+                localStorage.setItem(key, JSON.stringify(job));
+            } else {
                 localStorage.removeItem(key);
-                localStorage.removeItem(`${key}:data`);
-            } catch {}
-            setJob(null);
-            setJobId(null);
-            setError(null);
-            return;
-        }
-        if (
-            String(msg).toLowerCase().includes('unauthorized') ||
-            String(msg).toLowerCase().includes('forbidden')
-        ) {
-            // Checagem passiva ("já existe relatório?") — sessão instável ou sem
-            // permissão não deve virar um erro alarmante pro usuário aqui; ele
-            // ainda pode tentar gerar o relatório manualmente pelo botão. Não
-            // limpamos o ponteiro local: pode ser um problema transitório de
-            // sessão, não um job realmente inexistente.
-            setError(null);
-            return;
-        }
-        setError(msg);
-    }
-    };
+            }
+        } catch {}
+    }, [job, fiscalizacao?.id]);
 
     const solicitarGeracao = async () => {
         if (isRequesting) return;
-        
+
         try {
             if (syncStatus.online && syncStatus.sessionValid) {
                 setIsSyncingBeforeReport(true);
@@ -179,16 +174,13 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
             const fiscalizacao_id = await resolveServerFiscalizacaoId();
             const data = await invokeEdgeFunction('relatorios_enqueue', { fiscalizacao_id });
             if (!data?.job_id) throw new Error('Falha ao criar job');
-            
-            queryClient.invalidateQueries({ queryKey: ['fiscalizacoes'] });
-            const newJob = { status: 'queued', progress_unidades: 0, progress_fotos: 0, id: data.job_id };
-            try {
-                localStorage.setItem(`relatorio_last_job:${String(fiscalizacao_id)}`, String(data.job_id));
-                localStorage.setItem(`relatorio_last_job:${String(fiscalizacao_id)}:data`, JSON.stringify(newJob));
-            } catch {}
 
-            setJobId(data.job_id);
-            setJob(newJob);
+            queryClient.invalidateQueries({ queryKey: ['fiscalizacoes'] });
+            const newJob = { status: 'queued', progress_unidades: 0, progress_fotos: 0, id: data.job_id, fiscalizacao_id };
+            // Escreve direto no cache compartilhado: a instância showStatusOnly (se
+            // houver uma montada em paralelo pra essa mesma fiscalização) reflete o
+            // job novo imediatamente, e o refetchInterval assume o polling a partir daqui.
+            queryClient.setQueryData(jobQueryKey, newJob);
         } catch (err) {
             console.error('Erro ao solicitar relatório:', err);
             setError(err?.message || 'Erro ao solicitar relatório.');
@@ -196,103 +188,6 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
             setIsRequesting(false);
         }
     };
-
-    React.useEffect(() => {
-        if (!jobId) return;
-        let stopped = false;
-        let intervalId;
-        const poll = async () => {
-            try {
-                const data = await invokeEdgeFunction('relatorios_status', { job_id: jobId });
-                if (stopped) return;
-                if (data?.status === 'not_found') {
-                    stopped = true;
-                    clearInterval(intervalId);
-                    try {
-                        const fiscalizacao_id = await resolveServerFiscalizacaoId();
-                        const key = `relatorio_last_job:${String(fiscalizacao_id)}`;
-                        localStorage.removeItem(key);
-                        localStorage.removeItem(`${key}:data`);
-                    } catch {}
-                    setJobId(null);
-                    setJob(null);
-                    setError(null);
-                    return;
-                }
-                if (data?.status === 'done' && !isJobReady(data)) {
-                    stopped = true;
-                    clearInterval(intervalId);
-                    try {
-                        const fiscalizacao_id = await resolveServerFiscalizacaoId();
-                        const key = `relatorio_last_job:${String(fiscalizacao_id)}`;
-                        localStorage.removeItem(key);
-                        localStorage.removeItem(`${key}:data`);
-                    } catch {}
-                    setJobId(null);
-                    setJob(null);
-                    setError(null);
-                    return;
-                }
-                setJob(data);
-                // Salvar no localStorage
-                try {
-                    const fiscalizacao_id = await resolveServerFiscalizacaoId();
-                    const key = `relatorio_last_job:${String(fiscalizacao_id)}`;
-                    if (data?.id) {
-                        localStorage.setItem(key, String(data.id));
-                    }
-                    localStorage.setItem(`${key}:data`, JSON.stringify(data));
-                } catch {}
-                
-                if (isJobReady(data)) {
-                    stopped = true;
-                    clearInterval(intervalId);
-                    setJobId(null);
-                }
-                if (data?.status === 'error') {
-                    stopped = true;
-                    clearInterval(intervalId);
-                    setJobId(null);
-                    setError(data?.error_message || 'Falha ao gerar relatório.');
-                }
-            } catch (err) {
-                if (stopped) return;
-                const msg = err?.message || 'Erro ao consultar status.'
-                // Se for erro 500 ou job não encontrado, limpar localStorage e resetar
-                if (
-                    String(msg).toLowerCase().includes('job_not_found') || 
-                    String(msg).toLowerCase().includes('500') || 
-                    String(msg).toLowerCase().includes('internal server error')
-                ) {
-                    stopped = true;
-                    clearInterval(intervalId);
-                    try {
-                        const fiscalizacao_id = await resolveServerFiscalizacaoId();
-                        const key = `relatorio_last_job:${String(fiscalizacao_id)}`;
-                        localStorage.removeItem(key);
-                        localStorage.removeItem(`${key}:data`);
-                    } catch {}
-                    setJobId(null);
-                    setJob(null);
-                    setError(null);
-                    return;
-                }
-                setError(msg);
-            }
-        };
-        poll();
-        intervalId = window.setInterval(poll, 3000);
-        return () => {
-            stopped = true;
-            clearInterval(intervalId);
-        };
-    }, [jobId]);
-
-    const isOnlineAndReady = syncStatus.online && syncStatus.sessionValid;
-    React.useEffect(() => {
-        if (!isOnlineAndReady) return;
-        carregarUltimoJob();
-    }, [isOnlineAndReady, fiscalizacao?.id]);
 
     React.useEffect(() => {
         let stopped = false;
