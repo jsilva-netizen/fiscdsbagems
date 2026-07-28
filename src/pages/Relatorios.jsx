@@ -8,7 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, Download, FileJson, FileText, CheckCircle2, AlertTriangle, ChevronDown, Check, Search, Route, MapPin, Filter } from 'lucide-react';
+import { TrendingUp, Download, FileJson, FileText, CheckCircle2, AlertTriangle, ChevronDown, Check, Search, Route, MapPin, Filter, Building2, Camera } from 'lucide-react';
 import CaterfLayout from '@/components/caterf/CaterfLayout';
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Legend, Cell } from 'recharts';
 import html2canvas from 'html2canvas';
@@ -558,6 +558,8 @@ export default function Relatorios() {
         total_determinacoes: 0,
         total_recomendacoes: 0,
         total_conformidades: 0,
+        total_unidades: 0,
+        total_fotos: 0,
         por_servico: [],
         ranking_determinacoes: []
     } } = useQuery({
@@ -602,6 +604,8 @@ export default function Relatorios() {
     const totalDeterminacoes = resumo.total_determinacoes;
     const totalRecomendacoes = resumo.total_recomendacoes;
     const totalConformidades = resumo.total_conformidades;
+    const totalUnidades = resumo.total_unidades;
+    const totalFotos = resumo.total_fotos;
 
     // Dados por serviço consolidados da RPC
     const dadosServico = resumo.por_servico || [];
@@ -649,6 +653,8 @@ export default function Relatorios() {
                 finalizadas,
                 totalNCs,
                 totalConformidades,
+                totalUnidades,
+                totalFotos,
                 municipiosFiscalizados: municipiosFiscalizados.size
             },
             por_servico: dadosServico,
@@ -848,6 +854,34 @@ export default function Relatorios() {
                                 <div>
                                     <p className="text-2xl font-bold">{totalRecomendacoes}</p>
                                     <p className="text-xs text-gray-500">Recomendações</p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardContent className="p-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+                                    <Building2 className="h-5 w-5 text-indigo-600" />
+                                </div>
+                                <div>
+                                    <p className="text-2xl font-bold">{totalUnidades}</p>
+                                    <p className="text-xs text-gray-500">Unidades Fiscalizadas</p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardContent className="p-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                                    <Camera className="h-5 w-5 text-purple-600" />
+                                </div>
+                                <div>
+                                    <p className="text-2xl font-bold">{totalFotos}</p>
+                                    <p className="text-xs text-gray-500">Fotos Registradas</p>
                                 </div>
                             </div>
                         </CardContent>
