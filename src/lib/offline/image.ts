@@ -454,7 +454,9 @@ function extractCaptureFromJpegBytes(bytes: Uint8Array): ExifCapture | null {
   return null
 }
 
-export async function extractCaptureFromImageFile(file: File): Promise<ExifCapture | null> {
+// Aceita Blob (não só File): usado tanto para o arquivo recém-capturado quanto para
+// reler o EXIF de um cleanBlob já salvo (ex: ao gerar a marca d'água no Salvar).
+export async function extractCaptureFromImageFile(file: Blob): Promise<ExifCapture | null> {
   try {
     const head = await file.slice(0, 256 * 1024).arrayBuffer()
     const res = extractCaptureFromJpegBytes(new Uint8Array(head))
@@ -574,6 +576,75 @@ export async function compressFileToBase64(file: File, maxDimension = MAX_DIMENS
   }
 }
 
+function clamp(n: number, lo: number, hi: number): number {
+  return Math.max(lo, Math.min(hi, n))
+}
+
+function encodeCanvasOnce(canvas: HTMLCanvasElement, q: number): Promise<Blob> {
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (b) => {
+        if (!b) reject(new Error('Falha ao comprimir imagem'))
+        else resolve(b)
+      },
+      'image/jpeg',
+      q
+    )
+  })
+}
+
+// Codifica o canvas em JPEG, reduzindo a qualidade em passos até caber em
+// MAX_PHOTO_BYTES. Compartilhado entre compressFileToBlob e drawWatermarkOnBlob pra não
+// duplicar essa lógica de retry.
+async function encodeCanvasWithCap(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {
+  let q = clamp(Number(quality) || JPEG_QUALITY, 0.55, 0.92)
+  let b = await encodeCanvasOnce(canvas, q)
+  while (b.size > MAX_PHOTO_BYTES && q > 0.56) {
+    q = clamp(q - 0.07, 0.55, 0.92)
+    b = await encodeCanvasOnce(canvas, q)
+  }
+  return b
+}
+
+// Desenha a marca d'água sobre uma foto já processada (tamanho/rotação finais) e
+// devolve um novo blob — usado para gerar a versão "com marca d'água" a partir do
+// cleanBlob no momento de Salvar (ver finalizeDtrFotoWatermarks em repository.ts), em vez
+// de desenhar a marca d'água já na captura.
+export async function drawWatermarkOnBlob(
+  blob: Blob,
+  lines: string[],
+  exif?: { latitude: number; longitude: number; takenAt: Date }
+): Promise<Blob> {
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = (e) => reject(e)
+    reader.readAsDataURL(blob)
+  })
+  const img = document.createElement('img')
+  await new Promise<void>((resolve, reject) => {
+    img.onload = () => resolve()
+    img.onerror = (e) => reject(e)
+    img.src = dataUrl
+  })
+  const w = (img as any).naturalWidth || img.width
+  const h = (img as any).naturalHeight || img.height
+  const canvas = document.createElement('canvas')
+  canvas.width = w
+  canvas.height = h
+  const ctx = canvas.getContext('2d')!
+  ctx.imageSmoothingEnabled = true
+  try {
+    ctx.imageSmoothingQuality = 'high'
+  } catch {}
+  ctx.drawImage(img, 0, 0, w, h)
+  drawWatermark(canvas, lines)
+  const encoded = await encodeCanvasWithCap(canvas, JPEG_QUALITY)
+  // canvas.toBlob() não preserva EXIF — precisa reaplicar aqui (mesmos dados usados
+  // pra gerar o cleanBlob original) senão a foto com marca d'água perde o GPS/data.
+  return exif ? await addExifToJpegBlob(encoded, exif) : encoded
+}
+
 export async function compressFileToBlob(
   file: File,
   maxDimension = MAX_DIMENSION,
@@ -630,41 +701,18 @@ export async function compressFileToBlob(
   } else {
     ctx.drawImage(img, 0, 0, w, h)
   }
-  const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n))
-  const encode = async (q: number) => {
-    return await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob(
-        (b) => {
-          if (!b) reject(new Error('Falha ao comprimir imagem'))
-          else resolve(b)
-        },
-        'image/jpeg',
-        q
-      )
-    })
-  }
-  const encodeWithCap = async () => {
-    let q = clamp(Number(quality) || JPEG_QUALITY, 0.55, 0.92)
-    let b = await encode(q)
-    while (b.size > MAX_PHOTO_BYTES && q > 0.56) {
-      q = clamp(q - 0.07, 0.55, 0.92)
-      b = await encode(q)
-    }
-    return b
-  }
-
   // Captura a versão "limpa" (sem marca d'água) ANTES de desenhar a marca d'água no
   // canvas — precisa vir primeiro porque drawWatermark altera o canvas in-place.
   // Só vale a pena guardar essa versão quando de fato existe marca d'água a remover.
   let cleanBlob: Blob | undefined
   if (options?.watermarkLines?.length) {
-    let clean = await encodeWithCap()
+    let clean = await encodeCanvasWithCap(canvas, quality)
     if (options?.exif) clean = await addExifToJpegBlob(clean, options.exif)
     cleanBlob = clean
     drawWatermark(canvas, options.watermarkLines)
   }
 
-  const blob = await encodeWithCap()
+  const blob = await encodeCanvasWithCap(canvas, quality)
   const finalBlob = options?.exif ? await addExifToJpegBlob(blob, options.exif) : blob
   return {
     blob: finalBlob,

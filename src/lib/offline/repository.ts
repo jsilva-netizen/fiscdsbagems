@@ -1,6 +1,6 @@
 import { db, Foto, Fiscalizacao, Unidade, ItemChecklist, RespostaChecklist, ConstatacaoManual, OfflineFoto, Contrato } from './db'
 import { enqueueMutation } from './syncEngine'
-import { compressFileToBlob, MAX_DIMENSION, JPEG_QUALITY, MAX_PHOTOS_PER_UNIDADE, MAX_PHOTO_BYTES } from './image'
+import { compressFileToBlob, drawWatermarkOnBlob, extractCaptureFromImageFile, MAX_DIMENSION, JPEG_QUALITY, MAX_PHOTOS_PER_UNIDADE, MAX_PHOTO_BYTES } from './image'
 import { getOrCreatePreviewUrl, revokePreviewUrl } from './photoPreviewCache'
 import { supabase } from '@/lib/supabase'
 import { findNearestKmPoint } from '@/utils/rodoviasGeoJSON'
@@ -1984,7 +1984,12 @@ export const Repository = {
     unidadeId: string,
     file: File,
     capture?: { latitude: number; longitude: number; takenAt?: string },
-    context?: { fiscalizacaoId?: string; rodovia?: string; km?: string; sentido?: string }
+    // rodovia/km/sentido/kmPoints não são mais usados aqui: pra DTR, a marca d'água (e o
+    // cruzamento com o KM) agora acontece em finalizeDtrFotoWatermarks, no Salvar da
+    // ocorrência — ver esse método. O objeto ainda aceita esses campos extras porque os
+    // chamadores (PhotoGrid) continuam passando watermarkContext inteiro; eles são
+    // simplesmente ignorados aqui.
+    context?: { fiscalizacaoId?: string; rodovia?: string; km?: string; sentido?: string; kmPoints?: import('./db').KmPoint[] | null }
   ): Promise<OfflineFoto & { previewUrl: string }> {
     const count = await db.fotos_local.where('unidadeLocalId').equals(unidadeId).count()
     if (count >= MAX_PHOTOS_PER_UNIDADE) {
@@ -2019,85 +2024,29 @@ export const Repository = {
     if (!municipioNome) municipioNome = 'SEM MUNICÍPIO'
     const isDtrFisc = ['rodovias_dtr', 'transportes_dtr', 'fiscal_dtr'].includes(fiscTipoModulo)
 
-    // KM e Rodovia vêm preferencialmente do ponto KML mais próximo à coordenada da
-    // foto (mais preciso que o KM da ocorrência, já que o fiscal pode se mover entre
-    // fotos). Isso depende de o KML/km_points da rodovia já estar sincronizado neste
-    // aparelho — quando não está (ainda sincronizando, rodovia sem KML cadastrado,
-    // nome da rodovia não bate com o do contrato), cai no fallback abaixo em vez de
-    // deixar a marca d'água sem rodovia/KM (só data/hora/coordenadas).
-    let resolvedKm = ''
-    let resolvedRodovia = ''
-    if (hasCapture && isDtrFisc) {
-      try {
-        // Usa a rodovia da fiscalização apenas para saber qual KML consultar
-        const fiscRodovia = context?.rodovia || (lookupFiscId ? String((await db.fiscalizacoes.get(lookupFiscId as any))?.rodovia || '') : '')
-        if (fiscRodovia) {
-          const pts = await Repository.getKmPointsForRodovia(fiscRodovia)
-          if (pts && pts.length > 0) {
-            const nearest = findNearestKmPoint(pts, capture!.latitude, capture!.longitude)
-            if (nearest) {
-              resolvedKm = nearest.km || ''
-              resolvedRodovia = nearest.rodovia || ''
-            }
-          }
-        }
-      } catch {
-        // sem pontos KML: tenta o fallback abaixo
-      }
-    }
-    // Fallback: KM/rodovia já resolvidos no nível da ocorrência (GPS ao abrir a tela de
-    // vistoria) — usado quando o cálculo preciso por coordenada da foto não achou nada.
-    if (isDtrFisc && !resolvedRodovia && !resolvedKm) {
-      if (context?.rodovia) resolvedRodovia = context.rodovia
-      if (context?.km) resolvedKm = context.km
-    }
-
-    // Formata KM decimal ("115.2") como "115+200m"; valores já formatados passam direto
-    const formatKmWatermark = (km: string): string => {
-      if (!km) return ''
-      if (km.includes('+')) return km
-      const num = parseFloat(km)
-      if (isNaN(num)) return km
-      const intPart = Math.floor(num)
-      const meters = Math.round((num - intPart) * 1000)
-      return meters > 0 ? `${intPart}+${meters}m` : String(intPart)
-    }
-
-    // Monta linha de localização DTR: "{Rodovia} KM {km} {Sentido}"
-    // Usa resolvedKm (calculado da coordenada da foto) em vez de context.km
-    const buildDtrLocLine = (): string => {
-      const parts: string[] = []
-      if (resolvedRodovia) parts.push(resolvedRodovia)
-      const kmFmt = formatKmWatermark(resolvedKm)
-      if (kmFmt) parts.push(`KM ${kmFmt}`)
-      if (context?.sentido) parts.push(context.sentido)
-      return parts.join(' ')
-    }
-
     let processed: Awaited<ReturnType<typeof compressFileToBlob>>
-    if (hasCapture) {
-      const takenAt = capture!.takenAt ? new Date(capture!.takenAt) : file.lastModified ? new Date(file.lastModified) : new Date()
-      const exifData = { latitude: capture!.latitude, longitude: capture!.longitude, takenAt }
-      const coordsText = `${capture!.latitude.toFixed(6)}, ${capture!.longitude.toFixed(6)}`
-      if (isDtrFisc) {
-        // DTR: Rodovia+KM+Sentido / Data Hora / Coordenadas
-        const locLine = buildDtrLocLine()
-        const watermarkLines = [...(locLine ? [locLine] : []), `${formatDateBR(takenAt)} ${formatTimeBR(takenAt)}`, coordsText]
-        processed = await compressFileToBlob(file, MAX_DIMENSION, JPEG_QUALITY, { watermarkLines, exif: exifData, forceLandscape: true })
-      } else {
-        const watermarkLines = [`${codigoUnidade}, ${municipioNome} - MS`, `${formatDateBR(takenAt)} ${formatTimeBR(takenAt)}`, coordsText]
-        processed = await compressFileToBlob(file, MAX_DIMENSION, JPEG_QUALITY, { watermarkLines, exif: exifData, forceLandscape: true })
-      }
-    } else {
-      if (isDtrFisc) {
-        // DTR sem GPS: Rodovia+KM+Sentido / Data Hora
-        const locLine = buildDtrLocLine()
-        const takenAt = file.lastModified ? new Date(file.lastModified) : new Date()
-        const watermarkLines = [...(locLine ? [locLine] : []), `${formatDateBR(takenAt)} ${formatTimeBR(takenAt)}`]
-        processed = await compressFileToBlob(file, MAX_DIMENSION, JPEG_QUALITY, { watermarkLines, forceLandscape: true })
+    if (isDtrFisc) {
+      // DTR: a marca d'água NÃO é desenhada aqui — cruzar a coordenada da foto com o
+      // KM certo exige o kmPoints já carregado e sem concorrência com o processamento
+      // pesado de outras fotos, então isso só acontece uma vez, com calma, ao clicar em
+      // Salvar Ocorrência (ver Repository.finalizeDtrFotoWatermarks). Aqui só salva a
+      // versão limpa, já com EXIF de GPS/data quando disponível, pra poder extrair a
+      // coordenada de novo depois.
+      if (hasCapture) {
+        const takenAt = capture!.takenAt ? new Date(capture!.takenAt) : file.lastModified ? new Date(file.lastModified) : new Date()
+        const exifData = { latitude: capture!.latitude, longitude: capture!.longitude, takenAt }
+        processed = await compressFileToBlob(file, MAX_DIMENSION, JPEG_QUALITY, { exif: exifData, forceLandscape: true })
       } else {
         processed = await compressFileToBlob(file, MAX_DIMENSION, JPEG_QUALITY, { forceLandscape: true })
       }
+    } else if (hasCapture) {
+      const takenAt = capture!.takenAt ? new Date(capture!.takenAt) : file.lastModified ? new Date(file.lastModified) : new Date()
+      const exifData = { latitude: capture!.latitude, longitude: capture!.longitude, takenAt }
+      const coordsText = `${capture!.latitude.toFixed(6)}, ${capture!.longitude.toFixed(6)}`
+      const watermarkLines = [`${codigoUnidade}, ${municipioNome} - MS`, `${formatDateBR(takenAt)} ${formatTimeBR(takenAt)}`, coordsText]
+      processed = await compressFileToBlob(file, MAX_DIMENSION, JPEG_QUALITY, { watermarkLines, exif: exifData, forceLandscape: true })
+    } else {
+      processed = await compressFileToBlob(file, MAX_DIMENSION, JPEG_QUALITY, { forceLandscape: true })
     }
     if (processed.byteLength > MAX_PHOTO_BYTES) {
       throw new Error(`Foto após compressão excede ${Math.round(MAX_PHOTO_BYTES / 1024 / 1024)}MB`)
@@ -2117,7 +2066,17 @@ export const Repository = {
       lastError: '',
       created_at: now()
     }
-    if (processed.cleanBlob) {
+    if (isDtrFisc) {
+      // Invariante: TODA foto DTR precisa ter cleanBlob antes de a ocorrência ser salva
+      // — é a única fonte usada por finalizeDtrFotoWatermarks pra gerar a marca d'água.
+      // processed.blob nunca é nulo aqui (compressFileToBlob sempre resolve ou lança), e
+      // pra DTR ele já É a versão limpa (watermarkLines nunca é passado nesse branch),
+      // então essa atribuição é incondicional — não deve existir foto DTR sem cleanBlob.
+      item.cleanBlob = processed.blob
+      item.cleanStoragePath = `fiscalizacoes/${fiscalizacaoLocalId}/${unidadeId}/${localId}_original.jpg`
+      item.cleanAttempts = 0
+      item.cleanLastError = ''
+    } else if (processed.cleanBlob) {
       item.cleanBlob = processed.cleanBlob
       item.cleanStoragePath = `fiscalizacoes/${fiscalizacaoLocalId}/${unidadeId}/${localId}_original.jpg`
       item.cleanAttempts = 0
@@ -2128,11 +2087,84 @@ export const Repository = {
     return {
       ...item,
       previewUrl,
-      resolvedKm: resolvedKm || undefined,
-      resolvedRodovia: resolvedRodovia || undefined,
       resolvedLat: capture?.latitude || undefined,
       resolvedLng: capture?.longitude || undefined
     }
+  },
+
+  // DTR: gera a marca d'água de cada foto local da unidade a partir do seu cleanBlob,
+  // chamado uma única vez no momento de Salvar Ocorrência — ver contexto no comentário
+  // de addLocalFotoFromFile acima. Fotos já sincronizadas (e portanto removidas de
+  // fotos_local pela limpeza pós-sync — a linha inteira some, não só o blob) nem
+  // aparecem na consulta abaixo, então não precisam de tratamento aqui: a marca d'água
+  // delas não depende de nada editável (sem sentido, coordenada fixa da captura), então
+  // nunca precisa ser refeita. Por isso toda foto QUE APARECE aqui deve ter cleanBlob —
+  // se não tiver, é um bug (ver addLocalFotoFromFile) e falha alto em vez de mascarar.
+  async finalizeDtrFotoWatermarks(
+    unidadeLocalId: string,
+    kmPoints: import('./db').KmPoint[] | null | undefined,
+    fallback: { rodovia?: string; km?: string }
+  ): Promise<{ rodovia?: string; km?: string }> {
+    const formatKmWatermark = (km: string): string => {
+      if (!km) return ''
+      if (km.includes('+')) return km
+      const num = parseFloat(km)
+      if (isNaN(num)) return km
+      const intPart = Math.floor(num)
+      const meters = Math.round((num - intPart) * 1000)
+      return meters > 0 ? `${intPart}+${meters}m` : String(intPart)
+    }
+
+    const list = (await db.fotos_local.where('unidadeLocalId').equals(unidadeLocalId).toArray())
+      .sort((a, b) => String(a.created_at || '').localeCompare(String(b.created_at || '')))
+
+    let firstRodovia = ''
+    let firstKm = ''
+    for (const foto of list) {
+      if (!(foto.cleanBlob instanceof Blob)) {
+        throw new Error('Foto sem versão original salva — não é possível gerar a marca d\'água. Remova a foto e capture-a novamente.')
+      }
+
+      const capture = await extractCaptureFromImageFile(foto.cleanBlob)
+      let rodovia = ''
+      let km = ''
+      if (capture && kmPoints && kmPoints.length > 0) {
+        const nearest = findNearestKmPoint(kmPoints, capture.latitude, capture.longitude)
+        if (nearest) {
+          km = nearest.km || ''
+          rodovia = nearest.rodovia || ''
+        }
+      }
+      if (!rodovia && !km) {
+        rodovia = fallback.rodovia || ''
+        km = fallback.km || ''
+      }
+      if (!firstRodovia && !firstKm && (rodovia || km)) {
+        firstRodovia = rodovia
+        firstKm = km
+      }
+
+      const locParts: string[] = []
+      if (rodovia) locParts.push(rodovia)
+      const kmFmt = formatKmWatermark(km)
+      if (kmFmt) locParts.push(`KM ${kmFmt}`)
+      const locLine = locParts.join(' ')
+
+      const takenAt = capture?.takenAt ? new Date(capture.takenAt) : foto.created_at ? new Date(foto.created_at) : new Date()
+      const lines = [...(locLine ? [locLine] : []), `${formatDateBR(takenAt)} ${formatTimeBR(takenAt)}`]
+      if (capture) lines.push(`${capture.latitude.toFixed(6)}, ${capture.longitude.toFixed(6)}`)
+
+      const exif = capture ? { latitude: capture.latitude, longitude: capture.longitude, takenAt } : undefined
+      try {
+        const watermarked = await drawWatermarkOnBlob(foto.cleanBlob, lines, exif)
+        await db.fotos_local.update(foto.localId as any, { blob: watermarked })
+      } catch {
+        // Falha ao desenhar a marca d'água: mantém o blob atual (a versão limpa) em vez
+        // de travar o salvamento da ocorrência por causa de uma foto.
+      }
+    }
+
+    return { rodovia: firstRodovia || undefined, km: firstKm || undefined }
   },
 
   async listLocalFotos(unidadeId: string): Promise<OfflineFoto[]> {

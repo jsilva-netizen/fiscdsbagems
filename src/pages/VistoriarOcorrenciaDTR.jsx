@@ -410,14 +410,27 @@ export default function VistoriarOcorrenciaDTR() {
             const targetId = occurrenceId;
             let uId = targetId || '';
             const descricaoItem = selectedItem?.descricao || selectedItem?.nome || '';
+
+            // Gera a marca d'água das fotos desta ocorrência agora — de uma vez, sem
+            // concorrer com o processamento de outras capturas — usando o kmPoints já
+            // carregado nesta tela. Precisa rodar antes de montar o payload abaixo: o
+            // resultado (KM/rodovia resolvidos a partir da primeira foto) é o valor final
+            // gravado na tabela, mais confiável que o preview ao vivo do GPS.
+            const photoLookupId = targetId || 'novo-ponto';
+            const resolvedFromFotos = await Repository.finalizeDtrFotoWatermarks(
+                photoLookupId,
+                kmPoints,
+                { rodovia: rodoviaSnapped || fisc?.rodovia || '', km }
+            );
+
             const payload = {
                 nome_unidade: descricaoItem,
                 endereco: observacao,
                 latitude: location?.lat ?? null,
                 longitude: location?.lng ?? null,
-                rodovia: rodoviaSnapped || fisc?.rodovia || '',
+                rodovia: resolvedFromFotos.rodovia || rodoviaSnapped || fisc?.rodovia || '',
                 trecho: trecho,
-                km: km,
+                km: resolvedFromFotos.km || km,
                 sentido: sentido || null,
                 tipo_ocorrencia: tipoRegistro,
                 frente: selectedFrente,
