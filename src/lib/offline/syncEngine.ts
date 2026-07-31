@@ -764,6 +764,7 @@ async function recreateFiscalizacaoLocally(f: { id: UUID }): Promise<string> {
       .modify((rec: any) => {
         rec.unidadeLocalId = newUnidadeId
         rec.storagePath = `fiscalizacoes/${newFiscId}/${newUnidadeId}/${rec.localId}.jpg`
+        if (rec.cleanStoragePath) rec.cleanStoragePath = `fiscalizacoes/${newFiscId}/${newUnidadeId}/${rec.localId}_original.jpg`
       })
     // Fotos já enviadas antes da exclusão: mantém o caminho de armazenamento (o
     // arquivo pode ainda existir lá), só reaponta a referência de unidade local.
@@ -2201,11 +2202,65 @@ export async function syncFotosWithProgress(onProgress?: (uploaded: number, tota
   }
   const workers = Array.from({ length: Math.max(1, Math.min(concurrency, unsynced.length)) }, () => worker())
   await Promise.all(workers)
-  const byUnidade: Record<string, { bucket: string; path: string; legenda?: string; localId?: string }[]> = {}
+
+  // Upload das versões "limpas" (sem marca d'água) — passe independente do upload
+  // principal acima: roda pra qualquer foto local com cleanBlob pendente, mesmo que a
+  // foto principal já tenha sido sincronizada numa passada anterior (retry isolado, sem
+  // bloquear nem se confundir com o attempts/lastError da versão com marca d'água).
+  const cleanPending = (await db.fotos_local.toArray()).filter(
+    (f) => f.cleanBlob instanceof Blob && !f.cleanSyncedAt && isValidUuid(String(f.unidadeLocalId || ''))
+  )
+  let cleanCursor = 0
+  const nextCleanItem = () => {
+    const i = cleanCursor
+    cleanCursor++
+    return cleanPending[i]
+  }
+  const cleanWorker = async () => {
+    while (true) {
+      const f = nextCleanItem()
+      if (!f) break
+      const cleanBlob = f.cleanBlob as Blob
+      const cleanPath = f.cleanStoragePath || `fiscalizacoes/unknown/${f.unidadeLocalId}/${f.localId}_original.jpg`
+      const doUploadClean = async () => {
+        const { error } = await supabase.storage.from('fotos_fiscalizacao').upload(cleanPath, cleanBlob, {
+          contentType: f.mimeType || 'image/jpeg',
+          upsert: true
+        })
+        if (error) throw error
+        await db.fotos_local.update(f.localId as any, {
+          cleanSyncedAt: new Date().toISOString(),
+          cleanStoragePath: cleanPath,
+          cleanLastError: ''
+        })
+      }
+      try {
+        await withBackoff(() => withTimeout(doUploadClean, 30000))
+      } catch (err: any) {
+        const cleanAttempts = (f.cleanAttempts || 0) + 1
+        const msg = String(err?.message || err || '')
+        await db.fotos_local.update(f.localId as any, { cleanAttempts, cleanLastError: msg })
+      }
+    }
+  }
+  const cleanWorkers = Array.from({ length: Math.max(1, Math.min(concurrency, cleanPending.length)) }, () => cleanWorker())
+  await Promise.all(cleanWorkers)
+
+  const byUnidade: Record<string, { bucket: string; path: string; legenda?: string; localId?: string; cleanBucket?: string; cleanPath?: string }[]> = {}
   const syncedAll = await db.fotos_local.where('syncedAt').above('' as any).toArray()
   for (const f of syncedAll.filter((x) => !!x.storagePath)) {
     const list = byUnidade[f.unidadeLocalId] || []
-    list.push({ bucket: 'fotos_fiscalizacao', path: f.storagePath!, legenda: f.legenda, localId: String((f as any).localId || '') })
+    const entry: { bucket: string; path: string; legenda?: string; localId?: string; cleanBucket?: string; cleanPath?: string } = {
+      bucket: 'fotos_fiscalizacao',
+      path: f.storagePath!,
+      legenda: f.legenda,
+      localId: String((f as any).localId || '')
+    }
+    if (f.cleanSyncedAt && f.cleanStoragePath) {
+      entry.cleanBucket = 'fotos_fiscalizacao'
+      entry.cleanPath = f.cleanStoragePath
+    }
+    list.push(entry)
     byUnidade[f.unidadeLocalId] = list
   }
   const entries = Object.entries(byUnidade)

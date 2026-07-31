@@ -1164,10 +1164,14 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<number> {
 
     const rowH = Math.max(...vals.map((v, ci) => calcH(v.v, cCols[ci].w)))
     const fotosRaw = Array.isArray(u.fotos_unidade) ? u.fotos_unidade : []
-    // Registro (linha + fotos) sempre junto: se o bloco inteiro não cabe no que resta
-    // da página atual, pula pra próxima página antes de desenhar qualquer parte dele.
-    const photoBlockH = Math.ceil(fotosRaw.length / 2) * PHOTO_ROW_H
-    if (yPos + rowH + photoBlockH > pageHeight - bottomMargin) {
+    // Registro (linha + ao menos o 1º par de fotos) sempre junto: se isso não cabe no
+    // que resta da página atual, pula pra próxima antes de desenhar qualquer parte dele.
+    // Não exige o bloco de fotos INTEIRO aqui — drawPhotoRows já pagina os pares
+    // seguintes sozinho (seu próprio addPage() por par) — exigir tudo de uma vez fazia
+    // um registro com várias fotos empurrar a página inteira pra frente, deixando a
+    // página atual só com título+cabeçalho e uma área enorme em branco.
+    const firstPhotoRowH = fotosRaw.length > 0 ? PHOTO_ROW_H : 0
+    if (yPos + rowH + firstPhotoRowH > pageHeight - bottomMargin) {
       addPage()
       drawHdrRow(cCols)
     }
@@ -1216,10 +1220,11 @@ async function generatePdfDTR(adminClient: any, job: any): Promise<number> {
 
     const rowH = Math.max(...vals.map((v, ci) => calcH(v.v, ncCols[ci].w)))
     const fotosRaw = Array.isArray(u.fotos_unidade) ? u.fotos_unidade : []
-    // Registro (linha + fotos) sempre junto: se o bloco inteiro não cabe no que resta
-    // da página atual, pula pra próxima página antes de desenhar qualquer parte dele.
-    const photoBlockH = Math.ceil(fotosRaw.length / 2) * PHOTO_ROW_H
-    if (yPos + rowH + photoBlockH > pageHeight - bottomMargin) {
+    // Registro (linha + ao menos o 1º par de fotos) sempre junto — ver comentário
+    // equivalente no loop de CONSTATAÇÕES acima sobre por que não exigimos o bloco
+    // de fotos inteiro (isso deixava páginas com só título+cabeçalho e nada mais).
+    const firstPhotoRowH = fotosRaw.length > 0 ? PHOTO_ROW_H : 0
+    if (yPos + rowH + firstPhotoRowH > pageHeight - bottomMargin) {
       addPage()
       drawHdrRow(ncCols)
     }

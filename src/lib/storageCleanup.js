@@ -46,9 +46,17 @@ const removePathsByBucket = async (items) => {
   for (const it of items) {
     if (!it) continue
     const parsed = parseStorageRef(it)
-    if (!parsed) continue
-    byBucket[parsed.bucket] = byBucket[parsed.bucket] || new Set()
-    byBucket[parsed.bucket].add(parsed.path)
+    if (parsed) {
+      byBucket[parsed.bucket] = byBucket[parsed.bucket] || new Set()
+      byBucket[parsed.bucket].add(parsed.path)
+    }
+    // Fotos de fiscalização podem carregar uma versão "limpa" (sem marca d'água) sob
+    // cleanBucket/cleanPath, sincronizada à parte da versão principal — precisa ser
+    // apagada junto, senão fica órfã no Storage.
+    if (it?.cleanBucket && it?.cleanPath) {
+      byBucket[it.cleanBucket] = byBucket[it.cleanBucket] || new Set()
+      byBucket[it.cleanBucket].add(it.cleanPath)
+    }
   }
   for (const [bucket, pathsSet] of Object.entries(byBucket)) {
     const paths = Array.from(pathsSet)

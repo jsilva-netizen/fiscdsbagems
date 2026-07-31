@@ -28,6 +28,14 @@ export type OfflineFoto = {
   attempts?: number
   lastError?: string
   created_at?: string
+  // Versão sem marca d'água, guardada só quando a foto é gerada com marca d'água
+  // (ver compressFileToBlob). Sincronizada/rastreada independente da versão principal
+  // porque a falha de upload de uma não deve bloquear nem se confundir com a da outra.
+  cleanBlob?: Blob
+  cleanStoragePath?: string
+  cleanSyncedAt?: string
+  cleanAttempts?: number
+  cleanLastError?: string
 }
 
 export type Municipio = {

@@ -581,6 +581,7 @@ export async function compressFileToBlob(
   options?: { watermarkLines?: string[]; exif?: { latitude: number; longitude: number; takenAt: Date }; forceLandscape?: boolean }
 ): Promise<{
   blob: Blob
+  cleanBlob?: Blob
   mimeType: string
   width: number
   height: number
@@ -629,9 +630,6 @@ export async function compressFileToBlob(
   } else {
     ctx.drawImage(img, 0, 0, w, h)
   }
-  if (options?.watermarkLines?.length) {
-    drawWatermark(canvas, options.watermarkLines)
-  }
   const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n))
   const encode = async (q: number) => {
     return await new Promise<Blob>((resolve, reject) => {
@@ -645,15 +643,32 @@ export async function compressFileToBlob(
       )
     })
   }
-  let q = clamp(Number(quality) || JPEG_QUALITY, 0.55, 0.92)
-  let blob = await encode(q)
-  while (blob.size > MAX_PHOTO_BYTES && q > 0.56) {
-    q = clamp(q - 0.07, 0.55, 0.92)
-    blob = await encode(q)
+  const encodeWithCap = async () => {
+    let q = clamp(Number(quality) || JPEG_QUALITY, 0.55, 0.92)
+    let b = await encode(q)
+    while (b.size > MAX_PHOTO_BYTES && q > 0.56) {
+      q = clamp(q - 0.07, 0.55, 0.92)
+      b = await encode(q)
+    }
+    return b
   }
+
+  // Captura a versão "limpa" (sem marca d'água) ANTES de desenhar a marca d'água no
+  // canvas — precisa vir primeiro porque drawWatermark altera o canvas in-place.
+  // Só vale a pena guardar essa versão quando de fato existe marca d'água a remover.
+  let cleanBlob: Blob | undefined
+  if (options?.watermarkLines?.length) {
+    let clean = await encodeWithCap()
+    if (options?.exif) clean = await addExifToJpegBlob(clean, options.exif)
+    cleanBlob = clean
+    drawWatermark(canvas, options.watermarkLines)
+  }
+
+  const blob = await encodeWithCap()
   const finalBlob = options?.exif ? await addExifToJpegBlob(blob, options.exif) : blob
   return {
     blob: finalBlob,
+    cleanBlob,
     mimeType: 'image/jpeg',
     width: canvas.width,
     height: canvas.height,

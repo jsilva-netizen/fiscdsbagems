@@ -2019,8 +2019,12 @@ export const Repository = {
     if (!municipioNome) municipioNome = 'SEM MUNICÍPIO'
     const isDtrFisc = ['rodovias_dtr', 'transportes_dtr', 'fiscal_dtr'].includes(fiscTipoModulo)
 
-    // KM e Rodovia vêm EXCLUSIVAMENTE do ponto KML mais próximo à coordenada
-    // da foto. Sem fallbacks — toda fiscalização DTR tem pontos KML válidos.
+    // KM e Rodovia vêm preferencialmente do ponto KML mais próximo à coordenada da
+    // foto (mais preciso que o KM da ocorrência, já que o fiscal pode se mover entre
+    // fotos). Isso depende de o KML/km_points da rodovia já estar sincronizado neste
+    // aparelho — quando não está (ainda sincronizando, rodovia sem KML cadastrado,
+    // nome da rodovia não bate com o do contrato), cai no fallback abaixo em vez de
+    // deixar a marca d'água sem rodovia/KM (só data/hora/coordenadas).
     let resolvedKm = ''
     let resolvedRodovia = ''
     if (hasCapture && isDtrFisc) {
@@ -2038,8 +2042,14 @@ export const Repository = {
           }
         }
       } catch {
-        // sem pontos KML: km e rodovia ficam vazios
+        // sem pontos KML: tenta o fallback abaixo
       }
+    }
+    // Fallback: KM/rodovia já resolvidos no nível da ocorrência (GPS ao abrir a tela de
+    // vistoria) — usado quando o cálculo preciso por coordenada da foto não achou nada.
+    if (isDtrFisc && !resolvedRodovia && !resolvedKm) {
+      if (context?.rodovia) resolvedRodovia = context.rodovia
+      if (context?.km) resolvedKm = context.km
     }
 
     // Formata KM decimal ("115.2") como "115+200m"; valores já formatados passam direto
@@ -2106,6 +2116,12 @@ export const Repository = {
       attempts: 0,
       lastError: '',
       created_at: now()
+    }
+    if (processed.cleanBlob) {
+      item.cleanBlob = processed.cleanBlob
+      item.cleanStoragePath = `fiscalizacoes/${fiscalizacaoLocalId}/${unidadeId}/${localId}_original.jpg`
+      item.cleanAttempts = 0
+      item.cleanLastError = ''
     }
     await db.fotos_local.add(item)
     const previewUrl = localFotoPreviewUrl(item)

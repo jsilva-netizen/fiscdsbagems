@@ -34,6 +34,28 @@ export default function FiscalizacoesDTR() {
     const [downloadingFiscId, setDownloadingFiscId] = useState(null);
     const [downloadProgress, setDownloadProgress] = useState('');
 
+    // Mesma lógica de ordenação usada no relatório PDF (relatorios_worker/index.ts:
+    // parseKmToNumber/perRodoviaKmSort) — reproduzida aqui pra que a numeração das pastas
+    // e das fotos no ZIP baixado bata exatamente com a tabela e as legendas "Foto N" do PDF.
+    const parseKmToNumber = (kmStr) => {
+        const s = String(kmStr || '').trim();
+        if (!s) return Number.POSITIVE_INFINITY;
+        const plusMatch = s.match(/^(\d+)\s*\+\s*(\d+)/);
+        if (plusMatch) return Number(plusMatch[1]) + Number(plusMatch[2]) / 1000;
+        const num = parseFloat(s.replace(',', '.'));
+        return Number.isFinite(num) ? num : Number.POSITIVE_INFINITY;
+    };
+
+    const perRodoviaKmSort = (a, b, fiscRodovia) => {
+        const perA = String(a.per || a.item_contrato || '');
+        const perB = String(b.per || b.item_contrato || '');
+        if (perA !== perB) return perA.localeCompare(perB);
+        const rodA = String(a.rodovia || fiscRodovia || '');
+        const rodB = String(b.rodovia || fiscRodovia || '');
+        if (rodA !== rodB) return rodA.localeCompare(rodB);
+        return parseKmToNumber(a.km) - parseKmToNumber(b.km);
+    };
+
     const handleDownloadPhotos = async (e, fiscalizacao) => {
         e.preventDefault();
         e.stopPropagation();
@@ -44,7 +66,7 @@ export default function FiscalizacoesDTR() {
             // 1. Carrega unidades da fiscalização ordenadas por ordem e data
             const { data: unidades, error: uErr } = await supabase
                 .from('unidades_fiscalizadas')
-                .select('id, ordem, nome_unidade, km, rodovia, fotos_unidade, created_at')
+                .select('id, ordem, nome_unidade, km, rodovia, per, item_contrato, tipo_ocorrencia, fotos_unidade, created_at')
                 .eq('fiscalizacao_id', fiscalizacao.id)
                 .order('ordem', { ascending: true, nullsFirst: true })
                 .order('created_at', { ascending: true });
@@ -56,55 +78,78 @@ export default function FiscalizacoesDTR() {
                 return;
             }
 
-            // Conta fotos totais
-            let totalFotos = 0;
-            const unidadesComFotos = [];
-            unidades.forEach((u, idx) => {
-                const list = Array.isArray(u.fotos_unidade) ? u.fotos_unidade : [];
-                if (list.length > 0) {
-                    totalFotos += list.length;
-                    unidadesComFotos.push({ u, idx, list });
-                }
-            });
+            // Constatações antes de Não Conformidades, cada seção numerada a partir de 1,
+            // igual à tabela do relatório (seções VIII e IX).
+            const constatacoes = unidades
+                .filter((u) => u.tipo_ocorrencia === 'constatacao')
+                .sort((a, b) => perRodoviaKmSort(a, b, fiscalizacao.rodovia));
+            const naoConformidades = unidades
+                .filter((u) => u.tipo_ocorrencia === 'nc')
+                .sort((a, b) => perRodoviaKmSort(a, b, fiscalizacao.rodovia));
 
-            if (totalFotos === 0) {
+            const kmClean = (km) => String(km || '').replace(/[+/]/g, '-').trim();
+            const rodoviaClean = (rodovia) => String(rodovia || fiscalizacao.rodovia || 'SEM-RODOVIA').replace(/\s+/g, '_');
+
+            // Monta a fila de downloads (com e sem marca d'água) já com o número global de
+            // "Foto N" (mesmo contador usado no PDF) e a pasta da ocorrência (item + rodovia + km).
+            let globalFotoNum = 0;
+            let temFotoSemVersaoLimpa = false;
+            const jobs = [];
+            const buildJobsForSection = (list) => {
+                list.forEach((u, idx) => {
+                    const fotos = Array.isArray(u.fotos_unidade) ? u.fotos_unidade : [];
+                    if (fotos.length === 0) return;
+                    const itemNum = String(idx + 1).padStart(2, '0');
+                    const occFolder = `${itemNum}_${rodoviaClean(u.rodovia)}_KM_${kmClean(u.km) || 'SN'}`;
+                    fotos.forEach((f) => {
+                        globalFotoNum++;
+                        const filename = `Foto_${globalFotoNum}.jpg`;
+                        const marcada = Repository.parseStorageUrl(f.url) || { bucket: f.bucket, path: f.path };
+                        const limpa = f.cleanBucket && f.cleanPath ? { bucket: f.cleanBucket, path: f.cleanPath } : null;
+                        if (!limpa) temFotoSemVersaoLimpa = true;
+                        jobs.push({ occFolder, filename, marcada, limpa });
+                    });
+                });
+            };
+            buildJobsForSection(constatacoes);
+            buildJobsForSection(naoConformidades);
+
+            if (jobs.length === 0) {
                 alert('Nenhuma foto encontrada nesta fiscalização.');
                 setDownloadingFiscId(null);
                 return;
             }
 
-            setDownloadProgress(`Iniciando (${totalFotos} fotos)...`);
+            const totalDownloads = jobs.reduce((acc, j) => acc + (j.marcada?.bucket && j.marcada?.path ? 1 : 0) + (j.limpa ? 1 : 0), 0);
+            setDownloadProgress(`Iniciando (${totalDownloads} arquivos)...`);
             const zip = new JSZip();
 
-            // 2. Faz o download das fotos em paralelo/sequência
+            // 2. Faz o download das fotos (com e sem marca d'água) em sequência
             let baixadas = 0;
-            for (const { u, idx, list } of unidadesComFotos) {
-                const occNum = String(idx + 1).padStart(2, '0');
-                const kmClean = String(u.km || '').replace(/[+/]/g, '-').trim();
-
-                for (let j = 0; j < list.length; j++) {
-                    const f = list[j];
-                    setDownloadProgress(`Baixando ${baixadas + 1}/${totalFotos}...`);
-
-                    const parsed = Repository.parseStorageUrl(f.url) || { bucket: f.bucket, path: f.path };
-                    if (!parsed || !parsed.bucket || !parsed.path) {
-                        baixadas++;
-                        continue;
-                    }
-
+            for (const job of jobs) {
+                if (job.marcada?.bucket && job.marcada?.path) {
+                    setDownloadProgress(`Baixando ${baixadas + 1}/${totalDownloads}...`);
                     try {
                         const { data: blob, error: dlErr } = await supabase.storage
-                            .from(parsed.bucket)
-                            .download(parsed.path);
-
+                            .from(job.marcada.bucket)
+                            .download(job.marcada.path);
                         if (dlErr) throw dlErr;
-
-                        if (blob) {
-                            const filename = `Ocorrencia_${occNum}${kmClean ? `_KM_${kmClean}` : ''}_Foto_${j + 1}.jpg`;
-                            zip.file(filename, blob);
-                        }
+                        if (blob) zip.file(`Com_Marca_Dagua/${job.occFolder}/${job.filename}`, blob);
                     } catch (err) {
-                        console.error('Falha ao baixar foto:', f.url, err);
+                        console.error('Falha ao baixar foto (com marca d\'água):', job.marcada.path, err);
+                    }
+                    baixadas++;
+                }
+                if (job.limpa) {
+                    setDownloadProgress(`Baixando ${baixadas + 1}/${totalDownloads}...`);
+                    try {
+                        const { data: blob, error: dlErr } = await supabase.storage
+                            .from(job.limpa.bucket)
+                            .download(job.limpa.path);
+                        if (dlErr) throw dlErr;
+                        if (blob) zip.file(`Sem_Marca_Dagua/${job.occFolder}/${job.filename}`, blob);
+                    } catch (err) {
+                        console.error('Falha ao baixar foto (sem marca d\'água):', job.limpa.path, err);
                     }
                     baixadas++;
                 }
@@ -114,9 +159,9 @@ export default function FiscalizacoesDTR() {
             const content = await zip.generateAsync({ type: 'blob' });
 
             // 3. Salva o arquivo no navegador do usuário
-            const rodoviaClean = String(fiscalizacao.rodovia || 'DTR').replace(/\s+/g, '_');
+            const rodoviaFilename = String(fiscalizacao.rodovia || 'DTR').replace(/\s+/g, '_');
             const dataFmt = format(new Date(fiscalizacao.data_inicio || new Date()), 'yyyy-MM-dd');
-            const zipFilename = `Fotos_Fiscalizacao_${rodoviaClean}_${dataFmt}.zip`;
+            const zipFilename = `Fotos_Fiscalizacao_${rodoviaFilename}_${dataFmt}.zip`;
 
             const link = document.createElement('a');
             link.href = URL.createObjectURL(content);
@@ -128,6 +173,9 @@ export default function FiscalizacoesDTR() {
 
             setDownloadProgress('');
             setDownloadingFiscId(null);
+            if (temFotoSemVersaoLimpa) {
+                alert('Download concluído. Fotos capturadas antes do recurso de "foto sem marca d\'água" só têm a versão com marca d\'água no ZIP (o arquivo original não foi preservado para elas).');
+            }
         } catch (err) {
             console.error('[Download Photos Error]', err);
             alert('Falha ao baixar fotos: ' + (err?.message || String(err)));
