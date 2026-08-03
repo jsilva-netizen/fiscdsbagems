@@ -12,8 +12,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Plus, Edit, Trash2, Upload, Loader2, GripVertical, AlertTriangle, ClipboardCheck } from 'lucide-react';
+import { Plus, Edit, Trash2, Upload, Loader2, GripVertical, AlertTriangle, ClipboardCheck } from 'lucide-react';
 import ItemChecklistForm from '@/components/admin/ItemChecklistForm';
+import AdminShell from '@/components/layout/AdminShell';
 
 
 
@@ -434,25 +435,8 @@ export default function Checklists({ embedded = false }) {
 
     const tipoSelecionado = tipos.find(t => t.id === selectedTipo);
 
-    return (
-        <div className={embedded ? '' : 'min-h-screen bg-gray-50'}>
-            {!embedded && (
-            <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
-                <div className="max-w-4xl mx-auto px-4 py-5">
-                    <div className="flex items-center gap-3">
-                        <Link to={createPageUrl('Home')}>
-                            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full">
-                                <ArrowLeft className="h-5 w-5" />
-                            </Button>
-                        </Link>
-                        <div>
-                            <h1 className="text-xs font-bold uppercase tracking-widest text-blue-200">Checklists Normativos</h1>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            )}
-
+    const content = (
+        <>
             {/* Seletor de Tipo */}
             <div className="max-w-4xl mx-auto px-4 py-4">
                 <Card className="border border-gray-200 rounded-2xl shadow-sm bg-white">
@@ -664,6 +648,10 @@ export default function Checklists({ embedded = false }) {
                     />
                 </DialogContent>
             </Dialog>
-        </div>
+        </>
     );
+
+    if (embedded) return content;
+
+    return <AdminShell title="Checklists Normativos">{content}</AdminShell>;
 }

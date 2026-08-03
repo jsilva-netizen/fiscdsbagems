@@ -237,7 +237,7 @@ export default function DetalhePrestador() {
         <div className="min-h-screen bg-gray-50 flex flex-col justify-between">
             <div>
                 {/* Header */}
-                <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
+                <div className="bg-gradient-to-r from-[#0066B3] to-[#004A8F] text-white shadow-md">
                     <div className="max-w-6xl mx-auto px-6 py-5">
                         <div className="flex items-center justify-between gap-4">
                             <div className="flex items-center gap-4 min-w-0">

@@ -26,16 +26,6 @@ export const DEFAULT_CAMARA_POR_DIRETORIA = {
   dge: 'categas',
 };
 
-// Câmara (id) → URL da aba "Fiscalização" dela. Usado pra logar direto na fiscalização
-// (em vez do dashboard) usuários com cargo "fiscal". Só cobre câmaras com essa aba de
-// verdade (as placeholder "em breve" não têm) — nessas, cai no dashboard mesmo.
-export const CAMARA_FISCALIZACAO_PATH = {
-  catesa: '/Fiscalizacoes?camara=catesa',
-  caters: '/Fiscalizacoes?camara=caters',
-  cres: '/Fiscalizacoes?camara=cres',
-  caterf: '/FiscalizacoesDTR',
-};
-
 // Reverso de CAMARAS_POR_DIRETORIA: câmara (id) → diretoria dona dela.
 // Usado por páginas compartilhadas entre câmaras (Fiscalizacoes.jsx, Relatorios.jsx) pra
 // saber a diretoria/câmara "efetiva" quando o admin navega via ?camara=xxx na URL, em vez

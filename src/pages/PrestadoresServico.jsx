@@ -1,8 +1,8 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 import { Repository } from '@/lib/offline/repository';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { createPageUrl } from '@/utils';
-import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -12,9 +12,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Plus, Edit2, Trash2, AlertTriangle, Eye, Loader2, Upload, Globe, Mail, Phone, MapPin } from 'lucide-react';
+import { Plus, Edit2, Trash2, AlertTriangle, Eye, Loader2, Upload, Globe, Mail, Phone, MapPin } from 'lucide-react';
 import { useModulo } from '@/hooks/useModulo';
 import { supabase } from '@/lib/supabase';
+import AdminShell from '@/components/layout/AdminShell';
 
 const AVAILABLE_SERVICES = [
     { id: 'Abastecimento de Água', label: 'Abastecimento de Água', group: 'DSB' },
@@ -281,24 +282,9 @@ export default function PrestadoresServico({ embedded = false }) {
         }
     };
 
-    return (
-        <div className={embedded ? '' : 'min-h-screen bg-gray-50 flex flex-col justify-between'}>
+    const content = (
+        <>
             <div>
-                {!embedded && (
-                <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
-                    <div className="max-w-6xl mx-auto px-6 py-5 flex items-center gap-3">
-                        <Link to={createPageUrl('Home')}>
-                            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full transition-all">
-                                <ArrowLeft className="h-5 w-5" />
-                            </Button>
-                        </Link>
-                        <div>
-                            <h1 className="text-xs font-bold uppercase tracking-widest text-blue-200">{getPageTitleText()}</h1>
-                        </div>
-                    </div>
-                </div>
-                )}
-
                 {/* Content */}
                 <div className="max-w-6xl mx-auto px-6 py-6 space-y-5">
                     {/* Controls & Tabs */}
@@ -698,6 +684,10 @@ export default function PrestadoresServico({ embedded = false }) {
             <div className="py-5 text-center text-xs text-slate-400 bg-white border-t border-slate-200">
                 AGEMS - Agência Estadual de Regulação de Serviços Públicos de MS
             </div>
-        </div>
+        </>
     );
+
+    if (embedded) return content;
+
+    return <AdminShell title={getPageTitleText()}>{content}</AdminShell>;
 }

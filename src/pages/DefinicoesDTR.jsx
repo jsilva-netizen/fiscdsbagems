@@ -1,6 +1,4 @@
 import { useState, useRef } from 'react';
-import { Link } from 'react-router-dom';
-import { createPageUrl } from '@/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Repository } from '@/lib/offline/repository';
 import { parseKMLKmPoints } from '@/utils/rodoviasGeoJSON';
@@ -9,11 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
-    ArrowLeft, Upload, Download, FileSpreadsheet, Map as MapIcon, CheckCircle2,
+    Upload, Download, FileSpreadsheet, Map as MapIcon, CheckCircle2,
     AlertCircle, Loader2, RefreshCw, FileText, Trash2, Route, Users
 } from 'lucide-react';
 import PrestadoresServico from './PrestadoresServico';
 import Contratos from './Contratos';
+import AdminShell from '@/components/layout/AdminShell';
+import { cn } from '@/lib/utils';
 
 // Colunas da planilha de ocorrências DTR:
 // Rodovia → opcional; deixar vazio = aplica-se a todas as rodovias
@@ -605,39 +605,25 @@ export default function DefinicoesDTR() {
     const [activeTab, setActiveTab] = useState('concessionarias');
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
-                <div className="max-w-4xl mx-auto px-4 py-5">
-                    <div className="flex items-center gap-3 pb-3">
-                        <Link to={createPageUrl('FiscalizacoesDTR')}>
-                            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full">
-                                <ArrowLeft className="h-5 w-5" />
-                            </Button>
-                        </Link>
-                        <div>
-                            <h1 className="text-xs font-bold uppercase tracking-widest text-blue-200">Definições — DTR</h1>
-                        </div>
-                    </div>
-                    {/* Tabs */}
-                    <nav className="flex gap-1 overflow-x-auto">
-                        {TABS.map(({ id, label, icon: Icon }) => (
-                            <button
-                                key={id}
-                                onClick={() => setActiveTab(id)}
-                                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                                    activeTab === id
-                                        ? 'border-white text-white'
-                                        : 'border-transparent text-blue-200 hover:border-blue-300 hover:text-white'
-                                }`}
-                            >
-                                <Icon className="h-4 w-4 shrink-0" />
-                                {label}
-                            </button>
-                        ))}
-                    </nav>
-                </div>
-            </div>
+        <AdminShell title="Definições — DTR">
+            {/* Tabs */}
+            <nav className="flex gap-1 overflow-x-auto border-b border-slate-200 px-4">
+                {TABS.map(({ id, label, icon: Icon }) => (
+                    <button
+                        key={id}
+                        onClick={() => setActiveTab(id)}
+                        className={cn(
+                            'flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap',
+                            activeTab === id
+                                ? 'border-blue-900 text-blue-900'
+                                : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
+                        )}
+                    >
+                        <Icon className="h-4 w-4 shrink-0" />
+                        {label}
+                    </button>
+                ))}
+            </nav>
 
             {/* Content */}
             <div className="flex-1">
@@ -654,6 +640,6 @@ export default function DefinicoesDTR() {
                     </div>
                 )}
             </div>
-        </div>
+        </AdminShell>
     );
 }

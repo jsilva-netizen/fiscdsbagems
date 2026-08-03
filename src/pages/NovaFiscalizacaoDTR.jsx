@@ -91,7 +91,7 @@ export default function NovaFiscalizacaoDTR() {
                 tipo_modulo: tipoModulo,
                 status: 'em_andamento',
                 fiscal_email: user?.email,
-                fiscal_nome: user?.user_metadata?.full_name || user?.email,
+                fiscal_nome: user?.full_name || user?.user_metadata?.full_name || user?.email,
                 latitude_inicio: location?.lat,
                 longitude_inicio: location?.lng
             });
@@ -118,7 +118,7 @@ export default function NovaFiscalizacaoDTR() {
         <div className="min-h-screen bg-gray-50 flex flex-col justify-between">
             <div>
                 {/* Header */}
-                <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
+                <div className="bg-gradient-to-r from-[#0066B3] to-[#004A8F] text-white shadow-md">
                     <div className="max-w-4xl mx-auto px-4 py-5 flex items-center gap-3">
                         <Link to={createPageUrl('Home')}>
                             <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full transition-all">
@@ -228,7 +228,7 @@ export default function NovaFiscalizacaoDTR() {
                             {user && (
                                 <Card className="bg-blue-50 border border-blue-100 rounded-xl">
                                     <CardContent className="p-4 text-xs text-blue-700">
-                                        <p><strong>Inspetor:</strong> {user.user_metadata?.full_name || user.email}</p>
+                                        <p><strong>Inspetor:</strong> {user.full_name || user.user_metadata?.full_name || user.email}</p>
                                         <p className="opacity-70 mt-0.5">{user.email}</p>
                                     </CardContent>
                                 </Card>

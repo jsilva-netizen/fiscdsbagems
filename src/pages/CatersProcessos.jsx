@@ -14,7 +14,7 @@ import {
   Link2,
   Link2Off,
 } from 'lucide-react';
-import CatersLayout from '@/components/caters/CatersLayout';
+import AdminShell from '@/components/layout/AdminShell';
 import {
   fetchProcesses,
   createProcess,
@@ -236,7 +236,7 @@ export default function CatersProcessos() {
   const hasActiveFilters = searchApplied || municipalityApplied || statusApplied || createdFrom || createdTo;
 
   return (
-    <CatersLayout>
+    <AdminShell title="CATERS" subtitle="Câmara Técnica de Resíduos Sólidos">
       <div className="min-h-full bg-slate-50">
         <div className="px-8 pb-12 pt-8">
           <div className="mx-auto max-w-6xl space-y-6">
@@ -525,6 +525,6 @@ export default function CatersProcessos() {
           </form>
         </DialogContent>
       </Dialog>
-    </CatersLayout>
+    </AdminShell>
   );
 }

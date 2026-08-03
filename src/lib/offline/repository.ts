@@ -541,6 +541,28 @@ export const Repository = {
       .slice(0, limit)
   },
 
+  async getTotaisPorFiscalizacao(fiscalizacaoIds: string[]): Promise<Record<string, { total_constatacoes: number; total_ncs: number }>> {
+    const ids = Array.from(new Set(fiscalizacaoIds.filter(Boolean)))
+    if (ids.length === 0) return {}
+    const unidades = await db.unidades.where('fiscalizacao_id').anyOf(ids).toArray()
+    const totais: Record<string, { total_constatacoes: number; total_ncs: number }> = {}
+    for (const u of unidades as any[]) {
+      const fid = String(u?.fiscalizacao_id || '')
+      if (!fid) continue
+      if (!totais[fid]) totais[fid] = { total_constatacoes: 0, total_ncs: 0 }
+      if (u?.tipo_ocorrencia === 'nc' || u?.tipo_ocorrencia === 'constatacao') {
+        // DTR: cada unidade É uma ocorrência (uma constatação); as marcadas 'nc' também contam como NC.
+        totais[fid].total_constatacoes += 1
+        if (u.tipo_ocorrencia === 'nc') totais[fid].total_ncs += 1
+      } else {
+        // DSB: cada unidade tem contadores próprios, agregados a partir do checklist.
+        totais[fid].total_constatacoes += Number(u?.total_constatacoes) || 0
+        totais[fid].total_ncs += Number(u?.total_ncs) || 0
+      }
+    }
+    return totais
+  },
+
   async reorderUnidades(fiscalizacaoId: string, orderedUnidadeIds: string[]): Promise<void> {
     if (!fiscalizacaoId) return
     const ids = (Array.isArray(orderedUnidadeIds) ? orderedUnidadeIds : []).map((x) => String(x || '')).filter(Boolean)

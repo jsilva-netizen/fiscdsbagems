@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Download, Upload, FileJson, CheckCircle2, AlertCircle, Loader2, ArrowRight, Info } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import AdminShell from '@/components/layout/AdminShell';
 
 export default function ExportarImportar() {
   const [exportando, setExportando] = useState(false);
@@ -415,16 +416,7 @@ export default function ExportarImportar() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
-        <div className="max-w-3xl mx-auto px-4 py-5 flex items-center gap-3">
-          <div>
-            <h1 className="text-xs font-bold uppercase tracking-widest text-blue-200">Exportar / Importar Dados</h1>
-          </div>
-        </div>
-      </div>
-
+    <AdminShell title="Exportar / Importar Dados">
       <div className="max-w-3xl mx-auto px-4 py-6">
         <Alert className="mb-6 border-blue-200 bg-blue-50 rounded-xl">
           <Info className="h-4 w-4 text-blue-600" />
@@ -553,6 +545,6 @@ export default function ExportarImportar() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </AdminShell>
   );
 }

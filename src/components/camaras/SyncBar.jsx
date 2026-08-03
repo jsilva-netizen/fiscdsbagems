@@ -157,32 +157,31 @@ export default function SyncBar({ diretoria } = {}) {
       : 'Sem sincronização';
 
   return (
-    <div className="flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/10 px-2 py-1.5 flex-shrink-0">
-      <span className={`flex items-center gap-1 text-xs font-semibold ${online ? 'text-emerald-300' : 'text-amber-300'}`}>
-        {online ? <Wifi className="h-3.5 w-3.5" /> : <WifiOff className="h-3.5 w-3.5" />}
-        <span className="hidden lg:inline">{online ? 'Online' : 'Offline'}</span>
-      </span>
+    <div className="w-full min-w-0 space-y-1.5 rounded-lg border border-white/15 bg-white/10 p-2">
+      <div className="flex min-w-0 items-center justify-between gap-1.5">
+        <span className={`flex shrink-0 items-center gap-1 text-xs font-semibold ${online ? 'text-emerald-300' : 'text-amber-300'}`}>
+          {online ? <Wifi className="h-3.5 w-3.5" /> : <WifiOff className="h-3.5 w-3.5" />}
+          {online ? 'Online' : 'Offline'}
+        </span>
+        <span className="min-w-0 truncate text-[10px] text-blue-200">{statusLabel}</span>
+      </div>
 
-      <span className="hidden xl:inline whitespace-nowrap border-l border-white/15 pl-2 text-[11px] text-blue-200">
-        {statusLabel}
-      </span>
-
-      <div className="flex items-center gap-0.5 border-l border-white/15 pl-1.5">
+      <div className="flex items-center gap-1">
         <Button
           size="sm"
           variant="ghost"
           disabled={syncing || !online}
-          className="h-7 gap-1 rounded-md px-2 text-[11px] text-blue-100 hover:bg-white/10 hover:text-white"
+          className="h-7 min-w-0 flex-1 gap-1 rounded-md px-1.5 text-[11px] text-blue-100 hover:bg-white/10 hover:text-white"
           onClick={handleSync}
         >
-          <RefreshCw className={`h-3.5 w-3.5 ${syncing ? 'animate-spin' : ''}`} />
-          <span className="hidden sm:inline">{syncing ? 'Sincronizando...' : 'Sincronizar'}</span>
+          <RefreshCw className={`h-3.5 w-3.5 shrink-0 ${syncing ? 'animate-spin' : ''}`} />
+          <span className="truncate">{syncing ? 'Sincronizando...' : 'Sincronizar'}</span>
         </Button>
         <Button
           size="icon"
           variant="ghost"
           title="Baixar backup local"
-          className="h-7 w-7 rounded-md text-blue-200 hover:bg-white/10 hover:text-white"
+          className="h-7 w-7 shrink-0 rounded-md text-blue-200 hover:bg-white/10 hover:text-white"
           onClick={handleBackup}
         >
           <Download className="h-3.5 w-3.5" />

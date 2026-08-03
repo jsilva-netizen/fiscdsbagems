@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Download, Loader2, Save, Send } from 'lucide-react';
-import CatesaLayout from '@/components/camaras/CatesaLayout';
+import AdminShell from '@/components/layout/AdminShell';
  
 export default function PareceresTecnicos() {
   const queryClient = useQueryClient();
@@ -188,7 +188,7 @@ export default function PareceresTecnicos() {
   const autosDoLote = useMemo(() => (remessaItens || []).map((it) => it?.autos_infracao).filter(Boolean), [remessaItens]);
  
   return (
-    <CatesaLayout>
+    <AdminShell title="CATESA" subtitle="Câmara Técnica de Saneamento Básico">
       <div className="max-w-6xl mx-auto px-4 pt-8">
         <div>
           <h1 className="text-xs font-bold uppercase tracking-widest text-slate-400">Pareceres</h1>
@@ -436,6 +436,6 @@ export default function PareceresTecnicos() {
           </div>
         )}
       </div>
-    </CatesaLayout>
+    </AdminShell>
   );
 }

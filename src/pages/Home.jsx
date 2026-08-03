@@ -1,242 +1,169 @@
-import { useState, useEffect } from 'react';
 import { createPageUrl } from '@/utils';
 import { useAuth } from '@/lib/AuthContext';
 import { useModulo } from '@/hooks/useModulo';
-import { CAMARA_DASHBOARD_PAGE, CAMARA_FISCALIZACAO_PATH, DEFAULT_CAMARA_POR_DIRETORIA } from '@/lib/camaras';
-import { Link, Navigate } from 'react-router-dom';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import SyncBar from '@/components/camaras/SyncBar';
+import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { Repository } from '@/lib/offline/repository';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import AdminShell from '@/components/layout/AdminShell';
 import {
-  Plus, History, ClipboardCheck, Users, FileText,
-  LogOut, ChevronRight, Route, Zap,
-  Droplets, TrendingUp,
+  Plus, ClipboardCheck, Clock, CheckCircle2, AlertTriangle,
+  MapPin, Calendar, ChevronRight,
 } from 'lucide-react';
 
-const MODULOS = [
-  { id: 'dsb', sigla: 'DSB', nome: 'Saneamento Básico e Resíduos Sólidos', icon: Droplets, color: 'text-emerald-500', bg: 'bg-emerald-50' },
-  { id: 'dtr', sigla: 'DTR', nome: 'Transportes, Rodovias, Ferrovias, Portos e Aeroportos', icon: Route, color: 'text-blue-500', bg: 'bg-blue-50' },
-  { id: 'dge', sigla: 'DGE', nome: 'Gás Canalizado, Energia e Mineração', icon: Zap, color: 'text-amber-500', bg: 'bg-amber-50' },
-];
+const DTR_MODULOS = ['rodovias_dtr', 'transportes_dtr', 'fiscal_dtr'];
 
 export default function Home() {
-    const { user, logout } = useAuth();
-    const { isDSB, isDTR, isDGE, isAdmin, diretoriaNome, camaraTecnica } = useModulo();
-    const [isMobile, setIsMobile] = useState(false);
+    const { user } = useAuth();
+    const { isDSB, isDTR, isAdmin, camaraTecnica, tipoModulo, modulosFiltro } = useModulo();
 
-    const isPrestador = user?.role === 'prestador';
-    // "user" é o valor legado salvo no banco pro cargo "Fiscal" (ver GerenciarUsuarios.jsx).
-    const isFiscal = (user?.role === 'user' ? 'fiscal' : user?.role) === 'fiscal';
+    const nomeCompleto = user?.full_name || user?.user_metadata?.full_name || user?.email || '';
+    const primeiroNome = nomeCompleto.split(' ')[0].split('@')[0];
 
-    const handleLogout = async () => {
-        try { await logout(); } catch (error) { console.error('Erro ao sair:', error); }
-    };
+    const { data: todasFiscalizacoes = [] } = useQuery({
+        queryKey: ['home-fiscalizacoes'],
+        queryFn: () => Repository.listFiscalizacoes(200),
+    });
 
-    useEffect(() => {
-        const handleResize = () => setIsMobile(window.innerWidth < 768);
-        handleResize();
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
+    // O total_constatacoes/total_ncs da própria fiscalização só é gravado na finalização
+    // (RPC finalizar_fiscalizacao) e nem sempre reflete a realidade. A fonte confiável é
+    // somar por unidade vistoriada, que é atualizada a cada vistoria (ver ExecutarFiscalizacao.jsx).
+    const fiscalizacaoIds = todasFiscalizacoes.map((f) => f.id);
+    const { data: totaisPorFiscalizacao = {} } = useQuery({
+        queryKey: ['home-totais-fiscalizacao', fiscalizacaoIds.join(',')],
+        queryFn: () => Repository.getTotaisPorFiscalizacao(fiscalizacaoIds),
+        enabled: fiscalizacaoIds.length > 0,
+    });
 
-    // Quem já tem câmara técnica atribuída cai direto no dashboard dela — exceto admin,
-    // que sempre vê o seletor de módulo/câmara abaixo (pode navegar livremente). Fiscais
-    // pulam o dashboard e caem direto na aba de Fiscalização, que é o que eles usam no dia a dia.
-    if (!isAdmin && camaraTecnica) {
-        if (isFiscal && CAMARA_FISCALIZACAO_PATH[camaraTecnica]) {
-            return <Navigate to={CAMARA_FISCALIZACAO_PATH[camaraTecnica]} replace />;
-        }
-        if (CAMARA_DASHBOARD_PAGE[camaraTecnica]) {
-            return <Navigate to={createPageUrl(CAMARA_DASHBOARD_PAGE[camaraTecnica])} replace />;
-        }
-    }
+    // Admin vê tudo (modulosFiltro = []). Quem tem câmara técnica atribuída vê só as
+    // fiscalizações daquela câmara; demais usuários (sem câmara específica) veem todos
+    // os módulos da própria diretoria.
+    const fiscalizacoesFiltro = (!isAdmin && camaraTecnica) ? [tipoModulo] : modulosFiltro;
+    const fiscalizacoes = fiscalizacoesFiltro.length
+        ? todasFiscalizacoes.filter((f) => fiscalizacoesFiltro.includes(f.tipo_modulo))
+        : todasFiscalizacoes;
 
-    // Menu card definitions (caso remanescente: usuário sem câmara atribuída, não-admin)
-    const dsbMenuItems = [
-        ...(isPrestador ? [{ page: 'PortalPrestadorHome', icon: <FileText className="h-6 w-6" />, label: 'Portal do Prestador', desc: 'Responder TNs', color: 'text-indigo-500', bg: 'bg-indigo-50' }] : []),
+    const total = fiscalizacoes.length;
+    const emAndamento = fiscalizacoes.filter((f) => f.status === 'em_andamento').length;
+    const finalizadas = fiscalizacoes.filter((f) => f.status === 'finalizada').length;
+    const ncs = fiscalizacoes.reduce((soma, f) => soma + (totaisPorFiscalizacao[f.id]?.total_ncs || 0), 0);
+    const ultimas = fiscalizacoes.slice(0, 5);
+
+    const listaPageDestino = isDSB ? 'Fiscalizacoes' : 'FiscalizacoesDTR';
+    const novaFiscalizacaoDestino = isDSB ? 'NovaFiscalizacao' : isDTR ? 'NovaFiscalizacaoDTR' : null;
+
+    const STATS = [
+        { label: 'Total', desc: 'fiscalizações', value: total, icon: ClipboardCheck, iconBg: 'bg-blue-50', iconColor: 'text-blue-600' },
+        { label: 'Em andamento', desc: 'ativas', value: emAndamento, icon: Clock, iconBg: 'bg-amber-50', iconColor: 'text-amber-600' },
+        { label: 'Finalizadas', desc: 'completas', value: finalizadas, icon: CheckCircle2, iconBg: 'bg-emerald-50', iconColor: 'text-emerald-600' },
+        { label: 'NCs', desc: 'registradas', value: ncs, icon: AlertTriangle, iconBg: 'bg-rose-50', iconColor: 'text-rose-600' },
     ];
-
-    const dtrMenuItems = [
-        { page: 'FiscalizacoesDTR', icon: <ClipboardCheck className="h-6 w-6" />, label: 'Inspeções', desc: 'Vistorias de rodovias', color: 'text-indigo-500', bg: 'bg-indigo-50' },
-        { page: 'PrestadoresServico', icon: <Users className="h-6 w-6" />, label: 'Concessionárias', desc: 'Empresas Cadastradas', color: 'text-sky-500', bg: 'bg-sky-50' },
-        { page: 'Contratos', icon: <FileText className="h-6 w-6" />, label: 'Contratos', desc: 'Rodovias e Concessões', color: 'text-violet-500', bg: 'bg-violet-50' },
-    ];
-
-    const menuItems = isDSB ? dsbMenuItems : isDTR ? dtrMenuItems : [];
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-lg">
-                <div className="max-w-6xl mx-auto px-4 py-5">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center p-2 shadow-md flex-shrink-0">
-                            <svg viewBox="0 0 128 128" className="w-full h-full" aria-label="Logo AGEMS">
-                                <circle cx="64" cy="64" r="56" fill="none" stroke="#101010" strokeWidth="6" />
-                                <polygon points="24,32 44,32 64,64 44,96 24,96 44,64" fill="#1FA463" />
-                                <polygon points="44,32 64,32 84,64 64,96 44,96 64,64" fill="#1894F2" />
-                                <polygon points="64,32 84,32 104,64 84,96 64,96 84,64" fill="#F6C713" />
-                            </svg>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <h1 className="text-xs font-bold uppercase tracking-widest text-blue-200 truncate">SGO - Sistema de Gestão Operacional - AGEMS</h1>
-                        </div>
-                        <SyncBar />
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-white hover:bg-white/10 rounded-xl gap-1.5"
-                            onClick={handleLogout}
-                        >
-                            <LogOut className="h-4 w-4" />
-                            <span className="hidden sm:inline">Sair</span>
-                        </Button>
-                    </div>
+        <AdminShell title="Início">
+            <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+
+                {/* Cartão de boas-vindas */}
+                <div className="bg-gradient-to-br from-[#0066B3] to-[#004A8F] rounded-2xl p-6 sm:p-7 text-white shadow-md">
+                    <h1 className="text-xl sm:text-2xl font-bold">Bem-vindo(a) de volta, {primeiroNome}</h1>
+                    <p className="text-blue-200 text-sm mt-1.5 max-w-xl">
+                        Gerencie suas fiscalizações, registre não-conformidades e acompanhe os indicadores do SIFIS.
+                    </p>
+                    {novaFiscalizacaoDestino && (
+                        <Link to={createPageUrl(novaFiscalizacaoDestino)} className="inline-block mt-4">
+                            <span className="inline-flex items-center gap-2 bg-white text-[#0066B3] font-semibold text-sm rounded-xl px-4 py-2.5 shadow hover:bg-blue-50 transition-colors">
+                                <Plus className="h-4 w-4" />
+                                Nova Fiscalização
+                            </span>
+                        </Link>
+                    )}
                 </div>
-            </div>
 
-            {/* Main Content */}
-            <div className="max-w-6xl mx-auto px-4 py-6 w-full flex-1 space-y-6">
-
-                {isAdmin ? (
-                    <>
-                        <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Selecione o módulo</h2>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            {MODULOS.map((m) => (
-                                <Link
-                                    key={m.id}
-                                    to={createPageUrl(CAMARA_DASHBOARD_PAGE[DEFAULT_CAMARA_POR_DIRETORIA[m.id]])}
-                                    className="group bg-white border border-gray-200 rounded-2xl p-5 flex flex-col items-start gap-3 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all text-left"
-                                >
-                                    <div className={`w-12 h-12 ${m.bg} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                                        <m.icon className={`h-6 w-6 ${m.color}`} />
-                                    </div>
-                                    <div className="min-w-0">
-                                        <h3 className="text-base font-bold text-gray-900">{m.sigla}</h3>
-                                        <p className="text-gray-500 text-sm">{m.nome}</p>
-                                    </div>
-                                </Link>
-                            ))}
-                        </div>
-                    </>
-                ) : (
-                    <>
-                        {/* Primary Action Cards — DSB */}
-                        {isDSB && (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <Link to={createPageUrl('NovaFiscalizacao')}>
-                                    <div className="group bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-5 flex items-center gap-4 shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all cursor-pointer">
-                                        <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-white/30 transition-all">
-                                            <Plus className="h-7 w-7 text-white" />
-                                        </div>
-                                        <div className="text-white min-w-0">
-                                            <h3 className="text-lg font-bold">Nova Fiscalização</h3>
-                                            <p className="text-emerald-100 text-sm">Iniciar vistoria em campo</p>
-                                        </div>
-                                        <ChevronRight className="h-5 w-5 text-white/60 ml-auto flex-shrink-0 group-hover:translate-x-1 transition-transform" />
-                                    </div>
-                                </Link>
-                                <Link to={createPageUrl('Fiscalizacoes')}>
-                                    <div className="group bg-white border border-gray-200 rounded-2xl p-5 flex items-center gap-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
-                                        <div className="w-14 h-14 bg-indigo-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-100 transition-all">
-                                            <History className="h-7 w-7 text-indigo-500" />
-                                        </div>
-                                        <div className="min-w-0">
-                                            <h3 className="text-lg font-bold text-gray-800">Fiscalizações</h3>
-                                            <p className="text-gray-500 text-sm">Ver histórico e continuar</p>
-                                        </div>
-                                        <ChevronRight className="h-5 w-5 text-gray-300 ml-auto flex-shrink-0 group-hover:translate-x-1 transition-transform" />
-                                    </div>
-                                </Link>
-                            </div>
-                        )}
-
-                        {/* Primary Action Cards — DTR */}
-                        {isDTR && (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <Link to={createPageUrl('NovaFiscalizacaoDTR')}>
-                                    <div className="group bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-5 flex items-center gap-4 shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all cursor-pointer">
-                                        <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-white/30 transition-all">
-                                            <Plus className="h-7 w-7 text-white" />
-                                        </div>
-                                        <div className="text-white min-w-0">
-                                            <h3 className="text-lg font-bold">Nova Fiscalização Rodoviária</h3>
-                                            <p className="text-blue-100 text-sm">Iniciar vistoria na rodovia</p>
-                                        </div>
-                                        <ChevronRight className="h-5 w-5 text-white/60 ml-auto flex-shrink-0 group-hover:translate-x-1 transition-transform" />
-                                    </div>
-                                </Link>
-                                <Link to={createPageUrl('FiscalizacoesDTR')}>
-                                    <div className="group bg-white border border-gray-200 rounded-2xl p-5 flex items-center gap-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
-                                        <div className="w-14 h-14 bg-indigo-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-100 transition-all">
-                                            <History className="h-7 w-7 text-indigo-500" />
-                                        </div>
-                                        <div className="min-w-0">
-                                            <h3 className="text-lg font-bold text-gray-800">Histórico DTR</h3>
-                                            <p className="text-gray-500 text-sm">Ver histórico e pontos registrados</p>
-                                        </div>
-                                        <ChevronRight className="h-5 w-5 text-gray-300 ml-auto flex-shrink-0 group-hover:translate-x-1 transition-transform" />
-                                    </div>
-                                </Link>
-                            </div>
-                        )}
-
-                        {/* Relatórios e BI */}
-                        {!isPrestador && (
-                            <div className="sm:max-w-sm">
-                                <Link to={createPageUrl('Relatorios')}>
-                                    <div className="group bg-white border border-gray-200 rounded-2xl p-5 flex items-center gap-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
-                                        <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-all">
-                                            <TrendingUp className="h-6 w-6 text-blue-600" />
-                                        </div>
-                                        <div className="min-w-0">
-                                            <h3 className="text-base font-semibold text-gray-900">Relatórios e BI</h3>
-                                            <p className="text-gray-500 text-sm">Indicadores e análises</p>
-                                        </div>
-                                        <ChevronRight className="h-4 w-4 text-gray-400 ml-auto flex-shrink-0 group-hover:translate-x-1 transition-transform" />
-                                    </div>
-                                </Link>
-                            </div>
-                        )}
-
-                        {/* DGE placeholder */}
-                        {isDGE && !isDSB && !isDTR && (
-                            <Card className="border-dashed border-2 border-gray-300 bg-white">
-                                <CardContent className="p-8 text-center text-gray-400">
-                                    <FileText className="h-10 w-10 mx-auto mb-3 opacity-30" />
-                                    <p className="font-semibold text-gray-500">Módulo de Gás e Energia</p>
-                                    <p className="text-sm mt-1">Em implementação — em breve disponível.</p>
-                                </CardContent>
-                            </Card>
-                        )}
-
-                        {/* Menu Grid */}
-                        {!isMobile && menuItems.length > 0 && (
-                            <div>
-                                <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Menu Principal</h2>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                    {menuItems.map(item => (
-                                        <Link key={item.page} to={createPageUrl(item.page)}>
-                                            <div className="group bg-white border border-gray-200 rounded-2xl p-4 flex flex-col items-center text-center hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer gap-2">
-                                                <div className={`w-12 h-12 ${item.bg} ${item.color} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                                                    {item.icon}
-                                                </div>
-                                                <p className="font-semibold text-gray-800 text-sm leading-tight">{item.label}</p>
-                                                <p className="text-xs text-gray-400">{item.desc}</p>
-                                            </div>
-                                        </Link>
-                                    ))}
+                {/* Estatísticas */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    {STATS.map((s) => (
+                        <div key={s.label} className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-5">
+                            <div className="flex items-start justify-between">
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">{s.label}</p>
+                                <div className={`w-9 h-9 ${s.iconBg} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                                    <s.icon className={`h-4 w-4 ${s.iconColor}`} />
                                 </div>
                             </div>
-                        )}
-                    </>
-                )}
-            </div>
+                            <p className="text-3xl font-bold text-gray-900 mt-2">{s.value}</p>
+                            <p className="text-xs text-gray-400">{s.desc}</p>
+                        </div>
+                    ))}
+                </div>
 
-            {/* Footer */}
-            <div className="py-5 text-center text-xs text-gray-400 bg-white border-t border-gray-200 mt-auto">
-                AGEMS — Agência Estadual de Regulação de Serviços Públicos de MS
+                {/* Últimas Fiscalizações */}
+                <div>
+                    <div className="flex items-center justify-between mb-3">
+                        <h2 className="text-base font-bold text-gray-900">Últimas Fiscalizações</h2>
+                        <Link to={createPageUrl(listaPageDestino)} className="text-sm font-semibold text-[#0066B3] hover:underline flex items-center gap-1">
+                            Ver todas <ChevronRight className="h-3.5 w-3.5" />
+                        </Link>
+                    </div>
+
+                    {ultimas.length === 0 ? (
+                        <div className="bg-white border border-dashed border-gray-300 rounded-2xl p-8 text-center text-gray-400">
+                            <ClipboardCheck className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                            <p className="text-sm font-medium">Nenhuma fiscalização ainda</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {ultimas.map((fisc) => {
+                                const isFinished = fisc.status === 'finalizada';
+                                const isDtrFisc = DTR_MODULOS.includes(fisc.tipo_modulo);
+                                const detalhePage = isDtrFisc ? 'ExecutarFiscalizacaoDTR' : 'ExecutarFiscalizacao';
+                                const localLabel = isDtrFisc
+                                    ? (fisc.rodovia || 'Rodovia indefinida')
+                                    : (fisc.municipio_nome || 'Sem município');
+                                const { total_constatacoes = 0, total_ncs = 0 } = totaisPorFiscalizacao[fisc.id] || {};
+                                return (
+                                    <Link
+                                        key={fisc.id}
+                                        to={createPageUrl(detalhePage) + `?id=${fisc.id}`}
+                                        className="flex items-center justify-between gap-3 bg-white border border-gray-200 rounded-2xl p-4 hover:shadow-md hover:-translate-y-0.5 transition-all"
+                                    >
+                                        <div className="min-w-0">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <h3 className="font-bold text-gray-800 flex items-center gap-1.5 text-sm">
+                                                    <MapPin className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                                                    {localLabel}
+                                                </h3>
+                                                <span className={`text-[10px] font-semibold rounded-full px-2 py-0.5 ${isFinished ? 'bg-emerald-100 text-emerald-700' : 'bg-sky-100 text-sky-700'}`}>
+                                                    {isFinished ? 'Finalizada' : 'Em andamento'}
+                                                </span>
+                                                {fisc.servicos?.slice(0, 1).map((s) => (
+                                                    <span key={s} className="text-[10px] font-semibold rounded-full px-2 py-0.5 bg-indigo-50 text-indigo-700">{s}</span>
+                                                ))}
+                                            </div>
+                                            {fisc.data_inicio && (
+                                                <p className="text-xs text-gray-400 mt-1.5 flex items-center gap-1">
+                                                    <Calendar className="h-3 w-3" />
+                                                    {format(new Date(fisc.data_inicio), 'dd/MM/yyyy', { locale: ptBR })}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center gap-4 flex-shrink-0 text-right">
+                                            <div>
+                                                <p className="text-sm font-bold text-gray-800">{total_constatacoes}</p>
+                                                <p className="text-[10px] text-gray-400">Constatações</p>
+                                            </div>
+                                            <div>
+                                                <p className={`text-sm font-bold ${total_ncs > 0 ? 'text-rose-600' : 'text-gray-800'}`}>{total_ncs}</p>
+                                                <p className="text-[10px] text-gray-400">NCs</p>
+                                            </div>
+                                            <ChevronRight className="h-4 w-4 text-gray-300" />
+                                        </div>
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
             </div>
-        </div>
+        </AdminShell>
     );
 }

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { ClipboardList, FolderOpen, Loader2, Search, X } from 'lucide-react';
-import CatersLayout from '@/components/caters/CatersLayout';
+import AdminShell from '@/components/layout/AdminShell';
 import { fetchRecommendationSummariesByProcess } from '@/lib/caters/recommendations';
 import { createPageUrl } from '@/utils';
 import { Input } from '@/components/ui/input';
@@ -33,7 +33,7 @@ export default function CatersRecomendacoes() {
   );
 
   return (
-    <CatersLayout>
+    <AdminShell title="CATERS" subtitle="Câmara Técnica de Resíduos Sólidos">
       <div className="min-h-full bg-slate-50">
         <div className="px-8 pb-12 pt-8">
           <div className="mx-auto max-w-6xl space-y-6">
@@ -160,6 +160,6 @@ export default function CatersRecomendacoes() {
           </div>
         </div>
       </div>
-    </CatersLayout>
+    </AdminShell>
   );
 }

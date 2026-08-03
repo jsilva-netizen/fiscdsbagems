@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import FluxoUploadDocumentos from '@/components/autos/FluxoUploadDocumentos';
 import { Loader2, Save, Download, Send } from 'lucide-react';
-import CatesaLayout from '@/components/camaras/CatesaLayout';
+import AdminShell from '@/components/layout/AdminShell';
 
 export default function GestaoAutos() {
      const [searchParams] = useSearchParams();
@@ -499,7 +499,7 @@ export default function GestaoAutos() {
     };
 
     return (
-        <CatesaLayout>
+        <AdminShell title="CATESA" subtitle="Câmara Técnica de Saneamento Básico">
             <div className="max-w-6xl mx-auto px-4 pt-8 pb-6">
 
                 {/* Header */}
@@ -962,6 +962,6 @@ export default function GestaoAutos() {
                     </TabsContent>
                 </Tabs>
             </div>
-        </CatesaLayout>
+        </AdminShell>
     );
 }

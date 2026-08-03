@@ -1,15 +1,14 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { useModulo, DIRETORIA_NOMES, CAMARA_TO_TIPO_MODULO } from '@/hooks/useModulo';
-import { useCamaraLayout } from '@/hooks/useCamaraLayout';
+import { useModulo, DIRETORIA_NOMES, CAMARA_TO_TIPO_MODULO, MODULOS_POR_DIRETORIA } from '@/hooks/useModulo';
+import AdminShell from '@/components/layout/AdminShell';
 import { CAMARA_TO_DIRETORIA } from '@/lib/camaras';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, Download, FileJson, FileText, CheckCircle2, AlertTriangle, ChevronDown, Check, Search, Route, MapPin, Filter, Building2, Camera } from 'lucide-react';
-import CaterfLayout from '@/components/caterf/CaterfLayout';
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Legend, Cell } from 'recharts';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -295,7 +294,7 @@ function RelatoriosDTR({ diretoriaNome }) {
     const v = (n) => loading ? '—' : n;
 
     return (
-        <CaterfLayout>
+        <AdminShell title="Relatórios e Indicadores">
             {/* Header */}
             <div className="max-w-6xl mx-auto px-4 pt-8">
                 <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -480,7 +479,7 @@ function RelatoriosDTR({ diretoriaNome }) {
                     </Card>
                 )}
             </div>
-        </CaterfLayout>
+        </AdminShell>
     );
 }
 
@@ -490,17 +489,18 @@ export default function Relatorios() {
     const { tipoModulo, modulosFiltro, isDSB, diretoria, diretoriaNome, isAdmin } = useModulo();
     const [searchParams] = useSearchParams();
     const camaraParam = searchParams.get('camara');
+    const diretoriaParam = searchParams.get('diretoria');
 
     // Admin navega livremente entre câmaras pelo seletor no cabeçalho — a diretoria/módulo
     // "efetivos" dessa página vêm da câmara clicada na URL (?camara=xxx), não do perfil do
-    // usuário (que pra admin é vazio/irrelevante e sempre marcaria isDTR=true).
-    const efetivaDiretoria = camaraParam ? (CAMARA_TO_DIRETORIA[camaraParam] ?? diretoria) : diretoria;
-    const efetivaDiretoriaNome = camaraParam ? (DIRETORIA_NOMES[efetivaDiretoria] ?? diretoriaNome) : diretoriaNome;
+    // usuário (que pra admin é vazio/irrelevante e sempre marcaria isDTR=true). `?diretoria=`
+    // força a visão agregada de uma diretoria inteira (usado pelos itens "Indicadores (DSB)"/
+    // "Indicadores (DTR)" da sidebar do admin), sem restringir a uma câmara específica.
+    const efetivaDiretoria = diretoriaParam || (camaraParam ? (CAMARA_TO_DIRETORIA[camaraParam] ?? diretoria) : diretoria);
+    const efetivaDiretoriaNome = DIRETORIA_NOMES[efetivaDiretoria] ?? diretoriaNome;
     const efetivoModulosFiltro = camaraParam && CAMARA_TO_TIPO_MODULO[camaraParam]
         ? [CAMARA_TO_TIPO_MODULO[camaraParam]]
-        : modulosFiltro;
-
-    const Layout = useCamaraLayout(camaraParam);
+        : (diretoriaParam ? (MODULOS_POR_DIRETORIA[diretoriaParam] ?? modulosFiltro) : modulosFiltro);
 
     if (efetivaDiretoria === 'dtr') return <RelatoriosDTR diretoriaNome={efetivaDiretoriaNome} />;
 
@@ -681,7 +681,7 @@ export default function Relatorios() {
     };
 
     return (
-        <Layout>
+        <AdminShell title="Relatórios e Indicadores">
             {/* Header */}
             <div className="max-w-6xl mx-auto px-4 pt-8">
                 <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -1005,6 +1005,6 @@ export default function Relatorios() {
 
             </div>
             </div>
-        </Layout>
+        </AdminShell>
     );
 }

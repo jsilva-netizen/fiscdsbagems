@@ -1143,7 +1143,7 @@ export default function VistoriarOcorrenciaDTR() {
     };
 
     const Header = () => (
-        <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md sticky top-0 z-10">
+        <div className="bg-gradient-to-r from-[#0066B3] to-[#004A8F] text-white shadow-md sticky top-0 z-10">
             <div className="max-w-md mx-auto px-4 py-4">
                 <div className="flex items-center gap-3">
                     {/* Voltar */}

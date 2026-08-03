@@ -191,7 +191,7 @@ export default function AdicionarUnidade() {
         <div className="min-h-screen bg-gray-50 flex flex-col justify-between">
             <div>
             {/* Header */}
-            <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
+            <div className="bg-gradient-to-r from-[#0066B3] to-[#004A8F] text-white shadow-md">
                 <div className="max-w-lg mx-auto px-4 py-5 flex items-center gap-3">
                     <Link to={createPageUrl('ExecutarFiscalizacao') + `?id=${fiscalizacaoId}`}>
                         <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full">

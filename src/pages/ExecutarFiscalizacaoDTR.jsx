@@ -81,7 +81,7 @@ export default function ExecutarFiscalizacaoDTR() {
             <div className="flex flex-col overflow-y-auto" style={{ height: '70dvh' }}>
 
                 {/* Header */}
-                <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md flex-shrink-0">
+                <div className="bg-gradient-to-r from-[#0066B3] to-[#004A8F] text-white shadow-md flex-shrink-0">
                     <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <Link to={createPageUrl('FiscalizacoesDTR')}>

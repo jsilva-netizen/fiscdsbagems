@@ -18,8 +18,7 @@ import TermosFiltros from '@/components/termos/TermosFiltros';
 import { deleteTermoNotificacaoComDependencias } from '@/lib/storageCleanup';
 import { Repository } from '@/lib/offline/repository';
 import { useModulo } from '@/hooks/useModulo';
-import CatesaLayout from '@/components/camaras/CatesaLayout';
-import CatersLayout from '@/components/caters/CatersLayout';
+import AdminShell from '@/components/layout/AdminShell';
 
 let cachedTermosBucketName = null;
 let cachedAvailableBuckets = null;
@@ -29,7 +28,9 @@ export default function GerenciarTermos() {
     const [searchParams] = useSearchParams();
     const camaraParam = searchParams.get('camara');
     const effectiveCamara = camaraParam || camaraTecnica;
-    const CamaraLayoutComponent = effectiveCamara === 'caters' ? CatersLayout : CatesaLayout;
+    const camaraTitle = effectiveCamara === 'caters'
+        ? { title: 'CATERS', subtitle: 'Câmara Técnica de Resíduos Sólidos' }
+        : { title: 'CATESA', subtitle: 'Câmara Técnica de Saneamento Básico' };
 
     const queryClient = useQueryClient();
     const [selectedFiscalizacao, setSelectedFiscalizacao] = useState(null);
@@ -686,7 +687,7 @@ export default function GerenciarTermos() {
         };
 
     return (
-        <CamaraLayoutComponent>
+        <AdminShell title={camaraTitle.title} subtitle={camaraTitle.subtitle}>
             <div className="max-w-6xl mx-auto px-4 pt-8">
                 <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
                     <div>
@@ -1760,6 +1761,6 @@ export default function GerenciarTermos() {
                      )}
                 </div>
             </div>
-        </CamaraLayoutComponent>
+        </AdminShell>
     );
 }

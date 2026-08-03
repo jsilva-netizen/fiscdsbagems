@@ -29,7 +29,7 @@ import {
   Ban,
   Sparkles,
 } from 'lucide-react';
-import CatersLayout from '@/components/caters/CatersLayout';
+import AdminShell from '@/components/layout/AdminShell';
 import { fetchProcessById, updateProcess, formatProcessStatus, importFromFiscalizacao } from '@/lib/caters/processes';
 import {
   fetchRecommendationsByProcess,
@@ -468,33 +468,33 @@ export default function CatersProcessoDetalhe() {
   // ── Guards ────────────────────────────────────────────────────────────
   if (!processId) {
     return (
-      <CatersLayout>
+      <AdminShell title="CATERS" subtitle="Câmara Técnica de Resíduos Sólidos">
         <div className="flex items-center justify-center h-64">
           <p className="text-slate-500">ID do processo não informado.</p>
         </div>
-      </CatersLayout>
+      </AdminShell>
     );
   }
 
   if (procQ.isLoading) {
     return (
-      <CatersLayout>
+      <AdminShell title="CATERS" subtitle="Câmara Técnica de Resíduos Sólidos">
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
         </div>
-      </CatersLayout>
+      </AdminShell>
     );
   }
 
   if (procQ.isError || !process) {
     return (
-      <CatersLayout>
+      <AdminShell title="CATERS" subtitle="Câmara Técnica de Resíduos Sólidos">
         <div className="px-8 pt-8">
           <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             Processo não encontrado ou erro ao carregar.
           </div>
         </div>
-      </CatersLayout>
+      </AdminShell>
     );
   }
 
@@ -584,7 +584,7 @@ export default function CatersProcessoDetalhe() {
   ];
 
   return (
-    <CatersLayout>
+    <AdminShell title="CATERS" subtitle="Câmara Técnica de Resíduos Sólidos">
       <div className="min-h-full bg-slate-50">
         <div className="px-8 pb-12 pt-8">
           <div className="mx-auto max-w-6xl space-y-6">
@@ -1496,6 +1496,6 @@ export default function CatersProcessoDetalhe() {
           await updateRecMut.mutateAsync({ id: rec.id, data: { notes: appended } });
         }}
       />
-    </CatersLayout>
+    </AdminShell>
   );
 }

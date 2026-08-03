@@ -13,15 +13,15 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
-import { Search, Filter, Trash2, AlertTriangle, MapPin, ChevronRight, Calendar, CheckCircle2, Clock, Plus, RotateCcw, Loader2, Settings } from 'lucide-react';
+import { Search, SlidersHorizontal, Trash2, AlertTriangle, MapPin, ChevronRight, Calendar, CheckCircle2, Clock, Plus, RotateCcw, Loader2, ClipboardList } from 'lucide-react';
 import ExportarPDFConsolidado from '@/components/fiscalizacao/ExportarPDFConsolidado';
 import RelatorioFiscalizacao from '@/components/fiscalizacao/RelatorioFiscalizacao';
 import HistoricoFiscalizacao from '@/components/fiscalizacao/HistoricoFiscalizacao';
 import { useSyncStatus } from '@/lib/SyncStatusContext.jsx';
 import { syncUpForFiscalizacao } from '@/lib/offline/syncEngine';
 import { useModulo } from '@/hooks/useModulo';
-import { useCamaraLayout } from '@/hooks/useCamaraLayout';
 import { supabase } from '@/lib/supabase';
+import AdminShell from '@/components/layout/AdminShell';
 
 export default function Fiscalizacoes() {
     const queryClient = useQueryClient();
@@ -31,7 +31,6 @@ export default function Fiscalizacoes() {
     // Admin navega livremente entre câmaras pelo seletor no cabeçalho — a câmara "efetiva"
     // dessa página vem da URL (?camara=xxx), não do perfil do usuário (que pra admin é vazio).
     const camaraTecnica = searchParams.get('camara') || ownCamaraTecnica;
-    const Layout = useCamaraLayout(searchParams.get('camara'));
     const { online, sessionValid, outboxCount } = useSyncStatus?.() || { online: true, sessionValid: true, outboxCount: 0 };
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('todos');
@@ -61,6 +60,16 @@ export default function Fiscalizacoes() {
         },
         staleTime: 60000,
         gcTime: 300000
+    });
+
+    // total_constatacoes/total_ncs da própria fiscalização só é gravado na finalização
+    // (RPC finalizar_fiscalizacao) e nem sempre reflete a realidade. A fonte confiável é
+    // somar por unidade vistoriada, que é atualizada a cada vistoria (ver ExecutarFiscalizacao.jsx).
+    const fiscalizacaoIds = fiscalizacoes.map((f) => f.id);
+    const { data: totaisPorFiscalizacao = {} } = useQuery({
+        queryKey: ['fiscalizacoes-totais', fiscalizacaoIds.join(',')],
+        queryFn: () => Repository.getTotaisPorFiscalizacao(fiscalizacaoIds),
+        enabled: fiscalizacaoIds.length > 0,
     });
 
     const deletarFiscalizacaoMutation = useMutation({
@@ -137,94 +146,75 @@ export default function Fiscalizacoes() {
     const finalizadas = fiscalizacoes.filter(f => f.status === 'finalizada').length;
 
     return (
-        <Layout>
-            {/* Header */}
-            <div className="max-w-6xl mx-auto px-4 pt-8">
-                <h1 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">Histórico de Fiscalizações</h1>
-                <div className="flex items-center gap-2">
-                    <Link to={createPageUrl('NovaFiscalizacao')} className="flex-1 min-w-0">
-                        <Button className="w-full bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow gap-1.5 h-12 px-5 text-base">
-                            <Plus className="h-5 w-5" />
-                            Nova Fiscalização
-                        </Button>
-                    </Link>
+        <AdminShell
+            title="Fiscalizações"
+            subtitle={`${filtered.length} registro${filtered.length === 1 ? '' : 's'}`}
+            actions={
+                <Link to={createPageUrl('NovaFiscalizacao')}>
+                    <Button className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow gap-1.5 h-9 px-4 text-sm">
+                        <Plus className="h-4 w-4" />
+                        Nova Fiscalização
+                    </Button>
+                </Link>
+            }
+        >
+            {/* Busca + filtros (sempre visíveis) */}
+            <div className="max-w-6xl mx-auto px-4 pt-6 pb-4 space-y-3">
+                <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Input
+                            placeholder="Buscar por código, município ou fiscal..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="pl-10 h-10 rounded-xl bg-white border-gray-200"
+                        />
+                    </div>
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger className="h-10 w-full sm:w-44 rounded-xl bg-white border-gray-200">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white border-gray-200">
+                            <SelectItem value="todos">Todos os status</SelectItem>
+                            <SelectItem value="em_andamento">Em andamento</SelectItem>
+                            <SelectItem value="finalizada">Finalizadas</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <Select value={servicoFilter} onValueChange={setServicoFilter}>
+                        <SelectTrigger className="h-10 w-full sm:w-48 rounded-xl bg-white border-gray-200">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white border-gray-200">
+                            <SelectItem value="todos">Todos os serviços</SelectItem>
+                            {servicos.map(s => (
+                                <SelectItem key={s} value={s}>{s}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                     <Button
                         variant="outline"
-                        size="icon"
-                        title="Filtros"
-                        className={`h-9 w-9 rounded-xl border-gray-200 flex-shrink-0 ${mostrarFiltros ? 'bg-indigo-50 border-indigo-300 text-indigo-600' : ''}`}
+                        className={`h-10 rounded-xl border-gray-200 gap-1.5 flex-shrink-0 ${mostrarFiltros ? 'bg-indigo-50 border-indigo-300 text-indigo-600' : ''}`}
                         onClick={() => setMostrarFiltros(!mostrarFiltros)}
                     >
-                        <Filter className="h-4 w-4" />
+                        <SlidersHorizontal className="h-4 w-4" />
+                        <span className="hidden sm:inline">Mais filtros</span>
                     </Button>
-                    {isAdmin && (
-                        <Link to={createPageUrl('Definicoes')}>
-                            <Button variant="ghost" size="icon" title="Definições" className="h-9 w-9 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl flex-shrink-0">
-                                <Settings className="h-4 w-4" />
-                            </Button>
-                        </Link>
-                    )}
                 </div>
-            </div>
 
-            {/* Filters */}
-            <div className="max-w-6xl mx-auto px-4 py-4 space-y-3">
-                {/* Filtros Avançados (busca inclusa) */}
+                {/* Filtros de data (opcional, escondido por padrão) */}
                 {mostrarFiltros && (
-                    <div className="space-y-3 p-4 bg-white rounded-2xl border border-gray-200 shadow-sm">
-                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Filtros Avançados</p>
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                            <Input
-                                placeholder="Buscar município ou serviço..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="pl-10 h-10 rounded-xl bg-white border-gray-200"
-                            />
+                    <div className="flex flex-col sm:flex-row gap-3 p-4 bg-white rounded-2xl border border-gray-200 shadow-sm">
+                        <div className="flex-1">
+                            <label className="text-xs text-gray-500 font-semibold mb-1 block">Data Início</label>
+                            <Input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} className="h-10 rounded-xl bg-white border-gray-200" />
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
-                            <div>
-                                <label className="text-xs text-gray-500 font-semibold mb-1 block">Status</label>
-                                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                                    <SelectTrigger className="h-10 rounded-xl bg-white border-gray-200">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-white border-gray-200">
-                                        <SelectItem value="todos">Todos</SelectItem>
-                                        <SelectItem value="em_andamento">Em andamento</SelectItem>
-                                        <SelectItem value="finalizada">Finalizadas</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div>
-                                <label className="text-xs text-gray-500 font-semibold mb-1 block">Serviço</label>
-                                <Select value={servicoFilter} onValueChange={setServicoFilter}>
-                                    <SelectTrigger className="h-10 rounded-xl bg-white border-gray-200">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-white border-gray-200">
-                                        <SelectItem value="todos">Todos</SelectItem>
-                                        {servicos.map(s => (
-                                            <SelectItem key={s} value={s}>{s}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                            <div>
-                                <label className="text-xs text-gray-500 font-semibold mb-1 block">Data Início</label>
-                                <Input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} className="h-10 rounded-xl bg-white border-gray-200" />
-                            </div>
-                            <div>
-                                <label className="text-xs text-gray-500 font-semibold mb-1 block">Data Fim</label>
-                                <Input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} className="h-10 rounded-xl bg-white border-gray-200" />
-                            </div>
+                        <div className="flex-1">
+                            <label className="text-xs text-gray-500 font-semibold mb-1 block">Data Fim</label>
+                            <Input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} className="h-10 rounded-xl bg-white border-gray-200" />
                         </div>
                         <Button
                             variant="ghost"
-                            size="sm"
-                            className="w-full text-gray-500 hover:text-gray-700 rounded-xl"
+                            className="text-gray-500 hover:text-gray-700 rounded-xl sm:self-end"
                             onClick={() => { setStatusFilter('todos'); setServicoFilter('todos'); setDataInicio(''); setDataFim(''); }}
                         >
                             Limpar Filtros
@@ -248,6 +238,7 @@ export default function Fiscalizacoes() {
                             const isFiscalOrAdmin = user && ['admin', 'coordenador', 'fiscal'].includes(user.role);
                             const podeDeleter = isFiscalOrAdmin;
                             const isFinished = fisc.status === 'finalizada';
+                            const { total_constatacoes = 0, total_ncs = 0 } = totaisPorFiscalizacao[fisc.id] || {};
 
                             return (
                                 <Card key={fisc.id} className="hover:shadow-md transition-all border border-gray-200 rounded-2xl overflow-hidden bg-white">
@@ -301,15 +292,15 @@ export default function Fiscalizacoes() {
                                             </div>
 
                                             {/* Stats */}
-                                            {(fisc.total_conformidades > 0 || fisc.total_nao_conformidades > 0) && (
+                                            {(total_constatacoes > 0 || total_ncs > 0) && (
                                                 <div className="flex gap-4 mt-3 pt-3 border-t border-gray-100 text-xs">
                                                     <span className="flex items-center gap-1 text-emerald-600 font-medium">
                                                         <CheckCircle2 className="h-3 w-3" />
-                                                        {fisc.total_conformidades || 0} Constatações
+                                                        {total_constatacoes} Constatações
                                                     </span>
                                                     <span className="flex items-center gap-1 text-rose-600 font-medium">
                                                         <AlertTriangle className="h-3 w-3" />
-                                                        {fisc.total_nao_conformidades || 0} NCs
+                                                        {total_ncs} NCs
                                                     </span>
                                                 </div>
                                             )}
@@ -557,6 +548,6 @@ export default function Fiscalizacoes() {
                     </div>
                 </div>
             )}
-        </Layout>
+        </AdminShell>
     );
 }

@@ -89,12 +89,8 @@ const DefinicoesDTR = lazy(() => import('./pages/DefinicoesDTR'));
 const CatersDashboard = lazy(() => import('./pages/CatersDashboard'));
 const CatersProcessos = lazy(() => import('./pages/CatersProcessos'));
 const CatersProcessoDetalhe = lazy(() => import('./pages/CatersProcessoDetalhe'));
-const CatersAvisos = lazy(() => import('./pages/CatersAvisos'));
 const CatersRecomendacoes = lazy(() => import('./pages/CatersRecomendacoes'));
 const CatesaDashboard = lazy(() => import('./pages/CatesaDashboard'));
-const CatesaFiscalizacoes = lazy(() => import('./pages/CatesaFiscalizacoes'));
-const CatersFiscalizacoes = lazy(() => import('./pages/CatersFiscalizacoes'));
-const CatersTermos = lazy(() => import('./pages/CatersTermos'));
 const CresDashboard = lazy(() => import('./pages/CresDashboard'));
 const Definicoes = lazy(() => import('./pages/Definicoes'));
 const CaterfDashboard = lazy(() => import('./pages/CaterfDashboard'));
@@ -137,12 +133,8 @@ export const PAGES = {
     "CatersDashboard": CatersDashboard,
     "CatersProcessos": CatersProcessos,
     "CatersProcessoDetalhe": CatersProcessoDetalhe,
-    "CatersAvisos": CatersAvisos,
     "CatersRecomendacoes": CatersRecomendacoes,
     "CatesaDashboard": CatesaDashboard,
-    "CatesaFiscalizacoes": CatesaFiscalizacoes,
-    "CatersFiscalizacoes": CatersFiscalizacoes,
-    "CatersTermos": CatersTermos,
     "CresDashboard": CresDashboard,
     "Definicoes": Definicoes,
     "CaterfDashboard": CaterfDashboard,

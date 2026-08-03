@@ -1,12 +1,10 @@
 import React from 'react';
-import { createPageUrl } from '@/utils';
 import { Repository } from '@/lib/offline/repository';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, ArrowLeft, Search, MapPin } from 'lucide-react';
+import { Loader2, Search, MapPin } from 'lucide-react';
+import AdminShell from '@/components/layout/AdminShell';
 
 export default function Municipios() {
     const [search, setSearch] = React.useState('');
@@ -22,37 +20,21 @@ export default function Municipios() {
     );
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col justify-between">
-            <div>
-                {/* Header */}
-                <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
-                    <div className="max-w-4xl mx-auto px-4 py-5 flex items-center gap-3">
-                        <Link to={createPageUrl('Home')}>
-                            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full">
-                                <ArrowLeft className="h-5 w-5" />
-                            </Button>
-                        </Link>
-                        <div>
-                            <h1 className="text-xs font-bold uppercase tracking-widest text-blue-200">Municípios do MS</h1>
-                        </div>
-                    </div>
-                </div>
-
+        <AdminShell title="Municípios do MS">
+            <div className="max-w-4xl mx-auto px-4 py-4">
                 {/* Search */}
-                <div className="max-w-4xl mx-auto px-4 py-4">
-                    <div className="relative">
-                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                        <Input
-                            placeholder="Buscar município ou código IBGE..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="pl-10 h-11 rounded-xl bg-white border-gray-200"
-                        />
-                    </div>
+                <div className="relative mb-4">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                        placeholder="Buscar município ou código IBGE..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="pl-10 h-11 rounded-xl bg-white border-gray-200"
+                    />
                 </div>
 
                 {/* List */}
-                <div className="max-w-4xl mx-auto px-4 pb-8">
+                <div className="pb-8">
                     {isLoading ? (
                         <div className="flex justify-center py-12">
                             <Loader2 className="h-7 w-7 animate-spin text-indigo-500" />
@@ -91,10 +73,6 @@ export default function Municipios() {
                     )}
                 </div>
             </div>
-
-            <div className="py-5 text-center text-xs text-slate-400 bg-white border-t border-slate-200">
-                AGEMS — Agência Estadual de Regulação de Serviços Públicos de MS
-            </div>
-        </div>
+        </AdminShell>
     );
 }

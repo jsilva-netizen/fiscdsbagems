@@ -22,7 +22,7 @@ const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
 const RouteLoadingFallback = () => (
   <div className="fixed inset-0 flex flex-col items-center justify-center bg-white">
     <img src="/logo.svg" alt="AGEMS" className="w-24 h-24 mb-4" />
-    <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-800 rounded-full animate-spin"></div>
+    <div className="w-8 h-8 border-4 border-blue-100 border-t-[#0066B3] rounded-full animate-spin"></div>
   </div>
 );
 
@@ -30,12 +30,12 @@ const RouteLoadingFallback = () => (
 // os chunks das páginas ainda lazy (ver useOfflineReady) — silenciosa de propósito
 // (sem texto, sem spinner), pensada como uma continuação visual da tela de login.
 const OfflineReadyTransition = () => (
-  <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-blue-950 via-blue-900 to-indigo-950">
+  <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-[#0066B3] to-[#004A8F]">
     <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center p-3 shadow-xl animate-pulse">
       <svg viewBox="0 0 128 128" className="w-full h-full" aria-label="AGEMS">
         <circle cx="64" cy="64" r="56" fill="none" stroke="#101010" strokeWidth="6" />
         <polygon points="24,32 44,32 64,64 44,96 24,96 44,64" fill="#1FA463" />
-        <polygon points="44,32 64,32 84,64 64,96 44,96 64,64" fill="#1894F2" />
+        <polygon points="44,32 64,32 84,64 64,96 44,96 64,64" fill="#0066B3" />
         <polygon points="64,32 84,32 104,64 84,96 64,96 84,64" fill="#F6C713" />
       </svg>
     </div>

@@ -10,9 +10,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Plus, Building2, ClipboardCheck, Edit, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
+import { Plus, Building2, ClipboardCheck, Edit, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from '@/components/ui/alert-dialog';
+import AdminShell from '@/components/layout/AdminShell';
 
 const SERVICOS = ['Abastecimento de Água', 'Esgotamento Sanitário', 'Manejo de Resíduos Sólidos', 'Limpeza Urbana', 'Drenagem'];
 
@@ -132,31 +133,8 @@ export default function TiposUnidade({ embedded = false }) {
         }
     };
 
-    return (
-        <div className={embedded ? '' : 'min-h-screen bg-gray-50 flex flex-col justify-between'}>
-            <div>
-            {!embedded && (
-            <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
-                <div className="max-w-4xl mx-auto px-4 py-5">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <Link to={createPageUrl('Home')}>
-                                <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full">
-                                    <ArrowLeft className="h-5 w-5" />
-                                </Button>
-                            </Link>
-                            <div>
-                                <h1 className="text-xs font-bold uppercase tracking-widest text-blue-200">Tipos de Unidade</h1>
-                            </div>
-                        </div>
-                        <Button onClick={() => setShowForm(true)} className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow gap-1.5">
-                            <Plus className="h-4 w-4" /> Novo Tipo
-                        </Button>
-                    </div>
-                </div>
-            </div>
-            )}
-
+    const content = (
+        <>
             {/* Form Dialog */}
             <Dialog open={showForm} onOpenChange={(open) => !open && resetForm()}>
                 <DialogContent className="max-w-md">
@@ -368,11 +346,21 @@ export default function TiposUnidade({ embedded = false }) {
                     </div>
                 )}
             </div>
-            </div>
+        </>
+    );
 
-            <div className="py-5 text-center text-xs text-slate-400 bg-white border-t border-slate-200">
-                AGEMS — Agência Estadual de Regulação de Serviços Públicos de MS
-            </div>
-        </div>
+    if (embedded) return content;
+
+    return (
+        <AdminShell
+            title="Tipos de Unidade"
+            actions={
+                <Button onClick={() => setShowForm(true)} className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow gap-1.5">
+                    <Plus className="h-4 w-4" /> Novo Tipo
+                </Button>
+            }
+        >
+            {content}
+        </AdminShell>
     );
 }

@@ -12,7 +12,7 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
 import { FileText, Clock, CheckCircle, AlertCircle, Download, Filter, ChevronDown } from 'lucide-react';
-import CatesaLayout from '@/components/camaras/CatesaLayout';
+import AdminShell from '@/components/layout/AdminShell';
 
 
 
@@ -571,7 +571,7 @@ export default function AnaliseManifestacao() {
     };
 
     return (
-        <CatesaLayout>
+        <AdminShell title="CATESA" subtitle="Câmara Técnica de Saneamento Básico">
                 <div className="max-w-6xl mx-auto px-4 pt-8">
 
                 {/* Header */}
@@ -915,6 +915,6 @@ export default function AnaliseManifestacao() {
                     </AlertDialogContent>
                 </AlertDialog>
             </div>
-        </CatesaLayout>
+        </AdminShell>
     );
 }

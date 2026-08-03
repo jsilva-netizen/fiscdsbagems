@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
 import { Download, CheckCircle, XCircle, AlertCircle, Eye, Lock, Sparkles, Loader2 } from 'lucide-react';
-import CatesaLayout from '@/components/camaras/CatesaLayout';
+import AdminShell from '@/components/layout/AdminShell';
 import CatesaAiAnalysisDialog from '@/components/camaras/CatesaAiAnalysisDialog';
 import { enqueueCatesaAiJob } from '@/lib/catesa/aiJobs';
 
@@ -574,7 +574,7 @@ export default function AnalisarResposta() {
     }
 
     return (
-        <CatesaLayout>
+        <AdminShell title="CATESA" subtitle="Câmara Técnica de Saneamento Básico">
                 <div className="max-w-6xl mx-auto px-4">
 
                 {/* Info do TN */}
@@ -987,6 +987,6 @@ export default function AnalisarResposta() {
                 />
 
             </div>
-        </CatesaLayout>
+        </AdminShell>
     );
 }

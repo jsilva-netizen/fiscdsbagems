@@ -10,7 +10,8 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ArrowLeft, Shield, Loader2, Mail, Trash2, Check } from 'lucide-react';
+import { Shield, Loader2, Mail, Trash2, Check } from 'lucide-react';
+import AdminShell from '@/components/layout/AdminShell';
 
 export default function GerenciarUsuarios() {
     const queryClient = useQueryClient();
@@ -265,23 +266,7 @@ export default function GerenciarUsuarios() {
     const getCamarasDiretoria = (diretoriaId) => camaras.filter((c) => c.diretoria_id === diretoriaId);
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
-                <div className="max-w-6xl mx-auto px-4 py-5">
-                    <div className="flex items-center gap-3">
-                        <Link to={createPageUrl('Home')}>
-                            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full">
-                                <ArrowLeft className="h-5 w-5" />
-                            </Button>
-                        </Link>
-                        <div>
-                            <h1 className="text-xs font-bold uppercase tracking-widest text-blue-200">Gestão de Usuários</h1>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
+        <AdminShell title="Gestão de Usuários">
             {/* Content */}
             <div className="max-w-6xl mx-auto px-4 py-6">
                 {!isAdmin ? (
@@ -592,6 +577,6 @@ export default function GerenciarUsuarios() {
                     </div>
                 </DialogContent>
             </Dialog>
-        </div>
+        </AdminShell>
     );
 }

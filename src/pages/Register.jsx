@@ -161,44 +161,39 @@ export default function Register() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-950 via-blue-900 to-indigo-950 flex items-center justify-center px-4 py-12 relative">
-            {/* Background decoration */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute -top-40 -right-40 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl" />
-                <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-400/10 rounded-full blur-3xl" />
-            </div>
-
-            <div className="relative w-full max-w-md my-8">
-                {/* Logo */}
-                <div className="flex flex-col items-center mb-6">
-                    <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center p-2.5 shadow-xl mb-3">
-                        <svg viewBox="0 0 128 128" className="w-full h-full" aria-label="Logo AGEMS">
-                            <circle cx="64" cy="64" r="56" fill="none" stroke="#101010" strokeWidth="6" />
-                            <polygon points="24,32 44,32 64,64 44,96 24,96 44,64" fill="#1FA463" />
-                            <polygon points="44,32 64,32 84,64 64,96 44,96 64,64" fill="#1894F2" />
-                            <polygon points="64,32 84,32 104,64 84,96 64,96 84,64" fill="#F6C713" />
-                        </svg>
+        <div className="min-h-screen bg-gradient-to-br from-[#0066B3] to-[#004A8F] flex items-center justify-center px-4 py-12">
+            <div className="w-full max-w-md my-8">
+                <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
+                    {/* Faixa navy com logo */}
+                    <div className="bg-gradient-to-br from-[#0066B3] to-[#004A8F] px-6 sm:px-8 pt-7 pb-6 flex flex-col items-center text-center">
+                        <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center p-2 shadow-md mb-3">
+                            <svg viewBox="0 0 128 128" className="w-full h-full" aria-label="Logo AGEMS">
+                                <circle cx="64" cy="64" r="56" fill="none" stroke="#101010" strokeWidth="6" />
+                                <polygon points="24,32 44,32 64,64 44,96 24,96 44,64" fill="#1FA463" />
+                                <polygon points="44,32 64,32 84,64 64,96 44,96 64,64" fill="#0066B3" />
+                                <polygon points="64,32 84,32 104,64 84,96 64,96 84,64" fill="#F6C713" />
+                            </svg>
+                        </div>
+                        <h1 className="text-xl font-bold text-white tracking-tight">AGEMS</h1>
+                        <p className="text-blue-200 text-xs mt-0.5">SIFIS - Sistema Integrado de Fiscalização</p>
                     </div>
-                    <h1 className="text-2xl font-bold text-white tracking-tight">AGEMS</h1>
-                    <p className="text-blue-300 text-xs mt-0.5">SGO - Sistema de Gestão Operacional</p>
-                </div>
 
-                {/* Card */}
-                <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl shadow-2xl p-6 sm:p-8">
-                    <h2 className="text-lg font-bold text-white mb-1">Crie sua conta</h2>
-                    <p className="text-blue-200 text-xs mb-5">Preencha os dados abaixo para se cadastrar</p>
+                    {/* Formulário */}
+                    <div className="px-6 sm:px-8 py-7">
+                    <h2 className="text-lg font-bold text-gray-900 mb-1">Crie sua conta</h2>
+                    <p className="text-gray-500 text-xs mb-5">Preencha os dados abaixo para se cadastrar</p>
 
                     {error && (
-                        <div className="bg-rose-500/10 border border-rose-500/30 text-rose-200 text-sm px-4 py-3 rounded-xl mb-4">
+                        <div className="bg-rose-50 border border-rose-200 text-rose-700 text-sm px-4 py-3 rounded-xl mb-4">
                             {error}
                         </div>
                     )}
 
                     <form onSubmit={handleRegister} className="space-y-4">
                         <div className="space-y-1.5">
-                            <label className="text-blue-200 text-xs font-semibold uppercase tracking-wider">Nome Completo</label>
+                            <label className="text-gray-500 text-xs font-semibold uppercase tracking-wider">Nome Completo</label>
                             <div className="relative">
-                                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-300 pointer-events-none" />
+                                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                                 <input
                                     id="fullName"
                                     type="text"
@@ -206,15 +201,15 @@ export default function Register() {
                                     value={fullName}
                                     onChange={(e) => setFullName(e.target.value)}
                                     required
-                                    className="w-full h-12 pl-10 pr-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder:text-blue-300/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition-all text-sm"
+                                    className="w-full h-11 pl-10 pr-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0066B3] focus:border-transparent transition-all text-sm"
                                 />
                             </div>
                         </div>
 
                         <div className="space-y-1.5">
-                            <label className="text-blue-200 text-xs font-semibold uppercase tracking-wider">E-mail</label>
+                            <label className="text-gray-500 text-xs font-semibold uppercase tracking-wider">E-mail</label>
                             <div className="relative">
-                                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-300 pointer-events-none" />
+                                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                                 <input
                                     id="email"
                                     type="email"
@@ -222,15 +217,15 @@ export default function Register() {
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     required
-                                    className="w-full h-12 pl-10 pr-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder:text-blue-300/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition-all text-sm"
+                                    className="w-full h-11 pl-10 pr-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0066B3] focus:border-transparent transition-all text-sm"
                                 />
                             </div>
                         </div>
 
                         <div className="space-y-1.5">
-                            <label className="text-blue-200 text-xs font-semibold uppercase tracking-wider">Tipo de Usuário</label>
+                            <label className="text-gray-500 text-xs font-semibold uppercase tracking-wider">Tipo de Usuário</label>
                             <div className="relative">
-                                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-300 pointer-events-none" />
+                                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                                 <select
                                     id="role"
                                     value={role}
@@ -239,31 +234,31 @@ export default function Register() {
                                         setSelectedPrestador('');
                                         setSelectedCamaraTecnica('');
                                     }}
-                                    className="w-full h-12 pl-10 pr-4 bg-slate-900/60 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition-all text-sm cursor-pointer"
+                                    className="w-full h-11 pl-10 pr-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#0066B3] focus:border-transparent transition-all text-sm cursor-pointer"
                                 >
-                                    <option value="fiscal" className="bg-[#151b30] text-white">Fiscal</option>
-                                    <option value="coordenador" className="bg-[#151b30] text-white">Coordenador</option>
-                                    <option value="diretor" className="bg-[#151b30] text-white">Diretor</option>
-                                    <option value="prestador" className="bg-[#151b30] text-white">Prestador</option>
+                                    <option value="fiscal">Fiscal</option>
+                                    <option value="coordenador">Coordenador</option>
+                                    <option value="diretor">Diretor</option>
+                                    <option value="prestador">Prestador</option>
                                 </select>
                             </div>
                         </div>
 
                         {role === 'prestador' && (
                             <div className="space-y-1.5">
-                                <label className="text-blue-200 text-xs font-semibold uppercase tracking-wider">Entidade Representada</label>
+                                <label className="text-gray-500 text-xs font-semibold uppercase tracking-wider">Entidade Representada</label>
                                 <div className="relative">
-                                    <Building className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-300 pointer-events-none" />
+                                    <Building className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                                     <select
                                         id="prestador"
                                         value={selectedPrestador}
                                         onChange={(e) => setSelectedPrestador(e.target.value)}
                                         required
-                                        className="w-full h-12 pl-10 pr-4 bg-slate-900/60 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition-all text-sm cursor-pointer"
+                                        className="w-full h-11 pl-10 pr-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#0066B3] focus:border-transparent transition-all text-sm cursor-pointer"
                                     >
-                                        <option value="" className="bg-[#151b30] text-white">Selecione uma entidade...</option>
+                                        <option value="">Selecione uma entidade...</option>
                                         {prestadores.map((p) => (
-                                            <option key={p.id} value={p.id} className="bg-[#151b30] text-white">{p.nome}</option>
+                                            <option key={p.id} value={p.id}>{p.nome}</option>
                                         ))}
                                     </select>
                                 </div>
@@ -272,19 +267,19 @@ export default function Register() {
 
                         {['fiscal', 'coordenador', 'diretor'].includes(role) && (
                             <div className="space-y-1.5">
-                                <label className="text-blue-200 text-xs font-semibold uppercase tracking-wider">Diretoria</label>
+                                <label className="text-gray-500 text-xs font-semibold uppercase tracking-wider">Diretoria</label>
                                 <div className="relative">
-                                    <Building className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-300 pointer-events-none" />
+                                    <Building className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                                     <select
                                         id="diretoria"
                                         value={selectedDiretoria}
                                         onChange={(e) => handleDiretoriaChange(e.target.value)}
                                         required
-                                        className="w-full h-12 pl-10 pr-4 bg-slate-900/60 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition-all text-sm cursor-pointer"
+                                        className="w-full h-11 pl-10 pr-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#0066B3] focus:border-transparent transition-all text-sm cursor-pointer"
                                     >
-                                        <option value="dsb" className="bg-[#151b30] text-white">DSB (Saneamento)</option>
-                                        <option value="dtr" className="bg-[#151b30] text-white">DTR (Transportes)</option>
-                                        <option value="dge" className="bg-[#151b30] text-white">DGE (Gás e Energia)</option>
+                                        <option value="dsb">DSB (Saneamento)</option>
+                                        <option value="dtr">DTR (Transportes)</option>
+                                        <option value="dge">DGE (Gás e Energia)</option>
                                     </select>
                                 </div>
                             </div>
@@ -292,19 +287,19 @@ export default function Register() {
 
                         {['fiscal', 'coordenador'].includes(role) && (
                             <div className="space-y-1.5">
-                                <label className="text-blue-200 text-xs font-semibold uppercase tracking-wider">Câmara Técnica</label>
+                                <label className="text-gray-500 text-xs font-semibold uppercase tracking-wider">Câmara Técnica</label>
                                 <div className="relative">
-                                    <Layers className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-300 pointer-events-none" />
+                                    <Layers className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                                     <select
                                         id="camaraTecnica"
                                         value={selectedCamaraTecnica}
                                         onChange={(e) => setSelectedCamaraTecnica(e.target.value)}
                                         required
-                                        className="w-full h-12 pl-10 pr-4 bg-slate-900/60 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition-all text-sm cursor-pointer"
+                                        className="w-full h-11 pl-10 pr-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#0066B3] focus:border-transparent transition-all text-sm cursor-pointer"
                                     >
-                                        <option value="" className="bg-[#151b30] text-white">Selecione uma câmara...</option>
+                                        <option value="">Selecione uma câmara...</option>
                                         {CAMARAS_TECNICAS_POR_DIRETORIA[selectedDiretoria]?.map((ct) => (
-                                            <option key={ct.id} value={ct.id} className="bg-[#151b30] text-white">{ct.nome}</option>
+                                            <option key={ct.id} value={ct.id}>{ct.nome}</option>
                                         ))}
                                     </select>
                                 </div>
@@ -312,9 +307,9 @@ export default function Register() {
                         )}
 
                         <div className="space-y-1.5">
-                            <label className="text-blue-200 text-xs font-semibold uppercase tracking-wider">Senha</label>
+                            <label className="text-gray-500 text-xs font-semibold uppercase tracking-wider">Senha</label>
                             <div className="relative">
-                                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-300 pointer-events-none" />
+                                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                                 <input
                                     id="password"
                                     type="password"
@@ -322,15 +317,15 @@ export default function Register() {
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     required
-                                    className="w-full h-12 pl-10 pr-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder:text-blue-300/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition-all text-sm"
+                                    className="w-full h-11 pl-10 pr-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0066B3] focus:border-transparent transition-all text-sm"
                                 />
                             </div>
                         </div>
 
                         <div className="space-y-1.5">
-                            <label className="text-blue-200 text-xs font-semibold uppercase tracking-wider">Confirmar Senha</label>
+                            <label className="text-gray-500 text-xs font-semibold uppercase tracking-wider">Confirmar Senha</label>
                             <div className="relative">
-                                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-300 pointer-events-none" />
+                                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                                 <input
                                     id="confirmPassword"
                                     type="password"
@@ -338,14 +333,14 @@ export default function Register() {
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
                                     required
-                                    className="w-full h-12 pl-10 pr-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder:text-blue-300/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition-all text-sm"
+                                    className="w-full h-11 pl-10 pr-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0066B3] focus:border-transparent transition-all text-sm"
                                 />
                             </div>
                         </div>
 
                         <Button
                             type="submit"
-                            className="w-full h-12 mt-2 bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600 text-white font-semibold rounded-xl shadow-lg transition-all"
+                            className="w-full h-11 mt-2 bg-[#0066B3] hover:bg-[#004A8F] text-white font-semibold rounded-xl shadow transition-all"
                             disabled={loading}
                         >
                             {loading ? (
@@ -361,15 +356,16 @@ export default function Register() {
                         </Button>
                     </form>
 
-                    <div className="mt-6 text-center text-sm text-blue-300">
+                    <div className="mt-6 text-center text-sm text-gray-500">
                         Já tem uma conta?{' '}
-                        <Link to="/login" className="text-white font-semibold hover:underline">
+                        <Link to="/login" className="text-[#0066B3] font-semibold hover:underline">
                             Faça login
                         </Link>
                     </div>
+                    </div>
                 </div>
 
-                <p className="text-center text-blue-400/60 text-xs mt-6">
+                <p className="text-center text-blue-300 text-xs mt-6">
                     AGEMS — Agência Estadual de Regulação de Serviços Públicos de MS
                 </p>
             </div>

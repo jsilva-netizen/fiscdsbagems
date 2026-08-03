@@ -1,6 +1,6 @@
 {
-  "name": "SGO - Sistema de Gestão Operacional - AGEMS",
-  "short_name": "SGO AGEMS",
+  "name": "SIFIS - Sistema Integrado de Fiscalização - AGEMS",
+  "short_name": "SIFIS/AGEMS",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

@@ -94,6 +94,7 @@ export const AuthProvider = ({ children }) => {
             ...(cachedUser?.ativo === false ? { ativo: false } : {}),
             ...(cachedUser?.diretoria_id ? { diretoria_id: cachedUser.diretoria_id } : {}),
             ...(cachedUser?.camara_tecnica_id ? { camara_tecnica_id: cachedUser.camara_tecnica_id } : {}),
+            ...(cachedUser?.full_name ? { full_name: cachedUser.full_name } : {}),
           }
         : {};
 
@@ -101,7 +102,7 @@ export const AuthProvider = ({ children }) => {
         const profileRes = await Promise.race([
           supabase
             .from('profiles')
-            .select('ativo, role, diretoria_id, camara_tecnica_id')
+            .select('ativo, role, diretoria_id, camara_tecnica_id, full_name')
             .eq('id', session.user.id)
             .maybeSingle(),
           new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), PROFILE_FETCH_TIMEOUT_MS)),

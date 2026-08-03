@@ -7,11 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ArrowLeft, AlertCircle, Clock, FileText, Building2, MapPin, CheckCircle, ChevronDown, ChevronRight } from 'lucide-react';
+import { AlertCircle, Clock, FileText, Building2, MapPin, CheckCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import DeterminacoesFiltros from '@/components/determinacoes/DeterminacoesFiltros';
 import AnaliseTemposMedios from '@/components/determinacoes/AnaliseTemposMedios';
 import ChartEvolucaoStatus from '@/components/determinacoes/ChartEvolucaoStatus';
 import MapaDistribuicao from '@/components/determinacoes/MapaDistribuicao';
+import AdminShell from '@/components/layout/AdminShell';
 
 export default function AcompanhamentoDeterminacoes() {
     const [selectedDeterminacao, setSelectedDeterminacao] = useState(null);
@@ -263,23 +264,7 @@ export default function AcompanhamentoDeterminacoes() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white shadow-md">
-                <div className="max-w-7xl mx-auto px-4 py-5">
-                    <div className="flex items-center gap-3">
-                        <Link to={createPageUrl('Home')}>
-                            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full">
-                                <ArrowLeft className="h-5 w-5" />
-                            </Button>
-                        </Link>
-                        <div>
-                            <h1 className="text-xs font-bold uppercase tracking-widest text-blue-200">Acompanhamento de Determinações</h1>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
+        <AdminShell title="Acompanhamento de Determinações">
             <div className="max-w-7xl mx-auto px-4 py-6">
 
                 {/* Filtros */}
@@ -659,6 +644,6 @@ export default function AcompanhamentoDeterminacoes() {
             <div className="py-5 text-center text-xs text-gray-400 bg-white border-t border-gray-200 mt-8">
                 AGEMS — Agência Estadual de Regulação de Serviços Públicos de MS
             </div>
-        </div>
+        </AdminShell>
     );
 }

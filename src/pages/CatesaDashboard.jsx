@@ -10,7 +10,7 @@ import {
   GitMerge,
   TimerOff,
 } from 'lucide-react';
-import CatesaLayout from '@/components/camaras/CatesaLayout';
+import AdminShell from '@/components/layout/AdminShell';
 import { supabase } from '@/lib/supabase';
 import { createPageUrl } from '@/utils';
 
@@ -78,7 +78,7 @@ export default function CatesaDashboard() {
   const val = (v) => isLoading ? '—' : String(v ?? 0);
 
   return (
-    <CatesaLayout>
+    <AdminShell title="CATESA" subtitle="Câmara Técnica de Saneamento Básico">
       <div className="bg-slate-50 min-h-full">
         <div className="px-4 sm:px-8 pb-12 pt-8">
           <div className="mx-auto max-w-6xl space-y-8">
@@ -186,6 +186,6 @@ export default function CatesaDashboard() {
           </div>
         </div>
       </div>
-    </CatesaLayout>
+    </AdminShell>
   );
 }

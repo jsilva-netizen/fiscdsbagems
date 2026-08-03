@@ -13,9 +13,9 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from '@/components/ui/alert-dialog';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
-import { Search, Filter, Trash2, Calendar, Map, CheckCircle2, Clock, Plus, Compass, Loader2, Settings, Download } from 'lucide-react';
+import { Search, SlidersHorizontal, Trash2, Calendar, Map, CheckCircle2, Clock, Plus, Compass, Loader2, Download } from 'lucide-react';
 import RelatorioFiscalizacao from '@/components/fiscalizacao/RelatorioFiscalizacao';
-import CaterfLayout from '@/components/caterf/CaterfLayout';
+import AdminShell from '@/components/layout/AdminShell';
 import JSZip from 'jszip';
 import { supabase } from '@/lib/supabase';
 
@@ -242,97 +242,82 @@ export default function FiscalizacoesDTR() {
     };
 
     return (
-        <CaterfLayout>
+        <AdminShell
+            title="Fiscalizações"
+            subtitle={`${filtered.length} registro${filtered.length === 1 ? '' : 's'}`}
+            actions={
+                <Link to={createPageUrl('NovaFiscalizacaoDTR')}>
+                    <Button className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow gap-1.5 h-9 px-4 text-sm">
+                        <Plus className="h-4 w-4" /> Nova Fiscalização
+                    </Button>
+                </Link>
+            }
+        >
             <div className="min-h-full flex flex-col">
-            {/* Header */}
-            <div className="max-w-6xl w-full mx-auto px-4 pt-8">
-                <h1 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">Histórico de Fiscalizações</h1>
-                <div className="flex items-center gap-2">
-                    <Link to={createPageUrl('NovaFiscalizacaoDTR')} className="flex-1 min-w-0">
-                        <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow gap-1.5 h-12 px-5 text-base">
-                            <Plus className="h-5 w-5" /> Nova Fiscalização
-                        </Button>
-                    </Link>
+            {/* Content */}
+            <div className="flex-1 max-w-6xl w-full mx-auto px-4 pt-6 pb-5 flex flex-col gap-4">
+                {/* Busca + filtros (sempre visíveis) */}
+                <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Input
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            placeholder="Buscar por rodovia ou concessionária..."
+                            className="pl-10 h-10 rounded-xl bg-white border-gray-200"
+                        />
+                    </div>
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger className="h-10 w-full sm:w-44 rounded-xl bg-white border-gray-200 text-xs text-gray-700">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white border-gray-200">
+                            <SelectItem value="todos">Todos os status</SelectItem>
+                            <SelectItem value="em_andamento">Em Andamento</SelectItem>
+                            <SelectItem value="finalizada">Finalizados</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <Select value={rodoviaFilter} onValueChange={setRodoviaFilter}>
+                        <SelectTrigger className="h-10 w-full sm:w-48 rounded-xl bg-white border-gray-200 text-xs text-gray-700">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white border-gray-200">
+                            <SelectItem value="todos">Todas as rodovias</SelectItem>
+                            {rodoviasDisponiveis.map(r => (
+                                <SelectItem key={r} value={r}>{r}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                     <Button
                         variant="outline"
-                        size="icon"
-                        title="Filtros"
-                        className={`h-9 w-9 rounded-xl transition-all border flex-shrink-0 ${mostrarFiltros ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+                        className={`h-10 rounded-xl border-gray-200 gap-1.5 flex-shrink-0 ${mostrarFiltros ? 'bg-indigo-50 border-indigo-300 text-indigo-600' : ''}`}
                         onClick={() => setMostrarFiltros(!mostrarFiltros)}
                     >
-                        <Filter className="h-4 w-4" />
+                        <SlidersHorizontal className="h-4 w-4" />
+                        <span className="hidden sm:inline">Mais filtros</span>
                     </Button>
-                    <Link to={createPageUrl('DefinicoesDTR')}>
-                        <Button variant="ghost" size="icon" title="Definições" className="h-9 w-9 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl flex-shrink-0">
-                            <Settings className="h-4 w-4" />
-                        </Button>
-                    </Link>
                 </div>
-            </div>
 
-            {/* Content */}
-            <div className="flex-1 max-w-6xl w-full mx-auto px-4 py-5 flex flex-col gap-4">
-                {/* Expanded Filters (busca inclusa) */}
+                {/* Filtros de data (opcional, escondido por padrão) */}
                 {mostrarFiltros && (
-                    <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4 shadow-sm">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <div className="flex flex-col sm:flex-row gap-3 bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                        <div className="flex-1 space-y-1">
+                            <label className="text-xs text-gray-500 font-medium">Início</label>
                             <Input
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Buscar por rodovia..."
-                                className="pl-10 h-10 rounded-xl bg-white border-gray-200"
+                                type="date"
+                                value={dataInicio}
+                                onChange={e => setDataInicio(e.target.value)}
+                                className="h-9 text-xs"
                             />
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1">
-                                <label className="text-xs text-gray-500 font-medium">Status</label>
-                                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                                    <SelectTrigger className="bg-white border-gray-200 text-xs h-9 text-gray-700">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-white border-gray-200">
-                                        <SelectItem value="todos">Todos</SelectItem>
-                                        <SelectItem value="em_andamento">Em Andamento</SelectItem>
-                                        <SelectItem value="finalizada">Finalizados</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-xs text-gray-500 font-medium">Rodovia</label>
-                                <Select value={rodoviaFilter} onValueChange={setRodoviaFilter}>
-                                    <SelectTrigger className="bg-white border-gray-200 text-xs h-9 text-gray-700">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-white border-gray-200">
-                                        <SelectItem value="todos">Todas</SelectItem>
-                                        {rodoviasDisponiveis.map(r => (
-                                            <SelectItem key={r} value={r}>{r}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1">
-                                <label className="text-xs text-gray-500 font-medium">Início</label>
-                                <Input
-                                    type="date"
-                                    value={dataInicio}
-                                    onChange={e => setDataInicio(e.target.value)}
-                                    className="h-9 text-xs"
-                                />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-xs text-gray-500 font-medium">Fim</label>
-                                <Input
-                                    type="date"
-                                    value={dataFim}
-                                    onChange={e => setDataFim(e.target.value)}
-                                    className="h-9 text-xs"
-                                />
-                            </div>
+                        <div className="flex-1 space-y-1">
+                            <label className="text-xs text-gray-500 font-medium">Fim</label>
+                            <Input
+                                type="date"
+                                value={dataFim}
+                                onChange={e => setDataFim(e.target.value)}
+                                className="h-9 text-xs"
+                            />
                         </div>
                     </div>
                 )}
@@ -486,6 +471,6 @@ export default function FiscalizacoesDTR() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-        </CaterfLayout>
+        </AdminShell>
     );
 }
