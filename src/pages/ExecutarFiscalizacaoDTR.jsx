@@ -5,7 +5,7 @@ import { Repository } from '@/lib/offline/repository';
 import { runFullSync } from '@/lib/offline/syncEngine';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import Pill from '@/components/design/Pill';
 import { ArrowLeft, Loader2, MapPin, ChevronRight, Camera, Image as ImageIcon } from 'lucide-react';
 import RodoviaMap from '@/components/fiscalizacao/RodoviaMap';
 
@@ -46,7 +46,7 @@ export default function ExecutarFiscalizacaoDTR() {
     if (loadingFisc) {
         return (
             <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center text-gray-400 gap-3">
-                <Loader2 className="h-8 w-8 text-indigo-500 animate-spin" />
+                <Loader2 className="h-8 w-8 text-[#0066B3] animate-spin" />
                 <p className="text-sm">Carregando dados da fiscalização...</p>
             </div>
         );
@@ -91,7 +91,7 @@ export default function ExecutarFiscalizacaoDTR() {
                             </Link>
                             <div>
                                 <h1 className="text-sm font-bold text-white">{fisc.rodovia}</h1>
-                                <p className="text-[10px] text-indigo-200">{fisc.prestador_servico_nome}</p>
+                                <p className="text-[10px] text-blue-200">{fisc.prestador_servico_nome}</p>
                             </div>
                         </div>
 
@@ -110,11 +110,7 @@ export default function ExecutarFiscalizacaoDTR() {
                             </Button>
                         )}
 
-                        {isFinalized && (
-                            <Badge className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] py-0.5 px-2">
-                                Finalizada
-                            </Badge>
-                        )}
+                        {isFinalized && <Pill tone="success">Finalizada</Pill>}
                     </div>
                 </div>
 
@@ -123,7 +119,7 @@ export default function ExecutarFiscalizacaoDTR() {
                     {!isFinalized ? (
                         <>
                             <Link to={createPageUrl('VistoriarOcorrenciaDTR') + `?fiscId=${fisc.id}`}>
-                                <Button className="w-full h-14 text-base bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-2xl flex items-center justify-center gap-3 shadow-md">
+                                <Button variant="brand" className="w-full h-14 text-base font-bold rounded-2xl flex items-center justify-center gap-3 shadow-md">
                                     <Camera className="h-5 w-5" />
                                     Registrar Imagem
                                 </Button>
@@ -150,7 +146,7 @@ export default function ExecutarFiscalizacaoDTR() {
 
                     {loadingOcorrencias ? (
                         <div className="flex justify-center py-6">
-                            <Loader2 className="h-6 w-6 text-indigo-500 animate-spin" />
+                            <Loader2 className="h-6 w-6 text-[#0066B3] animate-spin" />
                         </div>
                     ) : ocorrencias.length === 0 ? (
                         <div className="text-center py-6 bg-gray-100 border border-dashed border-gray-300 rounded-2xl">
@@ -166,10 +162,10 @@ export default function ExecutarFiscalizacaoDTR() {
                                     to={createPageUrl('VistoriarOcorrenciaDTR') + `?fiscId=${fisc.id}&id=${oc.id}`}
                                     className="block active:scale-99 transition-all"
                                 >
-                                    <Card className="bg-white border border-gray-200 hover:shadow-md hover:border-indigo-200 transition-all rounded-xl shadow-sm">
+                                    <Card className="bg-white border border-gray-200 hover:shadow-md hover:border-blue-200 transition-all rounded-2xl shadow-sm">
                                         <CardContent className="p-3 flex items-center justify-between gap-3">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center font-bold text-xs flex-shrink-0">
+                                                <div className="w-7 h-7 rounded-lg bg-blue-50 text-[#0066B3] border border-blue-100 flex items-center justify-center font-bold text-xs flex-shrink-0">
                                                     #{index + 1}
                                                 </div>
                                                 <div className="flex-1 min-w-0">

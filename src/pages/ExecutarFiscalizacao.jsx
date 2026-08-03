@@ -12,7 +12,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Loader2, Plus, Trash2, AlertTriangle, MapPin, Building2, CheckCircle2, Camera, Edit, FileText, GripVertical } from 'lucide-react';
+import StatCard from '@/components/design/StatCard';
+import Pill from '@/components/design/Pill';
+import EmptyState from '@/components/design/EmptyState';
+import { ArrowLeft, Loader2, Plus, Trash2, AlertTriangle, MapPin, Building2, CheckCircle2, Camera, Edit, FileText, GripVertical, ClipboardCheck, Image as ImageIcon } from 'lucide-react';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
@@ -209,13 +212,12 @@ export default function ExecutarFiscalizacao() {
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
-                            <Badge className={online ? 'bg-green-600' : 'bg-gray-500'}>
+                            <Pill tone={online ? 'success' : 'neutral'}>
                                 {online ? 'Online' : 'Offline'}
-                            </Badge>
-                            
-                            <Badge className={fiscalizacao.status === 'finalizada' ? 'bg-green-500' : 'bg-yellow-500'}>
+                            </Pill>
+                            <Pill tone={fiscalizacao.status === 'finalizada' ? 'success' : 'info'}>
                                 {fiscalizacao.status === 'finalizada' ? 'Finalizada' : 'Em andamento'}
-                            </Badge>
+                            </Pill>
                         </div>
                     </div>
                 </div>
@@ -224,43 +226,32 @@ export default function ExecutarFiscalizacao() {
             {/* Content */}
             <div className="max-w-4xl mx-auto px-4 py-4">
                 {/* Stats */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
-                    <Card className="bg-blue-50">
-                        <CardContent className="p-3 text-center">
-                            <p className="text-2xl font-bold text-blue-600">{unidades.length}</p>
-                            <p className="text-xs text-gray-500">Unidades</p>
-                        </CardContent>
-                    </Card>
-                    <Card className="bg-green-50">
-                        <CardContent className="p-3 text-center">
-                            <p className="text-2xl font-bold text-green-600">
-                                {unidades.reduce((acc, u) => acc + (u.total_constatacoes || 0), 0)}
-                            </p>
-                            <p className="text-xs text-gray-500">Constatações</p>
-                        </CardContent>
-                    </Card>
-                    <Card className="bg-red-50">
-                        <CardContent className="p-3 text-center">
-                            <p className="text-2xl font-bold text-red-600">
-                                {unidades.reduce((acc, u) => acc + (u.total_ncs || 0), 0)}
-                            </p>
-                            <p className="text-xs text-gray-500">NCs</p>
-                        </CardContent>
-                    </Card>
-                    <Card className="bg-purple-50">
-                        <CardContent className="p-3 text-center">
-                            <p className="text-2xl font-bold text-purple-600">
-                                {unidades.reduce((acc, u) => acc + (u.fotos_unidade?.length || 0), 0)}
-                            </p>
-                            <p className="text-xs text-gray-500">Fotos</p>
-                        </CardContent>
-                    </Card>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                    <StatCard icon={Building2} label="Unidades" value={unidades.length} color="blue" />
+                    <StatCard
+                        icon={ClipboardCheck}
+                        label="Constatações"
+                        value={unidades.reduce((acc, u) => acc + (u.total_constatacoes || 0), 0)}
+                        color="emerald"
+                    />
+                    <StatCard
+                        icon={AlertTriangle}
+                        label="NCs"
+                        value={unidades.reduce((acc, u) => acc + (u.total_ncs || 0), 0)}
+                        color="rose"
+                    />
+                    <StatCard
+                        icon={ImageIcon}
+                        label="Fotos"
+                        value={unidades.reduce((acc, u) => acc + (u.fotos_unidade?.length || 0), 0)}
+                        color="amber"
+                    />
                 </div>
 
                 {/* Add Unit Button */}
                 {fiscalizacao.status !== 'finalizada' && (
                     <Link to={createPageUrl('AdicionarUnidade') + `?fiscalizacao=${fiscalizacaoId}`}>
-                        <Button className="w-full mb-4 h-14 bg-green-600 hover:bg-green-700">
+                        <Button className="w-full mb-4 h-14 bg-emerald-600 hover:bg-emerald-700">
                             <Plus className="h-5 w-5 mr-2" />
                             Adicionar Unidade
                         </Button>
@@ -281,7 +272,7 @@ export default function ExecutarFiscalizacao() {
                                                 style={dragProvided.draggableProps.style}
                                                 className="relative"
                                             >
-                                                <Card className="hover:shadow-md transition-shadow">
+                                                <Card className="rounded-2xl border-gray-200 shadow-none hover:shadow-md transition-shadow">
                                                     <CardContent className="p-4">
                                                         <div className="flex items-start gap-3">
                                                             {podeReordenar && (
@@ -295,11 +286,11 @@ export default function ExecutarFiscalizacao() {
                                                             )}
                                                             <Link to={createPageUrl('VistoriarUnidade') + `?id=${unidade.id}`} className="block flex-1">
                                                                 <div className="flex items-start gap-3">
-                                                                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                                                                        unidade.status === 'finalizada' ? 'bg-green-100' : 'bg-blue-100'
+                                                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                                                                        unidade.status === 'finalizada' ? 'bg-emerald-50' : 'bg-sky-50'
                                                                     }`}>
                                                                         <Building2 className={`h-6 w-6 ${
-                                                                            unidade.status === 'finalizada' ? 'text-green-600' : 'text-blue-600'
+                                                                            unidade.status === 'finalizada' ? 'text-emerald-500' : 'text-sky-500'
                                                                         }`} />
                                                                     </div>
                                                                     <div className="flex-1">
@@ -310,21 +301,17 @@ export default function ExecutarFiscalizacao() {
                                                                                     <p className="text-sm text-gray-500">{unidade.nome_unidade}</p>
                                                                                 )}
                                                                             </div>
-                                                                            <Badge variant={unidade.status === 'finalizada' ? 'default' : 'secondary'} className="text-xs">
-                                                                                {unidade.status === 'finalizada' ? (
-                                                                                    <><CheckCircle2 className="h-3 w-3 mr-1" /> Completa</>
-                                                                                ) : (
-                                                                                    'Pendente'
-                                                                                )}
-                                                                            </Badge>
+                                                                            <Pill tone={unidade.status === 'finalizada' ? 'success' : 'info'}>
+                                                                                {unidade.status === 'finalizada' ? 'Completa' : 'Pendente'}
+                                                                            </Pill>
                                                                         </div>
                                                                         <div className="flex flex-wrap gap-3 mt-2 text-xs text-gray-500">
                                                                             <span className="flex items-center gap-1">
-                                                                                <CheckCircle2 className="h-3 w-3 text-green-500" />
+                                                                                <CheckCircle2 className="h-3 w-3 text-emerald-500" />
                                                                                 {unidade.total_constatacoes || 0} C
                                                                             </span>
                                                                             <span className="flex items-center gap-1">
-                                                                                <AlertTriangle className="h-3 w-3 text-red-500" />
+                                                                                <AlertTriangle className="h-3 w-3 text-rose-500" />
                                                                                 {unidade.total_ncs || 0} NC
                                                                             </span>
                                                                             <span className="flex items-center gap-1">
@@ -372,11 +359,11 @@ export default function ExecutarFiscalizacao() {
                 </DragDropContext>
 
                 {unidades.length === 0 && (
-                    <div className="text-center py-12 text-gray-500">
-                        <Building2 className="h-16 w-16 mx-auto mb-4 opacity-30" />
-                        <p className="text-lg">Nenhuma unidade vistoriada</p>
-                        <p className="text-sm">Clique em "Adicionar Unidade" para começar</p>
-                    </div>
+                    <EmptyState
+                        icon={Building2}
+                        title="Nenhuma unidade vistoriada"
+                        description='Clique em "Adicionar Unidade" para começar'
+                    />
                 )}
 
                 {/* Finalize Button */}
@@ -386,8 +373,9 @@ export default function ExecutarFiscalizacao() {
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <div className="w-full">
-                                        <Button 
-                                            className="w-full h-14 bg-blue-600 hover:bg-blue-700 disabled:opacity-60"
+                                        <Button
+                                            variant="brand"
+                                            className="w-full h-14 disabled:opacity-60"
                                             onClick={() => {
                                                 if (finalizarMutation.isPending) return
                                                 setMostrarConfirmacaoFinalizacao(true)
@@ -435,10 +423,10 @@ export default function ExecutarFiscalizacao() {
                         <AlertDialogCancel disabled={excluirUnidadeMutation.isPending}>
                             Cancelar
                         </AlertDialogCancel>
-                        <AlertDialogAction 
+                        <AlertDialogAction
                             onClick={confirmarExclusaoUnidade}
                             disabled={excluirUnidadeMutation.isPending}
-                            className="bg-red-600 hover:bg-red-700"
+                            className="bg-rose-600 hover:bg-rose-700"
                         >
                             {excluirUnidadeMutation.isPending ? (
                                 <>
@@ -481,7 +469,7 @@ export default function ExecutarFiscalizacao() {
                                 finalizarMutation.mutate();
                             }}
                             disabled={finalizarMutation.isPending}
-                            className="bg-green-600 hover:bg-green-700"
+                            className="bg-emerald-600 hover:bg-emerald-700"
                         >
                             {finalizarMutation.isPending ? (
                                 <>

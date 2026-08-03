@@ -1269,7 +1269,7 @@ export default function VistoriarUnidade() {
                         <TabsTrigger value="fotos" className="text-xs">
                             <Camera className="h-4 w-4 mr-1" />
                             Fotos
-                            {fotos.length === 0 && <span className="ml-1 text-red-500">!</span>}
+                            {fotos.length === 0 && <span className="ml-1 text-rose-500">!</span>}
                         </TabsTrigger>
                         <TabsTrigger value="determinacoes" className="text-xs">
                             <FileText className="h-4 w-4 mr-1" />
@@ -1284,7 +1284,8 @@ export default function VistoriarUnidade() {
                     {/* Constatações Tab */}
                     <TabsContent value="constatacoes" className="mt-4 space-y-4">
                         {(unidade?.status !== 'finalizada' || modoEdicao) && (
-                            <Button 
+                            <Button
+                                variant="brand"
                                 onClick={() => {
                                     setConstatacaoParaEditar(null);
                                     setShowAddConstatacao(true);
@@ -1317,7 +1318,7 @@ export default function VistoriarUnidade() {
                                                             const constatacao = item.manual;
                                                             return (
                                                                 <div ref={drag.innerRef} {...drag.draggableProps} style={drag.draggableProps.style}>
-                                                                    <Card className="border-blue-200 bg-blue-50">
+                                                                    <Card className="rounded-2xl border-blue-100 bg-blue-50 shadow-none">
                                                                         <CardContent className="p-4">
                                                                             <div className="flex items-start gap-3">
                                                                                 {canEditReorder ? (
@@ -1325,7 +1326,7 @@ export default function VistoriarUnidade() {
                                                                                         <GripVertical className="h-4 w-4" />
                                                                                     </div>
                                                                                 ) : null}
-                                                                                <Badge className="bg-blue-600">{constatacao.numero_constatacao || '-'}</Badge>
+                                                                                <Badge className="bg-[#0066B3] hover:bg-[#0066B3]">{constatacao.numero_constatacao || '-'}</Badge>
                                                                                 <div className="flex-1">
                                                                                     <p className="text-sm">{constatacao.descricao}</p>
                                                                                     {constatacao.gera_nc && (
@@ -1376,7 +1377,7 @@ export default function VistoriarUnidade() {
                                                                                                 setConstatacaoParaExcluir(constatacao);
                                                                                                 setShowConfirmaExclusao(true);
                                                                                             }}
-                                                                                            className="text-red-600 hover:text-red-700"
+                                                                                            className="text-rose-600 hover:text-rose-700"
                                                                                         >
                                                                                             <Trash2 className="h-4 w-4" />
                                                                                         </Button>
@@ -1391,7 +1392,7 @@ export default function VistoriarUnidade() {
                                                         const resp = item.resp;
                                                         return (
                                                             <div ref={drag.innerRef} {...drag.draggableProps} style={drag.draggableProps.style}>
-                                                                <Card>
+                                                                <Card className="rounded-2xl border-gray-200 shadow-none">
                                                                     <CardContent className="p-4">
                                                                         <div className="flex items-start gap-3">
                                                                             {canEditReorder ? (
@@ -1403,7 +1404,7 @@ export default function VistoriarUnidade() {
                                                                             <div className="flex-1">
                                                                                 <p className="text-sm">{resp.pergunta}</p>
                                                                                 {resp.gera_nc && resp.resposta === 'NAO' && (
-                                                                                    <Badge variant="outline" className="mt-2 text-xs text-red-600 border-red-300">
+                                                                                    <Badge variant="outline" className="mt-2 text-xs text-rose-600 border-rose-300">
                                                                                         Gera NC
                                                                                     </Badge>
                                                                                 )}
@@ -1428,7 +1429,7 @@ export default function VistoriarUnidade() {
                                                                                             const ok = window.confirm(`Excluir a constatação ${resp.numero_constatacao || ''}?`);
                                                                                             if (ok) excluirConstatacaoChecklistMutation.mutate(resp);
                                                                                         }}
-                                                                                        className="text-red-600 hover:text-red-700"
+                                                                                        className="text-rose-600 hover:text-rose-700"
                                                                                         title="Excluir constatação"
                                                                                     >
                                                                                         <Trash2 className="h-4 w-4" />
@@ -1454,7 +1455,7 @@ export default function VistoriarUnidade() {
                     {/* Checklist Tab */}
                     <TabsContent value="checklist" className="mt-4 space-y-3">
                         {!Array.isArray(itensChecklist) || itensChecklist.length === 0 ? (
-                            <Card>
+                            <Card className="rounded-2xl border-gray-200 shadow-none">
                                 <CardContent className="p-6 text-center text-gray-500">
                                     <ClipboardCheck className="h-12 w-12 mx-auto mb-3 opacity-30" />
                                     <p>Nenhum item de checklist configurado para este tipo de unidade.</p>
@@ -1503,7 +1504,7 @@ export default function VistoriarUnidade() {
                         ) : (
                             <div className="space-y-3">
                                 {determinacoesOrdenadas.map((det) => (
-                                    <Card key={det.id}>
+                                    <Card key={det.id} className="rounded-2xl border-gray-200 shadow-none">
                                         <CardContent className="p-4">
                                             <div className="flex items-start gap-3">
                                                 <Badge variant="secondary">{det.numero_determinacao}</Badge>
@@ -1536,7 +1537,7 @@ export default function VistoriarUnidade() {
                                                                 setDeterminacaoParaExcluir(det);
                                                                 setShowConfirmaExclusaoDeterminacao(true);
                                                             }}
-                                                            className="text-red-600 hover:text-red-700"
+                                                            className="text-rose-600 hover:text-rose-700"
                                                             title="Excluir determinação"
                                                         >
                                                             <Trash2 className="h-4 w-4" />
@@ -1559,6 +1560,7 @@ export default function VistoriarUnidade() {
                         {/* Cabeçalho com botão de adicionar */}
                         {(unidade?.status !== 'finalizada' || modoEdicao) && (
                             <Button
+                                variant="brand"
                                 onClick={() => {
                                     setNovaRecomendacao('');
                                     setShowAddRecomendacao(true);
@@ -1589,7 +1591,7 @@ export default function VistoriarUnidade() {
                                                 >
                                                     {(drag) => (
                                                         <div ref={drag.innerRef} {...drag.draggableProps} style={drag.draggableProps.style}>
-                                                            <Card>
+                                                            <Card className="rounded-2xl border-gray-200 shadow-none">
                                                                 <CardContent className="p-4">
                                                                     <div className="flex items-start gap-3">
                                                                         {canEditReorder ? (
@@ -1620,7 +1622,7 @@ export default function VistoriarUnidade() {
                                                                                         setRecomendacaoParaExcluir(rec);
                                                                                         setShowConfirmaExclusaoRecomendacao(true);
                                                                                     }}
-                                                                                    className="text-red-600 hover:text-red-700"
+                                                                                    className="text-rose-600 hover:text-rose-700"
                                                                                     title="Excluir recomendação"
                                                                                 >
                                                                                     <Trash2 className="h-4 w-4" />
@@ -1649,8 +1651,8 @@ export default function VistoriarUnidade() {
             {unidade?.status !== 'finalizada' && (
                 <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 z-50">
                     <div className="max-w-4xl mx-auto">
-                        <Button 
-                            className="w-full h-12 bg-green-600 hover:bg-green-700"
+                        <Button
+                            className="w-full h-12 bg-emerald-600 hover:bg-emerald-700"
                             onClick={handleFinalizarClick}
                             disabled={finalizarUnidadeMutation.isPending}
                         >
@@ -1669,8 +1671,9 @@ export default function VistoriarUnidade() {
             {unidade?.status === 'finalizada' && fiscalizacao?.status === 'finalizada' && modoEdicao && (
                 <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 z-50">
                     <div className="max-w-4xl mx-auto">
-                        <Button 
-                            className="w-full h-12 bg-blue-600 hover:bg-blue-700"
+                        <Button
+                            variant="brand"
+                            className="w-full h-12"
                             onClick={() => salvarAlteracoesMutation.mutate()}
                             disabled={salvarAlteracoesMutation.isPending}
                         >
@@ -1727,6 +1730,7 @@ export default function VistoriarUnidade() {
                         />
                         <div className="flex gap-2">
                             <Button
+                                variant="brand"
                                 className="flex-1"
                                 onClick={() =>
                                     adicionarDeterminacaoMutation.mutate({
@@ -1775,6 +1779,7 @@ export default function VistoriarUnidade() {
                         </div>
                         <div className="flex gap-2">
                             <Button
+                                variant="brand"
                                 className="flex-1"
                                 onClick={() =>
                                     editarDeterminacaoMutation.mutate({
@@ -1812,7 +1817,8 @@ export default function VistoriarUnidade() {
                             rows={4}
                         />
                         <div className="flex gap-2">
-                            <Button 
+                            <Button
+                                variant="brand"
                                 className="flex-1"
                                 onClick={() => adicionarRecomendacaoMutation.mutate(novaRecomendacao)}
                                 disabled={!novaRecomendacao.trim() || adicionarRecomendacaoMutation.isPending}
@@ -1856,6 +1862,7 @@ export default function VistoriarUnidade() {
                         </div>
                         <div className="flex gap-2">
                             <Button
+                                variant="brand"
                                 className="flex-1"
                                 onClick={() =>
                                     editarRecomendacaoMutation.mutate({
@@ -1902,6 +1909,7 @@ export default function VistoriarUnidade() {
                                 Cancelar
                             </Button>
                             <Button
+                                variant="brand"
                                 onClick={() => atualizarCodigoUnidadeMutation.mutate()}
                                 disabled={atualizarCodigoUnidadeMutation.isPending}
                             >
@@ -1943,6 +1951,7 @@ export default function VistoriarUnidade() {
                                 Cancelar
                             </Button>
                             <Button
+                                variant="brand"
                                 onClick={() => atualizarNomeUnidadeMutation.mutate()}
                                 disabled={atualizarNomeUnidadeMutation.isPending}
                             >
@@ -1984,6 +1993,7 @@ export default function VistoriarUnidade() {
                                 Cancelar
                             </Button>
                             <Button
+                                variant="brand"
                                 onClick={() => atualizarEnderecoUnidadeMutation.mutate()}
                                 disabled={atualizarEnderecoUnidadeMutation.isPending}
                             >
@@ -2025,6 +2035,7 @@ export default function VistoriarUnidade() {
                                 Cancelar
                             </Button>
                             <Button
+                                variant="brand"
                                 onClick={() => atualizarCoordenadasUnidadeMutation.mutate()}
                                 disabled={atualizarCoordenadasUnidadeMutation.isPending}
                             >
@@ -2077,6 +2088,7 @@ export default function VistoriarUnidade() {
                                 Cancelar
                             </Button>
                             <Button
+                                variant="brand"
                                 onClick={() => atualizarDataHoraUnidadeMutation.mutate()}
                                 disabled={atualizarDataHoraUnidadeMutation.isPending}
                             >
@@ -2159,6 +2171,7 @@ export default function VistoriarUnidade() {
                                 Cancelar
                             </Button>
                             <Button
+                                variant="brand"
                                 onClick={() =>
                                     editarConstatacaoChecklistMutation.mutate({
                                         itemId: respostaChecklistParaEditar?.item_checklist_id,
@@ -2182,7 +2195,7 @@ export default function VistoriarUnidade() {
             <Dialog open={showConfirmaExclusao} onOpenChange={setShowConfirmaExclusao}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 text-red-700">
+                        <DialogTitle className="flex items-center gap-2 text-rose-700">
                             <AlertCircle className="h-5 w-5" />
                             Excluir Constatação
                         </DialogTitle>
@@ -2200,7 +2213,7 @@ export default function VistoriarUnidade() {
                     </DialogHeader>
                     <div className="flex gap-2">
                         <Button 
-                            className="flex-1 bg-red-600 hover:bg-red-700"
+                            className="flex-1 bg-rose-600 hover:bg-rose-700"
                             onClick={() => excluirConstatacaoManualMutation.mutate(constatacaoParaExcluir?.id)}
                             disabled={excluirConstatacaoManualMutation.isPending}
                         >
@@ -2230,7 +2243,7 @@ export default function VistoriarUnidade() {
                     </DialogHeader>
                     <div className="flex gap-2">
                         <Button 
-                            className="flex-1 bg-yellow-600 hover:bg-yellow-700"
+                            className="flex-1 bg-amber-600 hover:bg-amber-700"
                             onClick={() => {
                                 setShowConfirmaSemFotos(false);
                                 finalizarUnidadeMutation.mutate();
@@ -2250,7 +2263,7 @@ export default function VistoriarUnidade() {
             <Dialog open={showConfirmaExclusaoRecomendacao} onOpenChange={setShowConfirmaExclusaoRecomendacao}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 text-red-700">
+                        <DialogTitle className="flex items-center gap-2 text-rose-700">
                             <AlertCircle className="h-5 w-5" />
                             Excluir Recomendação
                         </DialogTitle>
@@ -2260,7 +2273,7 @@ export default function VistoriarUnidade() {
                     </DialogHeader>
                     <div className="flex gap-2">
                         <Button
-                            className="flex-1 bg-red-600 hover:bg-red-700"
+                            className="flex-1 bg-rose-600 hover:bg-rose-700"
                             onClick={() => excluirRecomendacaoMutation.mutate(recomendacaoParaExcluir?.id)}
                             disabled={excluirRecomendacaoMutation.isPending}
                         >
@@ -2280,7 +2293,7 @@ export default function VistoriarUnidade() {
             <Dialog open={showConfirmaExclusaoDeterminacao} onOpenChange={setShowConfirmaExclusaoDeterminacao}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 text-red-700">
+                        <DialogTitle className="flex items-center gap-2 text-rose-700">
                             <AlertCircle className="h-5 w-5" />
                             Excluir Determinação
                         </DialogTitle>
@@ -2290,7 +2303,7 @@ export default function VistoriarUnidade() {
                     </DialogHeader>
                     <div className="flex gap-2">
                         <Button
-                            className="flex-1 bg-red-600 hover:bg-red-700"
+                            className="flex-1 bg-rose-600 hover:bg-rose-700"
                             onClick={() => excluirDeterminacaoMutation.mutate(determinacaoParaExcluir?.id)}
                             disabled={excluirDeterminacaoMutation.isPending}
                         >

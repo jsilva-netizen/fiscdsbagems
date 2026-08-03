@@ -1153,7 +1153,7 @@ export default function VistoriarOcorrenciaDTR() {
 
                     {/* Barra de progresso + label */}
                     <div className="flex-1 min-w-0">
-                        <p className="text-[10px] font-bold text-indigo-300 uppercase tracking-wider truncate">
+                        <p className="text-[10px] font-bold text-blue-200 uppercase tracking-wider truncate">
                             {stepIdx + 1}. {stepLabel}
                         </p>
                         <div className="flex gap-0.5 mt-1.5">
@@ -1187,7 +1187,7 @@ export default function VistoriarOcorrenciaDTR() {
 
     // ─── FOTOS ───────────────────────────────────────────────────────────────────
     if (currentStep === 'fotos') return (
-        <div className="min-h-screen bg-[#e8eaed] flex flex-col">
+        <div className="min-h-screen bg-gray-50 flex flex-col">
             <Header />
             <div className="flex-1 max-w-md w-full mx-auto px-4 py-6">
                 <h2 className="text-sm font-bold text-gray-600 mb-4 uppercase tracking-wide">{stepIdx + 1}. FOTOS</h2>
@@ -1229,7 +1229,7 @@ export default function VistoriarOcorrenciaDTR() {
                 )}
             </div>
             <div className="sticky bottom-0 bg-white border-t border-gray-200 px-4 py-3">
-                <Button className="w-full bg-gray-900 hover:bg-gray-700 text-white rounded-xl h-11" onClick={goNext}>
+                <Button variant="brand" className="w-full h-11" onClick={goNext}>
                     Próximo
                 </Button>
             </div>
@@ -1238,7 +1238,7 @@ export default function VistoriarOcorrenciaDTR() {
 
     // ─── FRENTE ──────────────────────────────────────────────────────────────────
     if (currentStep === 'frente') return (
-        <div className="min-h-screen bg-[#e8eaed] flex flex-col">
+        <div className="min-h-screen bg-gray-50 flex flex-col">
             <Header />
             <div className="flex-1 max-w-md w-full mx-auto px-4 py-6 space-y-3">
                 <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wide">{stepIdx + 1}. FRENTES DA CONCESSÃO</h2>
@@ -1252,7 +1252,7 @@ export default function VistoriarOcorrenciaDTR() {
 
     // ─── PER ─────────────────────────────────────────────────────────────────────
     if (currentStep === 'per') return (
-        <div className="min-h-screen bg-[#e8eaed] flex flex-col">
+        <div className="min-h-screen bg-gray-50 flex flex-col">
             <Header />
             <div className="flex-1 max-w-md w-full mx-auto px-4 py-6 space-y-3">
                 <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wide">{stepIdx + 1}. FRENTE DE {selectedFrente}</h2>
@@ -1275,7 +1275,7 @@ export default function VistoriarOcorrenciaDTR() {
             </div>
             {perIsOutros && !readOnly && (
                 <div className="sticky bottom-0 bg-white border-t border-gray-200 px-4 py-3">
-                    <Button className="w-full bg-gray-900 hover:bg-gray-700 text-white rounded-xl h-11" onClick={goNext} disabled={!canProceed}>
+                    <Button variant="brand" className="w-full h-11" onClick={goNext} disabled={!canProceed}>
                         Próximo
                     </Button>
                 </div>
@@ -1285,7 +1285,7 @@ export default function VistoriarOcorrenciaDTR() {
 
     // ─── DESCRIÇÃO / ITEM ────────────────────────────────────────────────────────
     if (currentStep === 'descricao' && perIsOutros) return (
-        <div className="min-h-screen bg-[#e8eaed] flex flex-col">
+        <div className="min-h-screen bg-gray-50 flex flex-col">
             <Header />
             <div className="flex-1 max-w-md w-full mx-auto px-4 py-6 space-y-3">
                 <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wide">{stepIdx + 1}. {selectedPer.toUpperCase()}</h2>
@@ -1299,7 +1299,7 @@ export default function VistoriarOcorrenciaDTR() {
             </div>
             {!readOnly && (
                 <div className="sticky bottom-0 bg-white border-t border-gray-200 px-4 py-3">
-                    <Button className="w-full bg-gray-900 hover:bg-gray-700 text-white rounded-xl h-11" onClick={goNext} disabled={!canProceed}>
+                    <Button variant="brand" className="w-full h-11" onClick={goNext} disabled={!canProceed}>
                         Próximo
                     </Button>
                 </div>
@@ -1308,7 +1308,7 @@ export default function VistoriarOcorrenciaDTR() {
     );
 
     if (currentStep === 'descricao') return (
-        <div className="min-h-screen bg-[#e8eaed] flex flex-col">
+        <div className="min-h-screen bg-gray-50 flex flex-col">
             <Header />
             <div className="flex-1 max-w-md w-full mx-auto px-4 py-6 space-y-3">
                 <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wide">{stepIdx + 1}. {selectedPer.toUpperCase()}</h2>
@@ -1335,7 +1335,7 @@ export default function VistoriarOcorrenciaDTR() {
 
     // ─── ETAPA DA OBRA ───────────────────────────────────────────────────────────
     if (currentStep === 'etapa_obra') return (
-        <div className="min-h-screen bg-[#e8eaed] flex flex-col">
+        <div className="min-h-screen bg-gray-50 flex flex-col">
             <Header />
             <div className="flex-1 max-w-md w-full mx-auto px-4 py-6 space-y-3">
                 <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wide">{stepIdx + 1}. ETAPA DA OBRA</h2>
@@ -1354,7 +1354,7 @@ export default function VistoriarOcorrenciaDTR() {
 
     // ─── TIPO ────────────────────────────────────────────────────────────────────
     if (currentStep === 'tipo') return (
-        <div className="min-h-screen bg-[#e8eaed] flex flex-col">
+        <div className="min-h-screen bg-gray-50 flex flex-col">
             <Header />
             <div className="flex-1 max-w-md w-full mx-auto px-4 py-6 space-y-3">
                 <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wide">{stepIdx + 1}. TIPO</h2>
@@ -1377,7 +1377,7 @@ export default function VistoriarOcorrenciaDTR() {
 
     // ─── SENTIDO ─────────────────────────────────────────────────────────────────
     if (currentStep === 'sentido') return (
-        <div className="min-h-screen bg-[#e8eaed] flex flex-col">
+        <div className="min-h-screen bg-gray-50 flex flex-col">
             <Header />
             <div className="flex-1 max-w-md w-full mx-auto px-4 py-6 space-y-3">
                 <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wide">{stepIdx + 1}. SENTIDO</h2>
@@ -1404,12 +1404,12 @@ export default function VistoriarOcorrenciaDTR() {
 
     // ─── OBSERVAÇÃO (passo final) ─────────────────────────────────────────────────
     return (
-        <div className="min-h-screen bg-[#e8eaed] flex flex-col">
+        <div className="min-h-screen bg-gray-50 flex flex-col">
             <Header />
             <div className="flex-1 max-w-md w-full mx-auto px-4 py-6 space-y-4">
                 {isFinalized && (
-                    <div className="bg-white border border-indigo-100 rounded-2xl p-4 shadow-sm space-y-3">
-                        <h3 className="text-xs font-bold text-indigo-800 uppercase tracking-wider flex items-center gap-1.5">
+                    <div className="bg-white border border-blue-100 rounded-2xl p-4 shadow-sm space-y-3">
+                        <h3 className="text-xs font-bold text-[#004A8F] uppercase tracking-wider flex items-center gap-1.5">
                             <RotateCcw className="h-3.5 w-3.5" /> Suporte & Correção (DTR)
                         </h3>
                         <p className="text-[11px] text-gray-600 leading-relaxed">
@@ -1429,14 +1429,14 @@ export default function VistoriarOcorrenciaDTR() {
                                 accept=".zip"
                                 onChange={(e) => setSelectedZip(e.target.files?.[0] || null)}
                                 disabled={fixingDtr}
-                                className="w-full text-[10px] text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-[10px] file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 border border-slate-200 rounded-lg p-1 bg-white cursor-pointer"
+                                className="w-full text-[10px] text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-[10px] file:font-semibold file:bg-blue-50 file:text-[#0066B3] hover:file:bg-blue-100 border border-slate-200 rounded-lg p-1 bg-white cursor-pointer"
                             />
                         </div>
                         <Button
                             size="sm"
                             disabled={fixingDtr}
                             onClick={handleFixFinalizedInspection}
-                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-medium h-9 flex items-center justify-center gap-1.5"
+                            className="w-full bg-[#0066B3] hover:bg-[#004A8F] text-white rounded-xl text-xs font-medium h-9 flex items-center justify-center gap-1.5"
                         >
                             {fixingDtr ? (
                                 <><Loader2 className="h-3.5 w-3.5 animate-spin" /> {fixProgress}</>

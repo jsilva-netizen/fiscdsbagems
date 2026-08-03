@@ -13,9 +13,10 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from '@/components/ui/alert-dialog';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
-import { Search, SlidersHorizontal, Trash2, Calendar, Map, CheckCircle2, Clock, Plus, Compass, Loader2, Download } from 'lucide-react';
+import { Search, SlidersHorizontal, Trash2, Calendar, Map, CheckCircle2, Clock, Plus, Compass, Loader2, Download, ChevronRight, AlertTriangle } from 'lucide-react';
 import RelatorioFiscalizacao from '@/components/fiscalizacao/RelatorioFiscalizacao';
 import AdminShell from '@/components/layout/AdminShell';
+import EmptyState from '@/components/design/EmptyState';
 import JSZip from 'jszip';
 import { supabase } from '@/lib/supabase';
 
@@ -189,6 +190,17 @@ export default function FiscalizacoesDTR() {
         staleTime: 30000
     });
 
+    // total_constatacoes/total_ncs da própria fiscalização só é gravado na finalização e nem
+    // sempre reflete a realidade. A fonte confiável é somar por unidade/ocorrência vistoriada
+    // (já trata o modelo de ocorrências da DTR — cada unidade É uma constatação, e as
+    // marcadas 'nc' contam como não conformidade).
+    const fiscalizacaoIds = fiscalizacoes.map((f) => f.id);
+    const { data: totaisPorFiscalizacao = {} } = useQuery({
+        queryKey: ['fiscalizacoes-dtr-totais', fiscalizacaoIds.join(',')],
+        queryFn: () => Repository.getTotaisPorFiscalizacao(fiscalizacaoIds),
+        enabled: fiscalizacaoIds.length > 0,
+    });
+
     const deletarFiscalizacaoMutation = useMutation({
         mutationFn: async (fiscalizacaoId) => {
             await deleteFiscalizacaoComImagens(fiscalizacaoId);
@@ -247,7 +259,7 @@ export default function FiscalizacoesDTR() {
             subtitle={`${filtered.length} registro${filtered.length === 1 ? '' : 's'}`}
             actions={
                 <Link to={createPageUrl('NovaFiscalizacaoDTR')}>
-                    <Button className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow gap-1.5 h-9 px-4 text-sm">
+                    <Button className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow gap-1.5 h-9 px-4 text-sm">
                         <Plus className="h-4 w-4" /> Nova Fiscalização
                     </Button>
                 </Link>
@@ -290,7 +302,7 @@ export default function FiscalizacoesDTR() {
                     </Select>
                     <Button
                         variant="outline"
-                        className={`h-10 rounded-xl border-gray-200 gap-1.5 flex-shrink-0 ${mostrarFiltros ? 'bg-indigo-50 border-indigo-300 text-indigo-600' : ''}`}
+                        className={`h-10 rounded-xl border-gray-200 gap-1.5 flex-shrink-0 ${mostrarFiltros ? 'bg-blue-50 border-blue-200 text-[#0066B3]' : ''}`}
                         onClick={() => setMostrarFiltros(!mostrarFiltros)}
                     >
                         <SlidersHorizontal className="h-4 w-4" />
@@ -326,15 +338,15 @@ export default function FiscalizacoesDTR() {
                 <div className="space-y-3">
                     {isLoading ? (
                         <div className="flex flex-col items-center justify-center py-12 gap-3">
-                            <Loader2 className="h-8 w-8 text-indigo-500 animate-spin" />
+                            <Loader2 className="h-8 w-8 text-[#0066B3] animate-spin" />
                             <p className="text-sm text-gray-400">Carregando vistorias...</p>
                         </div>
                     ) : filtered.length === 0 ? (
-                        <div className="text-center py-12 bg-white border border-gray-200 rounded-2xl shadow-sm">
-                            <Compass className="h-10 w-10 text-gray-300 mx-auto mb-2" />
-                            <p className="text-sm text-gray-500 font-medium">Nenhuma vistoria encontrada</p>
-                            <p className="text-xs text-gray-400 mt-1">Abra uma nova vistoria DTR para começar.</p>
-                        </div>
+                        <EmptyState
+                            icon={Compass}
+                            title="Nenhuma vistoria encontrada"
+                            description="Abra uma nova vistoria DTR para começar."
+                        />
                     ) : (
                         filtered.map(f => {
                             const dataFmt = f.data_inicio
@@ -345,89 +357,100 @@ export default function FiscalizacoesDTR() {
                                 : '';
 
                             const isFinalized = f.status === 'finalizada';
+                            const { total_constatacoes = 0, total_ncs = 0 } = totaisPorFiscalizacao[f.id] || {};
 
                             return (
-                                <Link
-                                    key={f.id}
-                                    to={createPageUrl('ExecutarFiscalizacaoDTR') + `?id=${f.id}`}
-                                    className="block transition-all"
-                                >
-                                    <Card className="bg-white border border-gray-200 hover:border-indigo-300 hover:shadow-md transition-all rounded-xl shadow-sm overflow-hidden">
-                                        <CardContent className="p-4 flex flex-col justify-between gap-3">
-                                            {/* Top info */}
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <h3 className="font-bold text-gray-800 text-sm flex items-center gap-1.5">
-                                                        <Map className="h-4 w-4 text-indigo-500" />
-                                                        {f.rodovia || 'Rodovia Indefinida'}
-                                                    </h3>
-                                                    <p className="text-xs text-gray-500 mt-0.5">{f.prestador_servico_nome}</p>
-                                                </div>
-                                                <Badge
-                                                    variant="outline"
-                                                    className={`text-[10px] px-2 py-0.5 rounded-full ${isFinalized ? 'border-emerald-300 text-emerald-700 bg-emerald-50' : 'border-sky-300 text-sky-700 bg-sky-50'}`}
-                                                >
-                                                    {isFinalized ? (
-                                                        <CheckCircle2 className="h-3 w-3 mr-1 inline-block" />
-                                                    ) : (
-                                                        <Clock className="h-3 w-3 mr-1 inline-block animate-pulse" />
-                                                    )}
-                                                    {isFinalized ? 'Finalizado' : 'Em Andamento'}
-                                                </Badge>
-                                            </div>
-
-                                            {/* Middle detail */}
-                                            <div className="text-xs text-gray-500 bg-gray-50 p-2.5 rounded-lg border border-gray-100 flex flex-col gap-1">
-                                                <div className="flex items-center justify-between text-[11px] text-gray-400 font-mono">
-                                                    <span className="flex items-center gap-1">
-                                                        <Calendar className="h-3 w-3" />
-                                                        {dataFmt} {horaFmt}
-                                                    </span>
-                                                    <span>{f.id.substring(0, 8).toUpperCase()}</span>
-                                                </div>
-                                            </div>
-
-                                            {/* Actions */}
-                                            <div className="flex flex-col gap-1.5 border-t border-gray-100 pt-2.5 mt-1">
-                                                <div className="flex items-center justify-between gap-2 flex-wrap">
-                                                    {isFinalized ? (
-                                                        <div className="flex gap-2">
-                                                            <RelatorioFiscalizacao fiscalizacao={f} />
-                                                        </div>
-                                                    ) : (
-                                                        <span className="text-xs font-semibold text-indigo-600 hover:text-indigo-700">
-                                                            Continuar inspeção →
-                                                        </span>
-                                                    )}
-
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        className="border-indigo-100 hover:bg-indigo-50 hover:text-indigo-700 text-indigo-600 rounded-xl h-9 font-medium text-xs flex items-center gap-1.5 ml-auto"
-                                                        disabled={downloadingFiscId === f.id}
-                                                        onClick={(e) => handleDownloadPhotos(e, f)}
-                                                    >
-                                                        {downloadingFiscId === f.id ? (
-                                                            <><Loader2 className="h-3.5 w-3.5 animate-spin" /> {downloadProgress}</>
+                                <Card key={f.id} className="hover:shadow-md transition-all border border-gray-200 rounded-2xl overflow-hidden bg-white">
+                                    <CardContent className="p-5">
+                                        <Link
+                                            to={createPageUrl('ExecutarFiscalizacaoDTR') + `?id=${f.id}`}
+                                            className="block"
+                                        >
+                                            <div className="flex items-start justify-between">
+                                                <div className="flex items-start gap-3">
+                                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${isFinalized ? 'bg-emerald-50' : 'bg-sky-50'}`}>
+                                                        {isFinalized ? (
+                                                            <CheckCircle2 className="h-6 w-6 text-emerald-500" />
                                                         ) : (
-                                                            <><Download className="h-3.5 w-3.5" /> Baixar Fotos (ZIP)</>
+                                                            <Clock className="h-6 w-6 text-sky-500" />
                                                         )}
-                                                    </Button>
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <h3 className="font-bold text-gray-800 flex items-center gap-1.5">
+                                                            <Map className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                                                            {f.rodovia || 'Rodovia Indefinida'}
+                                                        </h3>
+                                                        <div className="flex flex-wrap gap-1.5 mt-1.5">
+                                                            {f.prestador_servico_nome && (
+                                                                <Badge className="text-[10px] bg-indigo-50 text-indigo-700 border-none font-semibold">
+                                                                    {f.prestador_servico_nome}
+                                                                </Badge>
+                                                            )}
+                                                            <Badge className={`text-[10px] font-semibold border-none ${isFinalized ? 'bg-emerald-100 text-emerald-700' : 'bg-sky-100 text-sky-700'}`}>
+                                                                {isFinalized ? 'Finalizada' : 'Em andamento'}
+                                                            </Badge>
+                                                        </div>
+                                                        <p className="text-xs text-gray-400 mt-1.5 flex items-center gap-1">
+                                                            <Calendar className="h-3 w-3" />
+                                                            {dataFmt} {horaFmt}
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                                <div className="flex justify-end">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-8 w-8 text-gray-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg"
-                                                        onClick={(e) => handleDeleteClick(e, f.id)}
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                </div>
+                                                <ChevronRight className="h-5 w-5 text-gray-300 flex-shrink-0 mt-1" />
                                             </div>
-                                        </CardContent>
-                                    </Card>
-                                </Link>
+
+                                            {(total_constatacoes > 0 || total_ncs > 0) && (
+                                                <div className="flex gap-4 mt-3 pt-3 border-t border-gray-100 text-xs">
+                                                    <span className="flex items-center gap-1 text-emerald-600 font-medium">
+                                                        <CheckCircle2 className="h-3 w-3" /> {total_constatacoes} Constatações
+                                                    </span>
+                                                    <span className="flex items-center gap-1 text-rose-600 font-medium">
+                                                        <AlertTriangle className="h-3 w-3" /> {total_ncs} NCs
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </Link>
+
+                                        {/* Ações específicas da DTR: relatório/continuar, baixar fotos e excluir */}
+                                        <div className="flex flex-col gap-1.5 border-t border-gray-100 pt-3 mt-3">
+                                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                                                {isFinalized ? (
+                                                    <div className="flex gap-2">
+                                                        <RelatorioFiscalizacao fiscalizacao={f} />
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-xs font-semibold text-gray-400">
+                                                        Em andamento
+                                                    </span>
+                                                )}
+
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="border-gray-200 hover:bg-blue-50 hover:text-[#0066B3] hover:border-blue-200 text-gray-600 rounded-xl h-9 font-medium text-xs flex items-center gap-1.5 ml-auto"
+                                                    disabled={downloadingFiscId === f.id}
+                                                    onClick={(e) => handleDownloadPhotos(e, f)}
+                                                >
+                                                    {downloadingFiscId === f.id ? (
+                                                        <><Loader2 className="h-3.5 w-3.5 animate-spin" /> {downloadProgress}</>
+                                                    ) : (
+                                                        <><Download className="h-3.5 w-3.5" /> Baixar Fotos (ZIP)</>
+                                                    )}
+                                                </Button>
+                                            </div>
+                                            <div className="flex justify-end">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 text-gray-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg"
+                                                    onClick={(e) => handleDeleteClick(e, f.id)}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
                             );
                         })
                     )}

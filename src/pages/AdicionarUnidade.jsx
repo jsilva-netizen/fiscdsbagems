@@ -208,7 +208,7 @@ export default function AdicionarUnidade() {
             <div className="max-w-lg mx-auto px-4 py-6">
                 <form onSubmit={handleSubmit} className="space-y-5">
                     {/* GPS */}
-                    <Card className={`border shadow-sm ${location ? 'border-emerald-200 bg-emerald-50' : 'border-amber-100 bg-amber-50'}`}>
+                    <Card className={`rounded-2xl border shadow-sm ${location ? 'border-emerald-200 bg-emerald-50' : 'border-amber-100 bg-amber-50'}`}>
                         <CardContent className="p-4 flex items-center gap-3">
                             <div className={`w-9 h-9 rounded-full flex items-center justify-center ${location ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-500'}`}>
                                 <Navigation className="h-4.5 w-4.5" />
@@ -249,7 +249,7 @@ export default function AdicionarUnidade() {
                         {tiposFiltrados.length === 0 && (
                             <p className="text-xs text-amber-600">
                                 Nenhum tipo cadastrado para os serviços selecionados.
-                                <Link to={createPageUrl('TiposUnidade')} className="text-indigo-600 ml-1 font-semibold">Cadastrar tipos</Link>
+                                <Link to={createPageUrl('TiposUnidade')} className="text-[#0066B3] ml-1 font-semibold">Cadastrar tipos</Link>
                             </p>
                         )}
                     </div>
@@ -322,7 +322,8 @@ export default function AdicionarUnidade() {
                     {/* Submit */}
                     <Button
                         type="submit"
-                        className="w-full h-14 font-semibold bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl shadow-lg transition-all text-base"
+                        variant="brand"
+                        className="w-full h-14 font-semibold shadow-lg transition-all text-base"
                         disabled={createMutation.isPending || !formData.tipo_unidade_id}
                     >
                         {createMutation.isPending ? (

@@ -193,7 +193,7 @@ export default function Fiscalizacoes() {
                     </Select>
                     <Button
                         variant="outline"
-                        className={`h-10 rounded-xl border-gray-200 gap-1.5 flex-shrink-0 ${mostrarFiltros ? 'bg-indigo-50 border-indigo-300 text-indigo-600' : ''}`}
+                        className={`h-10 rounded-xl border-gray-200 gap-1.5 flex-shrink-0 ${mostrarFiltros ? 'bg-blue-50 border-blue-200 text-[#0066B3]' : ''}`}
                         onClick={() => setMostrarFiltros(!mostrarFiltros)}
                     >
                         <SlidersHorizontal className="h-4 w-4" />
@@ -317,7 +317,7 @@ export default function Fiscalizacoes() {
                                                     <Button
                                                          variant="outline"
                                                          size="sm"
-                                                         className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                         className="text-rose-600 hover:text-rose-700 hover:bg-rose-50"
                                                          onClick={(e) => {
                                                              e.preventDefault();
                                                             if (!online) {
@@ -333,7 +333,7 @@ export default function Fiscalizacoes() {
                                                          {deleteConfirmation.step === 1 ? (
                                                              <>
                                                                  <AlertDialogHeader>
-                                                                     <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+                                                                     <AlertDialogTitle className="flex items-center gap-2 text-rose-600">
                                                                          <AlertTriangle className="h-5 w-5" />
                                                                          Excluir Fiscalização?
                                                                      </AlertDialogTitle>
@@ -341,7 +341,7 @@ export default function Fiscalizacoes() {
                                                                         <div>
                                                                             <p>Você está prestes a excluir permanentemente:</p>
                                                                             <p className="font-semibold text-gray-900">{fisc.numero_termo} - {fisc.municipio_nome}</p>
-                                                                            <p className="text-red-600">Esta ação não pode ser desfeita e removerá todas as unidades, NCs, determinações e dados relacionados.</p>
+                                                                            <p className="text-rose-600">Esta ação não pode ser desfeita e removerá todas as unidades, NCs, determinações e dados relacionados.</p>
                                                                         </div>
                                                                     </AlertDialogDescription>
                                                                  </AlertDialogHeader>
@@ -359,7 +359,7 @@ export default function Fiscalizacoes() {
                                                          ) : (
                                                              <>
                                                                  <AlertDialogHeader>
-                                                                     <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+                                                                     <AlertDialogTitle className="flex items-center gap-2 text-rose-600">
                                                                          <AlertTriangle className="h-5 w-5" />
                                                                          Confirmação Final
                                                                      </AlertDialogTitle>
@@ -426,7 +426,7 @@ export default function Fiscalizacoes() {
                                                       </>
                                                   ) : (
                                                       <Button
-                                                          className="bg-indigo-600 hover:bg-indigo-700 text-white h-9 rounded-xl font-medium text-xs"
+                                                          className="bg-[#0066B3] hover:bg-[#004A8F] text-white h-9 rounded-xl font-medium text-xs"
                                                           size="sm"
                                                           disabled={
                                                               !online || !sessionValid || finalizarFiscalizacaoMutation.isPending
@@ -483,7 +483,7 @@ export default function Fiscalizacoes() {
                                     }
                                 }}
                                 disabled={finalizarFiscalizacaoMutation.isPending}
-                                className="bg-green-600 hover:bg-green-700"
+                                className="bg-emerald-600 hover:bg-emerald-700"
                             >
                                 {finalizarFiscalizacaoMutation.isPending ? (
                                     <>
@@ -506,7 +506,7 @@ export default function Fiscalizacoes() {
                         <p className="text-gray-500 font-semibold">Nenhuma fiscalização encontrada</p>
                         <p className="text-gray-400 text-sm mt-1">Tente ajustar os filtros ou inicie uma nova vistoria</p>
                         <Link to={createPageUrl('NovaFiscalizacao')}>
-                            <Button className="mt-5 bg-indigo-600 hover:bg-indigo-700 rounded-xl">
+                            <Button variant="brand" className="mt-5">
                                 <Plus className="h-4 w-4 mr-2" />
                                 Iniciar primeira fiscalização
                             </Button>
@@ -525,7 +525,7 @@ export default function Fiscalizacoes() {
                 <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-2xl p-6 shadow-2xl w-full max-w-sm space-y-4">
                         <div className="flex items-center gap-3">
-                            <Loader2 className="h-5 w-5 animate-spin text-indigo-500 flex-shrink-0" />
+                            <Loader2 className="h-5 w-5 animate-spin text-[#0066B3] flex-shrink-0" />
                             <div className="min-w-0">
                                 <p className="text-sm font-semibold text-gray-800">Sincronizando fiscalização</p>
                                 <p className="text-xs text-gray-500 mt-0.5 truncate">{syncProgress.message}</p>
@@ -539,7 +539,7 @@ export default function Fiscalizacoes() {
                                 </div>
                                 <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                                     <div
-                                        className="h-full bg-indigo-500 rounded-full transition-all duration-300"
+                                        className="h-full bg-[#0066B3] rounded-full transition-all duration-300"
                                         style={{ width: `${Math.min(100, Math.round((syncProgress.current / syncProgress.total) * 100))}%` }}
                                     />
                                 </div>

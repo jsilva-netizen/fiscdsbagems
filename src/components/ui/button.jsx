@@ -19,6 +19,12 @@ const buttonVariants = cva(
           "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+        // Azul institucional AGEMS (#0066B3 -> #004A8F) — ação primária padronizada
+        // com a Home em vez de indigo/emerald/gradientes usados página a página.
+        brand:
+          "rounded-xl bg-[#0066B3] text-white font-semibold shadow-sm hover:bg-[#004A8F]",
+        "brand-outline":
+          "rounded-xl border border-gray-200 bg-white text-gray-700 font-medium shadow-sm hover:bg-gray-50",
       },
       size: {
         default: "h-9 px-4 py-2",
