@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Repository } from '@/lib/offline/repository';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +29,7 @@ import AdminShell from '@/components/layout/AdminShell';
 const DSB_MODULOS = ['saneamento_dsb', 'residuos_dsb'];
 
 export default function Fiscalizacoes() {
+    const navigate = useNavigate();
     const queryClient = useQueryClient();
     const { user } = useAuth();
     const { camaraTecnica: ownCamaraTecnica, isAdmin } = useModulo();
@@ -282,39 +283,53 @@ export default function Fiscalizacoes() {
                             return (
                                 <Card key={fisc.id} className="border border-gray-200 rounded-2xl overflow-hidden bg-white">
                                     <CardContent className="p-0">
-                                        {/* Cabeçalho — sempre visível; toca/clica pra expandir e ver o resto */}
-                                        <button
-                                            type="button"
-                                            onClick={() => toggleExpanded(fisc.id)}
-                                            className="w-full flex items-center gap-3 p-4 sm:p-5 text-left hover:bg-gray-50 transition-colors"
-                                        >
-                                            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                                                isFinished ? 'bg-emerald-50' : 'bg-sky-50'
-                                            }`}>
-                                                {isFinished ? (
-                                                    <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-500" />
-                                                ) : (
-                                                    <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-sky-500" />
-                                                )}
-                                            </div>
-                                            <div className="min-w-0 flex-1">
-                                                <h3 className="font-bold text-gray-800 flex items-center gap-1.5 text-sm sm:text-base">
-                                                    <MapPin className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-                                                    <span className="truncate">{fisc.municipio_nome}</span>
-                                                </h3>
-                                                <div className="flex flex-wrap gap-1.5 mt-1.5">
-                                                    {fisc.servicos?.map(s => (
-                                                        <Badge key={s} className="text-[10px] bg-indigo-50 text-indigo-700 border-none font-semibold">{s}</Badge>
-                                                    ))}
-                                                    <Badge className={`text-[10px] font-semibold border-none ${
-                                                        isFinished ? 'bg-emerald-100 text-emerald-700' : 'bg-sky-100 text-sky-700'
-                                                    }`}>
-                                                        {isFinished ? 'Finalizada' : 'Em andamento'}
-                                                    </Badge>
+                                        {/* Cabeçalho — clique expande; clique de novo (já expandido) abre a fiscalização */}
+                                        <div className="w-full flex items-center gap-1 p-4 sm:p-5">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    if (isExpanded) {
+                                                        navigate(createPageUrl('ExecutarFiscalizacao') + `?id=${fisc.id}`);
+                                                    } else {
+                                                        toggleExpanded(fisc.id);
+                                                    }
+                                                }}
+                                                className="flex-1 min-w-0 flex items-center gap-3 text-left"
+                                            >
+                                                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                                                    isFinished ? 'bg-emerald-50' : 'bg-sky-50'
+                                                }`}>
+                                                    {isFinished ? (
+                                                        <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-500" />
+                                                    ) : (
+                                                        <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-sky-500" />
+                                                    )}
                                                 </div>
-                                            </div>
-                                            <ChevronDown className={`h-5 w-5 text-gray-300 flex-shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                                        </button>
+                                                <div className="min-w-0 flex-1">
+                                                    <h3 className="font-bold text-gray-800 flex items-center gap-1.5 text-sm sm:text-base">
+                                                        <MapPin className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                                                        <span className="truncate">{fisc.municipio_nome}</span>
+                                                    </h3>
+                                                    <div className="flex flex-wrap gap-1.5 mt-1.5">
+                                                        {fisc.servicos?.map(s => (
+                                                            <Badge key={s} className="pointer-events-none text-[10px] bg-indigo-50 text-indigo-700 border-none font-semibold">{s}</Badge>
+                                                        ))}
+                                                        <Badge className={`pointer-events-none text-[10px] font-semibold border-none ${
+                                                            isFinished ? 'bg-emerald-100 text-emerald-700' : 'bg-sky-100 text-sky-700'
+                                                        }`}>
+                                                            {isFinished ? 'Finalizada' : 'Em andamento'}
+                                                        </Badge>
+                                                    </div>
+                                                </div>
+                                            </button>
+                                            <Link
+                                                to={createPageUrl('ExecutarFiscalizacao') + `?id=${fisc.id}`}
+                                                title="Abrir fiscalização"
+                                                className="grid place-items-center h-9 w-9 rounded-lg text-gray-300 hover:text-[#0066B3] hover:bg-blue-50 flex-shrink-0 transition-colors"
+                                            >
+                                                <ChevronRight className="h-5 w-5" />
+                                            </Link>
+                                        </div>
 
                                         {/* Detalhes — só aparecem expandido */}
                                         {isExpanded && (
@@ -352,13 +367,6 @@ export default function Fiscalizacoes() {
                                                 <div className="mt-4 pt-4 border-t border-gray-100 flex flex-col gap-2">
                                                     {isFinished && <RelatorioFiscalizacao fiscalizacao={fisc} showStatusOnly />}
                                                     <div className="flex flex-wrap gap-2 items-center">
-                                                        <Link
-                                                            to={createPageUrl('ExecutarFiscalizacao') + `?id=${fisc.id}`}
-                                                            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-semibold text-[#0066B3] border border-blue-200 hover:bg-blue-50"
-                                                        >
-                                                            Abrir Fiscalização
-                                                            <ChevronRight className="h-3.5 w-3.5" />
-                                                        </Link>
                                                         <HistoricoFiscalizacao fiscalizacao={fisc} />
 
                                                         {isFinished ? (

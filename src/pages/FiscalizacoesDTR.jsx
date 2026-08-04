@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Repository } from '@/lib/offline/repository';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +23,7 @@ import { supabase } from '@/lib/supabase';
 const DTR_MODULOS = ['rodovias_dtr', 'transportes_dtr', 'fiscal_dtr'];
 
 export default function FiscalizacoesDTR() {
+    const navigate = useNavigate();
     const queryClient = useQueryClient();
     const { user } = useAuth();
     const [search, setSearch] = useState('');
@@ -31,6 +32,12 @@ export default function FiscalizacoesDTR() {
     const [dataInicio, setDataInicio] = useState('');
     const [dataFim, setDataFim] = useState('');
     const [mostrarFiltros, setMostrarFiltros] = useState(false);
+    const [expandedIds, setExpandedIds] = useState(() => new Set());
+    const toggleExpanded = (id) => setExpandedIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id); else next.add(id);
+        return next;
+    });
     const [deleteConfirmation, setDeleteConfirmation] = useState({ open: false, fiscId: null, step: 1, inputValue: '' });
     const [downloadingFiscId, setDownloadingFiscId] = useState(null);
     const [downloadProgress, setDownloadProgress] = useState('');
@@ -358,97 +365,114 @@ export default function FiscalizacoesDTR() {
 
                             const isFinalized = f.status === 'finalizada';
                             const { total_constatacoes = 0, total_ncs = 0 } = totaisPorFiscalizacao[f.id] || {};
+                            const isExpanded = expandedIds.has(f.id);
 
                             return (
-                                <Card key={f.id} className="hover:shadow-md transition-all border border-gray-200 rounded-2xl overflow-hidden bg-white">
-                                    <CardContent className="p-5">
-                                        <Link
-                                            to={createPageUrl('ExecutarFiscalizacaoDTR') + `?id=${f.id}`}
-                                            className="block"
-                                        >
-                                            <div className="flex items-start justify-between">
-                                                <div className="flex items-start gap-3">
-                                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${isFinalized ? 'bg-emerald-50' : 'bg-sky-50'}`}>
-                                                        {isFinalized ? (
-                                                            <CheckCircle2 className="h-6 w-6 text-emerald-500" />
-                                                        ) : (
-                                                            <Clock className="h-6 w-6 text-sky-500" />
-                                                        )}
-                                                    </div>
-                                                    <div className="min-w-0">
-                                                        <h3 className="font-bold text-gray-800 flex items-center gap-1.5">
-                                                            <Map className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-                                                            {f.rodovia || 'Rodovia Indefinida'}
-                                                        </h3>
-                                                        <div className="flex flex-wrap gap-1.5 mt-1.5">
-                                                            {f.prestador_servico_nome && (
-                                                                <Badge className="text-[10px] bg-indigo-50 text-indigo-700 border-none font-semibold">
-                                                                    {f.prestador_servico_nome}
-                                                                </Badge>
-                                                            )}
-                                                            <Badge className={`text-[10px] font-semibold border-none ${isFinalized ? 'bg-emerald-100 text-emerald-700' : 'bg-sky-100 text-sky-700'}`}>
-                                                                {isFinalized ? 'Finalizada' : 'Em andamento'}
+                                <Card key={f.id} className="border border-gray-200 rounded-2xl overflow-hidden bg-white">
+                                    <CardContent className="p-0">
+                                        {/* Cabeçalho — clique expande; clique de novo (já expandido) abre a fiscalização */}
+                                        <div className="w-full flex items-center gap-1 p-4 sm:p-5">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    if (isExpanded) {
+                                                        navigate(createPageUrl('ExecutarFiscalizacaoDTR') + `?id=${f.id}`);
+                                                    } else {
+                                                        toggleExpanded(f.id);
+                                                    }
+                                                }}
+                                                className="flex-1 min-w-0 flex items-center gap-3 text-left"
+                                            >
+                                                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${isFinalized ? 'bg-emerald-50' : 'bg-sky-50'}`}>
+                                                    {isFinalized ? (
+                                                        <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-500" />
+                                                    ) : (
+                                                        <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-sky-500" />
+                                                    )}
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <h3 className="font-bold text-gray-800 flex items-center gap-1.5 text-sm sm:text-base">
+                                                        <Map className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                                                        <span className="truncate">{f.rodovia || 'Rodovia Indefinida'}</span>
+                                                    </h3>
+                                                    <div className="flex flex-wrap gap-1.5 mt-1.5">
+                                                        {f.prestador_servico_nome && (
+                                                            <Badge className="pointer-events-none text-[10px] bg-indigo-50 text-indigo-700 border-none font-semibold">
+                                                                {f.prestador_servico_nome}
                                                             </Badge>
-                                                        </div>
-                                                        <p className="text-xs text-gray-400 mt-1.5 flex items-center gap-1">
-                                                            <Calendar className="h-3 w-3" />
-                                                            {dataFmt} {horaFmt}
-                                                        </p>
+                                                        )}
+                                                        <Badge className={`pointer-events-none text-[10px] font-semibold border-none ${isFinalized ? 'bg-emerald-100 text-emerald-700' : 'bg-sky-100 text-sky-700'}`}>
+                                                            {isFinalized ? 'Finalizada' : 'Em andamento'}
+                                                        </Badge>
                                                     </div>
                                                 </div>
-                                                <ChevronRight className="h-5 w-5 text-gray-300 flex-shrink-0 mt-1" />
-                                            </div>
+                                            </button>
+                                            <Link
+                                                to={createPageUrl('ExecutarFiscalizacaoDTR') + `?id=${f.id}`}
+                                                title="Abrir fiscalização"
+                                                className="grid place-items-center h-9 w-9 rounded-lg text-gray-300 hover:text-[#0066B3] hover:bg-blue-50 flex-shrink-0 transition-colors"
+                                            >
+                                                <ChevronRight className="h-5 w-5" />
+                                            </Link>
+                                        </div>
 
-                                            {(total_constatacoes > 0 || total_ncs > 0) && (
-                                                <div className="flex gap-4 mt-3 pt-3 border-t border-gray-100 text-xs">
-                                                    <span className="flex items-center gap-1 text-emerald-600 font-medium">
-                                                        <CheckCircle2 className="h-3 w-3" /> {total_constatacoes} Constatações
-                                                    </span>
-                                                    <span className="flex items-center gap-1 text-rose-600 font-medium">
-                                                        <AlertTriangle className="h-3 w-3" /> {total_ncs} NCs
-                                                    </span>
-                                                </div>
-                                            )}
-                                        </Link>
+                                        {/* Detalhes — só aparecem expandido */}
+                                        {isExpanded && (
+                                            <div className="px-4 sm:px-5 pb-5 border-t border-gray-100">
+                                                <p className="text-xs text-gray-400 flex items-center gap-1 pt-4">
+                                                    <Calendar className="h-3 w-3" />
+                                                    {dataFmt} {horaFmt}
+                                                </p>
 
-                                        {/* Ações específicas da DTR: relatório/continuar, baixar fotos e excluir */}
-                                        <div className="flex flex-col gap-1.5 border-t border-gray-100 pt-3 mt-3">
-                                            <div className="flex items-center justify-between gap-2 flex-wrap">
-                                                {isFinalized ? (
-                                                    <div className="flex gap-2">
-                                                        <RelatorioFiscalizacao fiscalizacao={f} />
+                                                {(total_constatacoes > 0 || total_ncs > 0) && (
+                                                    <div className="flex gap-4 mt-3 pt-3 border-t border-gray-100 text-xs">
+                                                        <span className="flex items-center gap-1 text-emerald-600 font-medium">
+                                                            <CheckCircle2 className="h-3 w-3" /> {total_constatacoes} Constatações
+                                                        </span>
+                                                        <span className="flex items-center gap-1 text-rose-600 font-medium">
+                                                            <AlertTriangle className="h-3 w-3" /> {total_ncs} NCs
+                                                        </span>
                                                     </div>
-                                                ) : (
-                                                    <span className="text-xs font-semibold text-gray-400">
-                                                        Em andamento
-                                                    </span>
                                                 )}
 
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="border-gray-200 hover:bg-blue-50 hover:text-[#0066B3] hover:border-blue-200 text-gray-600 rounded-xl h-9 font-medium text-xs flex items-center gap-1.5 ml-auto"
-                                                    disabled={downloadingFiscId === f.id}
-                                                    onClick={(e) => handleDownloadPhotos(e, f)}
-                                                >
-                                                    {downloadingFiscId === f.id ? (
-                                                        <><Loader2 className="h-3.5 w-3.5 animate-spin" /> {downloadProgress}</>
-                                                    ) : (
-                                                        <><Download className="h-3.5 w-3.5" /> Baixar Fotos (ZIP)</>
-                                                    )}
-                                                </Button>
+                                                {/* Ações — relatório, fotos e exclusão alinhadas na mesma linha, abaixo do status */}
+                                                <div className="mt-4 pt-4 border-t border-gray-100 flex flex-col gap-2">
+                                                    {isFinalized && <RelatorioFiscalizacao fiscalizacao={f} showStatusOnly />}
+                                                    <div className="flex flex-wrap gap-2 items-center">
+                                                        {isFinalized ? (
+                                                            <RelatorioFiscalizacao fiscalizacao={f} showButtonsOnly />
+                                                        ) : (
+                                                            <span className="text-xs font-semibold text-gray-400">
+                                                                Em andamento
+                                                            </span>
+                                                        )}
+
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="border-gray-200 hover:bg-blue-50 hover:text-[#0066B3] hover:border-blue-200 text-gray-600 rounded-xl h-9 font-medium text-xs flex items-center gap-1.5"
+                                                            disabled={downloadingFiscId === f.id}
+                                                            onClick={(e) => handleDownloadPhotos(e, f)}
+                                                        >
+                                                            {downloadingFiscId === f.id ? (
+                                                                <><Loader2 className="h-3.5 w-3.5 animate-spin" /> {downloadProgress}</>
+                                                            ) : (
+                                                                <><Download className="h-3.5 w-3.5" /> Baixar Fotos (ZIP)</>
+                                                            )}
+                                                        </Button>
+
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 h-9 rounded-xl ml-auto"
+                                                            onClick={(e) => handleDeleteClick(e, f.id)}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div className="flex justify-end">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8 text-gray-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg"
-                                                    onClick={(e) => handleDeleteClick(e, f.id)}
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                        </div>
+                                        )}
                                     </CardContent>
                                 </Card>
                             );
