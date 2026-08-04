@@ -448,9 +448,9 @@ export default function ExportarImportar() {
               </ul>
             </div>
             {exportStatus && (
-              <Alert className={exportStatus.tipo === 'sucesso' ? 'border-green-200 bg-green-50' : exportStatus.tipo === 'aviso' ? 'border-yellow-200 bg-yellow-50' : 'border-red-200 bg-red-50'}>
-                {exportStatus.tipo === 'sucesso' ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : <AlertCircle className="h-4 w-4 text-yellow-600" />}
-                <AlertDescription className={exportStatus.tipo === 'sucesso' ? 'text-green-800' : 'text-yellow-800'}>
+              <Alert className={exportStatus.tipo === 'sucesso' ? 'border-emerald-200 bg-emerald-50' : exportStatus.tipo === 'aviso' ? 'border-amber-200 bg-amber-50' : 'border-rose-200 bg-rose-50'}>
+                {exportStatus.tipo === 'sucesso' ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : <AlertCircle className="h-4 w-4 text-amber-600" />}
+                <AlertDescription className={exportStatus.tipo === 'sucesso' ? 'text-emerald-800' : 'text-amber-800'}>
                   {exportStatus.msg}
                 </AlertDescription>
               </Alert>
@@ -529,13 +529,13 @@ export default function ExportarImportar() {
               </div>
             )}
             {importStatus && (
-              <Alert className={importStatus.tipo === 'sucesso' ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}>
-                <AlertDescription className={importStatus.tipo === 'sucesso' ? 'text-green-800' : 'text-red-800'}>
+              <Alert className={importStatus.tipo === 'sucesso' ? 'border-emerald-200 bg-emerald-50' : 'border-rose-200 bg-rose-50'}>
+                <AlertDescription className={importStatus.tipo === 'sucesso' ? 'text-emerald-800' : 'text-rose-800'}>
                   {importStatus.msg}
                 </AlertDescription>
               </Alert>
             )}
-            <Button onClick={importarDados} disabled={importando || !previewImport} className="w-full bg-blue-600 hover:bg-blue-700">
+            <Button onClick={importarDados} disabled={importando || !previewImport} className="w-full bg-[#0066B3] hover:bg-[#004A8F]">
               {importando ? (
                 <><Loader2 className="h-4 w-4 animate-spin mr-2" />Importando...</>
               ) : (

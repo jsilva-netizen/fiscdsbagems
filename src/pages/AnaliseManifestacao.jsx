@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
+import Pill from '@/components/design/Pill';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
 import { FileText, Clock, CheckCircle, AlertCircle, Download, Filter, ChevronDown } from 'lucide-react';
 import AdminShell from '@/components/layout/AdminShell';
@@ -196,17 +196,17 @@ export default function AnaliseManifestacao() {
     const getStatusBadge = (termo) => {
         const stats = contarStatusDeterminacoes(termo);
         
-        if (stats.total === 0) return { label: 'Sem determinações', color: 'bg-gray-500' };
-        
+        if (stats.total === 0) return { label: 'Sem determinações', tone: 'neutral' };
+
         const temRespostasParaAnalise = stats.aguardandoAnalise > 0 || stats.atendidas > 0 || stats.naoAtendidas > 0;
         if (!temRespostasParaAnalise) {
-            return { label: 'Aguardando Resposta', color: 'bg-blue-600' };
+            return { label: 'Aguardando Resposta', tone: 'info' };
         }
 
         if (stats.atendidas + stats.naoAtendidas === stats.total) {
-            return { label: 'Análise Concluída', color: 'bg-green-600' };
+            return { label: 'Análise Concluída', tone: 'success' };
         } else {
-            return { label: 'Aguardando Análise', color: 'bg-yellow-600' };
+            return { label: 'Aguardando Análise', tone: 'warning' };
         }
     };
 
@@ -576,7 +576,7 @@ export default function AnaliseManifestacao() {
 
                 {/* Header */}
                 <div className="mb-6">
-                    <h1 className="text-xs font-bold uppercase tracking-widest text-slate-400">Manifestações</h1>
+                    <h1 className="text-xs font-bold uppercase tracking-wider text-gray-400">Manifestações</h1>
                 </div>
 
                 {/* Dashboard KPI */}
@@ -656,7 +656,7 @@ export default function AnaliseManifestacao() {
                             <Filter className="h-4 w-4 text-gray-600" />
                             <span className="font-semibold text-sm">Filtros</span>
                             {(filtros.busca || filtros.camaraTecnica || filtros.status || filtros.dataInicio || filtros.dataFim) && (
-                                <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
+                                <span className="h-1.5 w-1.5 rounded-full bg-[#0066B3]" />
                             )}
                             <ChevronDown className={`h-4 w-4 text-gray-400 ml-auto transition-transform ${filtrosAbertos ? 'rotate-180' : ''}`} />
                         </button>
@@ -722,8 +722,8 @@ export default function AnaliseManifestacao() {
                     {termosFiltrados.length === 0 ? (
                         <Card className="border border-gray-200 rounded-2xl bg-white shadow-sm">
                             <CardContent className="p-8 text-center text-gray-500">
-                                <FileText className="h-12 w-12 mx-auto mb-3 opacity-30 text-slate-400" />
-                                <p className="font-medium text-slate-655">Nenhum TN encontrado para análise</p>
+                                <FileText className="h-12 w-12 mx-auto mb-3 opacity-30 text-gray-400" />
+                                <p className="font-medium text-gray-600">Nenhum TN encontrado para análise</p>
                             </CardContent>
                         </Card>
                     ) : (
@@ -767,23 +767,23 @@ export default function AnaliseManifestacao() {
                                                     </div>
                                                     </div>
                                                 <div className="flex gap-2 text-xs">
-                                                    <Badge className="bg-blue-600">Total: {stats.total} determinações</Badge>
+                                                    <Pill tone="tag">Total: {stats.total} determinações</Pill>
                                                     {stats.aguardandoAnalise > 0 && (
-                                                        <Badge className="bg-yellow-600">{stats.aguardandoAnalise} aguardando análise</Badge>
+                                                        <Pill tone="warning">{stats.aguardandoAnalise} aguardando análise</Pill>
                                                     )}
                                                     {stats.atendidas > 0 && (
-                                                        <Badge className="bg-green-600">{stats.atendidas} acatadas</Badge>
+                                                        <Pill tone="success">{stats.atendidas} acatadas</Pill>
                                                     )}
                                                     {stats.naoAtendidas > 0 && (
-                                                        <Badge className="bg-red-600">{stats.naoAtendidas} não acatadas</Badge>
+                                                        <Pill tone="danger">{stats.naoAtendidas} não acatadas</Pill>
                                                     )}
                                                 </div>
                                             </div>
                                             <div className="flex flex-col gap-2 items-end">
-                                                <Badge className={statusInfo.color}>{statusInfo.label}</Badge>
+                                                <Pill tone={statusInfo.tone}>{statusInfo.label}</Pill>
                                                 {stats.total > 0 && (stats.aguardandoAnalise > 0 || stats.atendidas > 0 || stats.naoAtendidas > 0) && (
                                                      <Link to={createPageUrl('AnalisarResposta') + `?termo=${termo.id}`}>
-                                                         <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                                                         <Button size="sm" className="bg-[#0066B3] hover:bg-[#004A8F]">
                                                              Analisar Determinações
                                                          </Button>
                                                      </Link>
@@ -801,7 +801,7 @@ export default function AnaliseManifestacao() {
                                                  {stats.total > 0 && termo.numero_am && todasDeterminacoesAnalisadas(termo) && (
                                                       <Button 
                                                           size="sm" 
-                                                          className="bg-blue-600 hover:bg-blue-700"
+                                                          className="bg-[#0066B3] hover:bg-[#004A8F]"
                                                           onClick={() => baixarAnaliseManifestacao(termo)}
                                                       >
                                                           <Download className="h-4 w-4 mr-1" />
@@ -844,9 +844,9 @@ export default function AnaliseManifestacao() {
                                                                           Baixar AM assinada
                                                                       </Button>
                                                                   ) : (
-                                                                      <Badge className="bg-yellow-600">
+                                                                      <Pill tone="warning">
                                                                           {uploadingAmAssinadaId === termo.id ? 'Enviando...' : 'Aguardando upload'}
-                                                                      </Badge>
+                                                                      </Pill>
                                                                   )}
                                                               </div>
                                                           </CardContent>

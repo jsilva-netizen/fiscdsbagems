@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import Pill from '@/components/design/Pill';
 import { Textarea } from '@/components/ui/textarea';
 import { Download, Loader2, Save, Send } from 'lucide-react';
 import AdminShell from '@/components/layout/AdminShell';
@@ -191,7 +192,7 @@ export default function PareceresTecnicos() {
     <AdminShell title="CATESA" subtitle="Câmara Técnica de Saneamento Básico">
       <div className="max-w-6xl mx-auto px-4 pt-8">
         <div>
-          <h1 className="text-xs font-bold uppercase tracking-widest text-slate-400">Pareceres</h1>
+          <h1 className="text-xs font-bold uppercase tracking-wider text-gray-400">Pareceres</h1>
         </div>
       </div>
       {loteAbertoId && (
@@ -204,7 +205,7 @@ export default function PareceresTecnicos() {
             Trocar lote
           </Button>
           <Button
-            className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md transition-all font-semibold"
+            className="bg-[#0066B3] hover:bg-[#004A8F] text-white rounded-xl shadow-md transition-all font-semibold"
             disabled={!podeEncaminhar || enviandoLoteId === loteAbertoId}
             onClick={() => void encaminharParaCamara()}
           >
@@ -220,7 +221,7 @@ export default function PareceresTecnicos() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="font-semibold text-slate-800">Pendentes</div>
-                  <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200">{pendentes.length}</Badge>
+                  <Pill tone="tag">{pendentes.length}</Pill>
                 </div>
                 <div className="space-y-3">
                   {pendentes.map((r) => (
@@ -233,7 +234,7 @@ export default function PareceresTecnicos() {
                           Prestador: {getPrestadorNome(r?.prestador_servico_id)} | Município: {getMunicipioNomeFromFiscalizacao(r?.fiscalizacao_id)}
                         </div>
                       </div>
-                      <Button className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm" onClick={() => setLoteAbertoId(r.id)}>
+                      <Button className="bg-[#0066B3] hover:bg-[#004A8F] text-white rounded-xl shadow-sm" onClick={() => setLoteAbertoId(r.id)}>
                         Abrir
                       </Button>
                     </div>
@@ -247,7 +248,7 @@ export default function PareceresTecnicos() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="font-semibold text-slate-800">Encaminhados</div>
-                  <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">{encaminhados.length}</Badge>
+                  <Pill tone="success">{encaminhados.length}</Pill>
                 </div>
                 <div className="space-y-3">
                   {encaminhados.map((r) => (

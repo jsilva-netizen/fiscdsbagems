@@ -290,42 +290,42 @@ export default function PrestadoresServico({ embedded = false }) {
                     {/* Controls & Tabs */}
                     <div className="flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center">
                         {isAdmin ? (
-                            <div className="flex gap-1 bg-slate-200/60 p-1 rounded-xl text-xs shadow-inner">
+                            <div className="flex gap-1 bg-gray-200 p-1 rounded-xl text-xs shadow-inner">
                                 <button 
                                     type="button" 
-                                    className={`px-3 py-1.5 rounded-lg font-bold transition-all ${activeTab === 'todos' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-650 hover:text-slate-900'}`}
+                                    className={`px-3 py-1.5 rounded-lg font-bold transition-all ${activeTab === 'todos' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
                                     onClick={() => setActiveTab('todos')}
                                 >
                                     Todos
                                 </button>
                                 <button 
                                     type="button" 
-                                    className={`px-3 py-1.5 rounded-lg font-bold transition-all ${activeTab === 'dsb' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-650 hover:text-slate-900'}`}
+                                    className={`px-3 py-1.5 rounded-lg font-bold transition-all ${activeTab === 'dsb' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
                                     onClick={() => setActiveTab('dsb')}
                                 >
                                     DSB (Saneamento)
                                 </button>
                                 <button 
                                     type="button" 
-                                    className={`px-3 py-1.5 rounded-lg font-bold transition-all ${activeTab === 'dtr' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-650 hover:text-slate-900'}`}
+                                    className={`px-3 py-1.5 rounded-lg font-bold transition-all ${activeTab === 'dtr' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
                                     onClick={() => setActiveTab('dtr')}
                                 >
                                     DTR (Rodovias)
                                 </button>
                                 <button 
                                     type="button" 
-                                    className={`px-3 py-1.5 rounded-lg font-bold transition-all ${activeTab === 'dge' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-650 hover:text-slate-900'}`}
+                                    className={`px-3 py-1.5 rounded-lg font-bold transition-all ${activeTab === 'dge' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
                                     onClick={() => setActiveTab('dge')}
                                 >
                                     DGE (Energia/Gás)
                                 </button>
                             </div>
                         ) : (
-                            <div className="text-xs text-slate-500 font-bold bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
-                                Módulo: <span className="text-slate-800 uppercase font-extrabold">{diretoria}</span>
+                            <div className="text-xs text-gray-500 font-bold bg-gray-100 px-3 py-1.5 rounded-lg border border-gray-200">
+                                Módulo: <span className="text-gray-800 uppercase font-extrabold">{diretoria}</span>
                             </div>
                         )}
-                        <Button onClick={() => { resetForm(); setShowForm(true); }} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow font-semibold transition-all">
+                        <Button onClick={() => { resetForm(); setShowForm(true); }} className="bg-[#0066B3] hover:bg-[#004A8F] text-white rounded-xl shadow font-semibold transition-all">
                             <Plus className="h-4 w-4 mr-2" />
                             {buttonText}
                         </Button>
@@ -333,13 +333,13 @@ export default function PrestadoresServico({ embedded = false }) {
 
                     {isLoading ? (
                         <div className="flex justify-center py-12">
-                            <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+                            <Loader2 className="h-8 w-8 animate-spin text-[#0066B3]" />
                         </div>
                     ) : filteredPrestadores.length === 0 ? (
-                        <Card className="border-dashed border-2 border-slate-300 bg-slate-50/50 rounded-2xl">
+                        <Card className="border-dashed border-2 border-gray-300 bg-gray-50 rounded-2xl">
                             <CardContent className="p-10 text-center text-gray-500">
-                                <p className="font-semibold text-slate-600">Nenhuma entidade cadastrada neste filtro.</p>
-                                <p className="text-xs text-slate-400 mt-1">Utilize o botão superior para adicionar um novo cadastro.</p>
+                                <p className="font-semibold text-gray-600">Nenhuma entidade cadastrada neste filtro.</p>
+                                <p className="text-xs text-gray-400 mt-1">Utilize o botão superior para adicionar um novo cadastro.</p>
                             </CardContent>
                         </Card>
                     ) : (
@@ -352,7 +352,7 @@ export default function PrestadoresServico({ embedded = false }) {
                                             {prestador.logo_url ? (
                                                 <img src={prestador.logo_url} alt="Logo" className="w-16 h-16 rounded-xl object-contain border bg-white shadow-sm" />
                                             ) : (
-                                                <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-indigo-50 to-indigo-100 flex items-center justify-center text-indigo-500 border border-indigo-200/50 font-bold text-xl shadow-inner">
+                                                <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center text-[#0066B3] border border-blue-200 font-bold text-xl shadow-inner">
                                                     {prestador.nome.substring(0, 2).toUpperCase()}
                                                 </div>
                                             )}
@@ -362,11 +362,11 @@ export default function PrestadoresServico({ embedded = false }) {
                                         <div className="flex-1 min-w-0 space-y-1">
                                             <div className="flex items-start justify-between gap-2 flex-wrap">
                                                 <div>
-                                                    <h3 className="font-bold text-slate-800 text-base leading-tight truncate">{prestador.nome}</h3>
-                                                    <p className="text-xs text-slate-400 font-mono mt-0.5 truncate">{prestador.razao_social}</p>
+                                                    <h3 className="font-bold text-gray-800 text-base leading-tight truncate">{prestador.nome}</h3>
+                                                    <p className="text-xs text-gray-400 font-mono mt-0.5 truncate">{prestador.razao_social}</p>
                                                 </div>
                                                 <div className="flex gap-1.5 items-center flex-wrap">
-                                                    <Badge variant="outline" className="text-[10px] font-bold py-1 px-2.5 bg-slate-50 border-slate-200 text-slate-600 rounded-lg uppercase">
+                                                    <Badge variant="outline" className="text-[10px] font-bold py-1 px-2.5 bg-gray-50 border-gray-200 text-gray-600 rounded-lg uppercase">
                                                         {prestador.tipo_entidade || 'Concessionária'}
                                                     </Badge>
                                                     <Badge variant="outline" className={`text-[10px] font-bold py-1 px-2.5 rounded-lg uppercase ${
@@ -379,20 +379,20 @@ export default function PrestadoresServico({ embedded = false }) {
                                                 </div>
                                             </div>
                                             
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-600 pt-2 font-medium">
-                                                <p><span className="text-slate-400">CNPJ:</span> {prestador.cnpj}</p>
-                                                {prestador.telefone && <p><span className="text-slate-400">Tel:</span> {prestador.telefone}</p>}
-                                                {prestador.email_contato && <p><span className="text-slate-400">Email:</span> {prestador.email_contato}</p>}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600 pt-2 font-medium">
+                                                <p><span className="text-gray-400">CNPJ:</span> {prestador.cnpj}</p>
+                                                {prestador.telefone && <p><span className="text-gray-400">Tel:</span> {prestador.telefone}</p>}
+                                                {prestador.email_contato && <p><span className="text-gray-400">Email:</span> {prestador.email_contato}</p>}
                                                 {prestador.website && (
                                                     <p className="flex items-center gap-1">
-                                                        <Globe className="h-3.5 w-3.5 text-slate-400" />
-                                                        <a href={prestador.website.startsWith('http') ? prestador.website : `https://${prestador.website}`} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">
+                                                        <Globe className="h-3.5 w-3.5 text-gray-400" />
+                                                        <a href={prestador.website.startsWith('http') ? prestador.website : `https://${prestador.website}`} target="_blank" rel="noopener noreferrer" className="text-[#0066B3] hover:underline">
                                                             {prestador.website}
                                                         </a>
                                                     </p>
                                                 )}
                                                 <p className="md:col-span-2 flex items-start gap-1">
-                                                    <MapPin className="h-3.5 w-3.5 text-slate-400 mt-0.5 flex-shrink-0" />
+                                                    <MapPin className="h-3.5 w-3.5 text-gray-400 mt-0.5 flex-shrink-0" />
                                                     <span>{prestador.endereco}, {prestador.cidade} - {prestador.estado}, CEP {prestador.cep}</span>
                                                 </p>
                                             </div>
@@ -420,17 +420,17 @@ export default function PrestadoresServico({ embedded = false }) {
                                                 })()}
                                             </div>
  
-                                            <div className="flex gap-2 justify-end pt-3 border-t border-slate-100 mt-4">
+                                            <div className="flex gap-2 justify-end pt-3 border-t border-gray-100 mt-4">
                                                 <Link to={createPageUrl(`DetalhePrestador?id=${prestador.id}`)}>
-                                                    <Button size="sm" variant="outline" className="text-xs h-9 border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl font-bold shadow-sm px-4">
-                                                        <Eye className="h-4 w-4 mr-1 text-indigo-600" />
+                                                    <Button size="sm" variant="outline" className="text-xs h-9 border-gray-200 hover:bg-gray-50 text-gray-600 rounded-xl font-bold shadow-sm px-4">
+                                                        <Eye className="h-4 w-4 mr-1 text-[#0066B3]" />
                                                         Detalhes
                                                     </Button>
                                                 </Link>
                                                 <Button
                                                     size="sm"
                                                     variant="outline"
-                                                    className="text-xs h-9 border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl font-bold shadow-sm px-4"
+                                                    className="text-xs h-9 border-gray-200 hover:bg-gray-50 text-gray-600 rounded-xl font-bold shadow-sm px-4"
                                                     onClick={() => handleEdit(prestador)}
                                                 >
                                                     <Edit2 className="h-4 w-4 mr-1 text-amber-600" />
@@ -526,9 +526,9 @@ export default function PrestadoresServico({ embedded = false }) {
 
             {/* Dialog Form */}
             <Dialog open={showForm} onOpenChange={setShowForm}>
-                <DialogContent className="max-w-2xl bg-white border border-slate-200 rounded-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-2xl bg-white border border-gray-200 rounded-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader className="pb-4 border-b">
-                        <DialogTitle className="text-xl font-bold text-slate-900">
+                        <DialogTitle className="text-xl font-bold text-gray-900">
                             {editingId ? 'Editar Cadastro' : 'Novo Cadastro'}
                         </DialogTitle>
                     </DialogHeader>
@@ -536,46 +536,46 @@ export default function PrestadoresServico({ embedded = false }) {
                     <div className="space-y-4 pt-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {/* Logo File Selector and Preview */}
-                            <div className="md:col-span-2 flex items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200/50">
+                            <div className="md:col-span-2 flex items-center gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200">
                                 {formData.logo_url ? (
                                     <img src={formData.logo_url} alt="Logo" className="w-16 h-16 rounded-xl object-contain border bg-white shadow-sm" />
                                 ) : (
-                                    <div className="w-16 h-16 rounded-xl bg-slate-200 flex items-center justify-center text-slate-500 border font-bold text-xs shadow-inner">
+                                    <div className="w-16 h-16 rounded-xl bg-gray-200 flex items-center justify-center text-gray-500 border font-bold text-xs shadow-inner">
                                         LOGO
                                     </div>
                                 )}
                                 <div className="flex-1 space-y-1">
-                                    <Label className="text-xs text-slate-500 font-bold block mb-1">Logo da Entidade (PNG ou JPG)</Label>
+                                    <Label className="text-xs text-gray-500 font-bold block mb-1">Logo da Entidade (PNG ou JPG)</Label>
                                     <div className="flex items-center gap-2">
                                         <Input type="file" accept="image/png, image/jpeg, image/jpg" onChange={handleLogoChange} className="hidden" id="logo-uploader" />
-                                        <Label htmlFor="logo-uploader" className="flex items-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold px-4 py-2.5 rounded-lg border border-indigo-200/50 cursor-pointer transition-all shadow-sm">
+                                        <Label htmlFor="logo-uploader" className="flex items-center gap-2 bg-blue-50 hover:bg-blue-100 text-[#0066B3] text-xs font-semibold px-4 py-2.5 rounded-lg border border-blue-200 cursor-pointer transition-all shadow-sm">
                                             <Upload className="h-4 w-4" />
                                             Selecionar Imagem
                                         </Label>
                                     </div>
-                                    {uploadingLogo && <span className="text-[10px] text-indigo-600 font-semibold animate-pulse">Enviando logo para servidor...</span>}
+                                    {uploadingLogo && <span className="text-[10px] text-[#0066B3] font-semibold animate-pulse">Enviando logo para servidor...</span>}
                                 </div>
                             </div>
                             
                             <div>
-                                <Label className="text-slate-700 font-semibold text-xs">Nome Fantasia *</Label>
+                                <Label className="text-gray-700 font-semibold text-xs">Nome Fantasia *</Label>
                                 <Input placeholder="Nome Fantasia" value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} className="rounded-lg mt-1 h-11" />
                             </div>
                             <div>
-                                <Label className="text-slate-700 font-semibold text-xs">Razão Social *</Label>
+                                <Label className="text-gray-700 font-semibold text-xs">Razão Social *</Label>
                                 <Input placeholder="Razão Social" value={formData.razao_social} onChange={(e) => setFormData({ ...formData, razao_social: e.target.value })} className="rounded-lg mt-1 h-11" />
                             </div>
                             <div>
-                                <Label className="text-slate-700 font-semibold text-xs">CNPJ *</Label>
+                                <Label className="text-gray-700 font-semibold text-xs">CNPJ *</Label>
                                 <Input placeholder="00.000.000/0000-00" value={formData.cnpj} onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })} className="rounded-lg mt-1 h-11" />
                             </div>
                             <div>
-                                <Label className="text-slate-700 font-semibold text-xs">Tipo de Entidade *</Label>
+                                <Label className="text-gray-700 font-semibold text-xs">Tipo de Entidade *</Label>
                                 <Select value={formData.tipo_entidade} onValueChange={(val) => setFormData({ ...formData, tipo_entidade: val })}>
-                                    <SelectTrigger className="rounded-lg mt-1 h-11 bg-white border-slate-200">
+                                    <SelectTrigger className="rounded-lg mt-1 h-11 bg-white border-gray-200">
                                         <SelectValue placeholder="Selecione o tipo" />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-white border-slate-200">
+                                    <SelectContent className="bg-white border-gray-200">
                                         <SelectItem value="Concessionária">Concessionária</SelectItem>
                                         <SelectItem value="Órgão ou Entidade Pública">Órgão ou Entidade Pública</SelectItem>
                                         <SelectItem value="Permissionária">Permissionária</SelectItem>
@@ -584,12 +584,12 @@ export default function PrestadoresServico({ embedded = false }) {
                             </div>
                             
                             <div>
-                                <Label className="text-slate-700 font-semibold text-xs">Status *</Label>
+                                <Label className="text-gray-700 font-semibold text-xs">Status *</Label>
                                 <Select value={formData.status} onValueChange={(val) => setFormData({ ...formData, status: val })}>
-                                    <SelectTrigger className="rounded-lg mt-1 h-11 bg-white border-slate-200">
+                                    <SelectTrigger className="rounded-lg mt-1 h-11 bg-white border-gray-200">
                                         <SelectValue placeholder="Selecione o status" />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-white border-slate-200">
+                                    <SelectContent className="bg-white border-gray-200">
                                         <SelectItem value="ativa">Ativa</SelectItem>
                                         <SelectItem value="suspensa">Suspensa</SelectItem>
                                         <SelectItem value="encerrada">Encerrada</SelectItem>
@@ -597,64 +597,64 @@ export default function PrestadoresServico({ embedded = false }) {
                                 </Select>
                             </div>
                             <div>
-                                <Label className="text-slate-700 font-semibold text-xs">Website</Label>
+                                <Label className="text-gray-700 font-semibold text-xs">Website</Label>
                                 <Input placeholder="www.entidade.com.br" value={formData.website} onChange={(e) => setFormData({ ...formData, website: e.target.value })} className="rounded-lg mt-1 h-11" />
                             </div>
                             <div>
-                                <Label className="text-slate-700 font-semibold text-xs">E-mail Principal</Label>
+                                <Label className="text-gray-700 font-semibold text-xs">E-mail Principal</Label>
                                 <Input type="email" placeholder="contato@entidade.com.br" value={formData.email_contato} onChange={(e) => setFormData({ ...formData, email_contato: e.target.value })} className="rounded-lg mt-1 h-11" />
                             </div>
                             <div>
-                                <Label className="text-slate-700 font-semibold text-xs">Telefone</Label>
+                                <Label className="text-gray-700 font-semibold text-xs">Telefone</Label>
                                 <Input placeholder="(00) 0000-0000" value={formData.telefone} onChange={(e) => setFormData({ ...formData, telefone: e.target.value })} className="rounded-lg mt-1 h-11" />
                             </div>
                             
                             <div className="md:col-span-2">
-                                <Label className="text-slate-700 font-semibold text-xs">Endereço *</Label>
+                                <Label className="text-gray-700 font-semibold text-xs">Endereço *</Label>
                                 <Input placeholder="Rua, Número, Bairro, etc." value={formData.endereco} onChange={(e) => setFormData({ ...formData, endereco: e.target.value })} className="rounded-lg mt-1 h-11" />
                             </div>
                             
                             <div>
-                                <Label className="text-slate-700 font-semibold text-xs">Cidade *</Label>
+                                <Label className="text-gray-700 font-semibold text-xs">Cidade *</Label>
                                 <Input placeholder="Cidade" value={formData.cidade} onChange={(e) => setFormData({ ...formData, cidade: e.target.value })} className="rounded-lg mt-1 h-11" />
                             </div>
                             <div className="grid grid-cols-2 gap-2">
                                 <div>
-                                    <Label className="text-slate-700 font-semibold text-xs">Estado *</Label>
+                                    <Label className="text-gray-700 font-semibold text-xs">Estado *</Label>
                                     <Input placeholder="UF" maxLength={2} value={formData.estado} onChange={(e) => setFormData({ ...formData, estado: e.target.value.toUpperCase() })} className="rounded-lg mt-1 h-11" />
                                 </div>
                                 <div>
-                                    <Label className="text-slate-700 font-semibold text-xs">CEP *</Label>
+                                    <Label className="text-gray-700 font-semibold text-xs">CEP *</Label>
                                     <Input placeholder="00000-000" value={formData.cep} onChange={(e) => setFormData({ ...formData, cep: e.target.value })} className="rounded-lg mt-1 h-11" />
                                 </div>
                             </div>
                             
                             <div>
-                                <Label className="text-slate-700 font-semibold text-xs">Representante Legal</Label>
+                                <Label className="text-gray-700 font-semibold text-xs">Representante Legal</Label>
                                 <Input placeholder="Nome do Representante" value={formData.responsavel} onChange={(e) => setFormData({ ...formData, responsavel: e.target.value })} className="rounded-lg mt-1 h-11" />
                             </div>
                             <div>
-                                <Label className="text-slate-700 font-semibold text-xs">Cargo</Label>
+                                <Label className="text-gray-700 font-semibold text-xs">Cargo</Label>
                                 <Input placeholder="Cargo do Representante" value={formData.cargo} onChange={(e) => setFormData({ ...formData, cargo: e.target.value })} className="rounded-lg mt-1 h-11" />
                             </div>
                             
                             <div className="md:col-span-2">
-                                <Label className="text-slate-700 font-semibold text-xs">Observações</Label>
+                                <Label className="text-gray-700 font-semibold text-xs">Observações</Label>
                                 <Textarea placeholder="Informações adicionais..." value={formData.observacoes} onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })} className="rounded-lg mt-1" rows={2} />
                             </div>
                             
                             <div className="md:col-span-2">
-                                <Label className="text-slate-700 font-semibold text-xs mb-2 block">Tipos de Serviço Prestados</Label>
-                                <div className="grid grid-cols-2 gap-2 border border-slate-200 p-4 rounded-xl bg-slate-50/50 max-h-40 overflow-y-auto">
+                                <Label className="text-gray-700 font-semibold text-xs mb-2 block">Tipos de Serviço Prestados</Label>
+                                <div className="grid grid-cols-2 gap-2 border border-gray-200 p-4 rounded-xl bg-gray-50 max-h-40 overflow-y-auto">
                                     {AVAILABLE_SERVICES.map(s => (
-                                        <label key={s.id} className="flex items-center gap-2.5 text-xs font-semibold text-slate-700 cursor-pointer select-none">
+                                        <label key={s.id} className="flex items-center gap-2.5 text-xs font-semibold text-gray-700 cursor-pointer select-none">
                                             <input 
                                                 type="checkbox" 
                                                 checked={(formData.tipo_servico || []).includes(s.id)}
                                                 onChange={() => toggleService(s.id)}
-                                                className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                                                className="rounded border-gray-300 text-[#0066B3] focus:ring-[#0066B3] h-4 w-4"
                                             />
-                                            <span>{s.label} <span className="text-[9px] text-slate-400 uppercase font-mono">({s.group})</span></span>
+                                            <span>{s.label} <span className="text-[9px] text-gray-400 uppercase font-mono">({s.group})</span></span>
                                         </label>
                                     ))}
                                 </div>
@@ -663,7 +663,7 @@ export default function PrestadoresServico({ embedded = false }) {
 
                         <div className="flex gap-2.5 pt-4 border-t mt-6">
                             <Button
-                                className="flex-1 h-11 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg transition-all font-semibold"
+                                className="flex-1 h-11 bg-[#0066B3] hover:bg-[#004A8F] text-white rounded-xl shadow-lg transition-all font-semibold"
                                 onClick={handleSubmit}
                                 disabled={criarMutation.isPending || atualizarMutation.isPending}
                             >
@@ -672,7 +672,7 @@ export default function PrestadoresServico({ embedded = false }) {
                                 ) : null}
                                 Salvar Cadastro
                             </Button>
-                            <Button variant="outline" className="h-11 border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl px-6" onClick={() => setShowForm(false)}>
+                            <Button variant="outline" className="h-11 border-gray-200 hover:bg-gray-50 text-gray-600 rounded-xl px-6" onClick={() => setShowForm(false)}>
                                 Cancelar
                             </Button>
                         </div>
@@ -681,7 +681,7 @@ export default function PrestadoresServico({ embedded = false }) {
             </Dialog>
 
             {/* Footer */}
-            <div className="py-5 text-center text-xs text-slate-400 bg-white border-t border-slate-200">
+            <div className="py-5 text-center text-xs text-gray-400 bg-white border-t border-gray-200">
                 AGEMS - Agência Estadual de Regulação de Serviços Públicos de MS
             </div>
         </>

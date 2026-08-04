@@ -9,7 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+import Pill from '@/components/design/Pill';
 import { Textarea } from '@/components/ui/textarea';
 import FluxoUploadDocumentos from '@/components/autos/FluxoUploadDocumentos';
 import { Loader2, Save, Download, Send } from 'lucide-react';
@@ -504,7 +504,7 @@ export default function GestaoAutos() {
 
                 {/* Header */}
                 <div className="mb-6">
-                    <h1 className="text-xs font-bold uppercase tracking-widest text-slate-400">Autos de Infração</h1>
+                    <h1 className="text-xs font-bold uppercase tracking-wider text-gray-400">Autos de Infração</h1>
                 </div>
 
                 {/* KPIs */}
@@ -655,7 +655,7 @@ export default function GestaoAutos() {
                                             <>
                                                 <Button
                                                     size="sm"
-                                                    className="w-full bg-blue-600 hover:bg-blue-700"
+                                                    className="w-full bg-[#0066B3] hover:bg-[#004A8F]"
                                                     disabled={!penaBaseRsColumn || !allReady || criandoRemessaKey === grupo.key || salvandoAutoId != null}
                                                     onClick={async () => {
                                                         try {
@@ -716,7 +716,7 @@ export default function GestaoAutos() {
                                                 <p className="text-xs text-gray-500 mt-1">Enviado: {formatDateBR(grupo.enviadoEm)}</p>
                                                 <p className="text-xs text-gray-500">Prazo até: {formatDateBR(prazoAny)}</p>
                                             </div>
-                                            <Badge className="bg-blue-600">Enviado</Badge>
+                                            <Pill tone="info">Enviado</Pill>
                                         </div>
                                         <div className="space-y-2">
                                             {enviadosOrdenados.map((auto) => (
@@ -742,7 +742,7 @@ export default function GestaoAutos() {
                                             <p className="text-xs text-gray-500">Aguardando parecer técnico</p>
                                             <p className="text-xs text-gray-500 mt-2">{auto.motivo_infracao}</p>
                                         </div>
-                                        <Badge className="bg-orange-600">Em Análise</Badge>
+                                        <Pill tone="warning">Em Análise</Pill>
                                     </div>
                                 </CardContent>
                             </Card>
@@ -759,7 +759,7 @@ export default function GestaoAutos() {
                                             <p className="text-xs text-gray-500">Prestador: {getPrestadorNome(auto.prestador_servico_id)}</p>
                                             <p className="text-xs text-gray-500">Município: {getMunicipioNome(auto.id)}</p>
                                         </div>
-                                        <Badge className="bg-purple-600">Finalizado</Badge>
+                                        <Pill tone="success">Finalizado</Pill>
                                     </div>
                                 </CardContent>
                             </Card>
@@ -810,7 +810,7 @@ export default function GestaoAutos() {
                                                             <div className="font-medium">{r.numero_rfp || 'RFP'}</div>
                                                             {r.numero_tn ? <div className="text-xs text-gray-600">TN: {r.numero_tn}</div> : null}
                                                             <div className="mt-1">
-                                                                <Badge className="bg-gray-700">{r.status || 'preparada'}</Badge>
+                                                                <Pill tone="neutral">{r.status || 'preparada'}</Pill>
                                                             </div>
                                                         </div>
                                                         <div className="flex flex-wrap gap-2">
@@ -839,7 +839,7 @@ export default function GestaoAutos() {
                                                                     {r.status === 'defesa_enviada' ? (
                                                                         <div className="flex justify-end">
                                                                             <Button
-                                                                                className="bg-purple-600 hover:bg-purple-700"
+                                                                                className="bg-[#0066B3] hover:bg-[#004A8F]"
                                                                                 disabled={enviandoParecerRemessaId === r.id || !((remessaItens || []).length > 0 && (remessaItens || []).every((it) => {
                                                                                     const a = it?.autos_infracao;
                                                                                     if (!a?.id) return false;
@@ -872,7 +872,7 @@ export default function GestaoAutos() {
                                                                                                     AI
                                                                                                 </Button>
                                                                                             ) : (
-                                                                                                <Badge className="bg-yellow-600">Sem PDF</Badge>
+                                                                                                <Pill tone="warning">Sem PDF</Pill>
                                                                                             )}
                                                                                             {parecerUrl ? (
                                                                                                 <Button variant="outline" size="sm" onClick={() => void openArquivo(parecerUrl)}>

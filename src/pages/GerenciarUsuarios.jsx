@@ -281,7 +281,7 @@ export default function GerenciarUsuarios() {
                         {/* Botão de convite removido conforme solicitado */}
                         <div className="mb-4">
                             <Link to={createPageUrl('ExportarImportar')}>
-                                <Button className="bg-blue-600 hover:bg-blue-700">
+                                <Button className="bg-[#0066B3] hover:bg-[#004A8F]">
                                     Exportar / Importar Dados
                                 </Button>
                             </Link>
@@ -320,7 +320,7 @@ export default function GerenciarUsuarios() {
                         
                         {isLoading ? (
                             <div className="flex justify-center py-12">
-                                <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+                                <Loader2 className="h-8 w-8 animate-spin text-[#0066B3]" />
                             </div>
                         ) : usuarios.length === 0 ? (
                             <Card>
@@ -340,15 +340,15 @@ export default function GerenciarUsuarios() {
                                                         {(() => {
                                                             const role = (usuario.role === 'user' ? 'fiscal' : usuario.role) || 'fiscal'
                                                             const roleLabelMap = { admin: 'Admin', fiscal: 'Fiscal', prestador: 'Prestador', coordenador: 'Coordenador' }
-                                                            const roleColorMap = { admin: 'bg-purple-600', fiscal: 'bg-blue-600', prestador: 'bg-indigo-600', coordenador: 'bg-orange-600' }
+                                                            const roleColorMap = { admin: 'bg-purple-600', fiscal: 'bg-[#0066B3]', prestador: 'bg-sky-600', coordenador: 'bg-orange-600' }
                                                             const label = roleLabelMap[role] || 'Fiscal'
                                                             const cls = roleColorMap[role] || roleColorMap['fiscal']
                                                             return <Badge className={cls}>{label}</Badge>
                                                         })()}
                                                         {usuario.ativo ? (
-                                                            <Badge className="bg-green-600">Ativo</Badge>
+                                                            <Badge className="bg-emerald-600">Ativo</Badge>
                                                         ) : (
-                                                            <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200">
+                                                            <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-200">
                                                                 Pendente Aprovação
                                                             </Badge>
                                                         )}
@@ -361,7 +361,7 @@ export default function GerenciarUsuarios() {
                                                         <div className="text-sm text-gray-700 mb-2">
                                                             <span className="font-medium">Prestador vinculado:</span>{' '}
                                                             {usuario.prestador_servico_id ? getPrestadorNome(usuario.prestador_servico_id) : (
-                                                                <span className="text-yellow-700">Não vinculado</span>
+                                                                <span className="text-amber-700">Não vinculado</span>
                                                             )}
                                                         </div>
                                                     )}

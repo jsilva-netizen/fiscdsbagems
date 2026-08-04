@@ -59,14 +59,14 @@ const STATUS_OPTIONS = [
 
 function statusColor(status) {
   switch (status) {
-    case 'encerrado': return 'bg-slate-100 text-slate-600';
+    case 'encerrado': return 'bg-gray-100 text-gray-600';
     case 'respondido': return 'bg-blue-50 text-blue-700';
     case 'em_analise': return 'bg-amber-50 text-amber-700';
-    case 'aguardando_analise': return 'bg-slate-50 text-slate-500';
-    case 'critico': return 'bg-red-50 text-red-700';
+    case 'aguardando_analise': return 'bg-gray-50 text-gray-500';
+    case 'critico': return 'bg-rose-50 text-rose-700';
     case 'atrasado': return 'bg-orange-50 text-orange-700';
     case 'no_prazo': return 'bg-emerald-50 text-emerald-700';
-    default: return 'bg-slate-100 text-slate-600';
+    default: return 'bg-gray-100 text-gray-600';
   }
 }
 
@@ -77,12 +77,12 @@ function StatusBadge({ p }) {
 
   const label = isFollowUp ? 'Em acompanhamento' : formatProcessStatus(p.status);
   const className = isFollowUp
-    ? (hasOverdueRecs ? 'bg-red-50 text-red-700' : 'bg-indigo-50 text-indigo-700')
+    ? (hasOverdueRecs ? 'bg-rose-50 text-rose-700' : 'bg-indigo-50 text-indigo-700')
     : statusColor(p.status);
 
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${className}`}>
-      <span className={`h-1.5 w-1.5 rounded-full ${isFollowUp ? (hasOverdueRecs ? 'bg-red-600' : 'bg-indigo-600') : 'bg-current'}`} />
+      <span className={`h-1.5 w-1.5 rounded-full ${isFollowUp ? (hasOverdueRecs ? 'bg-rose-600' : 'bg-indigo-600') : 'bg-current'}`} />
       {label}
     </span>
   );
@@ -237,14 +237,14 @@ export default function CatersProcessos() {
 
   return (
     <AdminShell title="CATERS" subtitle="Câmara Técnica de Resíduos Sólidos">
-      <div className="min-h-full bg-slate-50">
+      <div className="min-h-full bg-gray-50">
         <div className="px-8 pb-12 pt-8">
           <div className="mx-auto max-w-6xl space-y-6">
 
             {/* Header */}
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
-                <h1 className="text-xs font-bold uppercase tracking-widest text-slate-400">Processos</h1>
+                <h1 className="text-xs font-bold uppercase tracking-wider text-gray-400">Processos</h1>
               </div>
               <Button onClick={() => { setForm(EMPTY_FORM); setShowForm(true); }} className="gap-2 bg-emerald-600 hover:bg-emerald-700">
                 <Plus className="h-4 w-4" />
@@ -253,14 +253,14 @@ export default function CatersProcessos() {
             </div>
 
             {/* Quick tabs */}
-            <nav className="flex items-center gap-5 border-b border-slate-200">
+            <nav className="flex items-center gap-5 border-b border-gray-200">
               {QUICK_TABS.map((t) => (
                 <button key={t.id} type="button"
                   onClick={() => { setQuickTab(t.id); setStatusApplied(''); setStatusDraft(''); setPage(1); }}
                   className={`-mb-px border-b-2 pb-2.5 text-sm font-semibold transition-colors ${
                     quickTab === t.id
                       ? 'border-emerald-600 text-emerald-600'
-                      : 'border-transparent text-slate-500 hover:text-slate-800'
+                      : 'border-transparent text-gray-500 hover:text-gray-800'
                   }`}>
                   {t.label}
                 </button>
@@ -268,28 +268,28 @@ export default function CatersProcessos() {
             </nav>
 
             {/* Filtros */}
-            <div className="rounded-xl border border-slate-200 bg-slate-100 shadow-sm">
+            <div className="rounded-xl border border-gray-200 bg-gray-100 shadow-sm">
               <button
                 type="button"
                 onClick={() => setFiltrosAbertos(!filtrosAbertos)}
                 className="flex items-center gap-2 w-full text-left p-4"
               >
-                <Filter className="h-4 w-4 text-slate-500" />
-                <span className="font-semibold text-sm text-slate-700">Filtros</span>
+                <Filter className="h-4 w-4 text-gray-500" />
+                <span className="font-semibold text-sm text-gray-700">Filtros</span>
                 {hasActiveFilters && <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />}
-                <ChevronDown className={`h-4 w-4 text-slate-400 ml-auto transition-transform ${filtrosAbertos ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`h-4 w-4 text-gray-400 ml-auto transition-transform ${filtrosAbertos ? 'rotate-180' : ''}`} />
               </button>
               {filtrosAbertos && (
               <div className="flex flex-wrap items-end gap-3 p-4 pt-0">
                 <div className="relative flex-1 min-w-48">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                   <Input className="pl-9 bg-white" placeholder="Buscar por número…"
                     value={searchDraft} onChange={(e) => setSearchDraft(e.target.value)} />
                 </div>
                 <Input className="w-48 bg-white" placeholder="Município…"
                   value={municipalityDraft} onChange={(e) => setMunicipalityDraft(e.target.value)} />
                 <div className="relative">
-                  <Filter className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <Filter className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                   <select value={statusDraft} onChange={(e) => setStatusDraft(e.target.value)}
                     className="h-10 rounded-md border border-input bg-white pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
                     {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -297,12 +297,12 @@ export default function CatersProcessos() {
                 </div>
                 <div className="flex items-end gap-2">
                   <div className="space-y-1">
-                    <div className="text-xs font-semibold text-slate-500">De</div>
+                    <div className="text-xs font-semibold text-gray-500">De</div>
                     <Input type="date" className="w-36 bg-white" value={createdFromDraft}
                       onChange={(e) => setCreatedFromDraft(e.target.value)} />
                   </div>
                   <div className="space-y-1">
-                    <div className="text-xs font-semibold text-slate-500">Até</div>
+                    <div className="text-xs font-semibold text-gray-500">Até</div>
                     <Input type="date" className="w-36 bg-white" value={createdToDraft}
                       onChange={(e) => setCreatedToDraft(e.target.value)} />
                   </div>
@@ -323,55 +323,55 @@ export default function CatersProcessos() {
             {/* Tabela */}
             {processesQ.isLoading ? (
               <div className="flex items-center justify-center py-16">
-                <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+                <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
               </div>
             ) : processesQ.isError ? (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
                 Erro: {String(processesQ.error?.message)}
               </div>
             ) : !filteredProcesses.length ? (
-              <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300/60 bg-white py-16 text-center">
-                <FolderSearch className="mb-3 h-12 w-12 text-slate-200" />
-                <p className="font-medium text-slate-500">Nenhum processo encontrado</p>
-                <p className="mt-1 text-sm text-slate-400">
+              <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-white py-16 text-center">
+                <FolderSearch className="mb-3 h-12 w-12 text-gray-200" />
+                <p className="font-medium text-gray-500">Nenhum processo encontrado</p>
+                <p className="mt-1 text-sm text-gray-400">
                   {hasActiveFilters ? 'Tente ajustar os filtros.' : 'Crie o primeiro processo com o botão acima.'}
                 </p>
               </div>
             ) : (
-              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+              <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                 <table className="w-full text-sm border-collapse">
-                  <thead className="bg-slate-100 text-[11px] font-bold uppercase tracking-widest text-slate-500">
+                  <thead className="bg-gray-100 text-[11px] font-bold uppercase tracking-wider text-gray-500">
                     <tr>
-                      <th className="border-b border-slate-200 px-5 py-3 text-left">Processo</th>
-                      <th className="border-b border-slate-200 px-5 py-3 text-left">Município</th>
-                      <th className="hidden border-b border-slate-200 px-5 py-3 text-left md:table-cell">Status</th>
-                      <th className="hidden border-b border-slate-200 px-5 py-3 text-left lg:table-cell">Prazo resposta</th>
-                      <th className="hidden border-b border-slate-200 px-5 py-3 text-left lg:table-cell">Criado em</th>
-                      <th className="hidden border-b border-slate-200 px-5 py-3 text-center xl:table-cell">Recom.</th>
-                      <th className="border-b border-slate-200 px-5 py-3" />
+                      <th className="border-b border-gray-200 px-5 py-3 text-left">Processo</th>
+                      <th className="border-b border-gray-200 px-5 py-3 text-left">Município</th>
+                      <th className="hidden border-b border-gray-200 px-5 py-3 text-left md:table-cell">Status</th>
+                      <th className="hidden border-b border-gray-200 px-5 py-3 text-left lg:table-cell">Prazo resposta</th>
+                      <th className="hidden border-b border-gray-200 px-5 py-3 text-left lg:table-cell">Criado em</th>
+                      <th className="hidden border-b border-gray-200 px-5 py-3 text-center xl:table-cell">Recom.</th>
+                      <th className="border-b border-gray-200 px-5 py-3" />
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-200/70">
+                  <tbody className="divide-y divide-gray-200">
                     {pageItems.map((p, idx) => {
                       const dueAt = computeResponseDueAt(p);
                       const days = dueAt ? daysFromToday(dueAt) : null;
                       const isOverdue = days !== null && days < 0;
                       return (
-                        <tr key={p.id} className={`group transition-colors hover:bg-slate-50 ${idx % 2 === 1 ? 'bg-slate-50/30' : 'bg-white'}`}>
+                        <tr key={p.id} className={`group transition-colors hover:bg-gray-50 ${idx % 2 === 1 ? 'bg-gray-50' : 'bg-white'}`}>
                           <td className="px-5 py-3.5 font-bold text-indigo-600">{p.process_number}</td>
-                          <td className="px-5 py-3.5 text-slate-600">{p.municipality}</td>
+                          <td className="px-5 py-3.5 text-gray-600">{p.municipality}</td>
                           <td className="hidden px-5 py-3.5 md:table-cell">
                             <StatusBadge p={p} />
                           </td>
                           <td className="hidden px-5 py-3.5 lg:table-cell">
                             {dueAt ? (
-                              <span className={isOverdue ? 'font-semibold text-red-600' : 'text-slate-600'}>
+                              <span className={isOverdue ? 'font-semibold text-rose-600' : 'text-gray-600'}>
                                 {formatIsoDateHuman(dueAt)}
                                 {isOverdue && ` (${Math.abs(days)}d)`}
                               </span>
-                            ) : <span className="text-slate-400">—</span>}
+                            ) : <span className="text-gray-400">—</span>}
                           </td>
-                          <td className="hidden px-5 py-3.5 text-slate-500 lg:table-cell">
+                          <td className="hidden px-5 py-3.5 text-gray-500 lg:table-cell">
                             {formatIsoDateHuman(p.created_at?.slice(0, 10))}
                           </td>
                           <td className="hidden px-5 py-3.5 xl:table-cell">
@@ -382,12 +382,12 @@ export default function CatersProcessos() {
                                 </span>
                               )}
                               {(p.recommendations_overdue ?? 0) > 0 && (
-                                <span className="rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-700">
+                                <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700">
                                   {p.recommendations_overdue}✗
                                 </span>
                               )}
                               {!(p.recommendations_on_time) && !(p.recommendations_overdue) && (
-                                <span className="text-slate-400">—</span>
+                                <span className="text-gray-400">—</span>
                               )}
                             </div>
                           </td>
@@ -408,19 +408,19 @@ export default function CatersProcessos() {
 
                 {/* Paginação */}
                 {filteredProcesses.length > 0 && (
-                  <div className="flex items-center justify-between gap-3 border-t border-slate-200 bg-white px-5 py-3">
-                    <div className="text-xs font-medium text-slate-500">{paginationLabel}</div>
+                  <div className="flex items-center justify-between gap-3 border-t border-gray-200 bg-white px-5 py-3">
+                    <div className="text-xs font-medium text-gray-500">{paginationLabel}</div>
                     <div className="flex items-center gap-1">
                       <Button variant="ghost" size="sm" disabled={effectivePage <= 1}
-                        onClick={() => setPage((p) => Math.max(1, p - 1))} className="gap-1 text-slate-500">
+                        onClick={() => setPage((p) => Math.max(1, p - 1))} className="gap-1 text-gray-500">
                         <ChevronLeft className="h-4 w-4" />
                         Anterior
                       </Button>
-                      <div className="rounded-lg bg-slate-100 px-4 py-1.5 text-xs font-bold text-emerald-700">
+                      <div className="rounded-lg bg-gray-100 px-4 py-1.5 text-xs font-bold text-emerald-700">
                         {effectivePage} / {totalPages}
                       </div>
                       <Button variant="ghost" size="sm" disabled={effectivePage >= totalPages}
-                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))} className="gap-1 text-slate-500">
+                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))} className="gap-1 text-gray-500">
                         Próxima
                         <ChevronRight className="h-4 w-4" />
                       </Button>
@@ -496,8 +496,8 @@ export default function CatersProcessos() {
                 <Input value={form.technician_name} onChange={(e) => setForm((f) => ({ ...f, technician_name: e.target.value }))} />
               </div>
             </div>
-            <div className="rounded-lg bg-slate-50 p-4 space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">AR / Notificação</p>
+            <div className="rounded-lg bg-gray-50 p-4 space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">AR / Notificação</p>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5"><Label>Envio do AR</Label><Input type="date" value={form.ar_sent_at} onChange={(e) => setForm((f) => ({ ...f, ar_sent_at: e.target.value }))} /></div>
                 <div className="space-y-1.5"><Label>Recebimento do AR</Label><Input type="date" value={form.ar_received_at} onChange={(e) => setForm((f) => ({ ...f, ar_received_at: e.target.value }))} /></div>

@@ -18,7 +18,7 @@ export default function Definicoes() {
     return (
         <AdminShell title="Definições">
             {/* Tabs */}
-            <nav className="flex gap-1 border-b border-slate-200 px-4">
+            <nav className="flex gap-1 border-b border-gray-200 px-4">
                 {TABS.map(({ id, label, icon: Icon }) => (
                     <button
                         key={id}
@@ -26,8 +26,8 @@ export default function Definicoes() {
                         className={cn(
                             'flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap',
                             activeTab === id
-                                ? 'border-blue-900 text-blue-900'
-                                : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
+                                ? 'border-[#0066B3] text-[#0066B3]'
+                                : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                         )}
                     >
                         <Icon className="h-4 w-4 shrink-0" />

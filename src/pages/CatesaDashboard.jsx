@@ -16,20 +16,20 @@ import { createPageUrl } from '@/utils';
 
 function MetricCard({ title, value, icon: Icon, iconBg, iconColor, to, badge, alert }) {
   const inner = (
-    <div className={`flex flex-col justify-between rounded-lg border bg-white p-3 shadow-sm transition-shadow hover:shadow-md ${alert ? 'border-red-200' : 'border-slate-200/70'}`}>
+    <div className={`flex flex-col justify-between rounded-2xl border bg-white p-3 shadow-sm transition-shadow hover:shadow-md ${alert ? 'border-rose-200' : 'border-gray-200'}`}>
       <div className="mb-2 flex items-start justify-between gap-2">
-        <div className={`rounded-md p-1.5 ${iconBg}`}>
+        <div className={`rounded-lg p-1.5 ${iconBg}`}>
           <Icon className={`h-4 w-4 ${iconColor}`} />
         </div>
         {badge ? (
-          <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-tight text-emerald-700">
+          <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700">
             {badge}
           </span>
         ) : null}
       </div>
       <div>
-        <div className={`text-xl font-extrabold tracking-tight ${alert ? 'text-red-600' : 'text-slate-900'}`}>{value}</div>
-        <div className="mt-0.5 text-[11px] font-semibold leading-tight text-slate-500">{title}</div>
+        <div className={`text-xl font-extrabold tracking-tight ${alert ? 'text-rose-600' : 'text-gray-900'}`}>{value}</div>
+        <div className="mt-0.5 text-[11px] font-semibold leading-tight text-gray-500">{title}</div>
       </div>
     </div>
   );
@@ -84,14 +84,14 @@ export default function CatesaDashboard() {
           <div className="mx-auto max-w-6xl space-y-8">
 
             {isError && (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
                 Falha ao carregar: {String(error?.message ?? error)}
               </div>
             )}
 
             {/* Termos de Notificação */}
             <section>
-              <h2 className="mb-4 text-xs font-bold uppercase tracking-wider text-slate-400">
+              <h2 className="mb-4 text-xs font-bold uppercase tracking-wider text-gray-400">
                 Termos de Notificação
               </h2>
               <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
@@ -116,8 +116,8 @@ export default function CatesaDashboard() {
                   title="Prazo vencido"
                   value={val(d?.tnPrazoVencido)}
                   icon={TimerOff}
-                  iconBg="bg-red-50"
-                  iconColor="text-red-700"
+                  iconBg="bg-rose-50"
+                  iconColor="text-rose-700"
                   to={createPageUrl('GerenciarTermos')}
                   alert={!!d?.tnPrazoVencido}
                 />
@@ -142,7 +142,7 @@ export default function CatesaDashboard() {
 
             {/* Autos de Infração */}
             <section>
-              <h2 className="mb-4 text-xs font-bold uppercase tracking-wider text-slate-400">
+              <h2 className="mb-4 text-xs font-bold uppercase tracking-wider text-gray-400">
                 Autos de Infração
               </h2>
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -159,8 +159,8 @@ export default function CatesaDashboard() {
                   title="Gerados (pendente remessa)"
                   value={val(d?.aiGerado)}
                   icon={AlertTriangle}
-                  iconBg="bg-red-50"
-                  iconColor="text-red-700"
+                  iconBg="bg-rose-50"
+                  iconColor="text-rose-700"
                   to={createPageUrl('GestaoAutos')}
                   alert={!!d?.aiGerado}
                 />

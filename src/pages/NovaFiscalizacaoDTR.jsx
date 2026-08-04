@@ -135,13 +135,13 @@ export default function NovaFiscalizacaoDTR() {
                 <div className="max-w-lg w-full mx-auto px-4 py-6">
                     {isLoadingContratos || isLoadingPrestadores ? (
                         <div className="flex flex-col items-center justify-center py-12 gap-2 text-gray-400">
-                            <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+                            <Loader2 className="h-8 w-8 animate-spin text-[#0066B3]" />
                             <p className="text-sm">Carregando rodovias e concessionárias...</p>
                         </div>
                     ) : (
                         <form onSubmit={handleSubmit} className="space-y-5">
                             {/* GPS Status Card */}
-                            <Card className={`border ${location ? 'border-emerald-200 bg-emerald-50' : 'border-amber-200 bg-amber-50'} shadow-sm`}>
+                            <Card className={`rounded-2xl border ${location ? 'border-emerald-200 bg-emerald-50' : 'border-amber-200 bg-amber-50'} shadow-sm`}>
                                 <CardContent className="p-4 flex items-center justify-between">
                                     <div className="flex items-center gap-3">
                                         <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${location ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
@@ -205,19 +205,19 @@ export default function NovaFiscalizacaoDTR() {
 
                                 {/* Concessionária & Contrato auto-resolvidos */}
                                 {formData.rodovia && (
-                                    <div className="p-4 rounded-xl border border-indigo-100 bg-indigo-50">
-                                        <p className="text-indigo-600 text-xs font-semibold uppercase tracking-wider mb-2">Concessionária & Contrato Vinculados</p>
+                                    <div className="p-4 rounded-xl border border-blue-100 bg-blue-50">
+                                        <p className="text-[#0066B3] text-xs font-semibold uppercase tracking-wider mb-2">Concessionária & Contrato Vinculados</p>
                                         <div className="flex items-center gap-3">
                                             {resolvedConcessionaria?.logo_url ? (
                                                 <img src={resolvedConcessionaria.logo_url} alt="Logo" className="w-10 h-10 rounded-lg object-contain border bg-white shadow-sm" />
                                             ) : (
-                                                <div className="w-10 h-10 rounded-lg bg-indigo-100 text-indigo-500 flex items-center justify-center font-bold text-xs">
+                                                <div className="w-10 h-10 rounded-lg bg-blue-100 text-[#0066B3] flex items-center justify-center font-bold text-xs">
                                                     CONC
                                                 </div>
                                             )}
                                             <div>
                                                 <p className="font-bold text-sm text-gray-800">{resolvedConcessionaria?.nome || 'Concessionária não encontrada'}</p>
-                                                <p className="text-xs text-indigo-600">Contrato nº: {matchingContrato?.numero_contrato || 'N/A'}</p>
+                                                <p className="text-xs text-[#0066B3]">Contrato nº: {matchingContrato?.numero_contrato || 'N/A'}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -226,7 +226,7 @@ export default function NovaFiscalizacaoDTR() {
 
                             {/* Fiscal Info */}
                             {user && (
-                                <Card className="bg-blue-50 border border-blue-100 rounded-xl">
+                                <Card className="bg-blue-50 border border-blue-100 rounded-2xl">
                                     <CardContent className="p-4 text-xs text-blue-700">
                                         <p><strong>Inspetor:</strong> {user.full_name || user.user_metadata?.full_name || user.email}</p>
                                         <p className="opacity-70 mt-0.5">{user.email}</p>
@@ -237,7 +237,8 @@ export default function NovaFiscalizacaoDTR() {
                             {/* Submit Button */}
                             <Button
                                 type="submit"
-                                className="w-full h-14 text-md font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl shadow-lg transition-all"
+                                variant="brand"
+                                className="w-full h-14 text-md font-semibold shadow-lg transition-all"
                                 disabled={createMutation.isPending || !formData.rodovia || !formData.prestador_servico_id}
                             >
                                 {createMutation.isPending ? (

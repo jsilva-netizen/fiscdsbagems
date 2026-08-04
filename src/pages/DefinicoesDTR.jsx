@@ -305,7 +305,7 @@ function TabTipos() {
                 <Button
                     variant="outline"
                     size="sm"
-                    className="gap-1.5 text-xs border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                    className="gap-1.5 text-xs border-blue-200 text-[#0066B3] hover:bg-blue-50"
                     onClick={() => fileInputRef.current?.click()}
                 >
                     <Upload className="h-3.5 w-3.5" /> Importar Planilha
@@ -383,7 +383,7 @@ function TabTipos() {
                                         {t.prazo_dias_padrao && <span className="text-gray-400 whitespace-nowrap">{t.prazo_dias_padrao}d</span>}
                                     </div>
                                     {t.frente && <p className="text-gray-400 text-[10px] truncate">{t.frente}</p>}
-                                    {t.item_contrato && <p className="text-indigo-500 text-[10px]">{t.item_contrato}</p>}
+                                    {t.item_contrato && <p className="text-[#0066B3] text-[10px]">{t.item_contrato}</p>}
                                 </div>
                             ))}
                         </div>
@@ -417,7 +417,7 @@ function TabTipos() {
                 </p>
                 {isLoading ? (
                     <div className="flex justify-center py-8">
-                        <Loader2 className="h-6 w-6 text-indigo-500 animate-spin" />
+                        <Loader2 className="h-6 w-6 text-[#0066B3] animate-spin" />
                     </div>
                 ) : tipos.length === 0 ? (
                     <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
@@ -449,7 +449,7 @@ function TabTipos() {
                                     <p className="text-[10px] text-gray-400 truncate">{t.frente}</p>
                                 )}
                                 {t.item_contrato && (
-                                    <p className="text-[11px] text-indigo-500 truncate">{t.item_contrato}</p>
+                                    <p className="text-[11px] text-[#0066B3] truncate">{t.item_contrato}</p>
                                 )}
                                 {t.nao_atendimento && (
                                     <p className="text-[10px] text-amber-600 line-clamp-2 leading-relaxed">{t.nao_atendimento}</p>
@@ -515,13 +515,13 @@ function TabKML({ onNavigateContratos }) {
         <div className="space-y-4">
             {isLoading ? (
                 <div className="flex justify-center py-8">
-                    <Loader2 className="h-6 w-6 text-indigo-500 animate-spin" />
+                    <Loader2 className="h-6 w-6 text-[#0066B3] animate-spin" />
                 </div>
             ) : contratos.length === 0 ? (
                 <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
                     <Route className="h-8 w-8 text-gray-300 mx-auto mb-2" />
                     <p className="text-sm text-gray-400">Nenhum contrato/rodovia cadastrado.</p>
-                    <button onClick={onNavigateContratos} className="text-xs text-indigo-500 hover:underline mt-1 block">
+                    <button onClick={onNavigateContratos} className="text-xs text-[#0066B3] hover:underline mt-1 block">
                         Ir para Contratos →
                     </button>
                 </div>
@@ -538,7 +538,7 @@ function TabKML({ onNavigateContratos }) {
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2">
-                                                <Route className="h-4 w-4 text-indigo-400 flex-shrink-0" />
+                                                <Route className="h-4 w-4 text-[#0066B3] flex-shrink-0" />
                                                 <p className="font-semibold text-gray-800 text-sm">{c.rodovia}</p>
                                                 {hasKML ? (
                                                     <Badge className="text-[10px] py-0 h-4 bg-emerald-50 text-emerald-600 border border-emerald-200">KML ✓</Badge>
@@ -556,7 +556,7 @@ function TabKML({ onNavigateContratos }) {
                                             <Button
                                                 size="sm"
                                                 variant={hasKML ? 'outline' : 'default'}
-                                                className={`text-xs h-8 gap-1.5 ${hasKML ? 'border-indigo-200 text-indigo-700 hover:bg-indigo-50' : 'bg-indigo-600 hover:bg-indigo-700 text-white'}`}
+                                                className={`text-xs h-8 gap-1.5 ${hasKML ? 'border-blue-200 text-[#0066B3] hover:bg-blue-50' : 'bg-[#0066B3] hover:bg-[#004A8F] text-white'}`}
                                                 onClick={() => fileInputRefs.current[c.id]?.click()}
                                                 disabled={isUploading}
                                             >
@@ -615,7 +615,7 @@ export default function DefinicoesDTR() {
                         className={cn(
                             'flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap',
                             activeTab === id
-                                ? 'border-blue-900 text-blue-900'
+                                ? 'border-[#0066B3] text-[#0066B3]'
                                 : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
                         )}
                     >

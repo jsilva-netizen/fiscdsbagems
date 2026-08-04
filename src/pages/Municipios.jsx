@@ -37,17 +37,17 @@ export default function Municipios() {
                 <div className="pb-8">
                     {isLoading ? (
                         <div className="flex justify-center py-12">
-                            <Loader2 className="h-7 w-7 animate-spin text-indigo-500" />
+                            <Loader2 className="h-7 w-7 animate-spin text-[#0066B3]" />
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                             {filteredMunicipios.map((municipio) => (
                                 <div
                                     key={municipio.id}
-                                    className="bg-white border border-gray-200 rounded-xl p-3.5 flex items-center gap-3 hover:shadow-sm hover:border-indigo-200 transition-all"
+                                    className="bg-white border border-gray-200 rounded-2xl p-3.5 flex items-center gap-3 hover:shadow-sm hover:border-blue-200 transition-all"
                                 >
-                                    <div className="w-9 h-9 bg-indigo-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                                        <MapPin className="h-4.5 w-4.5 text-indigo-500" />
+                                    <div className="w-9 h-9 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <MapPin className="h-4.5 w-4.5 text-[#0066B3]" />
                                     </div>
                                     <div className="min-w-0 flex-1">
                                         <p className="font-semibold text-gray-800 text-sm truncate">{municipio.nome}</p>

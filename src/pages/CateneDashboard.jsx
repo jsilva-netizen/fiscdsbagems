@@ -16,31 +16,31 @@ const COMING_SOON = [
 export default function CateneDashboard() {
   return (
     <CateneLayout>
-      <div className="min-h-full bg-slate-50">
+      <div className="min-h-full bg-gray-50">
         <div className="max-w-4xl mx-auto px-6 py-10 space-y-8">
 
           {/* Header */}
           <div>
-            <h1 className="text-xs font-bold uppercase tracking-widest text-slate-400">Painel CATENE</h1>
+            <h1 className="text-xs font-bold uppercase tracking-wider text-gray-400">Painel CATENE</h1>
           </div>
 
           {/* Funcionalidades previstas */}
           <div>
-            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-4">
               Funcionalidades previstas
             </h2>
             <div className="grid sm:grid-cols-2 gap-3">
               {COMING_SOON.map(({ icon: Icon, label, desc }) => (
                 <div
                   key={label}
-                  className="flex items-start gap-4 rounded-xl border border-slate-200 bg-white p-4 opacity-60"
+                  className="flex items-start gap-4 rounded-2xl border border-gray-200 bg-white p-4 opacity-60"
                 >
-                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-slate-100">
-                    <Icon className="h-5 w-5 text-slate-400" />
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-gray-100">
+                    <Icon className="h-5 w-5 text-gray-400" />
                   </div>
                   <div>
-                    <p className="font-semibold text-slate-700 text-sm">{label}</p>
-                    <p className="text-xs text-slate-400 mt-0.5">{desc}</p>
+                    <p className="font-semibold text-gray-700 text-sm">{label}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{desc}</p>
                   </div>
                   <span className="ml-auto shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-600">
                     Em breve

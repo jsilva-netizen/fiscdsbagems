@@ -722,7 +722,7 @@ export default function AnalisarResposta() {
                                                                     size="sm"
                                                                     onClick={() => handleAbrirAnalise(det, index)}
                                                                     disabled={bloqueado}
-                                                                    className="bg-blue-600 hover:bg-blue-700"
+                                                                    className="bg-[#0066B3] hover:bg-[#004A8F]"
                                                                 >
                                                                     Analisar
                                                                 </Button>
@@ -889,7 +889,7 @@ export default function AnalisarResposta() {
                                         <Button
                                             variant={analiseForm.status === 'atendida' ? 'default' : 'outline'}
                                             onClick={() => setAnaliseForm({ ...analiseForm, status: 'atendida' })}
-                                            className={analiseForm.status === 'atendida' ? 'bg-green-600 hover:bg-green-700' : ''}
+                                            className={analiseForm.status === 'atendida' ? 'bg-emerald-600 hover:bg-emerald-700' : ''}
                                         >
                                             <CheckCircle className="h-4 w-4 mr-2" />
                                             Acatada
@@ -897,7 +897,7 @@ export default function AnalisarResposta() {
                                         <Button
                                             variant={analiseForm.status === 'nao_atendida' ? 'default' : 'outline'}
                                             onClick={() => setAnaliseForm({ ...analiseForm, status: 'nao_atendida' })}
-                                            className={analiseForm.status === 'nao_atendida' ? 'bg-red-600 hover:bg-red-700' : ''}
+                                            className={analiseForm.status === 'nao_atendida' ? 'bg-rose-600 hover:bg-rose-700' : ''}
                                         >
                                             <XCircle className="h-4 w-4 mr-2" />
                                             Não Acatada
@@ -905,8 +905,8 @@ export default function AnalisarResposta() {
                                     </div>
 
                                     {analiseForm.status === 'nao_atendida' && (
-                                        <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded">
-                                            <p className="text-sm text-yellow-800">
+                                        <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded">
+                                            <p className="text-sm text-amber-800">
                                                 ⚠️ Ao marcar como "Não Acatada", o Auto de Infração será gerado ao concluir a AM.
                                             </p>
                                         </div>
@@ -924,7 +924,7 @@ export default function AnalisarResposta() {
                                     <Button
                                         onClick={handleSalvarAnalise}
                                         disabled={!analiseForm.status || !analiseForm.manifestacao_prestador || !analiseForm.descricao_atendimento}
-                                        className="flex-1 bg-blue-600 hover:bg-blue-700"
+                                        className="flex-1 bg-[#0066B3] hover:bg-[#004A8F]"
                                     >
                                         Salvar Análise
                                     </Button>
@@ -951,7 +951,7 @@ export default function AnalisarResposta() {
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                             <AlertDialogCancel className="bg-slate-105 hover:bg-slate-200 border-none text-slate-700 rounded-xl">Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={confirmarAnalise} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl">Confirmar</AlertDialogAction>
+                            <AlertDialogAction onClick={confirmarAnalise} className="bg-[#0066B3] hover:bg-[#004A8F] text-white rounded-xl">Confirmar</AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>

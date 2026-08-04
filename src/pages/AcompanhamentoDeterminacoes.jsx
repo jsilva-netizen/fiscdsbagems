@@ -238,7 +238,7 @@ export default function AcompanhamentoDeterminacoes() {
             pendente: { label: 'Pendente', variant: 'outline', color: 'text-orange-600' },
             atendida: { label: 'Acatada', variant: 'default', color: 'text-green-600' },
             justificada: { label: 'Justificada', variant: 'secondary', color: 'text-blue-600' },
-            nao_atendida: { label: 'Não Acatada', variant: 'destructive', color: 'text-red-600' }
+            nao_atendida: { label: 'Não Acatada', variant: 'destructive', color: 'text-rose-600' }
         };
         return statusMap[status] || statusMap.pendente;
     };
@@ -281,11 +281,11 @@ export default function AcompanhamentoDeterminacoes() {
                     <Card className="border border-gray-200 rounded-2xl shadow-sm bg-white">
                         <CardContent className="p-5">
                             <div className="text-center">
-                                <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center mx-auto mb-2">
-                                    <AlertCircle className="h-5 w-5 text-red-500" />
+                                <div className="w-10 h-10 bg-rose-50 rounded-xl flex items-center justify-center mx-auto mb-2">
+                                    <AlertCircle className="h-5 w-5 text-rose-500" />
                                 </div>
                                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Vencidas</p>
-                                <p className="text-3xl font-bold text-red-600">{determVencidas}</p>
+                                <p className="text-3xl font-bold text-rose-600">{determVencidas}</p>
                             </div>
                         </CardContent>
                     </Card>
@@ -423,7 +423,7 @@ export default function AcompanhamentoDeterminacoes() {
                                                                     </div>
                                                                     <div className="text-right ml-4">
                                                                         {dias !== null ? (
-                                                                            <Badge className={dias < 0 ? 'bg-red-600' : dias < 7 ? 'bg-orange-500' : 'bg-green-600'}>
+                                                                            <Badge className={dias < 0 ? 'bg-rose-600' : dias < 7 ? 'bg-orange-500' : 'bg-green-600'}>
                                                                                 {dias < 0 ? `${Math.abs(dias)} dias vencido` : `${dias} dias`}
                                                                             </Badge>
                                                                         ) : (
@@ -536,9 +536,9 @@ export default function AcompanhamentoDeterminacoes() {
                                 const isExpanded = expandedFiscalizacao === fiscalizacao.id;
                                 
                                 return (
-                                    <Card key={fiscalizacao.id} className="overflow-hidden border-red-200">
+                                    <Card key={fiscalizacao.id} className="overflow-hidden border-rose-200">
                                         <CardContent 
-                                            className="p-4 cursor-pointer hover:bg-red-50 transition-colors"
+                                            className="p-4 cursor-pointer hover:bg-rose-50 transition-colors"
                                             onClick={() => setExpandedFiscalizacao(isExpanded ? null : fiscalizacao.id)}
                                         >
                                             <div className="flex justify-between items-start">
@@ -567,7 +567,7 @@ export default function AcompanhamentoDeterminacoes() {
                                                         </div>
                                                         <div className="flex gap-4 text-sm text-gray-600">
                                                             <div>
-                                                                <Badge className="bg-red-600">{detsNaoAtendidas.length} não acatadas</Badge>
+                                                                <Badge className="bg-rose-600">{detsNaoAtendidas.length} não acatadas</Badge>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -576,23 +576,23 @@ export default function AcompanhamentoDeterminacoes() {
                                         </CardContent>
                                         
                                         {isExpanded && (
-                                            <div className="border-t bg-red-50 p-4 space-y-3">
+                                            <div className="border-t bg-rose-50 p-4 space-y-3">
                                                 {detsNaoAtendidas.map(resp => {
                                                     const det = dets.find(d => d.id === resp.determinacao_id);
                                                     const dataLimite = det ? getDataLimiteComTermo(det, fiscalizacao.id) : null;
 
                                                     return (
-                                                       <Card key={resp.id} className="bg-white border-red-300">
+                                                       <Card key={resp.id} className="bg-white border-rose-300">
                                                            <CardContent className="p-4">
                                                                <div className="flex justify-between items-start">
                                                                    <div className="flex-1">
                                                                        <h4 className="font-semibold mb-2">{det?.numero_determinacao}</h4>
-                                                                       <p className="text-sm text-red-700 font-medium">Não atendida no prazo</p>
+                                                                       <p className="text-sm text-rose-700 font-medium">Não atendida no prazo</p>
                                                                        <p className="text-xs text-gray-500 mt-1">
                                                                            Vencimento: {dataLimite ? dataLimite.toLocaleDateString('pt-BR') : 'N/A'}
                                                                        </p>
                                                                    </div>
-                                                                   <Badge className="bg-red-600">Não Acatada</Badge>
+                                                                   <Badge className="bg-rose-600">Não Acatada</Badge>
                                                                </div>
                                                            </CardContent>
                                                        </Card>
@@ -609,7 +609,7 @@ export default function AcompanhamentoDeterminacoes() {
                         {determPorStatus.com_auto.map(auto => {
                             const det = determinacoes.find(d => d.id === auto.determinacao_id);
                             return (
-                                <Card key={auto.id} className="border-red-300">
+                                <Card key={auto.id} className="border-rose-300">
                                     <CardContent className="p-4">
                                         <div className="flex justify-between items-start">
                                             <div className="flex-1">

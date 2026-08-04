@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
+import Pill from '@/components/design/Pill';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -677,13 +677,13 @@ export default function GerenciarTermos() {
 
     const getStatusBadge = (status) => {
             const statusMap = {
-                pendente_tn: { label: 'Pendente - TN/RFP (AGEMS)', color: 'bg-yellow-500' },
-                aguardando_assinatura_prestador: { label: 'Aguardando Assinatura (Prestador)', color: 'bg-orange-600' },
-                aguardando_resposta: { label: 'Aguardando Resposta', color: 'bg-green-600' },
-                prazo_vencido: { label: 'Prazo Vencido', color: 'bg-red-600' },
-                respondido: { label: 'Respondido', color: 'bg-purple-600' }
+                pendente_tn: { label: 'Pendente - TN/RFP (AGEMS)', tone: 'warning' },
+                aguardando_assinatura_prestador: { label: 'Aguardando Assinatura (Prestador)', tone: 'warning' },
+                aguardando_resposta: { label: 'Aguardando Resposta', tone: 'info' },
+                prazo_vencido: { label: 'Prazo Vencido', tone: 'danger' },
+                respondido: { label: 'Respondido', tone: 'success' }
             };
-            return statusMap[status] || { label: 'Criado', color: 'bg-blue-500' };
+            return statusMap[status] || { label: 'Criado', tone: 'neutral' };
         };
 
     return (
@@ -691,14 +691,14 @@ export default function GerenciarTermos() {
             <div className="max-w-6xl mx-auto px-4 pt-8">
                 <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
                     <div>
-                        <h1 className="text-xs font-bold uppercase tracking-widest text-slate-400">Notificações</h1>
+                        <h1 className="text-xs font-bold uppercase tracking-wider text-gray-400">Notificações</h1>
                     </div>
                     <Button
                         onClick={() => {
                             setSelectedFiscalizacao(fiscalizacoes.find(f => f.status === 'finalizada'));
                             setShowDialog(true);
                         }}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md transition-all font-semibold gap-2"
+                        className="bg-[#0066B3] hover:bg-[#004A8F] text-white rounded-xl shadow-md transition-all font-semibold gap-2"
                     >
                         <Plus className="h-4 w-4" />
                         Novo Termo
@@ -858,7 +858,7 @@ export default function GerenciarTermos() {
                                 </Button>
                                 <Button
                                     onClick={handleCriarTermo}
-                                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                                    className="flex-1 bg-[#0066B3] hover:bg-[#004A8F]"
                                     disabled={criarTermoMutation.isPending || !termoForm.numero_processo || !termoForm.tipo_relatorio || !termoForm.numero_rfp}
                                 >
                                     {criarTermoMutation.isPending ? 'Criando...' : 'Criar Termo'}
@@ -1230,7 +1230,7 @@ export default function GerenciarTermos() {
                                             } catch (error) {
                                                 alert('Erro ao salvar: ' + error.message);
                                             }
-                                        }} className="flex-1 bg-blue-600 hover:bg-blue-700">
+                                        }} className="flex-1 bg-[#0066B3] hover:bg-[#004A8F]">
                                             Salvar Alterações
                                         </Button>
                                     </div>
@@ -1368,7 +1368,7 @@ export default function GerenciarTermos() {
                                     Cancelar
                                 </Button>
                                 <Button
-                                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                                    className="flex-1 bg-[#0066B3] hover:bg-[#004A8F]"
                                     disabled={quickUploading}
                                     onClick={async () => {
                                         const termo = quickProtocolo.termo;
@@ -1543,7 +1543,7 @@ export default function GerenciarTermos() {
                                     Cancelar
                                 </Button>
                                 <Button
-                                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                                    className="flex-1 bg-[#0066B3] hover:bg-[#004A8F]"
                                     disabled={quickUploading}
                                     onClick={async () => {
                                         const termo = quickResposta.termo;
@@ -1624,9 +1624,9 @@ export default function GerenciarTermos() {
                                                   const badge = getStatusBadge(fluxo);
                                                   return (
                                                       <>
-                                                          <Badge className={badge.color}>
+                                                          <Pill tone={badge.tone}>
                                                               {badge.label}
-                                                          </Badge>
+                                                          </Pill>
                                                           <div className="flex gap-2">
                                                               {fluxo === 'pendente_tn' && !termo?.arquivo_url ? (
                                                                   <Button

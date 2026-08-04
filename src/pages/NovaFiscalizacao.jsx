@@ -105,7 +105,7 @@ export default function NovaFiscalizacao() {
                 <div className="max-w-lg mx-auto px-4 py-6">
                     <form onSubmit={handleSubmit} className="space-y-5">
                         {/* GPS Status */}
-                        <Card className={`border ${location ? 'border-emerald-200 bg-emerald-50' : 'border-amber-200 bg-amber-50'} shadow-sm`}>
+                        <Card className={`rounded-2xl border ${location ? 'border-emerald-200 bg-emerald-50' : 'border-amber-200 bg-amber-50'} shadow-sm`}>
                             <CardContent className="p-4 flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                     <div className={`w-10 h-10 rounded-full flex items-center justify-center ${location ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
@@ -129,7 +129,7 @@ export default function NovaFiscalizacao() {
                             {/* Município */}
                             <div className="space-y-2">
                                 <Label className="text-gray-700 font-semibold text-sm flex items-center gap-1.5">
-                                    <MapPin className="h-3.5 w-3.5 text-indigo-400" /> Município *
+                                    <MapPin className="h-3.5 w-3.5 text-[#0066B3]" /> Município *
                                 </Label>
                                 <Select value={formData.municipio_id} onValueChange={v => setFormData({ ...formData, municipio_id: v })}>
                                     <SelectTrigger className="h-12 rounded-xl bg-white border-gray-200">
@@ -189,7 +189,7 @@ export default function NovaFiscalizacao() {
 
                         {/* Fiscal Info */}
                         {user && (
-                            <Card className="bg-blue-50 border border-blue-100 rounded-xl">
+                            <Card className="bg-blue-50 border border-blue-100 rounded-2xl">
                                 <CardContent className="p-4 text-xs text-blue-700">
                                     <p><strong>Fiscal:</strong> {user.full_name || user.user_metadata?.full_name || user.email}</p>
                                     <p className="opacity-70 mt-0.5">{user.email}</p>
@@ -200,7 +200,8 @@ export default function NovaFiscalizacao() {
                         {/* Submit */}
                         <Button
                             type="submit"
-                            className="w-full h-14 text-md font-semibold bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl shadow-lg transition-all"
+                            variant="brand"
+                            className="w-full h-14 text-md font-semibold shadow-lg transition-all"
                             disabled={createMutation.isPending || !formData.municipio_id || formData.servicos.length === 0 || !formData.prestador_servico_id}
                         >
                             {createMutation.isPending ? (

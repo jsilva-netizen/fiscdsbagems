@@ -5,6 +5,7 @@ const TONES = {
   info: 'bg-sky-100 text-sky-700',
   tag: 'bg-indigo-50 text-indigo-700',
   danger: 'bg-rose-100 text-rose-700',
+  warning: 'bg-amber-100 text-amber-700',
   neutral: 'bg-gray-100 text-gray-600',
 };
 

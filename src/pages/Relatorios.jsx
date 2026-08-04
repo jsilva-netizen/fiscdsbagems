@@ -114,7 +114,7 @@ function MultiSelect({ placeholder, options, selectedValues, onChange }) {
                         <button 
                             type="button" 
                             onClick={handleClear}
-                            className="hover:text-red-600 transition-colors cursor-pointer"
+                            className="hover:text-rose-600 transition-colors cursor-pointer"
                         >
                             Limpar
                         </button>
@@ -299,7 +299,7 @@ function RelatoriosDTR({ diretoriaNome }) {
             <div className="max-w-6xl mx-auto px-4 pt-8">
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                     <div>
-                        <h1 className="text-xs font-bold uppercase tracking-widest text-slate-400">Relatórios e Indicadores</h1>
+                        <h1 className="text-xs font-bold uppercase tracking-wider text-gray-400">Relatórios e Indicadores</h1>
                     </div>
                     <div className="flex gap-2">
                         <Button onClick={exportarPDF} variant="outline" size="sm" className="gap-1.5 text-xs"><Download className="h-3.5 w-3.5" /> PDF</Button>
@@ -343,7 +343,7 @@ function RelatoriosDTR({ diretoriaNome }) {
                         { label: 'Finalizadas',              value: v(finalizadas),     icon: CheckCircle2,   bg: 'bg-green-100',  iconCls: 'text-green-600' },
                         { label: 'Ocorrências Registradas',  value: v(totalOcorrencias),icon: MapPin,         bg: 'bg-orange-100', iconCls: 'text-orange-600' },
                         { label: 'Não Conformidades',        value: v(totalNCs),        icon: AlertTriangle,  bg: 'bg-red-100',    iconCls: 'text-red-600' },
-                        { label: 'Rodovias Inspecionadas',   value: v(rodoviaCount),    icon: Route,          bg: 'bg-indigo-100', iconCls: 'text-indigo-600' },
+                        { label: 'Rodovias Inspecionadas',   value: v(rodoviaCount),    icon: Route,          bg: 'bg-blue-100', iconCls: 'text-[#0066B3]' },
                     ].map(({ label, value, icon: Icon, bg, iconCls }) => (
                         <Card key={label}>
                             <CardContent className="p-4">
@@ -432,7 +432,7 @@ function RelatoriosDTR({ diretoriaNome }) {
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex justify-between items-center mb-1">
                                                     <span className="text-sm font-medium truncate pr-2">{item.tipo}</span>
-                                                    <Badge variant="outline" className="flex-shrink-0 text-xs bg-slate-50">{item.count}</Badge>
+                                                    <Badge variant="outline" className="flex-shrink-0 text-xs bg-gray-50">{item.count}</Badge>
                                                 </div>
                                                 <div className="h-1.5 bg-gray-100 rounded-full">
                                                     <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${(item.count / dadosTipo[0].count) * 100}%` }} />
@@ -686,7 +686,7 @@ export default function Relatorios() {
             <div className="max-w-6xl mx-auto px-4 pt-8">
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                     <div>
-                        <h1 className="text-xs font-bold uppercase tracking-widest text-slate-400">Relatórios e Indicadores</h1>
+                        <h1 className="text-xs font-bold uppercase tracking-wider text-gray-400">Relatórios e Indicadores</h1>
                     </div>
                     <div className="flex gap-2">
                         <Button onClick={exportarPDF} variant="outline" size="sm" className="gap-1.5 text-xs">
@@ -862,8 +862,8 @@ export default function Relatorios() {
                     <Card>
                         <CardContent className="p-4">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
-                                    <Building2 className="h-5 w-5 text-indigo-600" />
+                                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                    <Building2 className="h-5 w-5 text-[#0066B3]" />
                                 </div>
                                 <div>
                                     <p className="text-2xl font-bold">{totalUnidades}</p>

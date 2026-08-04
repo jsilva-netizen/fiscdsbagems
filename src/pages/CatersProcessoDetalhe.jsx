@@ -75,15 +75,15 @@ const STATUS_OPTIONS = [
 
 function statusColor(status) {
   switch (status) {
-    case 'encerrado': return 'bg-slate-100 text-slate-600';
+    case 'encerrado': return 'bg-gray-100 text-gray-600';
     case 'respondido': return 'bg-blue-50 text-blue-700';
     case 'em_analise': return 'bg-amber-50 text-amber-700';
-    case 'aguardando_analise': return 'bg-slate-50 text-slate-500';
-    case 'critico': return 'bg-red-50 text-red-700';
+    case 'aguardando_analise': return 'bg-gray-50 text-gray-500';
+    case 'critico': return 'bg-rose-50 text-rose-700';
     case 'dilacao_solicitada': return 'bg-violet-50 text-violet-700';
     case 'atrasado': return 'bg-orange-50 text-orange-700';
     case 'no_prazo': return 'bg-emerald-50 text-emerald-700';
-    default: return 'bg-slate-100 text-slate-600';
+    default: return 'bg-gray-100 text-gray-600';
   }
 }
 
@@ -91,17 +91,17 @@ function recStatusColor(status) {
   switch (status) {
     case 'cumprido': return 'bg-emerald-50 text-emerald-700';
     case 'em_andamento': return 'bg-blue-50 text-blue-700';
-    case 'vencido': return 'bg-red-50 text-red-700';
-    default: return 'bg-slate-50 text-slate-600';
+    case 'vencido': return 'bg-rose-50 text-rose-700';
+    default: return 'bg-gray-50 text-gray-600';
   }
 }
 
 function priorityColor(p) {
   switch (p) {
-    case 'critica': return 'bg-red-50 text-red-700';
+    case 'critica': return 'bg-rose-50 text-rose-700';
     case 'alta': return 'bg-orange-50 text-orange-700';
     case 'media': return 'bg-amber-50 text-amber-700';
-    default: return 'bg-slate-50 text-slate-600';
+    default: return 'bg-gray-50 text-gray-600';
   }
 }
 
@@ -470,7 +470,7 @@ export default function CatersProcessoDetalhe() {
     return (
       <AdminShell title="CATERS" subtitle="Câmara Técnica de Resíduos Sólidos">
         <div className="flex items-center justify-center h-64">
-          <p className="text-slate-500">ID do processo não informado.</p>
+          <p className="text-gray-500">ID do processo não informado.</p>
         </div>
       </AdminShell>
     );
@@ -480,7 +480,7 @@ export default function CatersProcessoDetalhe() {
     return (
       <AdminShell title="CATERS" subtitle="Câmara Técnica de Resíduos Sólidos">
         <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+          <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
         </div>
       </AdminShell>
     );
@@ -490,7 +490,7 @@ export default function CatersProcessoDetalhe() {
     return (
       <AdminShell title="CATERS" subtitle="Câmara Técnica de Resíduos Sólidos">
         <div className="px-8 pt-8">
-          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
             Processo não encontrado ou erro ao carregar.
           </div>
         </div>
@@ -585,25 +585,25 @@ export default function CatersProcessoDetalhe() {
 
   return (
     <AdminShell title="CATERS" subtitle="Câmara Técnica de Resíduos Sólidos">
-      <div className="min-h-full bg-slate-50">
+      <div className="min-h-full bg-gray-50">
         <div className="px-8 pb-12 pt-8">
           <div className="mx-auto max-w-6xl space-y-6">
 
             {/* Breadcrumb */}
-            <div className="flex items-center gap-2 text-sm text-slate-500">
-              <Link to={createPageUrl('CatersProcessos')} className="flex items-center gap-1 hover:text-slate-800">
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <Link to={createPageUrl('CatersProcessos')} className="flex items-center gap-1 hover:text-gray-800">
                 <ArrowLeft className="h-4 w-4" />
                 Processos
               </Link>
               <span>/</span>
-              <span className="font-medium text-slate-900">{process.process_number}</span>
+              <span className="font-medium text-gray-900">{process.process_number}</span>
             </div>
 
             {/* Header */}
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="flex items-center gap-3 flex-wrap">
-                  <h1 className="text-xl font-extrabold tracking-tight text-slate-900">
+                  <h1 className="text-xl font-extrabold tracking-tight text-gray-900">
                     {process.process_number}
                   </h1>
                   <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusColor(process.status)}`}>
@@ -616,7 +616,7 @@ export default function CatersProcessoDetalhe() {
                     </span>
                   )}
                 </div>
-                <p className="mt-1 text-sm text-slate-500">{process.municipality} · {process.object}</p>
+                <p className="mt-1 text-sm text-gray-500">{process.municipality} · {process.object}</p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 {process.fiscalizacao_id && !editingProcess && (
@@ -641,7 +641,7 @@ export default function CatersProcessoDetalhe() {
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-1 overflow-x-auto border-b border-slate-200">
+            <div className="flex gap-1 overflow-x-auto border-b border-gray-200">
               {TABS.map((t) => (
                 <button
                   key={t.id}
@@ -651,7 +651,7 @@ export default function CatersProcessoDetalhe() {
                     'flex items-center gap-2 whitespace-nowrap px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px',
                     tab === t.id
                       ? 'border-emerald-600 text-emerald-700'
-                      : 'border-transparent text-slate-500 hover:text-slate-800'
+                      : 'border-transparent text-gray-500 hover:text-gray-800'
                   )}
                 >
                   <t.icon className="h-4 w-4" />
@@ -662,7 +662,7 @@ export default function CatersProcessoDetalhe() {
 
             {/* ── Tab: Informações ── */}
             {tab === 'info' && (
-              <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                 {editingProcess && processForm ? (
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
@@ -731,14 +731,14 @@ export default function CatersProcessoDetalhe() {
                       { label: 'Criado em', value: formatIsoDateHuman(process.created_at) },
                     ].map(({ label, value }) => (
                       <div key={label}>
-                        <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">{label}</dt>
-                        <dd className="mt-0.5 font-medium text-slate-900">{value}</dd>
+                        <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">{label}</dt>
+                        <dd className="mt-0.5 font-medium text-gray-900">{value}</dd>
                       </div>
                     ))}
                     {process.observations && (
                       <div className="col-span-2">
-                        <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Observações</dt>
-                        <dd className="mt-0.5 text-slate-700 whitespace-pre-wrap">{process.observations}</dd>
+                        <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">Observações</dt>
+                        <dd className="mt-0.5 text-gray-700 whitespace-pre-wrap">{process.observations}</dd>
                       </div>
                     )}
                   </dl>
@@ -750,8 +750,8 @@ export default function CatersProcessoDetalhe() {
             {tab === 'prazos' && (
               <div className="space-y-6">
                 {/* Timeline */}
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-8">
-                  <div className="text-sm font-bold uppercase tracking-widest text-slate-700 mb-8">Linha do Tempo</div>
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-8">
+                  <div className="text-sm font-bold uppercase tracking-widest text-gray-700 mb-8">Linha do Tempo</div>
                   {(() => {
                     const hasSent = !!process.ar_sent_at;
                     const hasAR = !!process.ar_received_at;
@@ -767,19 +767,19 @@ export default function CatersProcessoDetalhe() {
 
                     return (
                       <div className="relative flex items-center justify-between">
-                        <div className="absolute left-0 top-5 h-1 w-full rounded-full bg-slate-200" />
-                        <div className="absolute left-0 top-5 h-1 rounded-full bg-slate-900 transition-all" style={{ width: `${progress}%` }} />
+                        <div className="absolute left-0 top-5 h-1 w-full rounded-full bg-gray-200" />
+                        <div className="absolute left-0 top-5 h-1 rounded-full bg-gray-900 transition-all" style={{ width: `${progress}%` }} />
                         {steps.map((s, i) => (
                           <div key={i} className="relative z-10 flex flex-col items-center gap-3">
                             <div className={cn(
                               'flex h-10 w-10 items-center justify-center rounded-full ring-8 ring-white',
-                              s.done ? 'bg-slate-900 text-white' : s.active ? 'border-2 border-slate-900 bg-white text-slate-900' : 'bg-slate-200 text-slate-500'
+                              s.done ? 'bg-gray-900 text-white' : s.active ? 'border-2 border-gray-900 bg-white text-gray-900' : 'bg-gray-200 text-gray-500'
                             )}>
                               <s.icon className="h-4 w-4" />
                             </div>
                             <div className="text-center">
-                              <div className="text-xs font-bold text-slate-900">{s.label}</div>
-                              <div className="text-[10px] text-slate-500">{s.date}</div>
+                              <div className="text-xs font-bold text-gray-900">{s.label}</div>
+                              <div className="text-[10px] text-gray-500">{s.date}</div>
                             </div>
                           </div>
                         ))}
@@ -791,7 +791,7 @@ export default function CatersProcessoDetalhe() {
                 {/* Countdown widget */}
                 {isDeadlineRelevant && computedDays !== null && (
                   <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                    <section className="relative overflow-hidden rounded-xl bg-gradient-to-b from-slate-900 to-slate-800 p-8 text-white shadow-sm">
+                    <section className="relative overflow-hidden rounded-xl bg-gradient-to-b from-gray-900 to-gray-800 p-8 text-white shadow-sm">
                       <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
                       <div className="relative z-10">
                         <div className="text-xs font-bold uppercase tracking-widest text-white/70">Prazo Remanescente</div>
@@ -805,7 +805,7 @@ export default function CatersProcessoDetalhe() {
                             : `Vence em ${formatIsoDateHuman(computedResponseDueAt)}`}
                         </div>
                         {computedDays < 0 && (
-                          <div className="mt-3 inline-flex rounded-full bg-red-500/20 px-3 py-1 text-xs font-bold text-red-100">
+                          <div className="mt-3 inline-flex rounded-full bg-rose-500/20 px-3 py-1 text-xs font-bold text-rose-100">
                             Resposta atrasada
                           </div>
                         )}
@@ -828,18 +828,18 @@ export default function CatersProcessoDetalhe() {
                       </div>
                     </section>
 
-                    <section className="rounded-xl border border-slate-200 bg-slate-50 p-6">
-                      <div className="text-xs font-bold uppercase tracking-tight text-slate-700">Cálculo do Prazo</div>
+                    <section className="rounded-xl border border-gray-200 bg-gray-50 p-6">
+                      <div className="text-xs font-bold uppercase tracking-tight text-gray-700">Cálculo do Prazo</div>
                       <div className="mt-4 grid grid-cols-2 gap-4">
-                        <div className="rounded-lg border border-slate-200 bg-white p-3">
-                          <div className="text-[10px] font-bold uppercase text-slate-500">Prazo (AR + 30d)</div>
-                          <div className="mt-1 text-sm font-semibold text-slate-900">
+                        <div className="rounded-lg border border-gray-200 bg-white p-3">
+                          <div className="text-[10px] font-bold uppercase text-gray-500">Prazo (AR + 30d)</div>
+                          <div className="mt-1 text-sm font-semibold text-gray-900">
                             {computedResponseDueAt ? formatIsoDateHuman(computedResponseDueAt) : '—'}
                           </div>
                         </div>
-                        <div className="rounded-lg border border-slate-200 bg-white p-3">
-                          <div className="text-[10px] font-bold uppercase text-slate-500">Dias restantes</div>
-                          <div className={cn('mt-1 text-sm font-semibold', computedDays < 0 ? 'text-red-600' : computedDays <= 5 ? 'text-amber-600' : 'text-emerald-600')}>
+                        <div className="rounded-lg border border-gray-200 bg-white p-3">
+                          <div className="text-[10px] font-bold uppercase text-gray-500">Dias restantes</div>
+                          <div className={cn('mt-1 text-sm font-semibold', computedDays < 0 ? 'text-rose-600' : computedDays <= 5 ? 'text-amber-600' : 'text-emerald-600')}>
                             {computedDays < 0 ? `${Math.abs(computedDays)}d em atraso` : `${computedDays}d`}
                           </div>
                         </div>
@@ -849,7 +849,7 @@ export default function CatersProcessoDetalhe() {
                 )}
 
                 {!isDeadlineRelevant && (
-                  <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
+                  <div className="rounded-xl border border-gray-200 bg-white p-6 text-sm text-gray-600">
                     Prazo de resposta não aplicável para o status atual ({formatProcessStatus(process.status)}).
                   </div>
                 )}
@@ -857,32 +857,32 @@ export default function CatersProcessoDetalhe() {
                 {/* Histórico de dilações */}
                 {dilacoes.length > 0 && (
                   <section className="rounded-xl border border-violet-200 bg-white p-6 shadow-sm">
-                    <div className="flex items-center gap-2 mb-4 text-sm font-bold text-slate-900">
+                    <div className="flex items-center gap-2 mb-4 text-sm font-bold text-gray-900">
                       <CalendarClock className="h-4 w-4 text-violet-600" />
                       Dilações de Prazo
                     </div>
                     <div className="space-y-2">
                       {dilacoes.map((d) => (
-                        <div key={d.id} className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                        <div key={d.id} className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm">
                           <span className={cn(
                             'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase',
-                            d.status === 'aprovado' ? 'bg-violet-100 text-violet-700' : 'bg-red-100 text-red-700'
+                            d.status === 'aprovado' ? 'bg-violet-100 text-violet-700' : 'bg-rose-100 text-rose-700'
                           )}>
                             {d.status === 'aprovado' ? 'Aprovado' : 'Negado'}
                           </span>
                           <div className="flex-1 min-w-0">
-                            <span className="font-semibold text-slate-900">+{d.extension_days} dias</span>
-                            <span className="mx-2 text-slate-400">a partir de</span>
-                            <span className="text-slate-700">{formatIsoDateHuman(d.reference_date)}</span>
+                            <span className="font-semibold text-gray-900">+{d.extension_days} dias</span>
+                            <span className="mx-2 text-gray-400">a partir de</span>
+                            <span className="text-gray-700">{formatIsoDateHuman(d.reference_date)}</span>
                             {d.status === 'aprovado' && (
                               <>
-                                <span className="mx-2 text-slate-400">→</span>
+                                <span className="mx-2 text-gray-400">→</span>
                                 <span className="font-semibold text-violet-700">{formatIsoDateHuman(d.calculated_date)}</span>
                               </>
                             )}
                           </div>
                           {d.municipality_protocol && (
-                            <span className="shrink-0 text-xs text-slate-500">{d.municipality_protocol}</span>
+                            <span className="shrink-0 text-xs text-gray-500">{d.municipality_protocol}</span>
                           )}
                         </div>
                       ))}
@@ -895,12 +895,12 @@ export default function CatersProcessoDetalhe() {
             {/* ── Tab: Resposta ── */}
             {tab === 'resposta' && (
               <div className="space-y-6">
-                <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <div className="flex items-center gap-2 text-lg font-bold text-slate-900 mb-1">
+                <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                  <div className="flex items-center gap-2 text-lg font-bold text-gray-900 mb-1">
                     <Reply className="h-5 w-5" />
                     Resposta do Município
                   </div>
-                  <p className="text-sm text-slate-500 mb-5">
+                  <p className="text-sm text-gray-500 mb-5">
                     Ao salvar, o status do processo é ajustado automaticamente.
                   </p>
 
@@ -934,7 +934,7 @@ export default function CatersProcessoDetalhe() {
                     </div>
                   </div>
 
-                  <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-5">
+                  <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-gray-100 pt-5">
                     <Button variant="ghost" size="sm" className="gap-2 text-violet-700 hover:bg-violet-50"
                       disabled={aiBusyKey === 'resposta'}
                       onClick={handleAnalyzeResponseWithAi}>
@@ -970,8 +970,8 @@ export default function CatersProcessoDetalhe() {
                 </section>
 
                 {resp && (
-                  <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-600">
-                    <span className="font-semibold text-slate-800">Resposta registrada:</span>{' '}
+                  <div className="rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-600">
+                    <span className="font-semibold text-gray-800">Resposta registrada:</span>{' '}
                     {formatIsoDateHuman(resp.received_at)} · {resp.protocol_number || '(sem protocolo)'} ·{' '}
                     <span className="capitalize">{resp.cronograma_status}</span>
                   </div>
@@ -980,7 +980,7 @@ export default function CatersProcessoDetalhe() {
                 {/* ── Dilações de Prazo ── */}
                 <section className="rounded-xl border border-violet-200 bg-white p-6 shadow-sm">
                   <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2 text-lg font-bold text-slate-900">
+                    <div className="flex items-center gap-2 text-lg font-bold text-gray-900">
                       <CalendarClock className="h-5 w-5 text-violet-600" />
                       Dilações de Prazo
                     </div>
@@ -1002,14 +1002,14 @@ export default function CatersProcessoDetalhe() {
                       <div className="mb-5 rounded-xl border border-violet-100 bg-violet-50 p-4 space-y-3">
                         <div className="grid grid-cols-2 gap-3">
                           <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-slate-700">Data de referência *</label>
+                            <label className="text-xs font-semibold text-gray-700">Data de referência *</label>
                             <input type="date" value={dilacaoForm.reference_date}
                               onChange={(e) => setDilacaoForm((f) => ({ ...f, reference_date: e.target.value }))}
                               className="h-9 w-full rounded-md border border-input bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
-                            <p className="text-[10px] text-slate-500">Ex: data do email de cobrança</p>
+                            <p className="text-[10px] text-gray-500">Ex: data do email de cobrança</p>
                           </div>
                           <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-slate-700">Dias concedidos *</label>
+                            <label className="text-xs font-semibold text-gray-700">Dias concedidos *</label>
                             <input type="number" min="1" value={dilacaoForm.extension_days}
                               onChange={(e) => setDilacaoForm((f) => ({ ...f, extension_days: e.target.value }))}
                               className="h-9 w-full rounded-md border border-input bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
@@ -1018,20 +1018,20 @@ export default function CatersProcessoDetalhe() {
                             )}
                           </div>
                           <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-slate-700">Data do ofício municipal</label>
+                            <label className="text-xs font-semibold text-gray-700">Data do ofício municipal</label>
                             <input type="date" value={dilacaoForm.municipality_request_at}
                               onChange={(e) => setDilacaoForm((f) => ({ ...f, municipality_request_at: e.target.value }))}
                               className="h-9 w-full rounded-md border border-input bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
                           </div>
                           <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-slate-700">Protocolo do ofício</label>
+                            <label className="text-xs font-semibold text-gray-700">Protocolo do ofício</label>
                             <input type="text" placeholder="Ex: PMB-2025-0099" value={dilacaoForm.municipality_protocol}
                               onChange={(e) => setDilacaoForm((f) => ({ ...f, municipality_protocol: e.target.value }))}
                               className="h-9 w-full rounded-md border border-input bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
                           </div>
                         </div>
                         <div className="space-y-1.5">
-                          <label className="text-xs font-semibold text-slate-700">Observações</label>
+                          <label className="text-xs font-semibold text-gray-700">Observações</label>
                           <textarea rows={2} value={dilacaoForm.notes}
                             onChange={(e) => setDilacaoForm((f) => ({ ...f, notes: e.target.value }))}
                             className="w-full rounded-md border border-input bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
@@ -1039,12 +1039,12 @@ export default function CatersProcessoDetalhe() {
                         <div className="flex gap-2 justify-end pt-1">
                           <button type="button"
                             onClick={() => { setShowDilacaoForm(false); setDilacaoForm(EMPTY_DILACAO); }}
-                            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+                            className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50">
                             Cancelar
                           </button>
                           <button type="button" disabled={createDilacaoMut.isPending}
                             onClick={() => createDilacaoMut.mutate({ status: 'negado' })}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50">
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50">
                             <Ban className="h-3.5 w-3.5" />
                             Negar
                           </button>
@@ -1060,38 +1060,38 @@ export default function CatersProcessoDetalhe() {
                   })()}
 
                   {dilacaoQ.isLoading ? (
-                    <div className="text-xs text-slate-500">Carregando…</div>
+                    <div className="text-xs text-gray-500">Carregando…</div>
                   ) : !dilacoes.length ? (
-                    <p className="text-sm text-slate-400 italic">Nenhuma dilação registrada.</p>
+                    <p className="text-sm text-gray-400 italic">Nenhuma dilação registrada.</p>
                   ) : (
                     <div className="space-y-2">
                       {dilacoes.map((d) => (
-                        <div key={d.id} className="group flex items-start justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
+                        <div key={d.id} className="group flex items-start justify-between gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">
                           <div className="flex items-start gap-3 min-w-0">
                             <span className={cn(
                               'mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase',
-                              d.status === 'aprovado' ? 'bg-violet-100 text-violet-700' : 'bg-red-100 text-red-700'
+                              d.status === 'aprovado' ? 'bg-violet-100 text-violet-700' : 'bg-rose-100 text-rose-700'
                             )}>
                               {d.status === 'aprovado' ? 'Aprovado' : 'Negado'}
                             </span>
                             <div className="min-w-0">
-                              <div className="font-semibold text-slate-900">
+                              <div className="font-semibold text-gray-900">
                                 +{d.extension_days} dias a partir de {formatIsoDateHuman(d.reference_date)}
                                 {d.status === 'aprovado' && (
                                   <span className="ml-2 font-normal text-violet-700">→ {formatIsoDateHuman(d.calculated_date)}</span>
                                 )}
                               </div>
                               {(d.municipality_request_at || d.municipality_protocol) && (
-                                <div className="text-xs text-slate-500">
+                                <div className="text-xs text-gray-500">
                                   Ofício: {[d.municipality_protocol, d.municipality_request_at ? formatIsoDateHuman(d.municipality_request_at) : null].filter(Boolean).join(' · ')}
                                 </div>
                               )}
-                              {d.notes && <div className="text-xs text-slate-500 italic">{d.notes}</div>}
+                              {d.notes && <div className="text-xs text-gray-500 italic">{d.notes}</div>}
                             </div>
                           </div>
                           <button type="button"
                             onClick={() => { if (confirm('Remover esta dilação?')) deleteDilacaoMut.mutate(d.id); }}
-                            className="hidden rounded-md p-1.5 text-red-400 hover:bg-red-50 group-hover:inline-flex shrink-0">
+                            className="hidden rounded-md p-1.5 text-rose-400 hover:bg-rose-50 group-hover:inline-flex shrink-0">
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
                         </div>
@@ -1108,26 +1108,26 @@ export default function CatersProcessoDetalhe() {
                 {/* Documentos padrão */}
                 <section className="lg:col-span-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <div className="text-sm font-semibold text-slate-900">Documentos padrão</div>
-                    <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-0.5 text-xs text-slate-600">5 itens</span>
+                    <div className="text-sm font-semibold text-gray-900">Documentos padrão</div>
+                    <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-0.5 text-xs text-gray-600">5 itens</span>
                   </div>
                   {uploadStdDocMut.isError && (
-                    <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                    <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
                       Falha no upload: {uploadStdDocMut.error?.message}
                     </div>
                   )}
                   {STD_DOCS.map(({ field, kind, label, icon: Icon, aiJobType }) => {
                     const hasFile = !!process[field];
                     return (
-                      <div key={field} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                      <div key={field} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
                         <div className="flex items-center justify-between gap-4">
                           <div className="flex items-center gap-3">
-                            <div className="grid h-10 w-10 place-items-center rounded-lg bg-slate-100">
-                              <Icon className="h-5 w-5 text-slate-700" />
+                            <div className="grid h-10 w-10 place-items-center rounded-lg bg-gray-100">
+                              <Icon className="h-5 w-5 text-gray-700" />
                             </div>
                             <div>
-                              <div className="text-sm font-semibold text-slate-900">{label}</div>
-                              <div className={cn('text-xs', hasFile ? 'text-emerald-600' : 'italic text-slate-400')}>
+                              <div className="text-sm font-semibold text-gray-900">{label}</div>
+                              <div className={cn('text-xs', hasFile ? 'text-emerald-600' : 'italic text-gray-400')}>
                                 {hasFile ? 'Arquivo enviado' : 'Aguardando upload…'}
                               </div>
                             </div>
@@ -1135,7 +1135,7 @@ export default function CatersProcessoDetalhe() {
                           <div className="flex items-center gap-2 shrink-0">
                             {hasFile && (
                               <a href={process[field]} target="_blank" rel="noreferrer"
-                                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                                className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50">
                                 <Eye className="h-3.5 w-3.5" />
                                 Abrir
                               </a>
@@ -1151,7 +1151,7 @@ export default function CatersProcessoDetalhe() {
                             <label className={cn(
                               'inline-flex cursor-pointer items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm',
                               uploadStdDocMut.isPending ? 'cursor-not-allowed opacity-60' : '',
-                              hasFile ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'bg-slate-900 text-white hover:bg-slate-800'
+                              hasFile ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' : 'bg-gray-900 text-white hover:bg-gray-800'
                             )}>
                               <Upload className="h-3.5 w-3.5" />
                               {hasFile ? 'Alterar' : 'Enviar'}
@@ -1172,9 +1172,9 @@ export default function CatersProcessoDetalhe() {
 
                 {/* Documentos extras */}
                 <section className="lg:col-span-3 space-y-3">
-                  <div className="text-sm font-semibold text-slate-900">Documentos extras</div>
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
-                    <div className="text-xs font-semibold text-slate-700">Adicionar documento</div>
+                  <div className="text-sm font-semibold text-gray-900">Documentos extras</div>
+                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
+                    <div className="text-xs font-semibold text-gray-700">Adicionar documento</div>
                     <div className="space-y-2">
                       <Input placeholder="Título *" value={extraTitle} onChange={(e) => setExtraTitle(e.target.value)} />
                       <textarea rows={2} placeholder="Descrição (opcional)"
@@ -1183,7 +1183,7 @@ export default function CatersProcessoDetalhe() {
                     </div>
                     <div className="flex items-center gap-2">
                       <label className={cn(
-                        'flex-1 cursor-pointer rounded-lg border border-dashed border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:border-slate-400',
+                        'flex-1 cursor-pointer rounded-lg border border-dashed border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-600 hover:border-gray-400',
                         uploadExtraMut.isPending ? 'cursor-not-allowed opacity-60' : ''
                       )}>
                         <div className="flex items-center gap-2">
@@ -1204,22 +1204,22 @@ export default function CatersProcessoDetalhe() {
 
                   <div className="space-y-2">
                     {extraDocsQ.isLoading ? (
-                      <div className="text-xs text-slate-500">Carregando…</div>
+                      <div className="text-xs text-gray-500">Carregando…</div>
                     ) : !extraDocs.length ? (
-                      <div className="rounded-lg border border-slate-200 bg-white p-4 text-xs text-slate-500">Nenhum documento extra.</div>
+                      <div className="rounded-lg border border-gray-200 bg-white p-4 text-xs text-gray-500">Nenhum documento extra.</div>
                     ) : extraDocs.map((d) => (
-                      <div key={d.id} className="group flex items-start justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3">
+                      <div key={d.id} className="group flex items-start justify-between gap-3 rounded-lg border border-gray-200 bg-white p-3">
                         <div className="flex items-start gap-2 min-w-0">
-                          <FileText className="h-4 w-4 shrink-0 text-slate-500 mt-0.5" />
+                          <FileText className="h-4 w-4 shrink-0 text-gray-500 mt-0.5" />
                           <div className="min-w-0">
-                            <div className="truncate text-sm font-semibold text-slate-900">{d.title}</div>
-                            <div className="text-xs text-slate-500">{formatIsoDateHuman(d.created_at?.slice(0, 10))}</div>
-                            {d.description && <div className="mt-0.5 text-xs text-slate-500 line-clamp-2">{d.description}</div>}
+                            <div className="truncate text-sm font-semibold text-gray-900">{d.title}</div>
+                            <div className="text-xs text-gray-500">{formatIsoDateHuman(d.created_at?.slice(0, 10))}</div>
+                            {d.description && <div className="mt-0.5 text-xs text-gray-500 line-clamp-2">{d.description}</div>}
                           </div>
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
                           <a href={d.file_url} target="_blank" rel="noreferrer"
-                            className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100">
+                            className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100">
                             <Eye className="h-3.5 w-3.5" />
                           </a>
                           <button type="button"
@@ -1230,7 +1230,7 @@ export default function CatersProcessoDetalhe() {
                             {aiBusyKey === d.file_url ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
                           </button>
                           <button type="button" onClick={() => deleteExtraMut.mutate(d.id)}
-                            className="rounded-md p-1.5 text-red-500 hover:bg-red-50">
+                            className="rounded-md p-1.5 text-rose-500 hover:bg-rose-50">
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
                         </div>
@@ -1245,7 +1245,7 @@ export default function CatersProcessoDetalhe() {
             {tab === 'recomendacoes' && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm text-slate-500">{recs.length} recomendação{recs.length !== 1 ? 'ões' : ''}</p>
+                  <p className="text-sm text-gray-500">{recs.length} recomendação{recs.length !== 1 ? 'ões' : ''}</p>
                   <Button size="sm" onClick={() => { setEditingRecId(null); setRecForm(EMPTY_REC); setShowRecForm(true); }}
                     className="gap-2 bg-emerald-600 hover:bg-emerald-700">
                     <Plus className="h-4 w-4" />
@@ -1254,11 +1254,11 @@ export default function CatersProcessoDetalhe() {
                 </div>
 
                 {recsQ.isLoading ? (
-                  <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-slate-400" /></div>
+                  <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-gray-400" /></div>
                 ) : !recs.length ? (
-                  <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300/60 bg-white py-12">
-                    <ClipboardList className="mb-2 h-8 w-8 text-slate-300" />
-                    <p className="text-sm text-slate-500">Nenhuma recomendação cadastrada</p>
+                  <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-white py-12">
+                    <ClipboardList className="mb-2 h-8 w-8 text-gray-300" />
+                    <p className="text-sm text-gray-500">Nenhuma recomendação cadastrada</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -1270,30 +1270,30 @@ export default function CatersProcessoDetalhe() {
                       });
                       const days = r.promised_due_at ? daysFromToday(r.promised_due_at) : null;
                       return (
-                        <div key={r.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                        <div key={r.id} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
-                                {r.item_code && <span className="text-xs font-bold text-slate-500 font-mono">{r.item_code}</span>}
+                                {r.item_code && <span className="text-xs font-bold text-gray-500 font-mono">{r.item_code}</span>}
                                 <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${recStatusColor(computed)}`}>
                                   {formatRecommendationStatus(computed)}
                                 </span>
                                 <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${priorityColor(r.priority)}`}>
                                   {formatRecommendationPriority(r.priority)}
                                 </span>
-                                {r.category && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">{r.category}</span>}
+                                {r.category && <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-600">{r.category}</span>}
                               </div>
-                              <p className="mt-1.5 text-sm text-slate-800">{r.description}</p>
-                              <div className="mt-1 flex flex-wrap gap-3 text-xs text-slate-500">
+                              <p className="mt-1.5 text-sm text-gray-800">{r.description}</p>
+                              <div className="mt-1 flex flex-wrap gap-3 text-xs text-gray-500">
                                 {r.promised_due_at && (
-                                  <span className={computed !== 'cumprido' && days !== null && days < 0 ? 'text-red-600 font-semibold' : ''}>
+                                  <span className={computed !== 'cumprido' && days !== null && days < 0 ? 'text-rose-600 font-semibold' : ''}>
                                     Prazo: {formatIsoDateHuman(r.promised_due_at)}
                                     {computed !== 'cumprido' && days !== null && days < 0 && ` (${Math.abs(days)}d atraso)`}
                                   </span>
                                 )}
                                 {r.fulfilled_at && <span className="text-emerald-600">Cumprido em: {formatIsoDateHuman(r.fulfilled_at)}</span>}
                               </div>
-                              {r.titular_response && <p className="mt-1.5 text-xs text-slate-500 italic">Resposta: {r.titular_response}</p>}
+                              {r.titular_response && <p className="mt-1.5 text-xs text-gray-500 italic">Resposta: {r.titular_response}</p>}
                             </div>
                             <div className="flex gap-1 shrink-0">
                               {computed !== 'cumprido' && (
@@ -1303,12 +1303,12 @@ export default function CatersProcessoDetalhe() {
                                 </button>
                               )}
                               <button type="button" title="Editar" onClick={() => openEditRec(r)}
-                                className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100">
+                                className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100">
                                 <Pencil className="h-4 w-4" />
                               </button>
                               <button type="button" title="Remover"
                                 onClick={() => { if (confirm('Remover esta recomendação?')) deleteRecMut.mutate(r.id); }}
-                                className="rounded-lg p-1.5 text-red-500 hover:bg-red-50">
+                                className="rounded-lg p-1.5 text-rose-500 hover:bg-rose-50">
                                 <Trash2 className="h-4 w-4" />
                               </button>
                             </div>
@@ -1325,8 +1325,8 @@ export default function CatersProcessoDetalhe() {
             {tab === 'historico' && (
               <div className="space-y-5">
                 {/* Novo evento */}
-                <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
-                  <div className="text-sm font-semibold text-slate-800">Registrar evento</div>
+                <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm space-y-3">
+                  <div className="text-sm font-semibold text-gray-800">Registrar evento</div>
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                     <div className="space-y-1.5">
                       <Label>Tipo de ação</Label>
@@ -1360,27 +1360,27 @@ export default function CatersProcessoDetalhe() {
 
                 {/* Lista de eventos */}
                 {histQ.isLoading ? (
-                  <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-slate-400" /></div>
+                  <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-gray-400" /></div>
                 ) : !history.length ? (
-                  <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500 text-center">
+                  <div className="rounded-xl border border-gray-200 bg-white p-6 text-sm text-gray-500 text-center">
                     Nenhum evento registrado.
                   </div>
                 ) : (
                   <div className="space-y-2">
                     {history.map((h) => (
-                      <div key={h.id} className="group flex items-start justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4">
+                      <div key={h.id} className="group flex items-start justify-between gap-4 rounded-xl border border-gray-200 bg-white p-4">
                         <div className="flex gap-3 min-w-0">
-                          <div className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100">
-                            <History className="h-4 w-4 text-slate-600" />
+                          <div className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gray-100">
+                            <History className="h-4 w-4 text-gray-600" />
                           </div>
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">
+                              <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                                 {HISTORY_ACTION_LABELS[h.action_type] ?? h.action_type}
                               </span>
-                              <span className="text-xs text-slate-400">{formatIsoDateHuman(h.created_at?.slice(0, 10))}</span>
+                              <span className="text-xs text-gray-400">{formatIsoDateHuman(h.created_at?.slice(0, 10))}</span>
                             </div>
-                            <div className="mt-0.5 text-sm text-slate-800">{h.description}</div>
+                            <div className="mt-0.5 text-sm text-gray-800">{h.description}</div>
                             {h.related_document_url && (
                               <a href={h.related_document_url} target="_blank" rel="noreferrer"
                                 className="mt-0.5 inline-flex items-center gap-1 text-xs text-blue-600 hover:underline">
@@ -1392,7 +1392,7 @@ export default function CatersProcessoDetalhe() {
                         </div>
                         <button type="button"
                           onClick={() => { if (confirm('Remover este evento?')) deleteHistMut.mutate(h.id); }}
-                          className="hidden rounded-md p-1.5 text-red-400 hover:bg-red-50 group-hover:inline-flex">
+                          className="hidden rounded-md p-1.5 text-rose-400 hover:bg-rose-50 group-hover:inline-flex">
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>

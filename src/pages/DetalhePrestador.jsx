@@ -220,7 +220,7 @@ export default function DetalhePrestador() {
     if (isLoadingPrestador || !prestador) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+                <Loader2 className="h-8 w-8 animate-spin text-[#0066B3]" />
             </div>
         );
     }
@@ -296,15 +296,15 @@ export default function DetalhePrestador() {
                     <div className="max-w-6xl mx-auto px-6 py-4">
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 text-center">
                             {[
-                                { label: 'Fiscalizações', value: fiscalizacoes.length, color: 'text-indigo-600', icon: <FileText className="h-4 w-4" /> },
+                                { label: 'Fiscalizações', value: fiscalizacoes.length, color: 'text-[#0066B3]', icon: <FileText className="h-4 w-4" /> },
                                 { label: 'Finalizadas', value: fiscFinalizadas, color: 'text-emerald-600', icon: <CheckCircle2 className="h-4 w-4" /> },
                                 { label: 'Em Andamento', value: fiscalizacoes.length - fiscFinalizadas, color: 'text-sky-600', icon: <Clock className="h-4 w-4" /> },
                                 { label: 'NCs', value: ncs.length, color: 'text-rose-600', icon: <AlertCircle className="h-4 w-4" /> },
                                 { label: 'Determinações', value: determinacoes.length, color: 'text-amber-600', icon: <AlertCircle className="h-4 w-4" /> },
                                 { label: 'Documentos', value: prestador.documentos?.length || 0, color: 'text-teal-600', icon: <FileText className="h-4 w-4" /> },
                             ].map((stat, i) => (
-                                <div key={i} className="flex flex-col items-center gap-1.5 py-2.5 bg-slate-50 border border-slate-200/40 rounded-2xl shadow-sm hover:shadow transition-all duration-300">
-                                    <div className={`${stat.color} opacity-80 p-1.5 bg-white rounded-lg border border-slate-100`}>{stat.icon}</div>
+                                <div key={i} className="flex flex-col items-center gap-1.5 py-2.5 bg-gray-50 border border-gray-200 rounded-2xl shadow-sm hover:shadow transition-all duration-300">
+                                    <div className={`${stat.color} opacity-80 p-1.5 bg-white rounded-lg border border-gray-100`}>{stat.icon}</div>
                                     <p className={`text-2xl font-extrabold ${stat.color}`}>{stat.value}</p>
                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">{stat.label}</p>
                                 </div>
@@ -317,11 +317,11 @@ export default function DetalhePrestador() {
                 <div className="max-w-6xl mx-auto px-6 py-4">
                     <Tabs defaultValue="info" className="w-full space-y-6">
                         <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 bg-gray-200/60 p-1 rounded-xl shadow-inner h-auto gap-1">
-                            <TabsTrigger value="info" className="rounded-lg py-2.5 text-xs font-bold transition-all data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow text-slate-650 hover:text-slate-900">Informações</TabsTrigger>
-                            <TabsTrigger value="fiscalizacoes" className="rounded-lg py-2.5 text-xs font-bold transition-all data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow text-slate-650 hover:text-slate-900">Fiscalizações ({fiscalizacoes.length})</TabsTrigger>
-                            <TabsTrigger value="determinacoes" className="rounded-lg py-2.5 text-xs font-bold transition-all data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow text-slate-650 hover:text-slate-900">Determinações ({determinacoes.length})</TabsTrigger>
-                            <TabsTrigger value="autos" className="rounded-lg py-2.5 text-xs font-bold transition-all data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow text-slate-650 hover:text-slate-900">Autos ({autos.length})</TabsTrigger>
-                            <TabsTrigger value="documentos" className="rounded-lg py-2.5 text-xs font-bold transition-all data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow text-slate-650 hover:text-slate-900">Documentos</TabsTrigger>
+                            <TabsTrigger value="info" className="rounded-lg py-2.5 text-xs font-bold transition-all data-[state=active]:bg-[#0066B3] data-[state=active]:text-white data-[state=active]:shadow text-gray-500 hover:text-gray-900">Informações</TabsTrigger>
+                            <TabsTrigger value="fiscalizacoes" className="rounded-lg py-2.5 text-xs font-bold transition-all data-[state=active]:bg-[#0066B3] data-[state=active]:text-white data-[state=active]:shadow text-gray-500 hover:text-gray-900">Fiscalizações ({fiscalizacoes.length})</TabsTrigger>
+                            <TabsTrigger value="determinacoes" className="rounded-lg py-2.5 text-xs font-bold transition-all data-[state=active]:bg-[#0066B3] data-[state=active]:text-white data-[state=active]:shadow text-gray-500 hover:text-gray-900">Determinações ({determinacoes.length})</TabsTrigger>
+                            <TabsTrigger value="autos" className="rounded-lg py-2.5 text-xs font-bold transition-all data-[state=active]:bg-[#0066B3] data-[state=active]:text-white data-[state=active]:shadow text-gray-500 hover:text-gray-900">Autos ({autos.length})</TabsTrigger>
+                            <TabsTrigger value="documentos" className="rounded-lg py-2.5 text-xs font-bold transition-all data-[state=active]:bg-[#0066B3] data-[state=active]:text-white data-[state=active]:shadow text-gray-500 hover:text-gray-900">Documentos</TabsTrigger>
                         </TabsList>
 
                         <TabsContent value="info" className="space-y-4 focus-visible:outline-none">
@@ -330,7 +330,7 @@ export default function DetalhePrestador() {
                                 <Card className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300">
                                     <CardHeader className="pb-3 border-b border-gray-100">
                                         <CardTitle className="text-sm font-bold text-gray-700 flex items-center gap-2 uppercase tracking-wider">
-                                            <Building2 className="h-4 w-4 text-indigo-500" /> Dados Gerais
+                                            <Building2 className="h-4 w-4 text-[#0066B3]" /> Dados Gerais
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent className="pt-4 space-y-3">
@@ -350,7 +350,7 @@ export default function DetalhePrestador() {
                                                 <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Serviços Prestados</p>
                                                 <div className="flex flex-wrap gap-1.5">
                                                     {prestador.tipo_servico.map(s => (
-                                                        <Badge key={s} className="text-[10px] bg-indigo-50 text-indigo-750 border-none font-bold rounded-lg px-2.5 py-1">{s}</Badge>
+                                                        <Badge key={s} className="text-[10px] bg-indigo-50 text-indigo-700 border-none font-bold rounded-lg px-2.5 py-1">{s}</Badge>
                                                     ))}
                                                 </div>
                                             </div>
@@ -362,31 +362,31 @@ export default function DetalhePrestador() {
                                 <Card className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300">
                                     <CardHeader className="pb-3 border-b border-gray-100">
                                         <CardTitle className="text-sm font-bold text-gray-700 flex items-center gap-2 uppercase tracking-wider">
-                                            <MapPin className="h-4 w-4 text-indigo-500" /> Contato & Endereço
+                                            <MapPin className="h-4 w-4 text-[#0066B3]" /> Contato & Endereço
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent className="pt-4 space-y-3">
                                         {prestador.email_contato && (
-                                            <div className="flex items-center gap-2 text-sm text-gray-700 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                                                <Mail className="h-4 w-4 text-slate-400" />
-                                                <a href={`mailto:${prestador.email_contato}`} className="hover:text-indigo-600 hover:underline font-semibold">{prestador.email_contato}</a>
+                                            <div className="flex items-center gap-2 text-sm text-gray-700 bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                                                <Mail className="h-4 w-4 text-gray-400" />
+                                                <a href={`mailto:${prestador.email_contato}`} className="hover:text-[#0066B3] hover:underline font-semibold">{prestador.email_contato}</a>
                                             </div>
                                         )}
                                         {prestador.telefone && (
-                                            <div className="flex items-center gap-2 text-sm text-gray-700 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                                                <Phone className="h-4 w-4 text-slate-400" />
+                                            <div className="flex items-center gap-2 text-sm text-gray-700 bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                                                <Phone className="h-4 w-4 text-gray-400" />
                                                 <span className="font-semibold">{prestador.telefone}</span>
                                             </div>
                                         )}
                                         {prestador.website && (
-                                            <div className="flex items-center gap-2 text-sm text-gray-700 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                                                <Globe className="h-4 w-4 text-slate-400" />
-                                                <a href={prestador.website.startsWith('http') ? prestador.website : `https://${prestador.website}`} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline font-semibold">{prestador.website}</a>
+                                            <div className="flex items-center gap-2 text-sm text-gray-700 bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                                                <Globe className="h-4 w-4 text-gray-400" />
+                                                <a href={prestador.website.startsWith('http') ? prestador.website : `https://${prestador.website}`} target="_blank" rel="noopener noreferrer" className="text-[#0066B3] hover:underline font-semibold">{prestador.website}</a>
                                             </div>
                                         )}
                                         {(prestador.endereco || prestador.cidade) && (
-                                            <div className="flex items-start gap-2 text-sm text-gray-700 bg-slate-50 p-3 rounded-xl border border-slate-100">
-                                                <MapPin className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
+                                            <div className="flex items-start gap-2 text-sm text-gray-700 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                                                <MapPin className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
                                                 <span className="font-semibold">{[prestador.endereco, prestador.cidade, prestador.estado, prestador.cep ? `CEP ${prestador.cep}` : ''].filter(Boolean).join(', ')}</span>
                                             </div>
                                         )}
@@ -398,7 +398,7 @@ export default function DetalhePrestador() {
                                     <Card className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300">
                                         <CardHeader className="pb-3 border-b border-gray-100">
                                             <CardTitle className="text-sm font-bold text-gray-700 flex items-center gap-2 uppercase tracking-wider">
-                                                <User className="h-4 w-4 text-indigo-500" /> Representante Legal
+                                                <User className="h-4 w-4 text-[#0066B3]" /> Representante Legal
                                             </CardTitle>
                                         </CardHeader>
                                         <CardContent className="pt-4 space-y-2">
@@ -468,11 +468,11 @@ export default function DetalhePrestador() {
                                     <Label className="text-xs text-gray-500 font-bold block mb-1">Logo da Entidade (PNG ou JPG)</Label>
                                     <div className="flex items-center gap-2">
                                         <Input type="file" accept="image/png, image/jpeg, image/jpg" onChange={handleLogoChange} className="hidden" id="logo-uploader-edit" />
-                                        <Label htmlFor="logo-uploader-edit" className="flex items-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold px-4 py-2.5 rounded-lg border border-indigo-200 cursor-pointer transition-all shadow-sm">
+                                        <Label htmlFor="logo-uploader-edit" className="flex items-center gap-2 bg-blue-50 hover:bg-blue-100 text-[#0066B3] text-xs font-semibold px-4 py-2.5 rounded-lg border border-blue-200 cursor-pointer transition-all shadow-sm">
                                             <Upload className="h-4 w-4" /> Selecionar Imagem
                                         </Label>
                                     </div>
-                                    {uploadingLogo && <span className="text-[10px] text-indigo-600 font-semibold animate-pulse">Enviando logo para servidor...</span>}
+                                    {uploadingLogo && <span className="text-[10px] text-[#0066B3] font-semibold animate-pulse">Enviando logo para servidor...</span>}
                                 </div>
                             </div>
 
@@ -561,7 +561,7 @@ export default function DetalhePrestador() {
                                                 type="checkbox"
                                                 checked={(editForm.tipo_servico || []).includes(s.id)}
                                                 onChange={() => toggleService(s.id)}
-                                                className="rounded border-gray-350 text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                                                className="rounded border-gray-300 text-[#0066B3] focus:ring-[#0066B3] h-4 w-4"
                                             />
                                             <span>{s.label} <span className="text-[9px] text-gray-400 uppercase font-mono">({s.group})</span></span>
                                         </label>
@@ -572,7 +572,7 @@ export default function DetalhePrestador() {
 
                         <div className="flex gap-2.5 pt-4 border-t border-gray-150">
                             <Button
-                                className="flex-1 h-11 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md font-semibold transition-all"
+                                className="flex-1 h-11 bg-[#0066B3] hover:bg-[#004A8F] text-white rounded-xl shadow-md font-semibold transition-all"
                                 onClick={handleSaveEdit}
                                 disabled={atualizarMutation.isPending}
                             >
@@ -588,7 +588,7 @@ export default function DetalhePrestador() {
             </Dialog>
 
             {/* Footer */}
-            <div className="py-5 text-center text-xs text-slate-400 bg-white border-t border-slate-200">
+            <div className="py-5 text-center text-xs text-gray-400 bg-white border-t border-gray-200">
                 AGEMS - Agência Estadual de Regulação de Serviços Públicos de MS
             </div>
         </div>

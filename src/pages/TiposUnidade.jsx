@@ -198,7 +198,7 @@ export default function TiposUnidade({ embedded = false }) {
                 )}
                 {isLoading ? (
                     <div className="flex justify-center py-12">
-                        <Loader2 className="h-7 w-7 animate-spin text-indigo-500" />
+                        <Loader2 className="h-7 w-7 animate-spin text-[#0066B3]" />
                     </div>
                 ) : (
                     <div className="space-y-3">
@@ -207,8 +207,8 @@ export default function TiposUnidade({ embedded = false }) {
                                 <CardContent className="p-5">
                                     <div className="flex items-start justify-between">
                                         <div className="flex items-start gap-3">
-                                            <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center mt-0.5 flex-shrink-0">
-                                                <Building2 className="h-5 w-5 text-indigo-500" />
+                                            <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center mt-0.5 flex-shrink-0">
+                                                <Building2 className="h-5 w-5 text-[#0066B3]" />
                                             </div>
                                             <div>
                                                 <h3 className="font-bold text-gray-800">{tipo.nome}</h3>
@@ -231,7 +231,7 @@ export default function TiposUnidade({ embedded = false }) {
                                         </div>
                                         <div className="flex gap-1">
                                             <Link to={createPageUrl('Checklists') + `?tipo=${tipo.id}`}>
-                                                <Button variant="ghost" size="icon" title="Configurar Checklist" className="hover:bg-indigo-50 text-indigo-600">
+                                                <Button variant="ghost" size="icon" title="Configurar Checklist" className="hover:bg-blue-50 text-[#0066B3]">
                                                     <ClipboardCheck className="h-4 w-4" />
                                                 </Button>
                                             </Link>
@@ -264,21 +264,21 @@ export default function TiposUnidade({ embedded = false }) {
                                                         disabled={tipo.ativo === false}
                                                         onClick={() => setDeleteConfirmation({ open: true, tipoId: tipo.id, step: 1, inputValue: '' })}
                                                     >
-                                                        <Trash2 className="h-4 w-4 text-red-500" />
+                                                        <Trash2 className="h-4 w-4 text-rose-500" />
                                                     </Button>
                                                 </AlertDialogTrigger>
                                                 <AlertDialogContent>
                                                     {deleteConfirmation.step === 1 ? (
                                                         <>
                                                             <AlertDialogHeader>
-                                                                <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+                                                                <AlertDialogTitle className="flex items-center gap-2 text-rose-600">
                                                                     <AlertTriangle className="h-5 w-5" />
                                                                     Excluir Tipo de Unidade?
                                                                 </AlertDialogTitle>
                                                                 <AlertDialogDescription className="space-y-2">
                                                                     <p>Você está prestes a excluir permanentemente:</p>
                                                                     <p className="font-semibold text-gray-900">{tipo.nome}</p>
-                                                                    <p className="text-red-600">Esta ação não pode ser desfeita.</p>
+                                                                    <p className="text-rose-600">Esta ação não pode ser desfeita.</p>
                                                                 </AlertDialogDescription>
                                                             </AlertDialogHeader>
                                                             <AlertDialogFooter>
@@ -294,7 +294,7 @@ export default function TiposUnidade({ embedded = false }) {
                                                     ) : (
                                                         <>
                                                             <AlertDialogHeader>
-                                                                <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+                                                                <AlertDialogTitle className="flex items-center gap-2 text-rose-600">
                                                                     <AlertTriangle className="h-5 w-5" />
                                                                     Confirmação Final
                                                                 </AlertDialogTitle>
@@ -339,7 +339,7 @@ export default function TiposUnidade({ embedded = false }) {
                         </div>
                         <p className="text-gray-500 font-semibold">Nenhum tipo de unidade cadastrado</p>
                         <p className="text-gray-400 text-sm mt-1">Crie um tipo para começar a configurar checklists</p>
-                        <Button onClick={() => setShowForm(true)} className="mt-5 bg-indigo-600 hover:bg-indigo-700 rounded-xl">
+                        <Button onClick={() => setShowForm(true)} className="mt-5 bg-[#0066B3] hover:bg-[#004A8F] rounded-xl">
                             <Plus className="h-4 w-4 mr-2" />
                             Criar primeiro tipo
                         </Button>

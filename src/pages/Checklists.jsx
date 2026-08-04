@@ -497,14 +497,14 @@ export default function Checklists({ embedded = false }) {
                             <h2 className="font-bold text-gray-800">{tipoSelecionado?.nome}</h2>
                             <p className="text-xs text-gray-500">{itens.length} itens no checklist</p>
                         </div>
-                        <Button onClick={() => { setEditing(null); setShowForm(true); }} className="bg-indigo-600 hover:bg-indigo-700 rounded-xl">
+                        <Button onClick={() => { setEditing(null); setShowForm(true); }} className="bg-[#0066B3] hover:bg-[#004A8F] rounded-xl">
                             <Plus className="h-4 w-4 mr-1.5" />
                             Novo Item
                         </Button>
                     </div>
 
                     {isLoading ? (
-                        <div className="flex justify-center py-12"><Loader2 className="h-7 w-7 animate-spin text-indigo-500" /></div>
+                        <div className="flex justify-center py-12"><Loader2 className="h-7 w-7 animate-spin text-[#0066B3]" /></div>
                     ) : (
                         <div className="space-y-2">
                             {itens.map((item, index) => (
@@ -554,21 +554,21 @@ export default function Checklists({ embedded = false }) {
                                                             size="icon"
                                                             onClick={() => setDeleteConfirmation({ open: true, itemId: item.id, step: 1, inputValue: '' })}
                                                         >
-                                                            <Trash2 className="h-4 w-4 text-red-500" />
+                                                            <Trash2 className="h-4 w-4 text-rose-500" />
                                                         </Button>
                                                     </AlertDialogTrigger>
                                                     <AlertDialogContent>
                                                         {deleteConfirmation.step === 1 ? (
                                                             <>
                                                                 <AlertDialogHeader>
-                                                                    <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+                                                                    <AlertDialogTitle className="flex items-center gap-2 text-rose-600">
                                                                         <AlertTriangle className="h-5 w-5" />
                                                                         Excluir Item do Checklist?
                                                                     </AlertDialogTitle>
                                                                     <AlertDialogDescription className="space-y-2">
                                                                         <p>Você está prestes a excluir permanentemente:</p>
                                                                         <p className="font-semibold text-gray-900">{item.pergunta}</p>
-                                                                        <p className="text-red-600">Esta ação não pode ser desfeita.</p>
+                                                                        <p className="text-rose-600">Esta ação não pode ser desfeita.</p>
                                                                     </AlertDialogDescription>
                                                                 </AlertDialogHeader>
                                                                 <AlertDialogFooter>
@@ -584,7 +584,7 @@ export default function Checklists({ embedded = false }) {
                                                         ) : (
                                                             <>
                                                                 <AlertDialogHeader>
-                                                                    <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+                                                                    <AlertDialogTitle className="flex items-center gap-2 text-rose-600">
                                                                         <AlertTriangle className="h-5 w-5" />
                                                                         Confirmação Final
                                                                     </AlertDialogTitle>
