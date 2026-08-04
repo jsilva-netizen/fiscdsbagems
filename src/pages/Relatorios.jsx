@@ -502,17 +502,20 @@ export default function Relatorios() {
         ? [CAMARA_TO_TIPO_MODULO[camaraParam]]
         : (diretoriaParam ? (MODULOS_POR_DIRETORIA[diretoriaParam] ?? modulosFiltro) : modulosFiltro);
 
-    if (efetivaDiretoria === 'dtr') return <RelatoriosDTR diretoriaNome={efetivaDiretoriaNome} />;
-
-
     // modulosFiltro: lista de tipo_modulo visíveis para este usuário (do hook)
     // Admin recebe [] = sem filtro; demais recebem todos os módulos da sua diretoria
 
+    // IMPORTANTE: o branch pro DTR (abaixo) só pode acontecer DEPOIS de todos os hooks
+    // deste componente terem sido declarados — um `return` condicional entre hooks viola
+    // as Rules of Hooks e quebra a troca de "Indicadores (DSB)" <-> "Indicadores (DTR)"
+    // sem reload de página (nº de hooks muda entre renders = React derruba a árvore).
     const [filtrosAbertos, setFiltrosAbertos] = useState(false);
     const [anoFiltro, setAnoFiltro] = useState([new Date().getFullYear().toString()]);
     const [servicoFiltro, setServicoFiltro] = useState([]);
     const [municipioFiltro, setMunicipioFiltro] = useState([]);
     const [prestadorFiltro, setPrestadorFiltro] = useState([]);
+
+    const naoEhDTR = efetivaDiretoria !== 'dtr';
 
     const { data: fiscalizacoes = [] } = useQuery({
         queryKey: ['fiscalizacoes'],
@@ -523,7 +526,8 @@ export default function Relatorios() {
                 .order('created_at', { ascending: false });
             if (error) throw error;
             return data;
-        }
+        },
+        enabled: naoEhDTR
     });
 
     const { data: todosMunicipios = [] } = useQuery({
@@ -535,7 +539,8 @@ export default function Relatorios() {
                 .order('nome');
             if (error) throw error;
             return data;
-        }
+        },
+        enabled: naoEhDTR
     });
 
     const { data: todosPrestadores = [] } = useQuery({
@@ -547,7 +552,8 @@ export default function Relatorios() {
                 .order('nome');
             if (error) throw error;
             return data;
-        }
+        },
+        enabled: naoEhDTR
     });
 
     const { data: resumo = {
@@ -574,8 +580,13 @@ export default function Relatorios() {
             });
             if (error) throw error;
             return data;
-        }
+        },
+        enabled: naoEhDTR
     });
+
+    // Só agora, com todos os hooks do componente já declarados, é seguro decidir qual
+    // "página" renderizar.
+    if (efetivaDiretoria === 'dtr') return <RelatoriosDTR diretoriaNome={efetivaDiretoriaNome} />;
 
     // Filtrar por ano e outros critérios em cascata (mantido para exportação JSON e metadados rápidos)
     const fiscalizacoesAno = fiscalizacoes.filter(f => {

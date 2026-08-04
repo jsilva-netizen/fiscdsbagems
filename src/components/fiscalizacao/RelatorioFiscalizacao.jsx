@@ -295,12 +295,12 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
         return (
             <>
                 {error ? (
-                    <div className="text-sm text-red-700 bg-red-100 border border-red-200 rounded px-3 py-2 mb-2 w-full">
+                    <div className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded px-3 py-2 mb-2 w-full">
                         {error}
                     </div>
                 ) : null}
                 {msg ? (
-                    <div className="text-sm text-yellow-700 bg-yellow-100 border border-yellow-200 rounded px-3 py-2 mb-2 w-full">
+                    <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2 mb-2 w-full">
                         {msg}
                     </div>
                 ) : null}
@@ -335,7 +335,8 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
                         solicitarGeracao();
                     }}
                     disabled={!isOnlineAndReady || isRequesting || isSyncingBeforeReport || isRunning || isDownloading}
-                    className="bg-blue-600 hover:bg-blue-700 h-9 rounded-xl font-medium"
+                    variant="brand"
+                    className="h-9 font-medium"
                     size="sm"
                 >
                     {isRequesting || isSyncingBeforeReport || isRunning || isDownloading ? (
@@ -360,7 +361,7 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
                         }}
                         disabled={!isOnlineAndReady || isRequesting || isSyncingBeforeReport || isRunning || isDownloading}
                         variant="outline"
-                        className="text-orange-600 border-orange-200 hover:bg-orange-50 h-9 rounded-xl"
+                        className="text-amber-600 border-amber-200 hover:bg-amber-50 h-9 rounded-xl"
                         size="sm"
                         title="Gerar novo relatório com dados atuais"
                     >
@@ -374,12 +375,12 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
     return (
         <>
             {error ? (
-                <div className="text-sm text-red-700 bg-red-100 border border-red-200 rounded px-3 py-2 mb-2 w-full">
+                <div className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded px-3 py-2 mb-2 w-full">
                     {error}
                 </div>
             ) : null}
             {msg ? (
-                <div className="text-sm text-yellow-700 bg-yellow-100 border border-yellow-200 rounded px-3 py-2 mb-2 w-full">
+                <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2 mb-2 w-full">
                     {msg}
                 </div>
             ) : null}
@@ -408,7 +409,8 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
                         solicitarGeracao();
                     }}
                     disabled={!isOnlineAndReady || isRequesting || isSyncingBeforeReport || isRunning || isDownloading}
-                    className="bg-blue-600 hover:bg-blue-700 h-9 rounded-xl font-medium"
+                    variant="brand"
+                    className="h-9 font-medium"
                     size="sm"
                 >
                     {isRequesting || isSyncingBeforeReport || isRunning || isDownloading ? (
@@ -433,7 +435,7 @@ export default function RelatorioFiscalizacao({ fiscalizacao, showStatusOnly = f
                         }}
                         disabled={!isOnlineAndReady || isRequesting || isSyncingBeforeReport || isRunning || isDownloading}
                         variant="outline"
-                        className="text-orange-600 border-orange-200 hover:bg-orange-50 h-9 rounded-xl"
+                        className="text-amber-600 border-amber-200 hover:bg-amber-50 h-9 rounded-xl"
                         size="sm"
                         title="Gerar novo relatório com dados atuais"
                     >

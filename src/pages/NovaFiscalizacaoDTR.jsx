@@ -12,10 +12,17 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Navigation, Loader2, AlertCircle } from 'lucide-react';
 
+const DTR_MODULOS = ['rodovias_dtr', 'transportes_dtr', 'fiscal_dtr'];
+
 export default function NovaFiscalizacaoDTR() {
     const navigate = useNavigate();
     const { user } = useAuth();
-    const { tipoModulo } = useModulo();
+    const { tipoModulo: tipoModuloUsuario } = useModulo();
+    // Esta tela só cria fiscalizações DTR — não pode depender do fallback genérico de
+    // useModulo() (que cai pra 'saneamento_dsb' quando o perfil de quem cria não tem
+    // diretoria/câmara definida, ex.: admin). Sem isso, a fiscalização nasce marcada como
+    // DSB e some da listagem DTR mesmo sendo criada por aqui.
+    const tipoModulo = DTR_MODULOS.includes(tipoModuloUsuario) ? tipoModuloUsuario : 'rodovias_dtr';
     const [formData, setFormData] = useState({
         rodovia: '',
         prestador_servico_id: ''

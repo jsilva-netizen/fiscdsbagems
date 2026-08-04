@@ -23,6 +23,11 @@ import { useModulo } from '@/hooks/useModulo';
 import { supabase } from '@/lib/supabase';
 import AdminShell from '@/components/layout/AdminShell';
 
+// Fiscalizações sem tipo_modulo são registros legados de antes da separação DSB/DTR —
+// tratadas como DSB por padrão. Sem esse filtro, um admin (que sincroniza tudo sem
+// restrição de RLS) via aqui também as fiscalizações da DTR misturadas.
+const DSB_MODULOS = ['saneamento_dsb', 'residuos_dsb'];
+
 export default function Fiscalizacoes() {
     const queryClient = useQueryClient();
     const { user } = useAuth();
@@ -122,6 +127,8 @@ export default function Fiscalizacoes() {
     });
 
     const filtered = fiscalizacoes.filter(f => {
+        const matchModulo = !f.tipo_modulo || DSB_MODULOS.includes(f.tipo_modulo);
+        if (!matchModulo) return false;
         const servicosStr = f.servicos?.join(' ').toLowerCase() || '';
         const matchSearch = f.municipio_nome?.toLowerCase().includes(search.toLowerCase()) ||
             servicosStr.includes(search.toLowerCase());
@@ -140,7 +147,8 @@ export default function Fiscalizacoes() {
         return matchSearch && matchStatus && matchServico && matchData;
     });
 
-    const servicos = [...new Set(fiscalizacoes.flatMap(f => f.servicos || []))].filter(Boolean);
+    const fiscalizacoesDSB = fiscalizacoes.filter(f => !f.tipo_modulo || DSB_MODULOS.includes(f.tipo_modulo));
+    const servicos = [...new Set(fiscalizacoesDSB.flatMap(f => f.servicos || []))].filter(Boolean);
 
     const emAndamento = fiscalizacoes.filter(f => f.status === 'em_andamento').length;
     const finalizadas = fiscalizacoes.filter(f => f.status === 'finalizada').length;
@@ -409,7 +417,7 @@ export default function Fiscalizacoes() {
                                                               <Button
                                                                   variant="outline"
                                                                   size="sm"
-                                                                  className="text-orange-600 border-orange-200 hover:bg-orange-50 h-9 rounded-xl font-medium"
+                                                                  className="text-amber-600 border-amber-200 hover:bg-amber-50 h-9 rounded-xl font-medium"
                                                                   disabled={reabrirFiscalizacaoMutation.isPending}
                                                                   onClick={(e) => {
                                                                       e.preventDefault();

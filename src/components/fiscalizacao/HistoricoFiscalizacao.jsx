@@ -10,9 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
 const ACTION_LABELS = {
-  INSERT: { color: 'bg-green-100 text-green-700', icon: Plus },
-  UPDATE: { color: 'bg-blue-100 text-blue-700',   icon: FileEdit },
-  DELETE: { color: 'bg-red-100 text-red-700',     icon: Trash2 },
+  INSERT: { color: 'bg-emerald-100 text-emerald-700', icon: Plus },
+  UPDATE: { color: 'bg-blue-100 text-[#0066B3]',      icon: FileEdit },
+  DELETE: { color: 'bg-rose-100 text-rose-700',       icon: Trash2 },
 };
 
 const STATUS_PT = {
@@ -447,7 +447,7 @@ export default function HistoricoFiscalizacao({ fiscalizacao }) {
         <DialogContent className="max-w-lg max-h-[85vh] flex flex-col">
           <DialogHeader className="flex-shrink-0">
             <DialogTitle className="flex items-center gap-2 text-base">
-              <History className="h-4 w-4 text-blue-600" />
+              <History className="h-4 w-4 text-[#0066B3]" />
               Histórico de Alterações
             </DialogTitle>
             <p className="text-sm text-gray-500 mt-0.5">

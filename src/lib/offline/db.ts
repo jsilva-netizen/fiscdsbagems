@@ -122,8 +122,6 @@ export type Fiscalizacao = {
   updated_at?: string
   tipo_modulo?: string
   rodovia?: string
-  total_constatacoes?: number
-  total_ncs?: number
 }
 
 export type Unidade = {

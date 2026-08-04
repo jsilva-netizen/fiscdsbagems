@@ -1687,7 +1687,7 @@ export async function syncUp(onProgress?: (msg: string, isError?: boolean) => vo
 function selectColsForPull(entity: Entity): string {
   switch (entity) {
     case 'fiscalizacoes':
-      return 'id,municipio_id,municipio_nome,prestador_servico_id,prestador_servico_nome,fiscal_nome,fiscal_email,data_inicio,data_fim,latitude_inicio,longitude_inicio,status,servicos,numero_termo,last_modified_by,last_modified_at,created_at,updated_at,tipo_modulo,rodovia,total_constatacoes,total_ncs'
+      return 'id,municipio_id,municipio_nome,prestador_servico_id,prestador_servico_nome,fiscal_nome,fiscal_email,data_inicio,data_fim,latitude_inicio,longitude_inicio,status,servicos,numero_termo,last_modified_by,last_modified_at,created_at,updated_at,tipo_modulo,rodovia'
     case 'unidades':
       return 'id,fiscalizacao_id,tipo_unidade_id,tipo_unidade_nome,nome_unidade,codigo_unidade,endereco,coordenadas,latitude,longitude,ordem,status,total_constatacoes,total_ncs,fotos_unidade,data_hora_vistoria,created_at,updated_at,rodovia,trecho,km,tipo_ocorrencia,gravidade,sentido,per,frente,nao_atendimento,prazo_dias_nc,gps_accuracy_m,km_impreciso'
     case 'respostas':
