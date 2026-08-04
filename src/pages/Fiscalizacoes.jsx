@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Repository } from '@/lib/offline/repository';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -29,7 +29,6 @@ import AdminShell from '@/components/layout/AdminShell';
 const DSB_MODULOS = ['saneamento_dsb', 'residuos_dsb'];
 
 export default function Fiscalizacoes() {
-    const navigate = useNavigate();
     const queryClient = useQueryClient();
     const { user } = useAuth();
     const { camaraTecnica: ownCamaraTecnica, isAdmin } = useModulo();
@@ -287,13 +286,7 @@ export default function Fiscalizacoes() {
                                         <div className="w-full flex items-center gap-1 p-4 sm:p-5">
                                             <button
                                                 type="button"
-                                                onClick={() => {
-                                                    if (isExpanded) {
-                                                        navigate(createPageUrl('ExecutarFiscalizacao') + `?id=${fisc.id}`);
-                                                    } else {
-                                                        toggleExpanded(fisc.id);
-                                                    }
-                                                }}
+                                                onClick={() => toggleExpanded(fisc.id)}
                                                 className="flex-1 min-w-0 flex items-center gap-3 text-left"
                                             >
                                                 <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${

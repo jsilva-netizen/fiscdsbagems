@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Repository } from '@/lib/offline/repository';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -23,7 +23,6 @@ import { supabase } from '@/lib/supabase';
 const DTR_MODULOS = ['rodovias_dtr', 'transportes_dtr', 'fiscal_dtr'];
 
 export default function FiscalizacoesDTR() {
-    const navigate = useNavigate();
     const queryClient = useQueryClient();
     const { user } = useAuth();
     const [search, setSearch] = useState('');
@@ -32,6 +31,7 @@ export default function FiscalizacoesDTR() {
     const [dataInicio, setDataInicio] = useState('');
     const [dataFim, setDataFim] = useState('');
     const [mostrarFiltros, setMostrarFiltros] = useState(false);
+    const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
     const [expandedIds, setExpandedIds] = useState(() => new Set());
     const toggleExpanded = (id) => setExpandedIds((prev) => {
         const next = new Set(prev);
@@ -265,7 +265,7 @@ export default function FiscalizacoesDTR() {
             title="Fiscalizações"
             subtitle={`${filtered.length} registro${filtered.length === 1 ? '' : 's'}`}
             actions={
-                <Link to={createPageUrl('NovaFiscalizacaoDTR')}>
+                <Link to={createPageUrl('NovaFiscalizacaoDTR')} className="hidden sm:inline-flex">
                     <Button className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow gap-1.5 h-9 px-4 text-sm">
                         <Plus className="h-4 w-4" /> Nova Fiscalização
                     </Button>
@@ -275,71 +275,94 @@ export default function FiscalizacoesDTR() {
             <div className="min-h-full flex flex-col">
             {/* Content */}
             <div className="flex-1 max-w-6xl w-full mx-auto px-4 pt-6 pb-5 flex flex-col gap-4">
-                {/* Busca + filtros (sempre visíveis) */}
-                <div className="flex flex-col sm:flex-row gap-3">
-                    <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                        <Input
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            placeholder="Buscar por rodovia ou concessionária..."
-                            className="pl-10 h-10 rounded-xl bg-white border-gray-200"
-                        />
-                    </div>
-                    <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger className="h-10 w-full sm:w-44 rounded-xl bg-white border-gray-200 text-xs text-gray-700">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-white border-gray-200">
-                            <SelectItem value="todos">Todos os status</SelectItem>
-                            <SelectItem value="em_andamento">Em Andamento</SelectItem>
-                            <SelectItem value="finalizada">Finalizados</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <Select value={rodoviaFilter} onValueChange={setRodoviaFilter}>
-                        <SelectTrigger className="h-10 w-full sm:w-48 rounded-xl bg-white border-gray-200 text-xs text-gray-700">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-white border-gray-200">
-                            <SelectItem value="todos">Todas as rodovias</SelectItem>
-                            {rodoviasDisponiveis.map(r => (
-                                <SelectItem key={r} value={r}>{r}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <Button
-                        variant="outline"
-                        className={`h-10 rounded-xl border-gray-200 gap-1.5 flex-shrink-0 ${mostrarFiltros ? 'bg-blue-50 border-blue-200 text-[#0066B3]' : ''}`}
-                        onClick={() => setMostrarFiltros(!mostrarFiltros)}
-                    >
-                        <SlidersHorizontal className="h-4 w-4" />
-                        <span className="hidden sm:inline">Mais filtros</span>
+                {/* Nova Fiscalização — no cabeçalho fixo ela fica espremida no mobile, então
+                    aqui ganha um botão de largura total, fácil de alcançar. */}
+                <Link to={createPageUrl('NovaFiscalizacaoDTR')} className="block sm:hidden">
+                    <Button className="w-full justify-center bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow gap-1.5 h-11 text-sm">
+                        <Plus className="h-4 w-4" />
+                        Nova Fiscalização
                     </Button>
-                </div>
+                </Link>
 
-                {/* Filtros de data (opcional, escondido por padrão) */}
-                {mostrarFiltros && (
-                    <div className="flex flex-col sm:flex-row gap-3 bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-                        <div className="flex-1 space-y-1">
-                            <label className="text-xs text-gray-500 font-medium">Início</label>
+                {/* Gatilho discreto — só no mobile. A busca/filtros completos só aparecem ao
+                    tocar aqui; no desktop eles já ficam sempre visíveis abaixo. */}
+                <button
+                    type="button"
+                    onClick={() => setMobileSearchOpen((o) => !o)}
+                    className="sm:hidden w-full flex items-center gap-2 h-10 px-4 rounded-xl bg-white border border-gray-200 text-sm text-gray-400"
+                >
+                    <Search className="h-4 w-4 flex-shrink-0" />
+                    <span className="flex-1 text-left truncate">{search || 'Buscar por rodovia ou concessionária...'}</span>
+                    <SlidersHorizontal className="h-4 w-4 text-gray-300 flex-shrink-0" />
+                </button>
+
+                <div className={`${mobileSearchOpen ? 'block' : 'hidden'} sm:block space-y-3`}>
+                    {/* Busca + filtros (sempre visíveis no desktop) */}
+                    <div className="flex flex-col sm:flex-row gap-3">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                             <Input
-                                type="date"
-                                value={dataInicio}
-                                onChange={e => setDataInicio(e.target.value)}
-                                className="h-9 text-xs"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                placeholder="Buscar por rodovia ou concessionária..."
+                                className="pl-10 h-10 rounded-xl bg-white border-gray-200"
                             />
                         </div>
-                        <div className="flex-1 space-y-1">
-                            <label className="text-xs text-gray-500 font-medium">Fim</label>
-                            <Input
-                                type="date"
-                                value={dataFim}
-                                onChange={e => setDataFim(e.target.value)}
-                                className="h-9 text-xs"
-                            />
-                        </div>
+                        <Select value={statusFilter} onValueChange={setStatusFilter}>
+                            <SelectTrigger className="h-10 w-full sm:w-44 rounded-xl bg-white border-gray-200 text-xs text-gray-700">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white border-gray-200">
+                                <SelectItem value="todos">Todos os status</SelectItem>
+                                <SelectItem value="em_andamento">Em Andamento</SelectItem>
+                                <SelectItem value="finalizada">Finalizados</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <Select value={rodoviaFilter} onValueChange={setRodoviaFilter}>
+                            <SelectTrigger className="h-10 w-full sm:w-48 rounded-xl bg-white border-gray-200 text-xs text-gray-700">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white border-gray-200">
+                                <SelectItem value="todos">Todas as rodovias</SelectItem>
+                                {rodoviasDisponiveis.map(r => (
+                                    <SelectItem key={r} value={r}>{r}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <Button
+                            variant="outline"
+                            className={`h-10 rounded-xl border-gray-200 gap-1.5 flex-shrink-0 ${mostrarFiltros ? 'bg-blue-50 border-blue-200 text-[#0066B3]' : ''}`}
+                            onClick={() => setMostrarFiltros(!mostrarFiltros)}
+                        >
+                            <SlidersHorizontal className="h-4 w-4" />
+                            <span className="hidden sm:inline">Mais filtros</span>
+                        </Button>
                     </div>
-                )}
+
+                    {/* Filtros de data (opcional, escondido por padrão) */}
+                    {mostrarFiltros && (
+                        <div className="flex flex-col sm:flex-row gap-3 bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                            <div className="flex-1 space-y-1">
+                                <label className="text-xs text-gray-500 font-medium">Início</label>
+                                <Input
+                                    type="date"
+                                    value={dataInicio}
+                                    onChange={e => setDataInicio(e.target.value)}
+                                    className="h-9 text-xs"
+                                />
+                            </div>
+                            <div className="flex-1 space-y-1">
+                                <label className="text-xs text-gray-500 font-medium">Fim</label>
+                                <Input
+                                    type="date"
+                                    value={dataFim}
+                                    onChange={e => setDataFim(e.target.value)}
+                                    className="h-9 text-xs"
+                                />
+                            </div>
+                        </div>
+                    )}
+                </div>
 
                 {/* List */}
                 <div className="space-y-3">
@@ -374,13 +397,7 @@ export default function FiscalizacoesDTR() {
                                         <div className="w-full flex items-center gap-1 p-4 sm:p-5">
                                             <button
                                                 type="button"
-                                                onClick={() => {
-                                                    if (isExpanded) {
-                                                        navigate(createPageUrl('ExecutarFiscalizacaoDTR') + `?id=${f.id}`);
-                                                    } else {
-                                                        toggleExpanded(f.id);
-                                                    }
-                                                }}
+                                                onClick={() => toggleExpanded(f.id)}
                                                 className="flex-1 min-w-0 flex items-center gap-3 text-left"
                                             >
                                                 <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${isFinalized ? 'bg-emerald-50' : 'bg-sky-50'}`}>
