@@ -281,7 +281,7 @@ export default function GerenciarUsuarios() {
                         {/* Botão de convite removido conforme solicitado */}
                         <div className="mb-4">
                             <Link to={createPageUrl('ExportarImportar')}>
-                                <Button className="bg-[#0066B3] hover:bg-[#004A8F]">
+                                <Button variant="brand">
                                     Exportar / Importar Dados
                                 </Button>
                             </Link>

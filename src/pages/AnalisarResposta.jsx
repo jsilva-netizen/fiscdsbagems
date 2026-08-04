@@ -722,7 +722,7 @@ export default function AnalisarResposta() {
                                                                     size="sm"
                                                                     onClick={() => handleAbrirAnalise(det, index)}
                                                                     disabled={bloqueado}
-                                                                    className="bg-[#0066B3] hover:bg-[#004A8F]"
+                                                                    variant="brand"
                                                                 >
                                                                     Analisar
                                                                 </Button>
@@ -924,7 +924,8 @@ export default function AnalisarResposta() {
                                     <Button
                                         onClick={handleSalvarAnalise}
                                         disabled={!analiseForm.status || !analiseForm.manifestacao_prestador || !analiseForm.descricao_atendimento}
-                                        className="flex-1 bg-[#0066B3] hover:bg-[#004A8F]"
+                                        variant="brand"
+                                        className="flex-1"
                                     >
                                         Salvar Análise
                                     </Button>

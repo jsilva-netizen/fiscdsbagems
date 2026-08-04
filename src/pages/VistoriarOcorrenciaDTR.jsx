@@ -1436,7 +1436,8 @@ export default function VistoriarOcorrenciaDTR() {
                             size="sm"
                             disabled={fixingDtr}
                             onClick={handleFixFinalizedInspection}
-                            className="w-full bg-[#0066B3] hover:bg-[#004A8F] text-white rounded-xl text-xs font-medium h-9 flex items-center justify-center gap-1.5"
+                            variant="brand"
+                            className="w-full text-xs font-medium h-9 flex items-center justify-center gap-1.5"
                         >
                             {fixingDtr ? (
                                 <><Loader2 className="h-3.5 w-3.5 animate-spin" /> {fixProgress}</>

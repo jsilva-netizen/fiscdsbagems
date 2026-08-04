@@ -339,7 +339,7 @@ export default function TiposUnidade({ embedded = false }) {
                         </div>
                         <p className="text-gray-500 font-semibold">Nenhum tipo de unidade cadastrado</p>
                         <p className="text-gray-400 text-sm mt-1">Crie um tipo para começar a configurar checklists</p>
-                        <Button onClick={() => setShowForm(true)} className="mt-5 bg-[#0066B3] hover:bg-[#004A8F] rounded-xl">
+                        <Button onClick={() => setShowForm(true)} variant="brand" className="mt-5">
                             <Plus className="h-4 w-4 mr-2" />
                             Criar primeiro tipo
                         </Button>

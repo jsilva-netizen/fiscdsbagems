@@ -497,7 +497,7 @@ export default function Checklists({ embedded = false }) {
                             <h2 className="font-bold text-gray-800">{tipoSelecionado?.nome}</h2>
                             <p className="text-xs text-gray-500">{itens.length} itens no checklist</p>
                         </div>
-                        <Button onClick={() => { setEditing(null); setShowForm(true); }} className="bg-[#0066B3] hover:bg-[#004A8F] rounded-xl">
+                        <Button onClick={() => { setEditing(null); setShowForm(true); }} variant="brand">
                             <Plus className="h-4 w-4 mr-1.5" />
                             Novo Item
                         </Button>

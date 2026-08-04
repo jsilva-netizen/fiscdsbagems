@@ -325,7 +325,7 @@ export default function PrestadoresServico({ embedded = false }) {
                                 Módulo: <span className="text-gray-800 uppercase font-extrabold">{diretoria}</span>
                             </div>
                         )}
-                        <Button onClick={() => { resetForm(); setShowForm(true); }} className="bg-[#0066B3] hover:bg-[#004A8F] text-white rounded-xl shadow font-semibold transition-all">
+                        <Button onClick={() => { resetForm(); setShowForm(true); }} variant="brand" className="shadow transition-all">
                             <Plus className="h-4 w-4 mr-2" />
                             {buttonText}
                         </Button>
@@ -663,7 +663,8 @@ export default function PrestadoresServico({ embedded = false }) {
 
                         <div className="flex gap-2.5 pt-4 border-t mt-6">
                             <Button
-                                className="flex-1 h-11 bg-[#0066B3] hover:bg-[#004A8F] text-white rounded-xl shadow-lg transition-all font-semibold"
+                                variant="brand"
+                                className="flex-1 h-11 shadow-lg transition-all"
                                 onClick={handleSubmit}
                                 disabled={criarMutation.isPending || atualizarMutation.isPending}
                             >

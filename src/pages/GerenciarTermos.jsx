@@ -698,7 +698,8 @@ export default function GerenciarTermos() {
                             setSelectedFiscalizacao(fiscalizacoes.find(f => f.status === 'finalizada'));
                             setShowDialog(true);
                         }}
-                        className="bg-[#0066B3] hover:bg-[#004A8F] text-white rounded-xl shadow-md transition-all font-semibold gap-2"
+                        variant="brand"
+                        className="shadow-md transition-all gap-2"
                     >
                         <Plus className="h-4 w-4" />
                         Novo Termo
@@ -858,7 +859,7 @@ export default function GerenciarTermos() {
                                 </Button>
                                 <Button
                                     onClick={handleCriarTermo}
-                                    className="flex-1 bg-[#0066B3] hover:bg-[#004A8F]"
+                                    variant="brand" className="flex-1"
                                     disabled={criarTermoMutation.isPending || !termoForm.numero_processo || !termoForm.tipo_relatorio || !termoForm.numero_rfp}
                                 >
                                     {criarTermoMutation.isPending ? 'Criando...' : 'Criar Termo'}
@@ -1230,7 +1231,7 @@ export default function GerenciarTermos() {
                                             } catch (error) {
                                                 alert('Erro ao salvar: ' + error.message);
                                             }
-                                        }} className="flex-1 bg-[#0066B3] hover:bg-[#004A8F]">
+                                        }} variant="brand" className="flex-1">
                                             Salvar Alterações
                                         </Button>
                                     </div>
@@ -1368,7 +1369,7 @@ export default function GerenciarTermos() {
                                     Cancelar
                                 </Button>
                                 <Button
-                                    className="flex-1 bg-[#0066B3] hover:bg-[#004A8F]"
+                                    variant="brand" className="flex-1"
                                     disabled={quickUploading}
                                     onClick={async () => {
                                         const termo = quickProtocolo.termo;
@@ -1543,7 +1544,7 @@ export default function GerenciarTermos() {
                                     Cancelar
                                 </Button>
                                 <Button
-                                    className="flex-1 bg-[#0066B3] hover:bg-[#004A8F]"
+                                    variant="brand" className="flex-1"
                                     disabled={quickUploading}
                                     onClick={async () => {
                                         const termo = quickResposta.termo;

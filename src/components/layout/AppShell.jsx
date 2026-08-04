@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Home, LogOut, Settings, ChevronDown } from 'lucide-react';
+import { Menu, LogOut, Settings, ChevronDown } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { useAuth } from '@/lib/AuthContext';
 import { useModulo, CAMARAS_POR_DIRETORIA } from '@/hooks/useModulo';
@@ -13,7 +13,6 @@ import { cn } from '@/lib/utils';
 // #0066B3 -> #004A8F, usada na barra lateral, cabeçalho da logo e destaques.
 export const BRAND_GRADIENT = 'bg-gradient-to-br from-[#0066B3] to-[#004A8F]';
 
-const SIDEBAR_STORAGE_KEY = 'sifis_sidebar_open';
 const DESKTOP_BREAKPOINT = 1024; // Tailwind `lg`
 
 export function AgemsLogo({ className = 'w-full h-full' }) {
@@ -83,40 +82,27 @@ function NavItem({ item, pathname, search, onNavigate }) {
   );
 }
 
-function readStoredSidebarOpen() {
-  if (typeof window === 'undefined') return true;
-  try {
-    const saved = window.localStorage.getItem(SIDEBAR_STORAGE_KEY);
-    return saved === null ? true : saved === '1';
-  } catch {
-    return true;
-  }
-}
-
+// No desktop a sidebar fica sempre visível (sem opção de recolher); só no mobile ela
+// funciona como um drawer que abre/fecha via o botão de hambúrguer no cabeçalho.
 function useSidebarOpen() {
   const [isDesktop, setIsDesktop] = useState(
     typeof window === 'undefined' ? true : window.innerWidth >= DESKTOP_BREAKPOINT
   );
-  const [open, setOpen] = useState(() => {
-    if (typeof window === 'undefined') return true;
-    return window.innerWidth >= DESKTOP_BREAKPOINT ? readStoredSidebarOpen() : false;
-  });
+  const [open, setOpen] = useState(
+    typeof window === 'undefined' ? true : window.innerWidth >= DESKTOP_BREAKPOINT
+  );
 
   useEffect(() => {
-    const handleResize = () => setIsDesktop(window.innerWidth >= DESKTOP_BREAKPOINT);
+    const handleResize = () => {
+      const desktop = window.innerWidth >= DESKTOP_BREAKPOINT;
+      setIsDesktop(desktop);
+      if (desktop) setOpen(true);
+    };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const toggle = () => {
-    setOpen((prev) => {
-      const next = !prev;
-      if (isDesktop) {
-        try { window.localStorage.setItem(SIDEBAR_STORAGE_KEY, next ? '1' : '0'); } catch {}
-      }
-      return next;
-    });
-  };
+  const toggle = () => setOpen((prev) => !prev);
 
   return { open, isDesktop, toggle, close: () => setOpen(false) };
 }
@@ -175,23 +161,17 @@ export default function AppShell({
           lateral quando ela está aberta no desktop, pra formar uma faixa só
           junto com o cabeçalho da marca (que vive dentro da própria sidebar). */}
       <header className={cn('fixed inset-x-0 top-0 z-30 flex h-[70px] items-center bg-white shadow-sm left-0', sidebarOpen && 'lg:left-[260px]')}>
-        <button
-          type="button"
-          onClick={toggleSidebar}
-          className="ml-3 grid h-9 w-9 shrink-0 place-items-center rounded-lg text-gray-500 hover:bg-gray-100 lg:ml-4"
-          title={sidebarOpen ? 'Recolher menu' : 'Expandir menu'}
-        >
-          {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
-
-        {!sidebarOpen && (
-          <Link
-            to={createPageUrl('Home')}
-            className="ml-1 grid h-9 w-9 shrink-0 place-items-center rounded-lg text-gray-500 hover:bg-gray-100"
-            title="Início"
+        {/* Só existe no mobile — a sidebar do desktop fica sempre aberta, sem opção de
+            recolher. Abre o drawer; fechar é só clicando fora (overlay), sem botão dedicado. */}
+        {!isDesktop && (
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            className="ml-3 grid h-9 w-9 shrink-0 place-items-center rounded-lg text-gray-500 hover:bg-gray-100"
+            title="Abrir menu"
           >
-            <Home className="h-5 w-5" />
-          </Link>
+            <Menu className="h-5 w-5" />
+          </button>
         )}
 
         {pageTitle && (

@@ -783,7 +783,7 @@ export default function AnaliseManifestacao() {
                                                 <Pill tone={statusInfo.tone}>{statusInfo.label}</Pill>
                                                 {stats.total > 0 && (stats.aguardandoAnalise > 0 || stats.atendidas > 0 || stats.naoAtendidas > 0) && (
                                                      <Link to={createPageUrl('AnalisarResposta') + `?termo=${termo.id}`}>
-                                                         <Button size="sm" className="bg-[#0066B3] hover:bg-[#004A8F]">
+                                                         <Button size="sm" variant="brand">
                                                              Analisar Determinações
                                                          </Button>
                                                      </Link>
@@ -801,7 +801,7 @@ export default function AnaliseManifestacao() {
                                                  {stats.total > 0 && termo.numero_am && todasDeterminacoesAnalisadas(termo) && (
                                                       <Button 
                                                           size="sm" 
-                                                          className="bg-[#0066B3] hover:bg-[#004A8F]"
+                                                          variant="brand"
                                                           onClick={() => baixarAnaliseManifestacao(termo)}
                                                       >
                                                           <Download className="h-4 w-4 mr-1" />

@@ -655,7 +655,8 @@ export default function GestaoAutos() {
                                             <>
                                                 <Button
                                                     size="sm"
-                                                    className="w-full bg-[#0066B3] hover:bg-[#004A8F]"
+                                                    variant="brand"
+                                                    className="w-full"
                                                     disabled={!penaBaseRsColumn || !allReady || criandoRemessaKey === grupo.key || salvandoAutoId != null}
                                                     onClick={async () => {
                                                         try {
@@ -839,7 +840,7 @@ export default function GestaoAutos() {
                                                                     {r.status === 'defesa_enviada' ? (
                                                                         <div className="flex justify-end">
                                                                             <Button
-                                                                                className="bg-[#0066B3] hover:bg-[#004A8F]"
+                                                                                variant="brand"
                                                                                 disabled={enviandoParecerRemessaId === r.id || !((remessaItens || []).length > 0 && (remessaItens || []).every((it) => {
                                                                                     const a = it?.autos_infracao;
                                                                                     if (!a?.id) return false;

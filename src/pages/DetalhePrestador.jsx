@@ -572,7 +572,8 @@ export default function DetalhePrestador() {
 
                         <div className="flex gap-2.5 pt-4 border-t border-gray-150">
                             <Button
-                                className="flex-1 h-11 bg-[#0066B3] hover:bg-[#004A8F] text-white rounded-xl shadow-md font-semibold transition-all"
+                                variant="brand"
+                                className="flex-1 h-11 shadow-md transition-all"
                                 onClick={handleSaveEdit}
                                 disabled={atualizarMutation.isPending}
                             >

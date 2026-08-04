@@ -555,8 +555,8 @@ function TabKML({ onNavigateContratos }) {
                                         <div className="flex-shrink-0">
                                             <Button
                                                 size="sm"
-                                                variant={hasKML ? 'outline' : 'default'}
-                                                className={`text-xs h-8 gap-1.5 ${hasKML ? 'border-blue-200 text-[#0066B3] hover:bg-blue-50' : 'bg-[#0066B3] hover:bg-[#004A8F] text-white'}`}
+                                                variant={hasKML ? 'outline' : 'brand'}
+                                                className={`text-xs h-8 gap-1.5 ${hasKML ? 'border-blue-200 text-[#0066B3] hover:bg-blue-50' : ''}`}
                                                 onClick={() => fileInputRefs.current[c.id]?.click()}
                                                 disabled={isUploading}
                                             >

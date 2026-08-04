@@ -205,7 +205,8 @@ export default function PareceresTecnicos() {
             Trocar lote
           </Button>
           <Button
-            className="bg-[#0066B3] hover:bg-[#004A8F] text-white rounded-xl shadow-md transition-all font-semibold"
+            variant="brand"
+            className="shadow-md transition-all"
             disabled={!podeEncaminhar || enviandoLoteId === loteAbertoId}
             onClick={() => void encaminharParaCamara()}
           >
@@ -234,7 +235,7 @@ export default function PareceresTecnicos() {
                           Prestador: {getPrestadorNome(r?.prestador_servico_id)} | Município: {getMunicipioNomeFromFiscalizacao(r?.fiscalizacao_id)}
                         </div>
                       </div>
-                      <Button className="bg-[#0066B3] hover:bg-[#004A8F] text-white rounded-xl shadow-sm" onClick={() => setLoteAbertoId(r.id)}>
+                      <Button variant="brand" onClick={() => setLoteAbertoId(r.id)}>
                         Abrir
                       </Button>
                     </div>

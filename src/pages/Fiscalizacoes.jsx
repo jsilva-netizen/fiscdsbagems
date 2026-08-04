@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
-import { Search, SlidersHorizontal, Trash2, AlertTriangle, MapPin, ChevronRight, Calendar, CheckCircle2, Clock, Plus, RotateCcw, Loader2, ClipboardList } from 'lucide-react';
+import { Search, SlidersHorizontal, Trash2, AlertTriangle, MapPin, ChevronRight, ChevronDown, Calendar, CheckCircle2, Clock, Plus, RotateCcw, Loader2, ClipboardList } from 'lucide-react';
 import ExportarPDFConsolidado from '@/components/fiscalizacao/ExportarPDFConsolidado';
 import RelatorioFiscalizacao from '@/components/fiscalizacao/RelatorioFiscalizacao';
 import HistoricoFiscalizacao from '@/components/fiscalizacao/HistoricoFiscalizacao';
@@ -44,6 +44,13 @@ export default function Fiscalizacoes() {
     const [dataFim, setDataFim] = useState('');
     const [fiscalizacaoParaDeletar, setFiscalizacaoParaDeletar] = useState(null);
     const [mostrarFiltros, setMostrarFiltros] = useState(false);
+    const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+    const [expandedIds, setExpandedIds] = useState(() => new Set());
+    const toggleExpanded = (id) => setExpandedIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id); else next.add(id);
+        return next;
+    });
     const [deleteConfirmation, setDeleteConfirmation] = useState({ open: false, fiscId: null, step: 1, inputValue: '' });
     const [mostrarConfirmacaoFinalizacao, setMostrarConfirmacaoFinalizacao] = useState({ open: false, fiscId: null });
     const [syncProgress, setSyncProgress] = useState(null);
@@ -158,7 +165,7 @@ export default function Fiscalizacoes() {
             title="Fiscalizações"
             subtitle={`${filtered.length} registro${filtered.length === 1 ? '' : 's'}`}
             actions={
-                <Link to={createPageUrl('NovaFiscalizacao')}>
+                <Link to={createPageUrl('NovaFiscalizacao')} className="hidden sm:inline-flex">
                     <Button className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow gap-1.5 h-9 px-4 text-sm">
                         <Plus className="h-4 w-4" />
                         Nova Fiscalização
@@ -166,74 +173,96 @@ export default function Fiscalizacoes() {
                 </Link>
             }
         >
-            {/* Busca + filtros (sempre visíveis) */}
             <div className="max-w-6xl mx-auto px-4 pt-6 pb-4 space-y-3">
-                <div className="flex flex-col sm:flex-row gap-3">
-                    <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                        <Input
-                            placeholder="Buscar por código, município ou fiscal..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="pl-10 h-10 rounded-xl bg-white border-gray-200"
-                        />
-                    </div>
-                    <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger className="h-10 w-full sm:w-44 rounded-xl bg-white border-gray-200">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-white border-gray-200">
-                            <SelectItem value="todos">Todos os status</SelectItem>
-                            <SelectItem value="em_andamento">Em andamento</SelectItem>
-                            <SelectItem value="finalizada">Finalizadas</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <Select value={servicoFilter} onValueChange={setServicoFilter}>
-                        <SelectTrigger className="h-10 w-full sm:w-48 rounded-xl bg-white border-gray-200">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-white border-gray-200">
-                            <SelectItem value="todos">Todos os serviços</SelectItem>
-                            {servicos.map(s => (
-                                <SelectItem key={s} value={s}>{s}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <Button
-                        variant="outline"
-                        className={`h-10 rounded-xl border-gray-200 gap-1.5 flex-shrink-0 ${mostrarFiltros ? 'bg-blue-50 border-blue-200 text-[#0066B3]' : ''}`}
-                        onClick={() => setMostrarFiltros(!mostrarFiltros)}
-                    >
-                        <SlidersHorizontal className="h-4 w-4" />
-                        <span className="hidden sm:inline">Mais filtros</span>
+                {/* Nova Fiscalização — no cabeçalho fixo ela fica espremida no mobile, então
+                    aqui ganha um botão de largura total, fácil de alcançar. */}
+                <Link to={createPageUrl('NovaFiscalizacao')} className="block sm:hidden">
+                    <Button className="w-full justify-center bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow gap-1.5 h-11 text-sm">
+                        <Plus className="h-4 w-4" />
+                        Nova Fiscalização
                     </Button>
-                </div>
+                </Link>
 
-                {/* Filtros de data (opcional, escondido por padrão) */}
-                {mostrarFiltros && (
-                    <div className="flex flex-col sm:flex-row gap-3 p-4 bg-white rounded-2xl border border-gray-200 shadow-sm">
-                        <div className="flex-1">
-                            <label className="text-xs text-gray-500 font-semibold mb-1 block">Data Início</label>
-                            <Input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} className="h-10 rounded-xl bg-white border-gray-200" />
+                {/* Gatilho discreto — só no mobile. A busca/filtros/exportação completos só
+                    aparecem ao tocar aqui; no desktop eles já ficam sempre visíveis abaixo. */}
+                <button
+                    type="button"
+                    onClick={() => setMobileSearchOpen((o) => !o)}
+                    className="sm:hidden w-full flex items-center gap-2 h-10 px-4 rounded-xl bg-white border border-gray-200 text-sm text-gray-400"
+                >
+                    <Search className="h-4 w-4 flex-shrink-0" />
+                    <span className="flex-1 text-left truncate">{search || 'Buscar por código, município ou fiscal...'}</span>
+                    <SlidersHorizontal className="h-4 w-4 text-gray-300 flex-shrink-0" />
+                </button>
+
+                <div className={`${mobileSearchOpen ? 'block' : 'hidden'} sm:block space-y-3`}>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <Input
+                                placeholder="Buscar por código, município ou fiscal..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="pl-10 h-10 rounded-xl bg-white border-gray-200"
+                            />
                         </div>
-                        <div className="flex-1">
-                            <label className="text-xs text-gray-500 font-semibold mb-1 block">Data Fim</label>
-                            <Input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} className="h-10 rounded-xl bg-white border-gray-200" />
-                        </div>
+                        <Select value={statusFilter} onValueChange={setStatusFilter}>
+                            <SelectTrigger className="h-10 w-full sm:w-44 rounded-xl bg-white border-gray-200">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white border-gray-200">
+                                <SelectItem value="todos">Todos os status</SelectItem>
+                                <SelectItem value="em_andamento">Em andamento</SelectItem>
+                                <SelectItem value="finalizada">Finalizadas</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <Select value={servicoFilter} onValueChange={setServicoFilter}>
+                            <SelectTrigger className="h-10 w-full sm:w-48 rounded-xl bg-white border-gray-200">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white border-gray-200">
+                                <SelectItem value="todos">Todos os serviços</SelectItem>
+                                {servicos.map(s => (
+                                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                         <Button
-                            variant="ghost"
-                            className="text-gray-500 hover:text-gray-700 rounded-xl sm:self-end"
-                            onClick={() => { setStatusFilter('todos'); setServicoFilter('todos'); setDataInicio(''); setDataFim(''); }}
+                            variant="outline"
+                            className={`h-10 rounded-xl border-gray-200 gap-1.5 flex-shrink-0 ${mostrarFiltros ? 'bg-blue-50 border-blue-200 text-[#0066B3]' : ''}`}
+                            onClick={() => setMostrarFiltros(!mostrarFiltros)}
                         >
-                            Limpar Filtros
+                            <SlidersHorizontal className="h-4 w-4" />
+                            <span className="hidden sm:inline">Mais filtros</span>
                         </Button>
                     </div>
-                )}
 
-                {/* Exportação */}
-                {filtered.length > 0 && (
-                    <ExportarPDFConsolidado fiscalizacoes={filtered} />
-                )}
+                    {/* Filtros de data (opcional, escondido por padrão) */}
+                    {mostrarFiltros && (
+                        <div className="flex flex-col sm:flex-row gap-3 p-4 bg-white rounded-2xl border border-gray-200 shadow-sm">
+                            <div className="flex-1">
+                                <label className="text-xs text-gray-500 font-semibold mb-1 block">Data Início</label>
+                                <Input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} className="h-10 rounded-xl bg-white border-gray-200" />
+                            </div>
+                            <div className="flex-1">
+                                <label className="text-xs text-gray-500 font-semibold mb-1 block">Data Fim</label>
+                                <Input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} className="h-10 rounded-xl bg-white border-gray-200" />
+                            </div>
+                            <Button
+                                variant="ghost"
+                                className="text-gray-500 hover:text-gray-700 rounded-xl sm:self-end"
+                                onClick={() => { setStatusFilter('todos'); setServicoFilter('todos'); setDataInicio(''); setDataFim(''); }}
+                            >
+                                Limpar Filtros
+                            </Button>
+                        </div>
+                    )}
+
+                    {/* Exportação */}
+                    {filtered.length > 0 && (
+                        <ExportarPDFConsolidado fiscalizacoes={filtered} />
+                    )}
+                </div>
             </div>
 
             {/* List */}
@@ -248,210 +277,223 @@ export default function Fiscalizacoes() {
                             const isFinished = fisc.status === 'finalizada';
                             const { total_constatacoes = 0, total_ncs = 0 } = totaisPorFiscalizacao[fisc.id] || {};
 
+                            const isExpanded = expandedIds.has(fisc.id);
+
                             return (
-                                <Card key={fisc.id} className="hover:shadow-md transition-all border border-gray-200 rounded-2xl overflow-hidden bg-white">
-                                    <CardContent className="p-5">
-                                        <div className="flex justify-between items-start gap-3">
-                                        <Link
-                                            to={createPageUrl('ExecutarFiscalizacao') + `?id=${fisc.id}`}
-                                            className="flex-1 min-w-0 block"
+                                <Card key={fisc.id} className="border border-gray-200 rounded-2xl overflow-hidden bg-white">
+                                    <CardContent className="p-0">
+                                        {/* Cabeçalho — sempre visível; toca/clica pra expandir e ver o resto */}
+                                        <button
+                                            type="button"
+                                            onClick={() => toggleExpanded(fisc.id)}
+                                            className="w-full flex items-center gap-3 p-4 sm:p-5 text-left hover:bg-gray-50 transition-colors"
                                         >
-                                            <div className="flex items-start justify-between">
-                                                <div className="flex items-start gap-3">
-                                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                                                        isFinished ? 'bg-emerald-50' : 'bg-sky-50'
-                                                    }`}>
-                                                        {isFinished ? (
-                                                            <CheckCircle2 className="h-6 w-6 text-emerald-500" />
-                                                        ) : (
-                                                            <Clock className="h-6 w-6 text-sky-500" />
-                                                        )}
-                                                    </div>
-                                                    <div className="min-w-0">
-                                                        <h3 className="font-bold text-gray-800 flex items-center gap-1.5">
-                                                            <MapPin className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-                                                            {fisc.municipio_nome}
-                                                        </h3>
-                                                        <div className="flex flex-wrap gap-1.5 mt-1.5">
-                                                            {fisc.servicos?.map(s => (
-                                                                <Badge key={s} className="text-[10px] bg-indigo-50 text-indigo-700 border-none font-semibold">{s}</Badge>
-                                                            ))}
-                                                            <Badge className={`text-[10px] font-semibold border-none ${
-                                                                isFinished ? 'bg-emerald-100 text-emerald-700' : 'bg-sky-100 text-sky-700'
-                                                            }`}>
-                                                                {isFinished ? 'Finalizada' : 'Em andamento'}
-                                                            </Badge>
-                                                        </div>
-                                                        <p className="text-xs text-gray-400 mt-1.5 flex items-center gap-1">
-                                                            <Calendar className="h-3 w-3" />
-                                                            {format(new Date(fisc.data_inicio), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                                                        </p>
-                                                        {fisc.fiscal_nome && (
-                                                            <p className="text-xs text-gray-400 mt-0.5">Fiscal: {fisc.fiscal_nome}</p>
-                                                        )}
-                                                        {fisc.last_modified_by && (
-                                                            <p className="text-xs text-gray-400 mt-0.5">
-                                                                Última alt.: {fisc.last_modified_by} {fisc.last_modified_at ? `em ${format(new Date(fisc.last_modified_at), 'dd/MM HH:mm', { locale: ptBR })}` : ''}
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                <ChevronRight className="h-5 w-5 text-gray-300 flex-shrink-0 mt-1" />
+                                            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                                                isFinished ? 'bg-emerald-50' : 'bg-sky-50'
+                                            }`}>
+                                                {isFinished ? (
+                                                    <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-500" />
+                                                ) : (
+                                                    <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-sky-500" />
+                                                )}
                                             </div>
-
-                                            {/* Stats */}
-                                            {(total_constatacoes > 0 || total_ncs > 0) && (
-                                                <div className="flex gap-4 mt-3 pt-3 border-t border-gray-100 text-xs">
-                                                    <span className="flex items-center gap-1 text-emerald-600 font-medium">
-                                                        <CheckCircle2 className="h-3 w-3" />
-                                                        {total_constatacoes} Constatações
-                                                    </span>
-                                                    <span className="flex items-center gap-1 text-rose-600 font-medium">
-                                                        <AlertTriangle className="h-3 w-3" />
-                                                        {total_ncs} NCs
-                                                    </span>
+                                            <div className="min-w-0 flex-1">
+                                                <h3 className="font-bold text-gray-800 flex items-center gap-1.5 text-sm sm:text-base">
+                                                    <MapPin className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                                                    <span className="truncate">{fisc.municipio_nome}</span>
+                                                </h3>
+                                                <div className="flex flex-wrap gap-1.5 mt-1.5">
+                                                    {fisc.servicos?.map(s => (
+                                                        <Badge key={s} className="text-[10px] bg-indigo-50 text-indigo-700 border-none font-semibold">{s}</Badge>
+                                                    ))}
+                                                    <Badge className={`text-[10px] font-semibold border-none ${
+                                                        isFinished ? 'bg-emerald-100 text-emerald-700' : 'bg-sky-100 text-sky-700'
+                                                    }`}>
+                                                        {isFinished ? 'Finalizada' : 'Em andamento'}
+                                                    </Badge>
                                                 </div>
-                                            )}
-                                        </Link>
-                                            {podeDeleter && (
-                                                <AlertDialog
-                                                    open={deleteConfirmation.open && deleteConfirmation.fiscId === fisc.id}
-                                                    onOpenChange={(open) => {
-                                                        if (!open) {
-                                                            setDeleteConfirmation({ open: false, fiscId: null, step: 1, inputValue: '' });
-                                                        }
-                                                    }}
-                                                >
-                                                    <Button
-                                                         variant="outline"
-                                                         size="sm"
-                                                         className="text-rose-600 hover:text-rose-700 hover:bg-rose-50"
-                                                         onClick={(e) => {
-                                                             e.preventDefault();
-                                                            if (!online) {
-                                                              alert('Exclusão disponível apenas quando online.');
-                                                              return;
-                                                            }
-                                                             setDeleteConfirmation({ open: true, fiscId: fisc.id, step: 1, inputValue: '' });
-                                                         }}
-                                                     >
-                                                         <Trash2 className="h-4 w-4" />
-                                                     </Button>
-                                                     <AlertDialogContent>
-                                                         {deleteConfirmation.step === 1 ? (
-                                                             <>
-                                                                 <AlertDialogHeader>
-                                                                     <AlertDialogTitle className="flex items-center gap-2 text-rose-600">
-                                                                         <AlertTriangle className="h-5 w-5" />
-                                                                         Excluir Fiscalização?
-                                                                     </AlertDialogTitle>
-                                                                     <AlertDialogDescription className="space-y-2" asChild>
-                                                                        <div>
-                                                                            <p>Você está prestes a excluir permanentemente:</p>
-                                                                            <p className="font-semibold text-gray-900">{fisc.numero_termo} - {fisc.municipio_nome}</p>
-                                                                            <p className="text-rose-600">Esta ação não pode ser desfeita e removerá todas as unidades, NCs, determinações e dados relacionados.</p>
-                                                                        </div>
-                                                                    </AlertDialogDescription>
-                                                                 </AlertDialogHeader>
-                                                                 <AlertDialogFooter>
-                                                                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                                     <Button
-                                                                         variant="destructive"
-                                                                         disabled={!online}
-                                                                         onClick={() => setDeleteConfirmation(prev => ({ ...prev, step: 2 }))}
-                                                                     >
-                                                                         Continuar
-                                                                     </Button>
-                                                                 </AlertDialogFooter>
-                                                             </>
-                                                         ) : (
-                                                             <>
-                                                                 <AlertDialogHeader>
-                                                                     <AlertDialogTitle className="flex items-center gap-2 text-rose-600">
-                                                                         <AlertTriangle className="h-5 w-5" />
-                                                                         Confirmação Final
-                                                                     </AlertDialogTitle>
-                                                                     <AlertDialogDescription className="space-y-3" asChild>
-                                                                        <div>
-                                                                            <p>Para confirmar a exclusão, digite <span className="font-bold">EXCLUIR</span> no campo abaixo:</p>
-                                                                            <Input
-                                                                                placeholder="Digite EXCLUIR"
-                                                                                value={deleteConfirmation.inputValue}
-                                                                                onChange={(e) => setDeleteConfirmation(prev => ({ ...prev, inputValue: e.target.value }))}
-                                                                                className="mt-2"
-                                                                            />
-                                                                        </div>
-                                                                    </AlertDialogDescription>
-                                                                 </AlertDialogHeader>
-                                                                 <AlertDialogFooter>
-                                                                     <AlertDialogCancel onClick={() => setDeleteConfirmation({ open: false, fiscId: null, step: 1, inputValue: '' })}>
-                                                                         Cancelar
-                                                                     </AlertDialogCancel>
-                                                                     <Button
-                                                                         variant="destructive"
-                                                                         disabled={!online || deleteConfirmation.inputValue !== 'EXCLUIR' || deletarFiscalizacaoMutation.isPending}
-                                                                         onClick={() => deletarFiscalizacaoMutation.mutate(fisc.id)}
-                                                                     >
-                                                                         {deletarFiscalizacaoMutation.isPending ? 'Excluindo...' : 'Excluir Permanentemente'}
-                                                                     </Button>
-                                                                 </AlertDialogFooter>
-                                                             </>
-                                                         )}
-                                                     </AlertDialogContent>
-                                                 </AlertDialog>
-                                             )}
-                                          </div>
-                                          
-                                          {/* Ações da Fiscalização */}
-                                          <div className="mt-4 pt-4 border-t border-gray-100 flex flex-col gap-2">
-                                              {/* Status text first */}
-                                              {isFinished && <RelatorioFiscalizacao fiscalizacao={fisc} showStatusOnly />}
-                                              {/* Row with all buttons aligned horizontally to left */}
-                                              <div className="flex gap-2 items-center justify-start">
-                                                  <HistoricoFiscalizacao fiscalizacao={fisc} />
+                                            </div>
+                                            <ChevronDown className={`h-5 w-5 text-gray-300 flex-shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                        </button>
 
-                                                  {isFinished ? (
-                                                      <>
-                                                          <RelatorioFiscalizacao fiscalizacao={fisc} showButtonsOnly />
-                                                          {podeDeleter && (
-                                                              <Button
-                                                                  variant="outline"
-                                                                  size="sm"
-                                                                  className="text-amber-600 border-amber-200 hover:bg-amber-50 h-9 rounded-xl font-medium"
-                                                                  disabled={reabrirFiscalizacaoMutation.isPending}
-                                                                  onClick={(e) => {
-                                                                      e.preventDefault();
-                                                                      e.stopPropagation();
-                                                                      if (window.confirm("Deseja reabrir esta fiscalização para edição? O relatório anterior será mantido até que você finalize novamente.")) {
-                                                                          reabrirFiscalizacaoMutation.mutate(fisc.id);
-                                                                      }
-                                                                  }}
-                                                              >
-                                                                  <RotateCcw className={`h-4 w-4 mr-1.5 ${reabrirFiscalizacaoMutation.isPending ? 'animate-spin' : ''}`} />
-                                                                  {reabrirFiscalizacaoMutation.isPending ? 'Reabrindo...' : 'Reabrir Edição'}
-                                                              </Button>
-                                                          )}
-                                                      </>
-                                                  ) : (
-                                                      <Button
-                                                          className="bg-[#0066B3] hover:bg-[#004A8F] text-white h-9 rounded-xl font-medium text-xs"
-                                                          size="sm"
-                                                          disabled={
-                                                              !online || !sessionValid || finalizarFiscalizacaoMutation.isPending
-                                                          }
-                                                          onClick={(e) => {
-                                                              e.preventDefault();
-                                                              e.stopPropagation();
-                                                              setMostrarConfirmacaoFinalizacao({ open: true, fiscId: fisc.id });
-                                                          }}
-                                                      >
-                                                          <CheckCircle2 className="h-4 w-4 mr-1.5" />
-                                                          {finalizarFiscalizacaoMutation.isPending ? 'Finalizando...' : 'Finalizar Fiscalização'}
-                                                      </Button>
-                                                  )}
-                                              </div>
-                                          </div>
-                                     </CardContent>
+                                        {/* Detalhes — só aparecem expandido */}
+                                        {isExpanded && (
+                                            <div className="px-4 sm:px-5 pb-5 border-t border-gray-100">
+                                                <div className="pt-4">
+                                                    <p className="text-xs text-gray-400 flex items-center gap-1">
+                                                        <Calendar className="h-3 w-3" />
+                                                        {format(new Date(fisc.data_inicio), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                                                    </p>
+                                                    {fisc.fiscal_nome && (
+                                                        <p className="text-xs text-gray-400 mt-0.5">Fiscal: {fisc.fiscal_nome}</p>
+                                                    )}
+                                                    {fisc.last_modified_by && (
+                                                        <p className="text-xs text-gray-400 mt-0.5">
+                                                            Última alt.: {fisc.last_modified_by} {fisc.last_modified_at ? `em ${format(new Date(fisc.last_modified_at), 'dd/MM HH:mm', { locale: ptBR })}` : ''}
+                                                        </p>
+                                                    )}
+                                                </div>
+
+                                                {/* Stats */}
+                                                {(total_constatacoes > 0 || total_ncs > 0) && (
+                                                    <div className="flex gap-4 mt-3 pt-3 border-t border-gray-100 text-xs">
+                                                        <span className="flex items-center gap-1 text-emerald-600 font-medium">
+                                                            <CheckCircle2 className="h-3 w-3" />
+                                                            {total_constatacoes} Constatações
+                                                        </span>
+                                                        <span className="flex items-center gap-1 text-rose-600 font-medium">
+                                                            <AlertTriangle className="h-3 w-3" />
+                                                            {total_ncs} NCs
+                                                        </span>
+                                                    </div>
+                                                )}
+
+                                                {/* Ações da Fiscalização */}
+                                                <div className="mt-4 pt-4 border-t border-gray-100 flex flex-col gap-2">
+                                                    {isFinished && <RelatorioFiscalizacao fiscalizacao={fisc} showStatusOnly />}
+                                                    <div className="flex flex-wrap gap-2 items-center">
+                                                        <Link
+                                                            to={createPageUrl('ExecutarFiscalizacao') + `?id=${fisc.id}`}
+                                                            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-semibold text-[#0066B3] border border-blue-200 hover:bg-blue-50"
+                                                        >
+                                                            Abrir Fiscalização
+                                                            <ChevronRight className="h-3.5 w-3.5" />
+                                                        </Link>
+                                                        <HistoricoFiscalizacao fiscalizacao={fisc} />
+
+                                                        {isFinished ? (
+                                                            <>
+                                                                <RelatorioFiscalizacao fiscalizacao={fisc} showButtonsOnly />
+                                                                {podeDeleter && (
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        size="sm"
+                                                                        className="text-amber-600 border-amber-200 hover:bg-amber-50 h-9 rounded-xl font-medium"
+                                                                        disabled={reabrirFiscalizacaoMutation.isPending}
+                                                                        onClick={(e) => {
+                                                                            e.preventDefault();
+                                                                            e.stopPropagation();
+                                                                            if (window.confirm("Deseja reabrir esta fiscalização para edição? O relatório anterior será mantido até que você finalize novamente.")) {
+                                                                                reabrirFiscalizacaoMutation.mutate(fisc.id);
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        <RotateCcw className={`h-4 w-4 mr-1.5 ${reabrirFiscalizacaoMutation.isPending ? 'animate-spin' : ''}`} />
+                                                                        {reabrirFiscalizacaoMutation.isPending ? 'Reabrindo...' : 'Reabrir Edição'}
+                                                                    </Button>
+                                                                )}
+                                                            </>
+                                                        ) : (
+                                                            <Button
+                                                                variant="brand"
+                                                                className="h-9 font-medium text-xs"
+                                                                size="sm"
+                                                                disabled={
+                                                                    !online || !sessionValid || finalizarFiscalizacaoMutation.isPending
+                                                                }
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    e.stopPropagation();
+                                                                    setMostrarConfirmacaoFinalizacao({ open: true, fiscId: fisc.id });
+                                                                }}
+                                                            >
+                                                                <CheckCircle2 className="h-4 w-4 mr-1.5" />
+                                                                {finalizarFiscalizacaoMutation.isPending ? 'Finalizando...' : 'Finalizar Fiscalização'}
+                                                            </Button>
+                                                        )}
+
+                                                        {podeDeleter && (
+                                                            <AlertDialog
+                                                                open={deleteConfirmation.open && deleteConfirmation.fiscId === fisc.id}
+                                                                onOpenChange={(open) => {
+                                                                    if (!open) {
+                                                                        setDeleteConfirmation({ open: false, fiscId: null, step: 1, inputValue: '' });
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 h-9 rounded-xl ml-auto"
+                                                                    onClick={(e) => {
+                                                                        e.preventDefault();
+                                                                        if (!online) {
+                                                                            alert('Exclusão disponível apenas quando online.');
+                                                                            return;
+                                                                        }
+                                                                        setDeleteConfirmation({ open: true, fiscId: fisc.id, step: 1, inputValue: '' });
+                                                                    }}
+                                                                >
+                                                                    <Trash2 className="h-4 w-4" />
+                                                                </Button>
+                                                                <AlertDialogContent>
+                                                                    {deleteConfirmation.step === 1 ? (
+                                                                        <>
+                                                                            <AlertDialogHeader>
+                                                                                <AlertDialogTitle className="flex items-center gap-2 text-rose-600">
+                                                                                    <AlertTriangle className="h-5 w-5" />
+                                                                                    Excluir Fiscalização?
+                                                                                </AlertDialogTitle>
+                                                                                <AlertDialogDescription className="space-y-2" asChild>
+                                                                                    <div>
+                                                                                        <p>Você está prestes a excluir permanentemente:</p>
+                                                                                        <p className="font-semibold text-gray-900">{fisc.numero_termo} - {fisc.municipio_nome}</p>
+                                                                                        <p className="text-rose-600">Esta ação não pode ser desfeita e removerá todas as unidades, NCs, determinações e dados relacionados.</p>
+                                                                                    </div>
+                                                                                </AlertDialogDescription>
+                                                                            </AlertDialogHeader>
+                                                                            <AlertDialogFooter>
+                                                                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                                                <Button
+                                                                                    variant="destructive"
+                                                                                    disabled={!online}
+                                                                                    onClick={() => setDeleteConfirmation(prev => ({ ...prev, step: 2 }))}
+                                                                                >
+                                                                                    Continuar
+                                                                                </Button>
+                                                                            </AlertDialogFooter>
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            <AlertDialogHeader>
+                                                                                <AlertDialogTitle className="flex items-center gap-2 text-rose-600">
+                                                                                    <AlertTriangle className="h-5 w-5" />
+                                                                                    Confirmação Final
+                                                                                </AlertDialogTitle>
+                                                                                <AlertDialogDescription className="space-y-3" asChild>
+                                                                                    <div>
+                                                                                        <p>Para confirmar a exclusão, digite <span className="font-bold">EXCLUIR</span> no campo abaixo:</p>
+                                                                                        <Input
+                                                                                            placeholder="Digite EXCLUIR"
+                                                                                            value={deleteConfirmation.inputValue}
+                                                                                            onChange={(e) => setDeleteConfirmation(prev => ({ ...prev, inputValue: e.target.value }))}
+                                                                                            className="mt-2"
+                                                                                        />
+                                                                                    </div>
+                                                                                </AlertDialogDescription>
+                                                                            </AlertDialogHeader>
+                                                                            <AlertDialogFooter>
+                                                                                <AlertDialogCancel onClick={() => setDeleteConfirmation({ open: false, fiscId: null, step: 1, inputValue: '' })}>
+                                                                                    Cancelar
+                                                                                </AlertDialogCancel>
+                                                                                <Button
+                                                                                    variant="destructive"
+                                                                                    disabled={!online || deleteConfirmation.inputValue !== 'EXCLUIR' || deletarFiscalizacaoMutation.isPending}
+                                                                                    onClick={() => deletarFiscalizacaoMutation.mutate(fisc.id)}
+                                                                                >
+                                                                                    {deletarFiscalizacaoMutation.isPending ? 'Excluindo...' : 'Excluir Permanentemente'}
+                                                                                </Button>
+                                                                            </AlertDialogFooter>
+                                                                        </>
+                                                                    )}
+                                                                </AlertDialogContent>
+                                                            </AlertDialog>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </CardContent>
                                 </Card>
                             );
                         })}

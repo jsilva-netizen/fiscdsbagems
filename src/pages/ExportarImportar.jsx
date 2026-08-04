@@ -535,7 +535,7 @@ export default function ExportarImportar() {
                 </AlertDescription>
               </Alert>
             )}
-            <Button onClick={importarDados} disabled={importando || !previewImport} className="w-full bg-[#0066B3] hover:bg-[#004A8F]">
+            <Button onClick={importarDados} disabled={importando || !previewImport} variant="brand" className="w-full">
               {importando ? (
                 <><Loader2 className="h-4 w-4 animate-spin mr-2" />Importando...</>
               ) : (
