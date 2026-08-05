@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, LogOut, Settings, ChevronDown } from 'lucide-react';
+import { Menu, LogOut, Settings, ChevronDown, Loader2 } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { useAuth } from '@/lib/AuthContext';
 import { useModulo, CAMARAS_POR_DIRETORIA } from '@/hooks/useModulo';
@@ -141,6 +141,18 @@ export default function AppShell({
   const navigate = useNavigate();
   const { open: sidebarOpen, isDesktop, toggle: toggleSidebar, close: closeSidebar } = useSidebarOpen();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const handleLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try {
+      await logout();
+    } catch (err) {
+      alert(err?.message || 'Não foi possível sair.');
+    } finally {
+      setLoggingOut(false);
+    }
+  };
 
   const camarasDoModulo = diretoria ? (CAMARAS_POR_DIRETORIA[diretoria] ?? []) : [];
   const currentCamaraId = camarasDoModulo.find((c) => c.sigla === sigla)?.id;
@@ -233,10 +245,16 @@ export default function AppShell({
                 )}
                 <button
                   type="button"
-                  onClick={logout}
-                  className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                  onClick={handleLogout}
+                  disabled={loggingOut}
+                  className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-60"
                 >
-                  <LogOut className="h-4 w-4 text-gray-400" /> Sair
+                  {loggingOut ? (
+                    <Loader2 className="h-4 w-4 text-gray-400 animate-spin" />
+                  ) : (
+                    <LogOut className="h-4 w-4 text-gray-400" />
+                  )}
+                  {loggingOut ? 'Saindo...' : 'Sair'}
                 </button>
               </div>
             )}

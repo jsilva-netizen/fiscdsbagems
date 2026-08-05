@@ -1,20 +1,43 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useOnlineStatus } from '@/lib/OnlineStatusContext.jsx';
 
 const AuthContext = createContext();
+
+const AUTH_CACHE_KEY = 'agms_auth_cache_v1';
+const LOGOUT_INTENT_KEY = 'agms_logout_intent_v1';
+const AUTH_CACHE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+// Precisa ser maior que LOGOUT_TIMEOUT_MS (ver logout() abaixo): o evento SIGNED_OUT
+// só chega depois que supabase.auth.signOut() resolve de verdade (ou o teto local
+// expira), e se essa janela de "intenção" já tiver fechado quando o evento chega, o
+// listener trata como sessão perdida por acidente e restaura do cache — ou seja,
+// clicar em "Sair" te loga de volta sozinho. Ver AGENTS/histórico: bug relatado
+// como "clico em sair, trava, e volta pra página inicial".
+const LOGOUT_INTENT_MAX_AGE_MS = 60 * 1000;
+const PROFILE_FETCH_TIMEOUT_MS = 4000;
+// supabase.auth.signOut() não tem timeout próprio e depende de round-trip de rede
+// pra revogar o token no servidor. Depois de o app ficar muito tempo em segundo
+// plano/idle, a conexão costuma estar "morta" e esse await pode travar por dezenas
+// de segundos sem nunca rejeitar. Damos um teto curto e limpamos o estado local de
+// qualquer forma, pra o botão "Sair" nunca ficar parado esperando a rede.
+const LOGOUT_TIMEOUT_MS = 4000;
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const { online } = useOnlineStatus();
+  // O listener do onAuthStateChange e o checkUserStatus são montados uma única vez
+  // (useEffect com deps []), então um `online` capturado direto no closure ficaria
+  // congelado no valor do primeiro render. Uma ref sempre lida na hora do evento
+  // garante que a checagem de conectividade reflita o estado atual.
+  const onlineRef = useRef(online);
+  useEffect(() => {
+    onlineRef.current = online;
+  }, [online]);
 
   useEffect(() => {
-    const AUTH_CACHE_KEY = 'agms_auth_cache_v1';
-    const LOGOUT_INTENT_KEY = 'agms_logout_intent_v1';
-    const AUTH_CACHE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
-    const LOGOUT_INTENT_MAX_AGE_MS = 10 * 1000;
-    const PROFILE_FETCH_TIMEOUT_MS = 4000;
 
     const readAuthCache = () => {
       try {
@@ -112,7 +135,10 @@ export const AuthProvider = ({ children }) => {
         if (error) {
           profile = null;
         }
-        if (profile && profile.ativo === false) {
+        if (profile && profile.ativo === false && onlineRef.current) {
+          // Só desloga por desativação quando de fato online e confirmado pelo
+          // servidor — offline, o app nunca desloga (ver logout() e o handler de
+          // SIGNED_OUT abaixo).
           await supabase.auth.signOut();
           clearAuthCache();
           setUser(null);
@@ -188,6 +214,22 @@ export const AuthProvider = ({ children }) => {
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (cancelled) return;
       if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+        if (!onlineRef.current) {
+          // Nunca desloga enquanto offline, de forma alguma — um fiscal em campo sem
+          // sinal no meio de uma vistoria ficaria trancado fora do app sem conseguir
+          // logar de novo. Ignora o evento e mantém (ou restaura do cache) a sessão
+          // atual até a conectividade voltar; o listener roda de novo quando o
+          // Supabase client tentar de fato confirmar o estado com o servidor.
+          consumeLogoutIntent();
+          const cache = readAuthCache();
+          if (cache?.user) {
+            setUser(cache.user);
+            setSession(cache.session || null);
+            setIsAuthenticated(true);
+          }
+          setIsLoading(false);
+          return;
+        }
         const isUserDeleted = event === 'USER_DELETED';
         const manual = !isUserDeleted && consumeLogoutIntent();
         if (manual || isUserDeleted) {
@@ -277,16 +319,35 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
+    if (!online) {
+      // Nunca desloga offline: sem conexão pra reautenticar depois, sair aqui
+      // trancaria o usuário (tipicamente um fiscal em campo, sem sinal, no meio de
+      // uma vistoria) fora do app até recuperar internet.
+      throw new Error('Sem conexão com a internet. Não é possível sair enquanto o app estiver offline.');
+    }
+
     try {
-      localStorage.setItem('agms_logout_intent_v1', String(Date.now()));
+      localStorage.setItem(LOGOUT_INTENT_KEY, String(Date.now()));
     } catch {
     }
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+
     try {
-      localStorage.removeItem('agms_auth_cache_v1');
+      await Promise.race([
+        supabase.auth.signOut(),
+        new Promise((resolve) => setTimeout(resolve, LOGOUT_TIMEOUT_MS)),
+      ]);
+    } catch {
+      // Mesmo se a chamada de rede falhar, o logout local abaixo garante que o
+      // usuário saia da sessão no dispositivo.
+    }
+
+    try {
+      localStorage.removeItem(AUTH_CACHE_KEY);
     } catch {
     }
+    setUser(null);
+    setSession(null);
+    setIsAuthenticated(false);
   };
 
   return (

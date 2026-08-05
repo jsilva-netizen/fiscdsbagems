@@ -291,17 +291,19 @@ export default function GerenciarUsuarios() {
                             <CardContent className="p-4">
                                 <div className="grid gap-2">
                                     <Label htmlFor="deleteEmail">Excluir usuário por e-mail</Label>
-                                    <div className="flex gap-2">
+                                    <div className="flex flex-col sm:flex-row gap-2">
                                         <Input
                                             id="deleteEmail"
                                             type="email"
                                             placeholder="email@exemplo.com"
                                             value={deleteEmail}
                                             onChange={(e) => setDeleteEmail(e.target.value)}
+                                            className="flex-1 min-w-0"
                                         />
                                         <Button
                                             variant="destructive"
                                             disabled={!deleteEmail || deleteUserByEmailMutation.isPending}
+                                            className="flex-shrink-0"
                                             onClick={() => {
                                                 const email = deleteEmail.trim();
                                                 if (!email) return;
@@ -333,10 +335,10 @@ export default function GerenciarUsuarios() {
                                 {usuarios.map(usuario => (
                                     <Card key={usuario.id} className="border border-gray-200 rounded-2xl shadow-sm bg-white hover:shadow-md transition-all">
                                         <CardContent className="p-5">
-                                            <div className="flex items-start justify-between">
-                                                <div className="flex-1">
-                                                    <div className="flex items-center gap-3 mb-2">
-                                                        <h3 className="font-semibold text-lg">{usuario.full_name}</h3>
+                                            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                                        <h3 className="font-semibold text-lg break-words">{usuario.full_name}</h3>
                                                         {(() => {
                                                             const role = (usuario.role === 'user' ? 'fiscal' : usuario.role) || 'fiscal'
                                                             const roleLabelMap = { admin: 'Admin', fiscal: 'Fiscal', prestador: 'Prestador', coordenador: 'Coordenador' }
@@ -353,9 +355,9 @@ export default function GerenciarUsuarios() {
                                                             </Badge>
                                                         )}
                                                     </div>
-                                                    <div className="flex items-center gap-1 text-sm text-gray-600 mb-3">
-                                                        <Mail className="h-4 w-4" />
-                                                        {usuario.email}
+                                                    <div className="flex items-center gap-1 text-sm text-gray-600 mb-3 min-w-0">
+                                                        <Mail className="h-4 w-4 flex-shrink-0" />
+                                                        <span className="truncate">{usuario.email}</span>
                                                     </div>
                                                     {usuario.role === 'prestador' && (
                                                         <div className="text-sm text-gray-700 mb-2">
@@ -385,14 +387,14 @@ export default function GerenciarUsuarios() {
                                                         Criado em {(usuario.created_at || usuario.created_date) ? new Date(usuario.created_at || usuario.created_date).toLocaleDateString('pt-BR') : '-'}
                                                     </p>
                                                 </div>
-                                                <div className="flex gap-2">
+                                                <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                                                     {usuario.id !== currentUser?.id && (
                                                         <>
                                                             <Select
                                                                 value={(usuario.role === 'user' ? 'fiscal' : usuario.role) || 'fiscal'}
                                                                 onValueChange={(newRole) => handleChangeRole(usuario.id, newRole)}
                                                             >
-                                                                <SelectTrigger className="w-32">
+                                                                <SelectTrigger className="w-[calc(50%-0.25rem)] sm:w-32">
                                                                     <SelectValue />
                                                                 </SelectTrigger>
                                                                 <SelectContent>
@@ -416,7 +418,7 @@ export default function GerenciarUsuarios() {
                                                                         }
                                                                     }}
                                                                 >
-                                                                    <SelectTrigger className="w-36">
+                                                                    <SelectTrigger className="w-[calc(50%-0.25rem)] sm:w-36">
                                                                         <SelectValue />
                                                                     </SelectTrigger>
                                                                     <SelectContent>
@@ -438,7 +440,7 @@ export default function GerenciarUsuarios() {
                                                                         });
                                                                     }}
                                                                 >
-                                                                    <SelectTrigger className="w-44">
+                                                                    <SelectTrigger className="w-[calc(50%-0.25rem)] sm:w-44">
                                                                         <SelectValue placeholder="Câmara técnica" />
                                                                     </SelectTrigger>
                                                                     <SelectContent>
