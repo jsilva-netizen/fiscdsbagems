@@ -17,11 +17,56 @@ import TermosKPI from '@/components/termos/TermosKPI';
 import TermosFiltros from '@/components/termos/TermosFiltros';
 import { deleteTermoNotificacaoComDependencias } from '@/lib/storageCleanup';
 import { Repository } from '@/lib/offline/repository';
-import { useModulo } from '@/hooks/useModulo';
+import { useModulo, MODULOS_POR_DIRETORIA } from '@/hooks/useModulo';
 import AdminShell from '@/components/layout/AdminShell';
 
 let cachedTermosBucketName = null;
 let cachedAvailableBuckets = null;
+
+// Fiscalizações sem tipo_modulo são registros legados de antes da separação DSB/DTR —
+// tratadas como DSB por padrão (mesmo critério usado em Fiscalizacoes.jsx). Sem esse
+// filtro, Termos de Notificação (página exclusiva da DSB) listaria fiscalizações da DTR.
+const DSB_MODULOS = MODULOS_POR_DIRETORIA.dsb;
+const isFiscalizacaoDSB = (f) => !f?.tipo_modulo || DSB_MODULOS.includes(f.tipo_modulo);
+
+// Extrai { numero, ano } de um número de termo (ex.: "TN 003/2026/DSB/AGEMS").
+// Usado tanto para calcular o próximo número quanto para ordenar a listagem.
+const parseNumeroTermo = (v, row) => {
+    const raw = String(v || '').trim();
+    if (!raw) return null;
+    const inferAno = () => {
+        const base = row?.data_geracao || row?.created_at || row?.updated_at || null;
+        const y = base ? new Date(base).getFullYear() : NaN;
+        return Number.isFinite(y) ? y : new Date().getFullYear();
+    };
+    const m1 = raw.match(/TN\s*0*(\d+)\s*\/\s*(\d{4})/i);
+    if (m1?.[1] && m1?.[2]) {
+        const n = parseInt(m1[1], 10);
+        const y = parseInt(m1[2], 10);
+        if (!Number.isFinite(n) || n <= 0 || !Number.isFinite(y) || y <= 2000) return null;
+        return { numero: n, ano: y };
+    }
+    const m1b = raw.match(/^\s*0*(\d+)\s*\/\s*(\d{4})(?:\s*\/.*)?$/);
+    if (m1b?.[1] && m1b?.[2]) {
+        const n = parseInt(m1b[1], 10);
+        const y = parseInt(m1b[2], 10);
+        if (!Number.isFinite(n) || n <= 0 || !Number.isFinite(y) || y <= 2000) return null;
+        return { numero: n, ano: y };
+    }
+    const m2 = raw.match(/TN\s*0*(\d+)/i);
+    if (m2?.[1]) {
+        const n = parseInt(m2[1], 10);
+        if (!Number.isFinite(n) || n <= 0) return null;
+        return { numero: n, ano: inferAno() };
+    }
+    const m3 = raw.match(/^\s*0*(\d+)\s*$/);
+    if (m3?.[1]) {
+        const n = parseInt(m3[1], 10);
+        if (!Number.isFinite(n) || n <= 0) return null;
+        return { numero: n, ano: inferAno() };
+    }
+    return null;
+};
 
 export default function GerenciarTermos() {
     const { camaraTecnica } = useModulo();
@@ -108,7 +153,7 @@ export default function GerenciarTermos() {
         queryFn: async () => {
             const { data, error } = await supabase.from('fiscalizacoes').select('*');
             if (error) throw error;
-            return data;
+            return (data || []).filter(isFiscalizacaoDSB);
         }
     });
 
@@ -152,53 +197,11 @@ export default function GerenciarTermos() {
     useEffect(() => {
         if (showDialog && !termoForm.numero_termo_notificacao) {
             const ano = new Date().getFullYear();
-            
-            const inferAnoFromRow = (row) => {
-                const base = row?.data_geracao || row?.created_at || row?.updated_at || null;
-                if (!base) return ano;
-                const d = new Date(base);
-                const y = d.getFullYear();
-                return Number.isFinite(y) ? y : ano;
-            };
-
-            const extractTNInfo = (v, row) => {
-                const raw = String(v || '').trim();
-                if (!raw) return null;
-                const m1 = raw.match(/TN\s*0*(\d+)\s*\/\s*(\d{4})/i);
-                if (m1?.[1] && m1?.[2]) {
-                    const n = parseInt(m1[1], 10);
-                    const y = parseInt(m1[2], 10);
-                    if (!Number.isFinite(n) || n <= 0) return null;
-                    if (!Number.isFinite(y) || y <= 2000) return null;
-                    return { numero: n, ano: y };
-                }
-                const m1b = raw.match(/^\s*0*(\d+)\s*\/\s*(\d{4})(?:\s*\/.*)?$/);
-                if (m1b?.[1] && m1b?.[2]) {
-                    const n = parseInt(m1b[1], 10);
-                    const y = parseInt(m1b[2], 10);
-                    if (!Number.isFinite(n) || n <= 0) return null;
-                    if (!Number.isFinite(y) || y <= 2000) return null;
-                    return { numero: n, ano: y };
-                }
-                const m2 = raw.match(/TN\s*0*(\d+)/i);
-                if (m2?.[1]) {
-                    const n = parseInt(m2[1], 10);
-                    if (!Number.isFinite(n) || n <= 0) return null;
-                    return { numero: n, ano: inferAnoFromRow(row) };
-                }
-                const m3 = raw.match(/^\s*0*(\d+)\s*$/);
-                if (m3?.[1]) {
-                    const n = parseInt(m3[1], 10);
-                    if (!Number.isFinite(n) || n <= 0) return null;
-                    return { numero: n, ano: inferAnoFromRow(row) };
-                }
-                return null;
-            };
 
             let maiorNumero = 0;
             termos.forEach(termo => {
                 const numeroTermo = termo.numero_termo_notificacao || termo.numero_termo || '';
-                const info = extractTNInfo(numeroTermo, termo);
+                const info = parseNumeroTermo(numeroTermo, termo);
                 if (!info) return;
                 if (info.ano !== ano) return;
                 if (info.numero > maiorNumero) maiorNumero = info.numero;
@@ -673,6 +676,16 @@ export default function GerenciarTermos() {
         if (filtros.dataInicio && new Date(termo.data_geracao) < new Date(filtros.dataInicio)) return false;
         if (filtros.dataFim && new Date(termo.data_geracao) > new Date(filtros.dataFim)) return false;
         return true;
+    }).sort((a, b) => {
+        const infoA = parseNumeroTermo(a.numero_termo_notificacao || a.numero_termo, a);
+        const infoB = parseNumeroTermo(b.numero_termo_notificacao || b.numero_termo, b);
+        if (infoA && infoB) {
+            if (infoA.ano !== infoB.ano) return infoB.ano - infoA.ano;
+            return infoB.numero - infoA.numero;
+        }
+        if (infoA) return -1;
+        if (infoB) return 1;
+        return String(b.numero_termo_notificacao || '').localeCompare(String(a.numero_termo_notificacao || ''));
     });
 
     const getStatusBadge = (status) => {

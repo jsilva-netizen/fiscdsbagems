@@ -26,7 +26,6 @@ export default function ResponderTermo() {
   const [uploadingTnPrestador, setUploadingTnPrestador] = useState(false);
   const [enviandoTermoEnvio, setEnviandoTermoEnvio] = useState(false);
   const [evidenciasOpen, setEvidenciasOpen] = useState(false);
-  const [signedFotosByKey, setSignedFotosByKey] = useState({});
   const [salvandoDetId, setSalvandoDetId] = useState(null);
   const tnPrestadorFileInputRef = useRef(null);
 
@@ -344,9 +343,21 @@ export default function ResponderTermo() {
     return String(url || `${unidadeId}:${idx}`);
   };
 
-  const resolveFotoUrl = (foto, unidadeId, idx) => {
-    const k = fotoKey(foto, unidadeId, idx);
-    return signedFotosByKey[k] || '';
+  // O bucket 'fotos_fiscalizacao' é público (ver migration 044), então a URL pode ser
+  // resolvida na hora, sem round-trip ao Supabase — evita a tela de evidências ficar
+  // "Carregando..." indefinidamente à espera de assinar cada foto uma por vez.
+  const resolveFotoUrl = (foto) => {
+    if (!foto) return '';
+    if (foto.bucket && foto.path) {
+      return supabase.storage.from(foto.bucket).getPublicUrl(foto.path).data?.publicUrl || '';
+    }
+    const url = typeof foto === 'string' ? foto : foto.url;
+    if (!url) return '';
+    const parsed = Repository.parseStorageUrl(url);
+    if (parsed) {
+      return supabase.storage.from(parsed.bucket).getPublicUrl(parsed.path).data?.publicUrl || '';
+    }
+    return url;
   };
 
   const fotosPorUnidade = useMemo(() => {
@@ -487,33 +498,6 @@ export default function ResponderTermo() {
     }
     return false;
   }, [fotosPorUnidade]);
-
-  useEffect(() => {
-    if (!evidenciasOpen) return;
-    let cancelled = false;
-    const run = async () => {
-      const next = {};
-      for (const item of fotosPorUnidade) {
-        const unidadeId = item?.unidade?.id || 'unidade';
-        const fotos = Array.isArray(item?.fotos) ? item.fotos : [];
-        for (let i = 0; i < fotos.length; i++) {
-          const foto = fotos[i];
-          const k = fotoKey(foto, unidadeId, i);
-          if (next[k]) continue;
-          try {
-            const source = typeof foto === 'string' ? foto : foto?.url ? foto : foto;
-            const signed = await Repository.getSignedUrlFromAny(source);
-            if (signed) next[k] = signed;
-          } catch {}
-        }
-      }
-      if (!cancelled) setSignedFotosByKey(next);
-    };
-    void run();
-    return () => {
-      cancelled = true;
-    };
-  }, [evidenciasOpen, fotosPorUnidade]);
 
   const allDeterminacoesRespondidas = useMemo(() => {
     return (determinacoes || []).every((d) => {
@@ -990,7 +974,7 @@ export default function ResponderTermo() {
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       {fotos.map((foto, idx) => {
-                        const src = resolveFotoUrl(foto, unidade.id, idx);
+                        const src = resolveFotoUrl(foto);
                         const legenda = typeof foto === 'object' && foto ? foto.legenda : '';
                         const k = fotoKey(foto, unidade.id, idx);
                         return (
@@ -1004,7 +988,7 @@ export default function ResponderTermo() {
                               />
                             ) : (
                               <div className="w-full h-32 bg-gray-100 flex items-center justify-center text-xs text-gray-500">
-                                Carregando...
+                                Sem imagem
                               </div>
                             )}
                             {legenda ? <div className="text-xs text-gray-700 p-2">{legenda}</div> : null}
