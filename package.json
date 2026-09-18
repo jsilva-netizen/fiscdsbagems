@@ -9,6 +9,8 @@
     "lint": "eslint . --quiet",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc -p ./jsconfig.json",
+    "test:unit": "vitest run",
+    "test:e2e": "playwright test",
     "preview": "vite preview",
     "tunnel": "npm run build && powershell -NoProfile -Command \"$port=4173; while (Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue) { $port++ }; Start-Process -FilePath 'cmd.exe' -ArgumentList @('/c', \\\"npm run preview -- --host 127.0.0.1 --port $port\\\") -WindowStyle Hidden; Start-Sleep -Seconds 3; npx --yes localtunnel --port $port\"",
     "tunnel:ngrok": "npm run build && powershell -NoProfile -Command \"Start-Process -FilePath 'cmd.exe' -ArgumentList '/c','npm run preview -- --host 127.0.0.1 --port 4180' -WindowStyle Hidden; Start-Sleep -Seconds 3; ngrok http --region sa http://127.0.0.1:4180\""
@@ -89,9 +91,11 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.19.0",
+    "@playwright/test": "^1.63.0",
     "@types/node": "^22.13.5",
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.22",
+    "@typescript-eslint/parser": "^8.70.0",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
     "baseline-browser-mapping": "^2.8.32",
@@ -101,11 +105,13 @@
     "eslint-plugin-react-refresh": "^0.4.20",
     "eslint-plugin-unused-imports": "^4.3.0",
     "globals": "^15.14.0",
+    "jsdom": "^29.1.1",
     "postcss": "^8.5.3",
     "supabase": "^2.103.0",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.2",
     "vite": "^6.1.0",
-    "vite-plugin-pwa": "^1.2.0"
+    "vite-plugin-pwa": "^1.2.0",
+    "vitest": "^5.0.1"
   }
 }
