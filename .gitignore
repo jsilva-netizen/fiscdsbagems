@@ -32,3 +32,35 @@ dev-dist
 
 .env
 .tokensave
+
+# Binarios e executaveis (nunca versionar)
+*.exe
+*.dll
+*.zip
+*.7z
+
+# Pastas temporarias de sincronizacao do Google Drive
+.tmp.drivedownload/
+.tmp.driveupload/
+
+# Rascunho e saidas de build/diagnostico
+scratch/
+build_output.txt
+temp_working_*
+
+# Artefatos locais do Supabase CLI
+supabase/.temp/
+supabase/.branches/
+
+# Arquivos soltos na raiz, orfaos ou duplicados de src/
+/ExportarImportar.jsx
+/exportarFiscalizacoes.ts
+/check_policies.js
+/check_units.js
+
+# Documentacao do SISREG (sistema de terceiros; contem credencial padrao)
+sisreg/
+
+# Bytecode Python (scripts do Spec Kit)
+__pycache__/
+*.pyc
