@@ -156,7 +156,7 @@ ordem.
 
 ### Caracterização (antes de qualquer migração de código — referência de comportamento atual)
 
-- [ ] T026 [US1] Escrever `tests/e2e/offline/ciclo-completo.spec.ts`: dispositivo offline →
+- [X] T026 [US1] Escrever `tests/e2e/offline/ciclo-completo.spec.ts`: dispositivo offline →
   criar fiscalização → adicionar unidade → responder checklist completo → capturar foto
   (simulada) com GPS → encerrar unidade → reconectar → verificar sincronização íntegra,
   **rodando contra o código atual** (ainda sem a camada) como linha de base

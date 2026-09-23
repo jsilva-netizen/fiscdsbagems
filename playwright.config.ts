@@ -5,6 +5,8 @@ import { defineConfig, devices } from '@playwright/test'
 // Ver research.md D1 e D10 (offline é o caso de maior risco desta fase).
 export default defineConfig({
   testDir: './tests/e2e',
+  globalSetup: './tests/support/global-setup.ts',
+  globalTeardown: './tests/support/global-teardown.ts',
   timeout: 60_000,
   expect: {
     timeout: 10_000,

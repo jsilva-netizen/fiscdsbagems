@@ -70,7 +70,85 @@ export function pngMinimoDeTeste(nome = 'foto-teste.png'): { name: string; mimeT
  * `seletorIndicadorFila` deve apontar para o elemento que a UI usa hoje para sinalizar
  * pendência de sincronização (SyncStatusContext.jsx) — passado pelo teste porque o texto/
  * estado exato desse indicador é o que cada spec de US1 vai caracterizar.
+ *
+ * Achado ao escrever T026: as páginas do fluxo de campo do fiscal (NovaFiscalizacao,
+ * ExecutarFiscalizacao, VistoriarUnidade, AdicionarUnidade, Home) estão todas na lista
+ * `fullscreenPages` de `src/Layout.jsx` — nelas o `SyncBar` (único indicador visual de fila/
+ * sincronização hoje) **não é renderizado**. Não existe, portanto, elemento de UI para este
+ * seletor apontar nesse fluxo específico. Use `aguardarFilaVaziaIndexedDB` abaixo nesse caso.
  */
 export async function aguardarFilaSincronizada(page: Page, seletorIndicadorFila: string, timeoutMs = 30_000): Promise<void> {
   await page.locator(seletorIndicadorFila).waitFor({ state: 'hidden', timeout: timeoutMs })
+}
+
+/** Nome do banco Dexie da aplicação (`src/lib/offline/db.ts`, `super('agems_fiscalizacao_offline')`). */
+const DEXIE_DB_NAME = 'agems_fiscalizacao_offline'
+
+/**
+ * Conta registros de uma object store do Dexie diretamente via IndexedDB nativo, sem
+ * depender de nenhum estado exposto pelo app no `window`. Base para os dois helpers abaixo.
+ */
+async function contarRegistrosIndexedDB(page: Page, storeName: string): Promise<number> {
+  return page.evaluate((store) => {
+    return new Promise<number>((resolve, reject) => {
+      const req = indexedDB.open('agems_fiscalizacao_offline')
+      req.onerror = () => reject(req.error)
+      req.onsuccess = () => {
+        const db = req.result
+        if (!db.objectStoreNames.contains(store)) {
+          db.close()
+          resolve(0)
+          return
+        }
+        const tx = db.transaction(store, 'readonly')
+        const countReq = tx.objectStore(store).count()
+        countReq.onsuccess = () => {
+          resolve(countReq.result)
+          db.close()
+        }
+        countReq.onerror = () => {
+          reject(countReq.error)
+          db.close()
+        }
+      }
+    })
+  }, storeName)
+}
+
+/**
+ * Espera dado de referência (municípios, prestadores ou tipos de unidade) existir no Dexie
+ * local — usado ONLINE, antes de derrubar a rede, para confirmar que a sincronização
+ * automática de login (SyncStatusContext.jsx) já preencheu o que o formulário de campo
+ * precisa. Sem isto, `useQuery` de NovaFiscalizacao/AdicionarUnidade pode montar sobre Dexie
+ * ainda vazio e nunca refazer a busca sozinho — React Query não sabe que o Dexie mudou por
+ * fora dele.
+ */
+export async function aguardarReferenciasSincronizadas(
+  page: Page,
+  storeName: 'municipios' | 'prestadores' | 'tipos_unidade',
+  timeoutMs = 30_000
+): Promise<void> {
+  const inicio = Date.now()
+  while (Date.now() - inicio < timeoutMs) {
+    if ((await contarRegistrosIndexedDB(page, storeName)) > 0) return
+    await page.waitForTimeout(500)
+  }
+  throw new Error(
+    `[fixtures/offline] "${storeName}" continua vazio no Dexie após ${timeoutMs}ms — a ` +
+      'sincronização de login não preencheu os dados de referência a tempo.'
+  )
+}
+
+/**
+ * Espera `fila_mutacoes` (o outbox local) esvaziar após a rede voltar — a versão desta
+ * verificação que funciona nas páginas fullscreen do fluxo de campo, onde não há indicador
+ * de UI (ver comentário de `aguardarFilaSincronizada` acima).
+ */
+export async function aguardarFilaVaziaIndexedDB(page: Page, timeoutMs = 30_000): Promise<void> {
+  const inicio = Date.now()
+  while (Date.now() - inicio < timeoutMs) {
+    if ((await contarRegistrosIndexedDB(page, 'fila_mutacoes')) === 0) return
+    await page.waitForTimeout(500)
+  }
+  throw new Error(`[fixtures/offline] fila_mutacoes ainda não esvaziou após ${timeoutMs}ms.`)
 }

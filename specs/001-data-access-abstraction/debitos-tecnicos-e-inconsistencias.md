@@ -68,6 +68,37 @@ cliente, caminho offline). As duas precisam concordar hoje, mantidas por discipl
 sem teste de paridade. É o maior risco técnico de toda a migração — ver
 [rpcs-funcoes-e-triggers-postgres.md](./rpcs-funcoes-e-triggers-postgres.md), seção 1.
 
+### 4a. Opção B (geração só no servidor) precisa resolver edição offline de texto já gerado — sem isso não é segura
+
+Achado de 2026-09-21, ao avaliar concretamente a Opção B do item 4. Hoje o cliente não manda
+só respostas cruas: ele mesmo gera e sincroniza as linhas de `determinacoes`/`recomendacoes`
+offline (`syncDeterminacoesFromChecklist`/`syncRecomendacoesFromChecklist`,
+`repository.ts:870-1330`), indexadas por `origem` (`checklist:<item_id>` ou
+`manual_constatacao:<id>`), e o fiscal pode editar o texto gerado porque a linha **já existe
+localmente** no momento da edição.
+
+Duas propriedades já favorecem a Opção B e não precisam de decisão nova:
+
+- **Reordenar é irrelevante.** A geração é indexada por `item_checklist_id`/id da constatação,
+  nunca por posição na tela.
+- **Editar uma resposta (SIM↔NÃO) offline é seguro por construção**, porque
+  `gerar_ncs_unidade` já é full-recompute — relê o estado completo da unidade a cada execução,
+  deduplica por mais recente e apaga só órfãos. Tolera qualquer ordem de chegada, desde que
+  rode **depois** de todos os dados da unidade estarem sincronizados.
+
+O que falta resolver, e não é automático: se a geração passa a ser só do servidor, uma linha de
+`determinacoes`/`recomendacoes` **não existe no dispositivo** até o servidor rodar
+`gerar_ncs_unidade` sobre dados já sincronizados. Uma edição de texto feita offline, antes de
+qualquer sync, precisa ficar numa fila esperando a linha existir e ser aplicada **depois** que o
+servidor a criar — mecanismo que não existe hoje nem do lado cliente nem do lado servidor.
+
+**Decisão pendente, condição para escolher entre Opção A e B no `/speckit-plan` da fase
+Django**: desenhar (ou descartar, conscientemente) a aplicação diferida de edição offline a
+registro ainda não existente no servidor. Antes de decidir, escrever um cenário de teste e2e
+nomeado cobrindo, na mesma fiscalização e sem sync intermediário: responder checklist offline →
+editar uma resposta → inserir constatação manual offline → editar o texto de uma determinação
+gerada → sincronizar → conferir convergência com o resultado que o sistema atual produziria.
+
 ### 5. `itens_checklist` é append-only por design — nunca é atualizado nem apagado em linha
 
 Update e delete inserem linhas novas (uma ativa, opcionalmente uma "tombstone" inativa),
@@ -222,7 +253,7 @@ Estes precisam ser lidos com o mesmo rigor das seções 1-7 do documento de RPCs
 
 - **3 itens** exigem decisão de correção imediata (🔴), sendo o mais grave a numeração não
   atômica de documentos com efeito jurídico.
-- **8 itens** exigem decisão consciente de design na fase 2 (🟡), sem os quais a
+- **9 itens** exigem decisão consciente de design na fase 2 (🟡), sem os quais a
   reimplementação corre risco real de regressão silenciosa ou brecha de segurança.
 - **7 itens** são limpeza de baixo risco, adiável (🟢).
 - **5 itens** são apenas contexto (⚪).
