@@ -160,7 +160,7 @@ ordem.
   criar fiscalização → adicionar unidade → responder checklist completo → capturar foto
   (simulada) com GPS → encerrar unidade → reconectar → verificar sincronização íntegra,
   **rodando contra o código atual** (ainda sem a camada) como linha de base
-- [ ] T027 [US1] Escrever `tests/e2e/offline/fila-preexistente.spec.ts`: popular a fila local
+- [X] T027 [US1] Escrever `tests/e2e/offline/fila-preexistente.spec.ts`: popular a fila local
   (Dexie) como se fosse uma versão anterior do app, sem passar pela camada nova, e verificar
   que a sincronização a processa normalmente — cobre FR-006/FR-013 explicitamente
 - [ ] T028 [US1] Escrever `tests/e2e/offline/reconciliacao-exclusao-remota.spec.ts`:
