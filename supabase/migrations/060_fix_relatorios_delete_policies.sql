@@ -1,4 +1,5 @@
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+-- RLS já vem habilitada por padrão em storage.objects (ver migration 044); o ALTER
+-- explícito exige ownership que o papel de migração local não tem.
 
 DROP POLICY IF EXISTS "Authenticated Select relatorios_fiscalizacao" ON storage.objects;
 DROP POLICY IF EXISTS "Authenticated Insert relatorios_fiscalizacao" ON storage.objects;

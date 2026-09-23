@@ -4,8 +4,10 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('fotos_fiscalizacao', 'fotos_fiscalizacao', true)
 ON CONFLICT (id) DO NOTHING;
 
--- 2. Habilitar RLS (caso não esteja)
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+-- 2. RLS já vem habilitado por padrão em storage.objects (extensão Storage do Supabase,
+-- local e hospedado) — o ALTER explícito que existia aqui exige ser dono da tabela
+-- (supabase_storage_admin), o que o papel de migração local não é. Removido por ser
+-- redundante; não afeta a base hospedada, onde esta migration já está marcada como aplicada.
 
 -- 3. Remover políticas antigas para evitar conflitos (opcional, mas seguro)
 DROP POLICY IF EXISTS "Public Access" ON storage.objects;

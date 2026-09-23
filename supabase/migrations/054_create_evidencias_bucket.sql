@@ -2,7 +2,8 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('evidencias-determinacoes', 'evidencias-determinacoes', true)
 ON CONFLICT (id) DO NOTHING;
 
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+-- RLS já vem habilitada por padrão em storage.objects (ver migration 044); o ALTER
+-- explícito exige ownership que o papel de migração local não tem.
 
 CREATE POLICY "Public Access evidencias"
 ON storage.objects FOR SELECT

@@ -1,3 +1,8 @@
+-- Renomeia o primeiro parâmetro (unidade_fiscalizada_id -> p_unidade_fiscalizada_id);
+-- CREATE OR REPLACE não permite renomear parâmetro de função existente, exige DROP antes
+-- (mesmo padrão usado depois nas migrations 097/098/099).
+DROP FUNCTION IF EXISTS public.gerar_ncs_unidade(uuid, jsonb, boolean);
+
 CREATE OR REPLACE FUNCTION public.gerar_ncs_unidade(
   p_unidade_fiscalizada_id uuid,
   p_fotos jsonb default null,

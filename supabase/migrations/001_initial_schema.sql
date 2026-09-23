@@ -154,15 +154,6 @@ CREATE TABLE public.recomendacoes (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Tabela de Constatações Manuais
-CREATE TABLE public.constatacoes_manuais (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    unidade_fiscalizada_id UUID REFERENCES public.unidades_fiscalizadas(id) ON DELETE CASCADE,
-    descricao TEXT NOT NULL,
-    ordem INTEGER DEFAULT 0,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
 -- Tabela de Fotos de Evidência
 CREATE TABLE public.fotos_evidencia (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

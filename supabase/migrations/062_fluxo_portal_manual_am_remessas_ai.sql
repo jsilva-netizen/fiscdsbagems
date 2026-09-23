@@ -64,7 +64,8 @@ BEGIN
   VALUES ('documentos-autos', 'documentos-autos', false)
   ON CONFLICT (id) DO NOTHING;
 
-  ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+  -- RLS já vem habilitada por padrão em storage.objects (ver migration 044); o ALTER
+  -- explícito exige ownership que o papel de migração local não tem.
 
   DROP POLICY IF EXISTS "Documentos Autos Select" ON storage.objects;
   DROP POLICY IF EXISTS "Documentos Autos Insert" ON storage.objects;

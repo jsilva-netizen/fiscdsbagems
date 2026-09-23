@@ -102,7 +102,7 @@ begin
         r_resp.id,
         'NC'||contNC,
         coalesce(r_resp.artigo_portaria, ''),
-      v_nc_descricao := 'Constatação '||r_resp.numero_constatacao||': não cumprimento do '||coalesce(r_resp.artigo_portaria, 'artigo aplicável')||';',
+        'Constatação '||r_resp.numero_constatacao||': não cumprimento do '||coalesce(r_resp.artigo_portaria, 'artigo aplicável')||';',
         'Média'
       )
       returning id into v_nc_id;
