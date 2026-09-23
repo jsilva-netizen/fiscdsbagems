@@ -125,7 +125,7 @@ async function contarRegistrosIndexedDB(page: Page, storeName: string): Promise<
  */
 export async function aguardarReferenciasSincronizadas(
   page: Page,
-  storeName: 'municipios' | 'prestadores' | 'tipos_unidade',
+  storeName: 'municipios' | 'prestadores' | 'tipos_unidade' | 'itens_checklist',
   timeoutMs = 30_000
 ): Promise<void> {
   const inicio = Date.now()
@@ -140,6 +140,49 @@ export async function aguardarReferenciasSincronizadas(
 }
 
 /**
+ * Conta só as mutações realmente pendentes de `fila_mutacoes` (status 'pending'/'error' ou
+ * sem status) — mesmo critério de `getOutboxCount()` (syncEngine.ts). Registros com
+ * status 'done' ficam na store permanentemente como rastro, nunca são apagados; contar a
+ * store inteira (como `contarRegistrosIndexedDB` faz para as outras stores) nunca chegaria a
+ * zero depois do primeiro sync bem-sucedido (achado ao rodar T026 localmente pela primeira
+ * vez, 2026-09-23).
+ */
+async function contarMutacoesPendentes(page: Page): Promise<number> {
+  return page.evaluate(() => {
+    return new Promise<number>((resolve, reject) => {
+      const req = indexedDB.open('agems_fiscalizacao_offline')
+      req.onerror = () => reject(req.error)
+      req.onsuccess = () => {
+        const db = req.result
+        if (!db.objectStoreNames.contains('fila_mutacoes')) {
+          db.close()
+          resolve(0)
+          return
+        }
+        const tx = db.transaction('fila_mutacoes', 'readonly')
+        const cursorReq = tx.objectStore('fila_mutacoes').openCursor()
+        let pendentes = 0
+        cursorReq.onsuccess = () => {
+          const cursor = cursorReq.result
+          if (cursor) {
+            const status = cursor.value?.status
+            if (status !== 'done') pendentes++
+            cursor.continue()
+          } else {
+            resolve(pendentes)
+            db.close()
+          }
+        }
+        cursorReq.onerror = () => {
+          reject(cursorReq.error)
+          db.close()
+        }
+      }
+    })
+  })
+}
+
+/**
  * Espera `fila_mutacoes` (o outbox local) esvaziar após a rede voltar — a versão desta
  * verificação que funciona nas páginas fullscreen do fluxo de campo, onde não há indicador
  * de UI (ver comentário de `aguardarFilaSincronizada` acima).
@@ -147,7 +190,7 @@ export async function aguardarReferenciasSincronizadas(
 export async function aguardarFilaVaziaIndexedDB(page: Page, timeoutMs = 30_000): Promise<void> {
   const inicio = Date.now()
   while (Date.now() - inicio < timeoutMs) {
-    if ((await contarRegistrosIndexedDB(page, 'fila_mutacoes')) === 0) return
+    if ((await contarMutacoesPendentes(page)) === 0) return
     await page.waitForTimeout(500)
   }
   throw new Error(`[fixtures/offline] fila_mutacoes ainda não esvaziou após ${timeoutMs}ms.`)

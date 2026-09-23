@@ -59,6 +59,11 @@ test('ciclo offline completo: fiscalização, unidade, checklist e foto sincroni
   await aguardarReferenciasSincronizadas(page, 'municipios')
   await aguardarReferenciasSincronizadas(page, 'prestadores')
   await aguardarReferenciasSincronizadas(page, 'tipos_unidade')
+  // tipos_unidade e itens_checklist sincronizam em passos separados do runFullSync — esperar
+  // só o primeiro é uma corrida: a suíte pode ir offline antes do checklist do tipo escolhido
+  // existir localmente, zerando os itens exibidos sem nenhum erro (achado ao rodar T026
+  // localmente pela primeira vez, 2026-09-23).
+  await aguardarReferenciasSincronizadas(page, 'itens_checklist')
 
   await definirLocalizacao(context)
   await ficarOffline(context)
@@ -85,6 +90,11 @@ test('ciclo offline completo: fiscalização, unidade, checklist e foto sincroni
 
   // --- Offline: responder checklist completo ---------------------------------------------
   const botoesSim = page.getByRole('button', { name: 'SIM', exact: true })
+  // O checklist renderiza depois de uma consulta assíncrona ao Dexie (VistoriarUnidade.jsx) —
+  // sem esperar o primeiro botão aparecer, `.count()` roda contra o DOM ainda vazio e sempre
+  // retorna 0, mascarando um checklist que na verdade existe e renderiza logo em seguida
+  // (achado ao rodar T026 localmente pela primeira vez, 2026-09-23).
+  await botoesSim.first().waitFor({ state: 'visible' })
   const totalItens = await botoesSim.count()
   expect(
     totalItens,
@@ -95,9 +105,11 @@ test('ciclo offline completo: fiscalização, unidade, checklist e foto sincroni
   for (let i = 0; i < totalItens; i++) {
     await botoesSim.nth(i).click()
   }
-  // Confere que todas as respostas realmente ficaram marcadas (botão SIM some da lista de
-  // clicáveis porque fica desabilitado quando já é a resposta ativa).
-  await expect(page.getByRole('button', { name: 'SIM', exact: true })).toHaveCount(0)
+  // Confere que todas as respostas realmente ficaram marcadas — o botão SIM continua no DOM
+  // (mesmo role/nome) só fica `disabled` quando já é a resposta ativa (ChecklistItem.jsx);
+  // ele não desaparece, então a checagem precisa ser por estado habilitado, não por contagem
+  // (achado ao rodar T026 localmente pela primeira vez, 2026-09-23).
+  await expect(page.getByRole('button', { name: 'SIM', exact: true, disabled: false })).toHaveCount(0)
 
   // --- Offline: capturar foto (simulada) com GPS ------------------------------------------
   await page.getByRole('tab', { name: /fotos/i }).click()
