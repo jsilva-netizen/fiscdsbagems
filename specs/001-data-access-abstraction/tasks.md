@@ -163,11 +163,11 @@ ordem.
 - [X] T027 [US1] Escrever `tests/e2e/offline/fila-preexistente.spec.ts`: popular a fila local
   (Dexie) como se fosse uma versão anterior do app, sem passar pela camada nova, e verificar
   que a sincronização a processa normalmente — cobre FR-006/FR-013 explicitamente
-- [ ] T028 [US1] Escrever `tests/e2e/offline/reconciliacao-exclusao-remota.spec.ts`:
+- [X] T028 [US1] Escrever `tests/e2e/offline/reconciliacao-exclusao-remota.spec.ts`:
   fiscalização excluída no servidor enquanto o dispositivo tem trabalho offline pendente —
   verificar que é recriada com novos IDs (não perdida), conforme
   `recreateFiscalizacaoLocally` documentado em `inventario-acoplamento.md` lote 3a
-- [ ] T029 [US1] Rodar T026-T028 contra o código atual e confirmar que todos passam —
+- [X] T029 [US1] Rodar T026-T028 contra o código atual e confirmar que todos passam —
   **esta é a referência de paridade que a migração seguinte não pode quebrar**
 
 ### Migração — domínio `fiscalizacoes` (núcleo de campo, o de maior risco da fase)
