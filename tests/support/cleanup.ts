@@ -58,7 +58,7 @@ export type TableCleanupConfig = {
 // — e a limpeza aqui segue a mesma lógica.
 //
 // `fiscalizacoes.created_by` sozinho (sem marcador) é seguro como critério de limpeza porque
-// o UUID do usuário de teste (ea996c57-15d6-4585-a98b-b9e01c3fd137, migration 135) é
+// o UUID do usuário de teste (5cdf15b9-4b87-4163-8ee7-6eaecd354f67, migration 135) é
 // exclusivo dessa conta dedicada — nenhum fiscal real jamais terá esse UUID. sweepBefore() e
 // cleanupAfter() são portanto idênticos para esta tabela: apagar toda fiscalização de autoria
 // do usuário de teste é sempre seguro, run atual ou anterior.

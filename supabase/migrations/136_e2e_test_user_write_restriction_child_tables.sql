@@ -16,7 +16,7 @@
 -- cobre as cinco tabelas de forma uniforme, sem depender de UI.
 --
 -- UUID do usuário de teste (o mesmo da migration 135):
---   ea996c57-15d6-4585-a98b-b9e01c3fd137
+--   5cdf15b9-4b87-4163-8ee7-6eaecd354f67
 --
 -- Mesma leitura de RESTRICTIVE da 135: combina em AND com as políticas PERMISSIVE
 -- existentes, só pode negar, nunca ampliar acesso. Para qualquer usuário que não seja o de
@@ -32,7 +32,7 @@ CREATE POLICY "e2e_test_user_own_rows_only" ON public.unidades_fiscalizadas
   FOR UPDATE
   TO authenticated
   USING (
-    auth.uid() <> 'ea996c57-15d6-4585-a98b-b9e01c3fd137'
+    auth.uid() <> '5cdf15b9-4b87-4163-8ee7-6eaecd354f67'
     OR EXISTS (
       SELECT 1 FROM public.fiscalizacoes f
       WHERE f.id = unidades_fiscalizadas.fiscalizacao_id
@@ -46,7 +46,7 @@ CREATE POLICY "e2e_test_user_own_rows_only_delete" ON public.unidades_fiscalizad
   FOR DELETE
   TO authenticated
   USING (
-    auth.uid() <> 'ea996c57-15d6-4585-a98b-b9e01c3fd137'
+    auth.uid() <> '5cdf15b9-4b87-4163-8ee7-6eaecd354f67'
     OR EXISTS (
       SELECT 1 FROM public.fiscalizacoes f
       WHERE f.id = unidades_fiscalizadas.fiscalizacao_id
@@ -62,7 +62,7 @@ CREATE POLICY "e2e_test_user_own_rows_only" ON public.respostas_checklist
   FOR UPDATE
   TO authenticated
   USING (
-    auth.uid() <> 'ea996c57-15d6-4585-a98b-b9e01c3fd137'
+    auth.uid() <> '5cdf15b9-4b87-4163-8ee7-6eaecd354f67'
     OR EXISTS (
       SELECT 1 FROM public.unidades_fiscalizadas u
       JOIN public.fiscalizacoes f ON f.id = u.fiscalizacao_id
@@ -77,7 +77,7 @@ CREATE POLICY "e2e_test_user_own_rows_only_delete" ON public.respostas_checklist
   FOR DELETE
   TO authenticated
   USING (
-    auth.uid() <> 'ea996c57-15d6-4585-a98b-b9e01c3fd137'
+    auth.uid() <> '5cdf15b9-4b87-4163-8ee7-6eaecd354f67'
     OR EXISTS (
       SELECT 1 FROM public.unidades_fiscalizadas u
       JOIN public.fiscalizacoes f ON f.id = u.fiscalizacao_id
@@ -93,7 +93,7 @@ CREATE POLICY "e2e_test_user_own_rows_only" ON public.constatacoes_manuais
   FOR UPDATE
   TO authenticated
   USING (
-    auth.uid() <> 'ea996c57-15d6-4585-a98b-b9e01c3fd137'
+    auth.uid() <> '5cdf15b9-4b87-4163-8ee7-6eaecd354f67'
     OR EXISTS (
       SELECT 1 FROM public.unidades_fiscalizadas u
       JOIN public.fiscalizacoes f ON f.id = u.fiscalizacao_id
@@ -108,7 +108,7 @@ CREATE POLICY "e2e_test_user_own_rows_only_delete" ON public.constatacoes_manuai
   FOR DELETE
   TO authenticated
   USING (
-    auth.uid() <> 'ea996c57-15d6-4585-a98b-b9e01c3fd137'
+    auth.uid() <> '5cdf15b9-4b87-4163-8ee7-6eaecd354f67'
     OR EXISTS (
       SELECT 1 FROM public.unidades_fiscalizadas u
       JOIN public.fiscalizacoes f ON f.id = u.fiscalizacao_id
@@ -124,7 +124,7 @@ CREATE POLICY "e2e_test_user_own_rows_only" ON public.determinacoes
   FOR UPDATE
   TO authenticated
   USING (
-    auth.uid() <> 'ea996c57-15d6-4585-a98b-b9e01c3fd137'
+    auth.uid() <> '5cdf15b9-4b87-4163-8ee7-6eaecd354f67'
     OR EXISTS (
       SELECT 1 FROM public.unidades_fiscalizadas u
       JOIN public.fiscalizacoes f ON f.id = u.fiscalizacao_id
@@ -139,7 +139,7 @@ CREATE POLICY "e2e_test_user_own_rows_only_delete" ON public.determinacoes
   FOR DELETE
   TO authenticated
   USING (
-    auth.uid() <> 'ea996c57-15d6-4585-a98b-b9e01c3fd137'
+    auth.uid() <> '5cdf15b9-4b87-4163-8ee7-6eaecd354f67'
     OR EXISTS (
       SELECT 1 FROM public.unidades_fiscalizadas u
       JOIN public.fiscalizacoes f ON f.id = u.fiscalizacao_id
@@ -155,7 +155,7 @@ CREATE POLICY "e2e_test_user_own_rows_only" ON public.recomendacoes
   FOR UPDATE
   TO authenticated
   USING (
-    auth.uid() <> 'ea996c57-15d6-4585-a98b-b9e01c3fd137'
+    auth.uid() <> '5cdf15b9-4b87-4163-8ee7-6eaecd354f67'
     OR EXISTS (
       SELECT 1 FROM public.unidades_fiscalizadas u
       JOIN public.fiscalizacoes f ON f.id = u.fiscalizacao_id
@@ -170,7 +170,7 @@ CREATE POLICY "e2e_test_user_own_rows_only_delete" ON public.recomendacoes
   FOR DELETE
   TO authenticated
   USING (
-    auth.uid() <> 'ea996c57-15d6-4585-a98b-b9e01c3fd137'
+    auth.uid() <> '5cdf15b9-4b87-4163-8ee7-6eaecd354f67'
     OR EXISTS (
       SELECT 1 FROM public.unidades_fiscalizadas u
       JOIN public.fiscalizacoes f ON f.id = u.fiscalizacao_id
