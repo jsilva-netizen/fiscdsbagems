@@ -230,7 +230,7 @@ description: "Tarefas para a correção da reordenação de fotos por arrastar e
 - [ ] T024 Executar o [quickstart.md](./quickstart.md) completo (seções 1 a 7) no computador e num celular real, em sequência, depois de todas as tarefas anteriores. Registrar o modelo do celular e o navegador.
   > **Pendente (usuário)**: roteiro completo no app real, com um celular real.
 - [X] T025 Atualizar `specs/002-fix-photo-drag-reorder/spec.md`, trocando `**Status**: Draft` por `**Status**: Implemented`, e marcar como concluídas as tarefas deste arquivo.
-- [ ] T026 Fazer commit na branch `002-fix-photo-drag-reorder` em commits lógicos, com mensagens em português no padrão do repositório (`fix: …`, `test: …`, `chore: …`, `docs: …`):
+- [X] T026 Fazer commit na branch `002-fix-photo-drag-reorder` em commits lógicos, com mensagens em português no padrão do repositório (`fix: …`, `test: …`, `chore: …`, `docs: …`):
   1. infraestrutura de teste e dependências
   2. `fotosOrdem` e testes
   3. grid
