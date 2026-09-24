@@ -52,6 +52,12 @@ temp_working_*
 supabase/.temp/
 supabase/.branches/
 
+# Saida de execucao dos testes (Vitest/Playwright) — specs/001-data-access-abstraction
+.vitest/
+test-results/
+playwright-report/
+blob-report/
+
 # Arquivos soltos na raiz, orfaos ou duplicados de src/
 /ExportarImportar.jsx
 /exportarFiscalizacoes.ts
