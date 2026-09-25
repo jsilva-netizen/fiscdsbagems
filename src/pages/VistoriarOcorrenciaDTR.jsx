@@ -6,6 +6,7 @@ import { Repository } from '@/lib/offline/repository';
 import { snapToHighway, parseKMLSegments, snapToNearestKMLSegment, findNearestKmPoint, parseKMLKmPoints } from '@/utils/rodoviasGeoJSON';
 import JSZip from 'jszip';
 import PhotoGrid from '@/components/fiscalizacao/PhotoGrid';
+import { mesclarFotosNaOrdemSalva } from '@/lib/fotosOrdem';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -376,25 +377,13 @@ export default function VistoriarOcorrenciaDTR() {
         if (!occurrenceId) return;
         if (fotosCarregadasRef.current === occurrenceId) return;
         if (!ocorrencia) return;
-        const isLocalUrl = (u) => /^blob:|^data:|^file:|^capacitor:/i.test(String(u || ''));
         (async () => {
             try {
-                const remotas = (Array.isArray(ocorrencia?.fotos_unidade) ? ocorrencia.fotos_unidade : [])
-                    .map(f => typeof f === 'string' ? { url: f } : f)
-                    .filter(f => f && f.url && !isLocalUrl(f.url));
                 const locais = await Repository.listLocalFotos(occurrenceId).then(list =>
                     list.map(f => ({ localId: f.localId, url: f.url || '', legenda: f.legenda || '', mimeType: f.mimeType, width: f.width, height: f.height }))
                 );
-                const merged = [];
-                const seen = new Set();
-                const add = (f) => {
-                    const key = f.localId || f.path || f.url || '';
-                    if (key && seen.has(key)) return;
-                    if (key) seen.add(key);
-                    merged.push(f);
-                };
-                remotas.forEach(add);
-                locais.forEach(add);
+                // Respeita a ordem salva, inclusive a das fotos ainda não sincronizadas
+                const merged = mesclarFotosNaOrdemSalva(ocorrencia?.fotos_unidade, locais);
                 setFotos(merged);
                 fotosCarregadasRef.current = occurrenceId;
                 setFotosDirty(false);

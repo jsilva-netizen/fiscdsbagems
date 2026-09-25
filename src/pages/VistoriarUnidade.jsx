@@ -17,6 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ChecklistItem from '@/components/fiscalizacao/ChecklistItem';
 import PhotoGrid from '@/components/fiscalizacao/PhotoGrid';
+import { mesclarFotosNaOrdemSalva } from '@/lib/fotosOrdem';
 import ConstatacaoManualForm from '@/components/fiscalizacao/ConstatacaoManualForm';
 import EditarNCModal from '@/components/fiscalizacao/EditarNCModal';
 import { ArrowLeft, Loader2, AlertTriangle, Save, Trash2, Camera, ClipboardCheck, FileText, Plus, Pencil, AlertCircle, GripVertical } from 'lucide-react';
@@ -291,38 +292,8 @@ export default function VistoriarUnidade() {
         // com possíveis refetches de unidade.fotos_unidade.
         if (!unidadeMudou && fotosDirty) return;
 
-        const isLocalUrl = (u) => /^blob:|^data:|^file:|^capacitor:/i.test(String(u || ''));
-        // Extrai bucket:path de uma URL (storage:// ou https pública)
-        const extractStoragePath = (f) => {
-            if (!f) return null;
-            const bucket = String(f.bucket || '').trim();
-            const path = String(f.path || '').trim();
-            if (bucket && path) return `${bucket}:${path}`;
-            const url = String(f.url || '').trim();
-            if (!url) return null;
-            // storage://bucket/path
-            if (url.startsWith('storage://')) {
-                const rem = url.slice('storage://'.length);
-                const slash = rem.indexOf('/');
-                if (slash !== -1) return `${rem.slice(0, slash)}:${rem.slice(slash + 1).split('?')[0]}`;
-            }
-            // https://.../storage/v1/object/public/bucket/path
-            const m = url.match(/\/storage\/v1\/object\/(?:public|sign)\/([^/]+)\/(.+?)(?:\?|$)/);
-            if (m) return `${m[1]}:${m[2]}`;
-            return null;
-        };
-
         const carregar = async () => {
             try {
-                const remotas = (unidade?.fotos_unidade || [])
-                    .map(foto => typeof foto === 'string' ? { url: foto } : foto)
-                    .filter(foto => {
-                        if (!foto) return false;
-                        // Aceita fotos com bucket+path mesmo sem url (formato do servidor)
-                        if (foto.bucket && foto.path) return true;
-                        // Aceita fotos com url não-local (http, storage://, etc.)
-                        return foto.url && !isLocalUrl(foto.url);
-                    });
                 const locais = await Repository.listLocalFotos(unidadeId).then(list =>
                     list.map(f => ({
                         localId: f.localId,
@@ -334,27 +305,8 @@ export default function VistoriarUnidade() {
                     }))
                 );
 
-                const merged = [];
-                const seenStoragePaths = new Set(); // dedup por bucket:path
-                const seenLocalIds = new Set();
-
-                const addFoto = (f) => {
-                    if (!f) return;
-                    const localId = String(f.localId || '').trim();
-                    if (localId && seenLocalIds.has(localId)) return;
-                    const storagePath = extractStoragePath(f);
-                    if (storagePath && seenStoragePaths.has(storagePath)) return;
-
-                    if (localId) seenLocalIds.add(localId);
-                    if (storagePath) seenStoragePaths.add(storagePath);
-
-                    merged.push(f);
-                };
-
-                // Locais primeiro (têm previewUrl/blob já carregado e são mais recentes)
-                (locais || []).forEach(addFoto);
-                // Remotas depois (pula duplicatas já adicionadas pelas locais)
-                (remotas || []).forEach(addFoto);
+                // Respeita a ordem salva, inclusive a das fotos ainda não sincronizadas
+                const merged = mesclarFotosNaOrdemSalva(unidade?.fotos_unidade, locais);
 
                 setFotos(merged);
                 fotosCarregadasRef.current = unidadeId;

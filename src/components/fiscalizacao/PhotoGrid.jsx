@@ -6,8 +6,26 @@ import { MAX_PHOTOS_PER_UNIDADE, extractCaptureFromImageFile } from '@/lib/offli
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import OptimizedImage from '@/components/fiscalizacao/OptimizedImage.jsx';
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { SortableContext, rectSortingStrategy, useSortable, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { chavesDasFotos, moverFoto, fotoVisivel } from '@/lib/fotosOrdem';
 import { Loader2, Image as ImageIcon, Camera as CameraIcon, Trash2, Save, Edit2, X, Clock, GripVertical } from 'lucide-react';
+
+// Card de foto arrastável. O arraste começa só pela alça (handleProps), para não disputar
+// o toque com a rolagem da página nem com o toque que abre a foto.
+function FotoOrdenavel({ id, disabled, children }) {
+    const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id, disabled });
+    return (
+        <div
+            ref={setNodeRef}
+            style={{ transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 20 : undefined }}
+            className={`relative group rounded-lg overflow-hidden border${isDragging ? ' ring-2 ring-blue-500 shadow-lg opacity-90' : ''}`}
+        >
+            {children({ handleProps: { ref: setActivatorNodeRef, ...attributes, ...listeners }, isDragging })}
+        </div>
+    );
+}
 
 export default function PhotoGrid({
     fotos = [],
@@ -54,20 +72,49 @@ export default function PhotoGrid({
     const watchIdRef = useRef(null);
     const [showCamera, setShowCamera] = useState(false);
 
-    const fotoKey = (foto, index) => {
-        const f = foto || {};
-        if (f.bucket && f.path) return `${f.bucket}:${f.path}`;
-        if (f.localId) return `local:${f.localId}`;
-        const url = String(f.url || '');
-        if (url) return `url:${url}`;
-        return `idx:${index}`;
+    // O grid mostra só as fotos visíveis, mas mover, remover e editar legenda operam sobre
+    // o índice da foto na lista completa (a prop `fotos`).
+    const chaves = useMemo(() => chavesDasFotos(fotosList), [fotosList]);
+    const visiveis = fotosList
+        .map((foto, indiceOriginal) => ({ foto, indiceOriginal, id: chaves[indiceOriginal] }))
+        .filter(({ foto }) => fotoVisivel(foto));
+    const podeReordenar = isEditable && !!onReorderFotos;
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    );
+
+    // Destino = foto mais próxima, mas só com o ponteiro dentro do grid: soltar fora dele
+    // não muda nada. Pelo teclado não há ponteiro, e vale a mais próxima.
+    const gridRef = useRef(null);
+    const colisaoDentroDoGrid = (args) => {
+        const p = args.pointerCoordinates;
+        const r = gridRef.current?.getBoundingClientRect();
+        if (p && r && (p.x < r.left || p.x > r.right || p.y < r.top || p.y > r.bottom)) return [];
+        return closestCenter(args);
     };
 
-    const reorderArray = (list, startIndex, endIndex) => {
-        const result = Array.from(list);
-        const [removed] = result.splice(startIndex, 1);
-        result.splice(endIndex, 0, removed);
-        return result;
+    // Mensagens para leitor de tela; posição = ordem no grid visível, a partir de 1.
+    const posicaoNoGrid = (id) => visiveis.findIndex((v) => v.id === id) + 1;
+    const acessibilidadeArraste = {
+        screenReaderInstructions: {
+            draggable: 'Para mover a foto, pressione Espaço. Use as setas para escolher a nova posição, Espaço para soltar e Esc para cancelar.',
+        },
+        announcements: {
+            onDragStart: ({ active }) => `Foto na posição ${posicaoNoGrid(active.id)} selecionada. Use as setas para mover e Espaço para soltar.`,
+            onDragOver: ({ active, over }) => (over ? `Foto ${posicaoNoGrid(active.id)} sobre a posição ${posicaoNoGrid(over.id)}.` : 'Fora do grid de fotos.'),
+            onDragEnd: ({ active, over }) => (over && over.id !== active.id ? `Foto movida para a posição ${posicaoNoGrid(over.id)}.` : 'A foto não mudou de posição.'),
+            onDragCancel: () => 'Movimento cancelado.',
+        },
+    };
+
+    // Soltar sobre outra foto: a arrastada ocupa a posição dela e as intermediárias andam.
+    const handleDragEnd = ({ active, over }) => {
+        if (!podeReordenar || !over || active.id === over.id) return;
+        const origem = chaves.indexOf(active.id);
+        const destino = chaves.indexOf(over.id);
+        if (origem === -1 || destino === -1) return;
+        onReorderFotos(moverFoto(fotosList, origem, destino));
     };
 
     const resolveFotoSrc = (foto) => {
@@ -524,44 +571,27 @@ export default function PhotoGrid({
 
             {/* Grid de fotos */}
             {fotosList.length > 0 && (
-                <DragDropContext
-                    onDragEnd={(result) => {
-                        if (!onReorderFotos) return;
-                        if (!isEditable) return;
-                        if (!result?.destination) return;
-                        const { source, destination } = result;
-                        if (source.index === destination.index) return;
-                        const next = reorderArray(fotosList, source.index, destination.index);
-                        onReorderFotos(next);
-                    }}
-                >
-                    <Droppable droppableId="fotos" direction="horizontal">
-                        {(provided) => (
-                            <div ref={provided.innerRef} {...provided.droppableProps} className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                {fotosList.filter(f => !!(f?.url || (f?.bucket && f?.path) || f?.localId)).map((foto, index) => {
-                                    const k = fotoKey(foto, index);
+                <DndContext sensors={sensors} collisionDetection={colisaoDentroDoGrid} onDragEnd={handleDragEnd} accessibility={acessibilidadeArraste}>
+                    <SortableContext items={visiveis.map((v) => v.id)} strategy={rectSortingStrategy}>
+                            <div ref={gridRef} className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                {visiveis.map(({ foto, indiceOriginal, id: k }, posicao) => {
                                     return (
-                                        <Draggable
-                                            key={k}
-                                            draggableId={k}
-                                            index={index}
-                                            isDragDisabled={!isEditable || !onReorderFotos}
-                                        >
-                                            {(drag) => (
-                                                <div
-                                                    ref={drag.innerRef}
-                                                    {...drag.draggableProps}
-                                                    style={drag.draggableProps.style}
-                                                    className="relative group rounded-lg overflow-hidden border"
-                                                >
-                                                    {isEditable && onReorderFotos ? (
-                                                        <div {...drag.dragHandleProps} className="absolute top-1 left-1 z-10 bg-black/60 text-white rounded p-1">
+                                        <FotoOrdenavel key={k} id={k} disabled={!podeReordenar}>
+                                            {({ handleProps, isDragging }) => (
+                                                <>
+                                                    {podeReordenar ? (
+                                                        <div
+                                                            {...handleProps}
+                                                            style={{ touchAction: 'none' }}
+                                                            aria-label="Arrastar para reordenar"
+                                                            className={`absolute top-1 left-1 z-10 bg-black/60 text-white rounded p-1 ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+                                                        >
                                                             <GripVertical className="h-4 w-4" />
                                                         </div>
                                                     ) : null}
-                                                    <OptimizedImage 
-                                                        src={resolveFotoSrc(foto)} 
-                                                        alt={`Foto ${index + 1}`}
+                                                    <OptimizedImage
+                                                        src={resolveFotoSrc(foto)}
+                                                        alt={`Foto ${posicao + 1}`}
                                                         className="w-full h-32 object-cover cursor-pointer"
                                                         onClick={() => setSelectedFoto(foto)}
                                                     />
@@ -570,7 +600,7 @@ export default function PhotoGrid({
                                                             <Button
                                                                 variant="destructive"
                                                                 size="sm"
-                                                                onClick={() => onRemoveFoto(index)}
+                                                                onClick={() => onRemoveFoto(indiceOriginal)}
                                                             >
                                                                 <Trash2 className="h-4 w-4" />
                                                             </Button>
@@ -600,7 +630,7 @@ export default function PhotoGrid({
                                                                                 legenda = `${legenda}.`;
                                                                             }
                                                                         }
-                                                                        onUpdateLegenda(index, legenda);
+                                                                        onUpdateLegenda(indiceOriginal, legenda);
                                                                         if (foto.localId) {
                                                                             Repository.updateLocalFotoLegenda(foto.localId, legenda).catch(() => {});
                                                                         }
@@ -622,16 +652,14 @@ export default function PhotoGrid({
                                                         )
                                                     ))}
 
-                                                </div>
+                                                </>
                                             )}
-                                        </Draggable>
+                                        </FotoOrdenavel>
                                     );
                                 })}
-                                {provided.placeholder}
                             </div>
-                        )}
-                    </Droppable>
-                </DragDropContext>
+                    </SortableContext>
+                </DndContext>
             )}
 
 
