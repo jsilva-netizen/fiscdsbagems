@@ -22,6 +22,17 @@ export type RegistrosProvider = {
     colecao: string,
     filtro?: Filtro
   ): Promise<Resultado<PaginaResultado<T>>>
+  /**
+   * Todas as linhas que atendem ao filtro, lidas em páginas de 1000 até uma página
+   * incompleta — o sync-down do motor (T032 parte 2). Não acrescenta ordenação: a ordem é a
+   * que o servidor devolve, como hoje. `limite`/`deslocamento` do filtro são ignorados.
+   * Erro em qualquer página interrompe a leitura; o erro bruto do provedor vai em
+   * `erro.origem`, porque o motor decide seus recuos a partir dele (research.md D12).
+   */
+  buscarTodos<T = Record<string, unknown>>(
+    colecao: string,
+    filtro?: Filtro
+  ): Promise<Resultado<T[]>>
   buscarUm<T = Record<string, unknown>>(
     colecao: string,
     id: string

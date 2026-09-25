@@ -86,6 +86,24 @@ describe('fiscalizacoesDomain.obterPorId', () => {
     expect(await fiscalizacoesDomain.obterPorId('sumiu')).toEqual(sucesso(null))
   })
 
+  it('com colunas, lê só essas colunas (motor: selectColsForPull), inexistente = null', async () => {
+    const falso = criarProvedorFalso({ buscarMuitos: sucesso({ itens: [] }) })
+    __setProviderForTests(falso.provedor)
+    expect(await fiscalizacoesDomain.obterPorId('f1', { colunas: ['id', 'status'] })).toEqual(sucesso(null))
+    expect(falso.chamadas).toEqual([
+      {
+        operacao: 'buscarMuitos',
+        args: ['fiscalizacoes', { colunas: ['id', 'status'], criterios: [{ campo: 'id', op: 'igual', valor: 'f1' }] }],
+      },
+    ])
+  })
+
+  it('com colunas, devolve a linha encontrada', async () => {
+    const falso = criarProvedorFalso({ buscarMuitos: sucesso({ itens: [{ id: 'f1', status: 'x' }] }) })
+    __setProviderForTests(falso.provedor)
+    expect(await fiscalizacoesDomain.obterPorId('f1', { colunas: ['id', 'status'] })).toEqual(sucesso({ id: 'f1', status: 'x' }))
+  })
+
   it('outras falhas continuam sendo falha', async () => {
     const erro = { tipo: 'rede_indisponivel' as const, mensagem: 'Sem conexão com o servidor.' }
     __setProviderForTests(criarProvedorFalso({ buscarUm: falha(erro) }).provedor)

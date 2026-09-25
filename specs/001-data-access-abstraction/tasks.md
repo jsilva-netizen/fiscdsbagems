@@ -218,7 +218,16 @@ ordem.
   > consumidores originais. Como nenhum e2e passava por esse caminho (sessão sempre recém-criada),
   > foi escrito antes `tests/e2e/offline/sessao-perto-de-expirar.spec.ts`: passa no código antigo,
   > falha com `authRefresh` desligado. Suíte offline: 4/4 em duas execuções seguidas depois da migração.
-  > Restam as partes 2 (leituras do sync-down), 3 (arquivos), 4 (envio da fila) e 5 (restos do sync-up).
+  > **Parte 2 (2026-09-25) — leituras do sync-down**: `selectAllPages`/`safeSelect`/`safeSelectSince`,
+  > a leitura "desde" de `pullEntity` (as duas cópias de `run` viraram `lerDesde`), `fetchExistingIds` e
+  > `pullFiscalizacaoById` passam pela camada. Contrato: `registros.buscarTodos` (páginas de 1000 até
+  > uma incompleta, sem ordenação acrescentada), `Filtro.colunas`, critério `qualquer` (OU) e
+  > `fiscalizacoesDomain.obterPorId(id, { colunas })` (o motor grava a linha no IndexedDB; ler todas
+  > as colunas gravaria campos a mais). As cascatas de recuo do motor não mudaram: falha relança o erro
+  > bruto do provedor (`exigir`), do qual elas e `isRetryableError` dependem. Helpers `mapear`/`tipoDoErro`
+  > em `types.ts`: o `jsconfig.json` do projeto não é estrito e não estreita `Resultado` pelo `ok`.
+  > Suíte offline: 4/4 em duas execuções seguidas.
+  > Restam as partes 3 (arquivos), 4 (envio da fila) e 5 (restos do sync-up).
 - [ ] T033 [US1] Migrar `src/lib/offline/repository.ts` (parte offline-first: CRUD local +
   `enqueueMutation`) — trocar as chamadas diretas de leitura auxiliar (ex.:
   `tipos_ocorrencia_dtr`, KML) pelos domínios correspondentes, preservando o padrão

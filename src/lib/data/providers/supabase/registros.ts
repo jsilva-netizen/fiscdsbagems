@@ -35,8 +35,20 @@ function mapearErro(erro: unknown): Erro {
   return { tipo: 'falha_servidor', mensagem: e?.message || 'Erro inesperado.', origem: erro }
 }
 
+// Operadores simples na sintaxe de filtro do PostgREST, usada dentro de .or().
+const OPERADOR_POSTGREST: Record<string, string> = {
+  igual: 'eq',
+  diferente: 'neq',
+  maior: 'gt',
+  maior_ou_igual: 'gte',
+  menor: 'lt',
+  menor_ou_igual: 'lte',
+}
+
 function aplicarCriterio(query: any, c: Criterio): any {
   switch (c.op) {
+    case 'qualquer':
+      return query.or(c.criterios.map((s) => `${s.campo}.${OPERADOR_POSTGREST[s.op]}.${s.valor}`).join(','))
     case 'igual':
       return query.eq(c.campo, c.valor)
     case 'diferente':
@@ -72,13 +84,40 @@ function aplicarFiltro(query: any, filtro?: Filtro): any {
   return q
 }
 
+function colunasDe(filtro?: Filtro): string {
+  return filtro?.colunas?.length ? filtro.colunas.join(',') : '*'
+}
+
+const TAMANHO_PAGINA = 1000 // o de selectAllPages (syncEngine.ts)
+
 export const registrosProvider: RegistrosProvider = {
   async buscarMuitos<T>(colecao: string, filtro?: Filtro): Promise<Resultado<PaginaResultado<T>>> {
-    let query = supabase.from(colecao).select('*', { count: filtro?.comContagem ? 'exact' : undefined })
+    let query = filtro?.comContagem
+      ? supabase.from(colecao).select(colunasDe(filtro), { count: 'exact' })
+      : supabase.from(colecao).select(colunasDe(filtro))
     query = aplicarFiltro(query, filtro)
     const { data, error, count } = await query
     if (error) return falha(mapearErro(error))
     return sucesso({ itens: (data ?? []) as T[], total: count ?? undefined })
+  },
+
+  async buscarTodos<T>(colecao: string, filtro?: Filtro): Promise<Resultado<T[]>> {
+    const query = aplicarFiltro(supabase.from(colecao).select(colunasDe(filtro)), {
+      ...filtro,
+      limite: undefined,
+      deslocamento: undefined,
+    })
+    const todas: T[] = []
+    let de = 0
+    while (true) {
+      const { data, error } = await query.range(de, de + TAMANHO_PAGINA - 1)
+      if (error) return falha(mapearErro(error))
+      const pagina = (data ?? []) as T[]
+      todas.push(...pagina)
+      if (pagina.length < TAMANHO_PAGINA) break
+      de += TAMANHO_PAGINA
+    }
+    return sucesso(todas)
   },
 
   async buscarUm<T>(colecao: string, id: string): Promise<Resultado<T>> {

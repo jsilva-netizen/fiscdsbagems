@@ -10,7 +10,7 @@
 // é erro de programação, não caso de uso válido.
 
 import { getProvider } from '../provider'
-import { sucesso, type Resultado } from '../types'
+import { mapear, sucesso, tipoDoErro, type Resultado } from '../types'
 
 /** Registro como o servidor devolve. O formato das colunas é o atual; não é contrato neutro. */
 export type RegistroFiscalizacao = { id: string; [campo: string]: unknown }
@@ -35,17 +35,31 @@ async function listar(opcoes: {
     ordenacao: [{ campo: 'data_inicio', direcao: 'desc' }],
     limite: opcoes.limite ?? 500,
   })
-  return r.ok ? sucesso(r.dado.itens) : r
+  return mapear(r, (pagina) => pagina.itens)
 }
 
 /**
  * Fiscalização pelo id do servidor. Inexistente é `null`, não erro: o motor de sync lê com
  * maybeSingle e segue em frente quando não há linha (syncEngine.ts, reconciliação por id).
  * Consumida pelo motor de sincronização (contracts/domains.md, "Atenção").
+ *
+ * `colunas`: o motor lê só as colunas que guarda no dispositivo (selectColsForPull) e grava
+ * a linha inteira no IndexedDB — ler todas gravaria campos a mais lá.
  */
-async function obterPorId(id: string): Promise<Resultado<RegistroFiscalizacao | null>> {
-  const r = await getProvider().registros.buscarUm<RegistroFiscalizacao>(FISCALIZACOES, id)
-  if (!r.ok && r.erro.tipo === 'nao_encontrado') return sucesso(null)
+async function obterPorId(
+  id: string,
+  opcoes?: { colunas?: string[] }
+): Promise<Resultado<RegistroFiscalizacao | null>> {
+  const registros = getProvider().registros
+  if (opcoes?.colunas?.length) {
+    const r = await registros.buscarMuitos<RegistroFiscalizacao>(FISCALIZACOES, {
+      colunas: opcoes.colunas,
+      criterios: [{ campo: 'id', op: 'igual', valor: id }],
+    })
+    return mapear(r, (pagina) => pagina.itens[0] ?? null)
+  }
+  const r = await registros.buscarUm<RegistroFiscalizacao>(FISCALIZACOES, id)
+  if (tipoDoErro(r) === 'nao_encontrado') return sucesso(null)
   return r
 }
 
@@ -56,7 +70,7 @@ async function listarUnidades(fiscalizacaoId: string): Promise<Resultado<Registr
     criterios: [{ campo: 'fiscalizacao_id', op: 'igual', valor: fiscalizacaoId }],
     ordenacao: [{ campo: 'created_at', direcao: 'asc' }],
   })
-  return r.ok ? sucesso(r.dado.itens) : r
+  return mapear(r, (pagina) => pagina.itens)
 }
 
 /**

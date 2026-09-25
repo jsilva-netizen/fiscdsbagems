@@ -27,6 +27,20 @@ export function falha(erro: Erro): Resultado<never> {
   return { ok: false, erro }
 }
 
+/**
+ * Transforma o dado de um sucesso e repassa a falha intacta. Não depende de estreitamento de
+ * tipo pelo `ok`, que a configuração não estrita do projeto (jsconfig.json) não faz — os
+ * módulos da camada também são compilados por ela quando importados pelo app.
+ */
+export function mapear<T, U>(r: Resultado<T>, f: (dado: T) => U): Resultado<U> {
+  return r.ok === true ? sucesso(f((r as { ok: true; dado: T }).dado)) : (r as Resultado<never>)
+}
+
+/** Tipo do erro de uma falha, ou undefined num sucesso — mesma razão de `mapear`. */
+export function tipoDoErro(r: Resultado<unknown>): ErroTipo | undefined {
+  return r.ok === true ? undefined : (r as { ok: false; erro: Erro }).erro.tipo
+}
+
 // --- Filtro e paginação (data-model.md "Filtro e paginação") ---------------------------
 //
 // Restrição de fidelidade: o conjunto de operadores é exatamente o que os pontos de acesso
@@ -41,16 +55,24 @@ export type CriterioIntervalo = {
   valor: unknown
 }
 export type CriterioBuscaTextual = { campo: string; op: 'contem_texto'; valor: string }
+/**
+ * Basta um dos critérios valer (OU). Só comparações simples dentro — o consumidor atual é o
+ * sync-down do motor ("updated_at OU created_at a partir de"), T032 parte 2.
+ */
+export type CriterioQualquer = { op: 'qualquer'; criterios: (CriterioIgualdade | CriterioIntervalo)[] }
 
 export type Criterio =
   | CriterioIgualdade
   | CriterioPertencimento
   | CriterioIntervalo
   | CriterioBuscaTextual
+  | CriterioQualquer
 
 export type Ordenacao = { campo: string; direcao: 'asc' | 'desc' }
 
 export type Filtro = {
+  /** Campos a devolver. Ausente = todos. */
+  colunas?: string[]
   criterios?: Criterio[]
   ordenacao?: Ordenacao[]
   limite?: number

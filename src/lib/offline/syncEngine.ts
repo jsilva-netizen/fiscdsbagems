@@ -1,6 +1,7 @@
 import { db, UUID } from './db'
 import { supabase } from '@/lib/supabase'
-import { getProvider } from '@/lib/data'
+import { getProvider, type Criterio, type Erro, type Resultado } from '@/lib/data'
+import { fiscalizacoesDomain } from '@/lib/data/domains/fiscalizacoes'
 import { base64ToBlob } from './image'
 import { clearAllPreviewUrls, revokeManyPreviewUrls } from './photoPreviewCache'
 import { parseKMLKmPoints } from '@/utils/rodoviasGeoJSON'
@@ -289,38 +290,47 @@ function withTimeout<T>(fn: () => Promise<T>, timeoutMs = 15000): Promise<T> {
   })
 }
 
-async function selectAllPages(q: any, pageSize = 1000): Promise<any[]> {
-  const out: any[] = []
-  let from = 0
-  while (true) {
-    const to = from + pageSize - 1
-    const { data, error } = await q.range(from, to)
-    if (error) throw error
-    const rows = (data || []) as any[]
-    out.push(...rows)
-    if (rows.length < pageSize) break
-    from += pageSize
+// Dado de um Resultado da camada ou, em falha, o erro bruto do provedor relançado — o motor
+// classifica e decide recuos a partir dele (withBackoff/isRetryableError, research.md D12).
+function exigir<T>(r: Resultado<T>): T {
+  if (r.ok === true) return (r as { ok: true; dado: T }).dado
+  const { erro } = r as { ok: false; erro: Erro }
+  throw erro.origem ?? erro
+}
+
+// Leitura completa (todas as páginas) pela camada de dados. Em falha, relança o erro bruto do
+// provedor: as cascatas de recuo abaixo (colunas → '*', updated → or → created) e o
+// withBackoff/isRetryableError decidem a partir dele (research.md D12).
+async function lerTodas(table: string, cols: string, criterios?: Criterio[]): Promise<any[]> {
+  const colunas = cols.trim() === '*' ? undefined : cols.split(',').map((c) => c.trim()).filter(Boolean)
+  return exigir(await getProvider().registros.buscarTodos<any>(table, { colunas, criterios }))
+}
+
+// "Desde v": só updated_at, ou updated_at OU created_at ('or'); 'created': só created_at.
+async function lerDesde(table: string, cols: string, mode: 'since' | 'created' | 'all', v?: string, strategy: 'updated' | 'or' = 'updated'): Promise<any[]> {
+  const criterios: Criterio[] = []
+  if (mode === 'since' && v) {
+    criterios.push(
+      strategy === 'or'
+        ? { op: 'qualquer', criterios: [{ campo: 'updated_at', op: 'maior_ou_igual', valor: v }, { campo: 'created_at', op: 'maior_ou_igual', valor: v }] }
+        : { campo: 'updated_at', op: 'maior_ou_igual', valor: v }
+    )
   }
-  return out
+  if (mode === 'created' && v) criterios.push({ campo: 'created_at', op: 'maior_ou_igual', valor: v })
+  return lerTodas(table, cols, criterios)
 }
 
 async function safeSelect(table: string, cols: string): Promise<any[]> {
   try {
-    return await selectAllPages(supabase.from(table).select(cols))
+    return await lerTodas(table, cols)
   } catch {
-    return await selectAllPages(supabase.from(table).select('*'))
+    return await lerTodas(table, '*')
   }
 }
 
 async function safeSelectSince(table: string, cols: string, since?: string, preferStrategy: 'updated' | 'or' = 'updated'): Promise<any[]> {
-  const run = async (selectCols: string, mode: 'since' | 'created' | 'all', v?: string, strategy: 'updated' | 'or' = 'updated') => {
-    let q = supabase.from(table).select(selectCols)
-    if (mode === 'since' && v) {
-      q = strategy === 'or' ? q.or(`updated_at.gte.${v},created_at.gte.${v}`) : q.gte('updated_at', v)
-    }
-    if (mode === 'created' && v) q = q.gte('created_at', v)
-    return await selectAllPages(q)
-  }
+  const run = (selectCols: string, mode: 'since' | 'created' | 'all', v?: string, strategy: 'updated' | 'or' = 'updated') =>
+    lerDesde(table, selectCols, mode, v, strategy)
   if (since) {
     const primary = preferStrategy
     const secondary: 'updated' | 'or' = primary === 'or' ? 'updated' : 'or'
@@ -396,9 +406,11 @@ async function fetchExistingIds(table: string, ids: string[]): Promise<Set<strin
     if (part.length === 0) continue
     const rows = await withBackoff(() =>
       withTimeout(async () => {
-        const { data, error } = await supabase.from(table).select('id').in('id', part as any)
-        if (error) throw error
-        return (data || []) as any[]
+        const r = await getProvider().registros.buscarMuitos<any>(table, {
+          colunas: ['id'],
+          criterios: [{ campo: 'id', op: 'em', valores: part }]
+        })
+        return exigir(r).itens
       }, 15000)
     )
     for (const r of rows) out.add(String((r as any)?.id || ''))
@@ -1902,14 +1914,8 @@ async function pullEntity(entity: Entity, since?: string) {
   }
 
   const doRequest = async () => {
-    const run = async (cols: string, mode: 'since' | 'created', v?: string, strategy: 'updated' | 'or' = 'updated') => {
-      let q = supabase.from(table).select(cols)
-      if (mode === 'since' && v) {
-        q = strategy === 'or' ? q.or(`updated_at.gte.${v},created_at.gte.${v}`) : q.gte('updated_at', v)
-      }
-      if (mode === 'created' && v) q = q.gte('created_at', v)
-      return await selectAllPages(q)
-    }
+    const run = (cols: string, mode: 'since' | 'created', v?: string, strategy: 'updated' | 'or' = 'updated') =>
+      lerDesde(table, cols, mode, v, strategy)
     try {
       try {
         try {
@@ -2006,13 +2012,7 @@ async function pullFiscalizacaoById(fiscalizacaoId: string): Promise<void> {
   const serverId = localToServer.get(fiscalizacaoId) || fiscalizacaoId
   const row = await withBackoff(() =>
     withTimeout(async () => {
-      const { data, error } = await supabase
-        .from('fiscalizacoes')
-        .select(cols)
-        .eq('id', serverId as any)
-        .maybeSingle()
-      if (error) throw error
-      return data
+      return exigir(await fiscalizacoesDomain.obterPorId(serverId, { colunas: cols.split(',').map((c) => c.trim()) }))
     }, 15000)
   )
   if (row) {
