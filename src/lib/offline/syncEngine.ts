@@ -1,5 +1,6 @@
 import { db, UUID } from './db'
 import { supabase } from '@/lib/supabase'
+import { getProvider } from '@/lib/data'
 import { base64ToBlob } from './image'
 import { clearAllPreviewUrls, revokeManyPreviewUrls } from './photoPreviewCache'
 import { parseKMLKmPoints } from '@/utils/rodoviasGeoJSON'
@@ -2435,49 +2436,40 @@ export async function syncFotosWithProgress(onProgress?: (uploaded: number, tota
   return uploaded
 }
 
-async function reachability(): Promise<boolean> {
-  try {
-    const base = (import.meta as any).env?.VITE_SUPABASE_URL || ''
-    const key = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || ''
-    if (!base) return false
-    const ctrl = new AbortController()
-    const t = setTimeout(() => ctrl.abort(), 8000)
-    const apikeyParam = key ? `?apikey=${encodeURIComponent(String(key))}` : ''
-    const urls = [`${base}/auth/v1/health${apikeyParam}`, `${base}/rest/v1/${apikeyParam}`]
-    for (const url of urls) {
-      try {
-        const resp = await fetch(url, { method: 'GET', cache: 'no-store', signal: ctrl.signal })
-        clearTimeout(t)
-        return !!resp
-      } catch {
-      }
-    }
-    clearTimeout(t)
-    return false
-  } catch {
-    return false
-  }
+// Sondagem pontual do servidor pela camada de dados. Timeout de 8000ms: o do motor, diferente
+// dos 6000ms da UI (useOnline) — preservado como parâmetro (contracts/provider.md #7).
+function reachability(): Promise<boolean> {
+  return getProvider().alcancabilidade.verificar(8000)
+}
+
+/** Sessão guardada no dispositivo, ou null se não houver (ou se a leitura falhar). */
+async function lerSessaoLocal() {
+  const r = await getProvider().identidade.obterSessaoLocal().catch(() => null)
+  return r && r.ok ? r.dado : null
+}
+
+/** A sessão vale por mais de `segundos`? Sem sessão ou sem expiração, conta como vencida. */
+function validaPorMaisDe(sessao: Awaited<ReturnType<typeof lerSessaoLocal>>, segundos: number): boolean {
+  const expiresAt = Number(sessao?.expiraEm || 0)
+  const nowSeconds = Math.floor(Date.now() / 1000)
+  return !!sessao && expiresAt - nowSeconds > segundos
 }
 
 async function authRefresh(): Promise<void> {
   try {
-    const { data: sessionRes } = await supabase.auth.getSession()
-    const session = sessionRes.session
-    if (session) {
-      const expiresAt = session.expires_at || 0
-      const nowSeconds = Math.floor(Date.now() / 1000)
+    const identidade = getProvider().identidade
+    const sessao = await lerSessaoLocal()
+    if (sessao) {
       // Se a sessão atual ainda for válida por mais de 5 minutos (300s), não faz chamada de rede desnecessária
-      if (expiresAt - nowSeconds > 300) {
+      if (validaPorMaisDe(sessao, 300)) {
         return
       }
-      
-      const refresh_token = session.refresh_token
-      if (refresh_token) {
-        await supabase.auth.refreshSession({ refresh_token })
-        return
-      }
+      // Renova com o token da sessão guardada. O original checava se havia token de renovação
+      // antes; uma sessão do provedor atual sempre tem um, e o erro era ignorado nos dois casos.
+      await identidade.renovarCredencial()
+      return
     }
-    await supabase.auth.getUser()
+    await identidade.obterUsuarioCorrente()
   } catch {
     // ignora, motor de sync tentará mesmo assim
   }
@@ -2578,11 +2570,7 @@ async function runFullSyncInternal(onProgress?: (msg: string, isError?: boolean)
   
   log('Verificando conexão com o servidor...')
   
-  const sessionRes = await supabase.auth.getSession().catch(() => null)
-  const session = sessionRes?.data?.session
-  const expiresAt = session?.expires_at || 0
-  const nowSeconds = Math.floor(Date.now() / 1000)
-  const hasValidSession = session && (expiresAt - nowSeconds > 300)
+  const hasValidSession = validaPorMaisDe(await lerSessaoLocal(), 300)
 
   if (!hasValidSession) {
     const ok = await withTimeout(() => reachability(), 5000)
@@ -2675,11 +2663,7 @@ export async function syncUpForFiscalizacao(
     onProgress?.({ message, current, total, isError })
 
   // Auth / connectivity check
-  const sessionRes = await supabase.auth.getSession().catch(() => null)
-  const session = sessionRes?.data?.session
-  const expiresAt = session?.expires_at || 0
-  const nowSeconds = Math.floor(Date.now() / 1000)
-  const hasValidSession = session && expiresAt - nowSeconds > 300
+  const hasValidSession = validaPorMaisDe(await lerSessaoLocal(), 300)
 
   if (!hasValidSession) {
     emit('Verificando conexão...', 0, 0)

@@ -70,6 +70,12 @@ export type IdentidadeProvider = {
   }): Promise<Resultado<Sessao>>
   encerrarSessao(): Promise<Resultado<void>>
   obterUsuarioCorrente(): Promise<Resultado<Usuario | null>>
+  /**
+   * Sessão guardada no dispositivo, sem ir à rede para validá-la (ao contrário de
+   * obterUsuarioCorrente). O motor de sync usa a expiração dela para decidir se precisa
+   * sondar o servidor e renovar a credencial antes de sincronizar (T032). `null` = sem sessão.
+   */
+  obterSessaoLocal(): Promise<Resultado<Sessao | null>>
   observarSessao(ouvinte: (evento: EventoSessao) => void): () => void
   renovarCredencial(): Promise<Resultado<Sessao>>
 }

@@ -50,6 +50,12 @@ export const identidadeProvider: IdentidadeProvider = {
     return sucesso(data.user ? mapearUsuario(data.user) : null)
   },
 
+  async obterSessaoLocal(): Promise<Resultado<Sessao | null>> {
+    const { data, error } = await supabase.auth.getSession()
+    if (error) return falha({ tipo: 'sem_permissao', mensagem: error.message, origem: error })
+    return sucesso(data.session ? mapearSessao(data.session) : null)
+  },
+
   observarSessao(ouvinte: (evento: EventoSessao) => void): () => void {
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
       // USER_DELETED não está mais no union de tipos desta versão do SDK, mas o código

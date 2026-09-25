@@ -83,6 +83,7 @@ export type Usuario = {
 
 export type Sessao = {
   usuario: Usuario
+  /** Instante de expiração em segundos desde 1970-01-01 UTC, como texto (ex.: "1790000000"). */
   expiraEm?: string
 }
 

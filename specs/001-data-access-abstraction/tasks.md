@@ -210,6 +210,15 @@ ordem.
   retryable/definitivo. **Não tentar reimplementar o parsing de mensagem de erro do
   PostgREST de forma diferente** — transportar fielmente (FR-021), decisão registrada em
   `research.md` D12
+  > **Andamento**: migração em 5 partes, com a suíte e2e offline rodada ao fim de cada uma.
+  > **Parte 1 (2026-09-25) — sondagem e sessão**: `reachability` → `alcancabilidade.verificar(8000)`;
+  > `authRefresh` e as duas checagens de sessão (`runFullSyncInternal`, `syncUpForFiscalizacao`) →
+  > `identidade.obterSessaoLocal` (nova no contrato), `renovarCredencial` e `obterUsuarioCorrente`.
+  > A sondagem do provider passou a responder "inalcançável" sem URL configurada, como os dois
+  > consumidores originais. Como nenhum e2e passava por esse caminho (sessão sempre recém-criada),
+  > foi escrito antes `tests/e2e/offline/sessao-perto-de-expirar.spec.ts`: passa no código antigo,
+  > falha com `authRefresh` desligado. Suíte offline: 4/4 em duas execuções seguidas depois da migração.
+  > Restam as partes 2 (leituras do sync-down), 3 (arquivos), 4 (envio da fila) e 5 (restos do sync-up).
 - [ ] T033 [US1] Migrar `src/lib/offline/repository.ts` (parte offline-first: CRUD local +
   `enqueueMutation`) — trocar as chamadas diretas de leitura auxiliar (ex.:
   `tipos_ocorrencia_dtr`, KML) pelos domínios correspondentes, preservando o padrão

@@ -28,6 +28,9 @@ function endpointsDeSaude(): string[] {
 }
 
 async function sondar(timeoutMs: number): Promise<boolean> {
+  // Sem URL configurada, os dois consumidores originais respondiam "inalcançável" sem sondar;
+  // sem isto, a URL relativa resultante seria respondida pelo próprio servidor do app.
+  if (!supabaseUrl) return false
   try {
     const ctrl = new AbortController()
     const timer = setTimeout(() => ctrl.abort(), timeoutMs)
