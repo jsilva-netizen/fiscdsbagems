@@ -30,7 +30,6 @@ const LEGACY_SUPABASE_COUPLING_ALLOWLIST = [
   "src/components/fiscalizacao/RelatorioFiscalizacao.jsx",
   "src/components/prestador/HistoricoFiscalizacoes.jsx",
   "src/components/utils/numerationHelper.jsx",
-  "src/hooks/useOnline.js",
   "src/lib/AuthContext.jsx",
   "src/lib/PageNotFound.jsx",
   "src/lib/SyncStatusContext.jsx",

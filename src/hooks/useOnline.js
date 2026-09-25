@@ -1,28 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { getProvider } from '@/lib/data'
 
-const headReachable = async () => {
-  try {
-    const base = import.meta.env.VITE_SUPABASE_URL
-    const key = import.meta.env.VITE_SUPABASE_ANON_KEY
-    if (!base) return false
-    const apikeyParam = key ? `?apikey=${encodeURIComponent(String(key))}` : ''
-    const urls = [`${base}/auth/v1/health${apikeyParam}`, `${base}/rest/v1/${apikeyParam}`]
-    const ctrl = new AbortController()
-    const t = setTimeout(() => ctrl.abort(), 6000)
-    for (const url of urls) {
-      try {
-        const res = await fetch(url, { method: 'GET', cache: 'no-store', signal: ctrl.signal })
-        clearTimeout(t)
-        return !!res
-      } catch {
-      }
-    }
-    clearTimeout(t)
-    return false
-  } catch {
-    return false
-  }
-}
+// Sondagem do backend pela camada de dados (T031). Só a sondagem saiu daqui: debounce,
+// polling e histerese abaixo continuam sendo os deste hook, com os parâmetros de cada
+// chamada. Timeout de 6000ms = padrão de alcancabilidade.verificar().
+const headReachable = () => getProvider().alcancabilidade.verificar()
 
 export function useOnline(debounceMs = 1500, intervalMs = 5000) {
   const [navigatorOnline, setNavigatorOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true)

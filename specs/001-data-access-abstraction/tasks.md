@@ -186,9 +186,15 @@ ordem.
   > `criar` e `criarUnidade` (insert). O caminho offline não usa `criar`: o motor envia a fila com upsert
   > por id via `sincronizacao.enviarItemFila`, com as retentativas dele (T032). 12 testes em
   > `tests/unit/domains/fiscalizacoes.test.ts`. Primeiro domínio implementado: serve de padrão para os demais.
-- [ ] T031 [US1] Migrar `src/hooks/useOnline.js` para consumir
+- [X] T031 [US1] Migrar `src/hooks/useOnline.js` para consumir
   `src/lib/data/providers/supabase/alcancabilidade.ts` (T013) em vez de montar a URL do
   Supabase diretamente. Remover do allowlist de exceção do lint (T004)
+  > **Execução (2026-09-25)**: só a sondagem saiu do hook (`alcancabilidade.verificar()`, timeout
+  > padrão de 6000ms). Debounce, polling, histerese e o formato de retorno continuam os do hook,
+  > porque a máquina de `observar()` é única para o app e ignoraria os parâmetros da chamada. Hook
+  > antigo e novo foram comparados lado a lado no navegador (Playwright, respostas simuladas de
+  > `/auth/v1/health`): mesmo estado em todos os passos (online inicial, navegador offline, volta da
+  > rede, servidor fora com queda na 2ª sondagem falha, servidor de volta). Removido do allowlist.
 - [ ] T032 [US1] Migrar `src/lib/offline/syncEngine.ts` — a peça de maior risco do
   inventário. Substituir cada chamada `supabase.from(...)`/`supabase.rpc(...)`/
   `supabase.storage...` pelas operações correspondentes de
