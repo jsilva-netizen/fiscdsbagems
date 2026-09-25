@@ -52,6 +52,8 @@ async function escolherPrimeiraOpcao(page: import('@playwright/test').Page, plac
 test.describe.configure({ mode: 'serial' })
 
 test('ciclo offline completo: fiscalização, unidade, checklist e foto sincronizam íntegros', async ({ paginaFiscal: page }) => {
+  // Inclui a espera pelo envio da foto (até 60s), além do ciclo em si.
+  test.setTimeout(150_000)
   const context = page.context()
 
   // --- Preparação, ainda online -------------------------------------------------------
@@ -160,4 +162,32 @@ test('ciclo offline completo: fiscalização, unidade, checklist e foto sincroni
     'nenhuma resposta de checklist chegou ao servidor — deveria ter uma por item respondido offline'
   ).toBe(totalItens)
   expect(respostas?.every((r) => r.resposta === 'SIM')).toBe(true)
+
+  // --- Foto: referenciada na unidade e presente no armazenamento ----------------------------
+  // Acrescentado na T032 parte 3 (2026-09-25): até então este teste não verificava a foto, só
+  // fiscalização, unidade e respostas. As fotos sobem por fotos_local, não pela fila de
+  // mutações — esvaziar a fila não prova que a foto chegou. Rodado primeiro contra o código
+  // anterior à migração do envio de arquivos, como referência (decisão D10).
+  const referenciaDeArmazenamento = (f: any): { bucket: string; path: string } | null => {
+    if (f?.bucket && f?.path) return { bucket: f.bucket, path: f.path }
+    const m = /^storage:\/\/([^/]+)\/(.+)$/.exec(String(f?.url || ''))
+    return m ? { bucket: m[1], path: m[2] } : null
+  }
+  let fotosNoServidor: { bucket: string; path: string }[] = []
+  await expect
+    .poll(
+      async () => {
+        const { data } = await client.from('unidades_fiscalizadas').select('fotos_unidade').eq('id', unidadeId).maybeSingle()
+        const fotos = Array.isArray(data?.fotos_unidade) ? data.fotos_unidade : []
+        fotosNoServidor = fotos.map(referenciaDeArmazenamento).filter(Boolean) as { bucket: string; path: string }[]
+        return fotosNoServidor.length
+      },
+      { timeout: 60_000, message: 'a foto capturada offline não foi registrada na unidade no servidor' }
+    )
+    .toBe(1)
+  const { data: arquivo, error: erroArquivo } = await client.storage
+    .from(fotosNoServidor[0].bucket)
+    .download(fotosNoServidor[0].path)
+  expect(erroArquivo, 'a foto está referenciada na unidade mas não existe no armazenamento').toBeNull()
+  expect(arquivo?.size ?? 0, 'a foto no armazenamento está vazia').toBeGreaterThan(0)
 })
