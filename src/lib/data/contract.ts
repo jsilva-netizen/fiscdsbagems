@@ -66,6 +66,8 @@ export type ArquivosProvider = {
     opcoes?: { tipoConteudo?: string }
   ): Promise<Resultado<ReferenciaArquivo>>
   obterEnderecoAcesso(ref: ReferenciaArquivo): Promise<Resultado<string>>
+  /** Conteúdo do arquivo — o motor de sync baixa o KML dos contratos no sync-down (T032 parte 3). */
+  baixar(ref: ReferenciaArquivo): Promise<Resultado<Blob>>
   remover(ref: ReferenciaArquivo): Promise<Resultado<void>>
   listar(repositorio: string, prefixoCaminho?: string): Promise<Resultado<ReferenciaArquivo[]>>
 }

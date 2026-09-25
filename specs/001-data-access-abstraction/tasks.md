@@ -227,7 +227,17 @@ ordem.
   > bruto do provedor (`exigir`), do qual elas e `isRetryableError` dependem. Helpers `mapear`/`tipoDoErro`
   > em `types.ts`: o `jsconfig.json` do projeto não é estrito e não estreita `Resultado` pelo `ok`.
   > Suíte offline: 4/4 em duas execuções seguidas.
-  > Restam as partes 3 (arquivos), 4 (envio da fila) e 5 (restos do sync-up).
+  > **Parte 3 (2026-09-25) — arquivos**: os dois envios de foto (`syncFotosWithProgress`: foto com marca
+  > e original) → `arquivos.enviar`; o download do KML de contratos → `arquivos.baixar` (nova no contrato).
+  > `repositorio` continua sendo o nome do bucket, como o provider já fazia; separar nome lógico de bucket
+  > e interpretar o endereço `storage://` gravado (que o motor ainda faz para o KML) fica para a T037.
+  > Achado: o `ciclo-completo.spec.ts` não verificava a foto, apesar do nome; passou a verificar a
+  > referência em `fotos_unidade` e o arquivo no armazenamento (passa no código antigo, falha com o envio
+  > desligado). Suíte offline: 4/4 em duas execuções seguidas.
+  > **Sem cobertura e2e (só unitária)**: envio da foto original (fluxo DTR) e download do KML. **Débito
+  > dos testes**: `tests/support/cleanup.ts` não remove arquivos do armazenamento — as fotos de teste
+  > ficam no bucket local.
+  > Restam as partes 4 (envio da fila) e 5 (restos do sync-up).
 - [ ] T033 [US1] Migrar `src/lib/offline/repository.ts` (parte offline-first: CRUD local +
   `enqueueMutation`) — trocar as chamadas diretas de leitura auxiliar (ex.:
   `tipos_ocorrencia_dtr`, KML) pelos domínios correspondentes, preservando o padrão

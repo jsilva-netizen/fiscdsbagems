@@ -43,6 +43,13 @@ export const arquivosProvider: ArquivosProvider = {
     return sucesso(data.signedUrl)
   },
 
+  async baixar(ref: ReferenciaArquivo): Promise<Resultado<Blob>> {
+    const { data, error } = await supabase.storage.from(ref.repositorio).download(ref.caminho)
+    if (error) return mapearErroStorage(error, 'Falha ao baixar arquivo.')
+    if (!data) return falha({ tipo: 'nao_encontrado', mensagem: 'Arquivo não encontrado.' })
+    return sucesso(data)
+  },
+
   async remover(ref: ReferenciaArquivo): Promise<Resultado<void>> {
     const { error } = await supabase.storage.from(ref.repositorio).remove([ref.caminho])
     if (error) return mapearErroStorage(error, 'Falha ao remover arquivo.')

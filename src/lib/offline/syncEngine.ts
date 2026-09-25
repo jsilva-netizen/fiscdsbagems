@@ -1885,9 +1885,9 @@ async function pullEntity(entity: Entity, since?: string) {
                 }
                 
                 if (parsed) {
-                  const { data, error } = await supabase.storage.from(parsed.bucket).download(parsed.path)
-                  if (!error && data) {
-                    const text = await data.text()
+                  const baixado = await getProvider().arquivos.baixar({ repositorio: parsed.bucket, caminho: parsed.path })
+                  if (baixado.ok === true) {
+                    const text = await (baixado as { ok: true; dado: Blob }).dado.text()
                     const pts = parseKMLKmPoints(text)
                     if (pts && pts.length > 0) {
                       c.km_points = pts
@@ -2179,11 +2179,9 @@ export async function syncFotosWithProgress(onProgress?: (uploaded: number, tota
       }
       const path = f.storagePath || `fiscalizacoes/unknown/${f.unidadeLocalId}/${f.localId}.jpg`
       const doUpload = async () => {
-        const { error } = await supabase.storage.from('fotos_fiscalizacao').upload(path, blob, {
-          contentType: f.mimeType || 'image/jpeg',
-          upsert: true
-        })
-        if (error) throw error
+        exigir(await getProvider().arquivos.enviar({ repositorio: 'fotos_fiscalizacao', caminho: path }, blob, {
+          tipoConteudo: f.mimeType || 'image/jpeg'
+        }))
         await db.fotos_local.update(f.localId as any, {
           syncedAt: new Date().toISOString(),
           storagePath: path,
@@ -2224,11 +2222,9 @@ export async function syncFotosWithProgress(onProgress?: (uploaded: number, tota
       const cleanBlob = f.cleanBlob as Blob
       const cleanPath = f.cleanStoragePath || `fiscalizacoes/unknown/${f.unidadeLocalId}/${f.localId}_original.jpg`
       const doUploadClean = async () => {
-        const { error } = await supabase.storage.from('fotos_fiscalizacao').upload(cleanPath, cleanBlob, {
-          contentType: f.mimeType || 'image/jpeg',
-          upsert: true
-        })
-        if (error) throw error
+        exigir(await getProvider().arquivos.enviar({ repositorio: 'fotos_fiscalizacao', caminho: cleanPath }, cleanBlob, {
+          tipoConteudo: f.mimeType || 'image/jpeg'
+        }))
         await db.fotos_local.update(f.localId as any, {
           cleanSyncedAt: new Date().toISOString(),
           cleanStoragePath: cleanPath,
