@@ -1,8 +1,23 @@
 // Domínio `fiscalizacoes` (contracts/domains.md) — núcleo de campo, único domínio
-// atravessado pelo caminho offline. Implementação real: tasks.md Fase 3 (US1), T030-T034.
+// atravessado pelo caminho offline. Implementação: tasks.md Fase 3 (US1), T030-T034.
 //
-// Esqueleto por enquanto — assinatura das operações, sem corpo. Chamar qualquer uma destas
-// antes da Fase 3 é erro de programação, não caso de uso válido: por isso falha alto.
+// Cada operação reproduz a consulta que o código atual faz (coleção, filtro, ordem,
+// limite), citada ao lado — é o que garante paridade quando o consumidor migrar. Não
+// acrescentar filtro ou ordenação sem consumidor (Princípio V): ordem implícita diferente
+// é regressão visível (contracts/provider.md #1).
+//
+// As operações ainda não migradas falham alto: chamá-las antes da tarefa que as implementa
+// é erro de programação, não caso de uso válido.
+
+import { getProvider } from '../provider'
+import { sucesso, type Resultado } from '../types'
+
+/** Registro como o servidor devolve. O formato das colunas é o atual; não é contrato neutro. */
+export type RegistroFiscalizacao = { id: string; [campo: string]: unknown }
+export type RegistroUnidadeFiscalizada = { id: string; [campo: string]: unknown }
+
+const FISCALIZACOES = 'fiscalizacoes'
+const UNIDADES = 'unidades_fiscalizadas'
 
 function aindaNaoMigrado(operacao: string): never {
   throw new Error(
@@ -10,11 +25,60 @@ function aindaNaoMigrado(operacao: string): never {
   )
 }
 
+/** Fiscalizações de uma câmara técnica, mais recentes primeiro (Fiscalizacoes.jsx). */
+async function listar(opcoes: {
+  camaraTecnicaId: string
+  limite?: number
+}): Promise<Resultado<RegistroFiscalizacao[]>> {
+  const r = await getProvider().registros.buscarMuitos<RegistroFiscalizacao>(FISCALIZACOES, {
+    criterios: [{ campo: 'camara_tecnica_id', op: 'igual', valor: opcoes.camaraTecnicaId }],
+    ordenacao: [{ campo: 'data_inicio', direcao: 'desc' }],
+    limite: opcoes.limite ?? 500,
+  })
+  return r.ok ? sucesso(r.dado.itens) : r
+}
+
+/**
+ * Fiscalização pelo id do servidor. Inexistente é `null`, não erro: o motor de sync lê com
+ * maybeSingle e segue em frente quando não há linha (syncEngine.ts, reconciliação por id).
+ * Consumida pelo motor de sincronização (contracts/domains.md, "Atenção").
+ */
+async function obterPorId(id: string): Promise<Resultado<RegistroFiscalizacao | null>> {
+  const r = await getProvider().registros.buscarUm<RegistroFiscalizacao>(FISCALIZACOES, id)
+  if (!r.ok && r.erro.tipo === 'nao_encontrado') return sucesso(null)
+  return r
+}
+
+/** Unidades de uma fiscalização em ordem de criação (repository.listUnidadesFiscalizacaoOnline). */
+async function listarUnidades(fiscalizacaoId: string): Promise<Resultado<RegistroUnidadeFiscalizada[]>> {
+  if (!fiscalizacaoId) return sucesso([])
+  const r = await getProvider().registros.buscarMuitos<RegistroUnidadeFiscalizada>(UNIDADES, {
+    criterios: [{ campo: 'fiscalizacao_id', op: 'igual', valor: fiscalizacaoId }],
+    ordenacao: [{ campo: 'created_at', direcao: 'asc' }],
+  })
+  return r.ok ? sucesso(r.dado.itens) : r
+}
+
+/**
+ * Cria a fiscalização e devolve o registro com os campos preenchidos pelo servidor.
+ * Criação direta (insert). O caminho offline NÃO passa por aqui: o motor envia a fila com
+ * upsert por id (sincronizacao.enviarItemFila), com as retentativas próprias dele (T032).
+ */
+function criar(dados: Record<string, unknown>): Promise<Resultado<RegistroFiscalizacao>> {
+  return getProvider().registros.criar<RegistroFiscalizacao>(FISCALIZACOES, dados as Partial<RegistroFiscalizacao>)
+}
+
+/** Cria a unidade fiscalizada. Mesma observação de `criar` sobre o caminho offline. */
+function criarUnidade(dados: Record<string, unknown>): Promise<Resultado<RegistroUnidadeFiscalizada>> {
+  return getProvider().registros.criar<RegistroUnidadeFiscalizada>(UNIDADES, dados as Partial<RegistroUnidadeFiscalizada>)
+}
+
 export const fiscalizacoesDomain = {
-  listar: () => aindaNaoMigrado('listar'),
-  obterPorId: (_id: string) => aindaNaoMigrado('obterPorId'),
-  criar: (_dados: unknown) => aindaNaoMigrado('criar'),
-  criarUnidade: (_dados: unknown) => aindaNaoMigrado('criarUnidade'),
+  listar,
+  obterPorId,
+  listarUnidades,
+  criar,
+  criarUnidade,
   responderChecklist: (_dados: unknown) => aindaNaoMigrado('responderChecklist'),
   registrarNaoConformidade: (_dados: unknown) => aindaNaoMigrado('registrarNaoConformidade'),
   registrarConstatacaoManual: (_dados: unknown) => aindaNaoMigrado('registrarConstatacaoManual'),

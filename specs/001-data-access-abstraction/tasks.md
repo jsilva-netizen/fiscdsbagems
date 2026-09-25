@@ -177,9 +177,15 @@ ordem.
 
 ### Migração — domínio `fiscalizacoes` (núcleo de campo, o de maior risco da fase)
 
-- [ ] T030 [US1] Implementar `src/lib/data/domains/fiscalizacoes.ts` — operações de leitura
+- [X] T030 [US1] Implementar `src/lib/data/domains/fiscalizacoes.ts` — operações de leitura
   (listar, obter por id) e criação de fiscalização/unidade, consumindo
   `providers/supabase/registros.ts`
+  > **Execução (2026-09-25)**: `listar` (por câmara técnica, `data_inicio` desc, limite 500, como
+  > em `Fiscalizacoes.jsx`), `obterPorId` (inexistente → `null`, como o `maybeSingle` do motor de sync),
+  > `listarUnidades` (por fiscalização, `created_at` asc, como `repository.listUnidadesFiscalizacaoOnline`),
+  > `criar` e `criarUnidade` (insert). O caminho offline não usa `criar`: o motor envia a fila com upsert
+  > por id via `sincronizacao.enviarItemFila`, com as retentativas dele (T032). 12 testes em
+  > `tests/unit/domains/fiscalizacoes.test.ts`. Primeiro domínio implementado: serve de padrão para os demais.
 - [ ] T031 [US1] Migrar `src/hooks/useOnline.js` para consumir
   `src/lib/data/providers/supabase/alcancabilidade.ts` (T013) em vez de montar a URL do
   Supabase diretamente. Remover do allowlist de exceção do lint (T004)
