@@ -174,6 +174,10 @@ ordem.
   `recreateFiscalizacaoLocally` documentado em `inventario-acoplamento.md` lote 3a
 - [X] T029 [US1] Rodar T026-T028 contra o código atual e confirmar que todos passam —
   **esta é a referência de paridade que a migração seguinte não pode quebrar**
+  > **Referência refeita (2026-09-25)**: a correção das fotos (spec 002, PR #1) mudou a carga das
+  > fotos nas telas de vistoria depois da referência original. Rodado de novo contra o Supabase local:
+  > `9dcf709` (com a spec 002, sem T030/T031) → 3/3 passando (52,6s). Esta passa a ser a referência
+  > de paridade para T040. `3221cdd` (com T030 e T031) → 3/3 passando (50,8s).
 
 ### Migração — domínio `fiscalizacoes` (núcleo de campo, o de maior risco da fase)
 
