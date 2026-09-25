@@ -45,6 +45,10 @@ const LEGACY_SUPABASE_COUPLING_ALLOWLIST = [
   "src/lib/caters/recommendations.js",
   "src/lib/catesa/aiJobs.js",
   "src/lib/edgeFunctions.js",
+  // Exceção à regra acima, não arquivo esquecido: nasceu acoplado na spec 002 (correção
+  // entregue direto na main), ao herdar de VistoriarUnidade a leitura do formato de URL do
+  // armazenamento. Sai daqui na T037, junto com Repository.parseStorageUrl.
+  "src/lib/fotosOrdem.js",
   "src/lib/offline/repository.ts",
   "src/lib/offline/syncEngine.ts",
   "src/lib/storageCleanup.js",
@@ -74,6 +78,9 @@ const LEGACY_SUPABASE_COUPLING_ALLOWLIST = [
 ];
 
 const SUPABASE_LITERAL_PATH_PATTERN = "\\/(rest|auth|storage|functions)\\/v1\\/";
+// Mesmo caminho dentro de uma expressão regular literal (/\/storage\/v1\/.../): o texto
+// da regex tem a barra escapada, que o padrão acima não reconhece.
+const SUPABASE_REGEX_PATH_PATTERN = "(rest|auth|storage|functions)\\\\?\\/v1";
 
 export default [
   {
@@ -113,6 +120,11 @@ export default [
         },
         {
           selector: `Literal[value=/${SUPABASE_LITERAL_PATH_PATTERN}/]`,
+          message:
+            "Só src/lib/data/providers/supabase/** pode referenciar caminhos da API do Supabase. Use a camada de dados (src/lib/data).",
+        },
+        {
+          selector: `Literal[regex.pattern=/${SUPABASE_REGEX_PATH_PATTERN}/]`,
           message:
             "Só src/lib/data/providers/supabase/** pode referenciar caminhos da API do Supabase. Use a camada de dados (src/lib/data).",
         },

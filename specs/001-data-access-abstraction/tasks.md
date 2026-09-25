@@ -39,6 +39,11 @@ de aceite da própria fase, não um extra opcional.
   `src/lib/data/providers/supabase/**`. Adicionar uma lista de exceção temporária cobrindo
   os 49 arquivos ainda não migrados (ver `inventario-acoplamento.md`), a ser reduzida tarefa
   a tarefa nas fases seguintes e removida por completo em T088
+  > **Correção (2026-09-25)**: a regra de caminho literal só inspecionava strings e
+  > templates, e deixava passar o caminho dentro de expressão regular (`/\/storage\/v1\/.../`).
+  > Isso foi achado quando `src/lib/fotosOrdem.js` (spec 002) passou pelo lint sem aviso. Foi
+  > acrescentado o seletor `Literal[regex.pattern=...]`. O lint do projeto não acusou nenhum
+  > outro arquivo fora do allowlist.
 - [X] T005 [P] Implementar `tests/support/guard.ts` — trava de execução (FR-018): aborta
   antes de qualquer requisição se a variável de ambiente de confirmação da base não
   corresponder ao identificador esperado
@@ -210,6 +215,15 @@ ordem.
   "obter endereço de acesso" de `providers/supabase/arquivos.ts`. Documentar explicitamente
   se o bucket `fotos_fiscalizacao` é público ou privado (achado 7 de
   `debitos-tecnicos-e-inconsistencias.md`) e unificar a forma de acesso
+  > **Escopo ampliado (2026-09-25)**: a correção das fotos (spec 002, entregue direto na
+  > `main`) criou `src/lib/fotosOrdem.js`. A função `chaveDeArmazenamento` dele interpreta o
+  > formato de URL do armazenamento (`storage://`, `/storage/v1/object/public|sign/`), e o
+  > arquivo entrou no allowlist do lint (T004) como exceção explícita. Nesta tarefa, também:
+  > (a) acrescentar ao `ArquivosProvider` (`src/lib/data/contract.ts`) uma operação síncrona
+  > que converte endereço gravado em `ReferenciaArquivo`, ou `null`, implementada em
+  > `providers/supabase/arquivos.ts`; (b) fazer `chaveDeArmazenamento` e
+  > `Repository.parseStorageUrl` usarem essa operação; (c) tirar `src/lib/fotosOrdem.js` do
+  > allowlist. Os 29 testes de `tests/unit/fotos/` precisam continuar passando sem alteração.
 - [ ] T038 [US1] Migrar `src/lib/offline/db.ts` e `src/lib/offline/image.ts` se necessário —
   confirmar que nenhum dos dois faz chamada de rede direta (uso esperado: só Dexie/canvas)
 - [ ] T039 [US1] Remover T031-T038 do allowlist de exceção do lint (T004)
