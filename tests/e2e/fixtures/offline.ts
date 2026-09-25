@@ -195,3 +195,73 @@ export async function aguardarFilaVaziaIndexedDB(page: Page, timeoutMs = 30_000)
   }
   throw new Error(`[fixtures/offline] fila_mutacoes ainda não esvaziou após ${timeoutMs}ms.`)
 }
+
+// Fila de sincronização gravada direto no IndexedDB, sem passar pelo código do app — simula
+// uma fila que já existia no dispositivo (T027). Movida de fila-preexistente.spec.ts para
+// ser reaproveitada por sessao-perto-de-expirar.spec.ts.
+
+export type FiscalizacaoPreexistente = {
+  id: string
+  municipio_id: string
+  municipio_nome: string
+  prestador_servico_id: string
+  prestador_servico_nome: string
+  servico: string
+  status: string
+  data_inicio: string
+  fiscal_email: string
+  tipo_modulo: string
+  created_at: string
+  updated_at: string
+  numero_termo: string
+}
+
+/**
+ * Grava a fiscalização e a mutação de fila diretamente via IndexedDB nativo, sem passar por
+ * nenhum código do app — é o ponto central do teste (ver cabeçalho do arquivo).
+ */
+export async function popularFilaPreexistente(
+  page: import('@playwright/test').Page,
+  fiscalizacao: FiscalizacaoPreexistente,
+  mutacaoId: string
+): Promise<void> {
+  await page.evaluate(
+    ({ dbName, fiscalizacao, mutacaoId }) => {
+      return new Promise<void>((resolve, reject) => {
+        const req = indexedDB.open(dbName)
+        req.onerror = () => reject(req.error)
+        req.onsuccess = () => {
+          const db = req.result
+          const tx = db.transaction(['fiscalizacoes', 'fila_mutacoes', 'pending_entities'], 'readwrite')
+          tx.objectStore('fiscalizacoes').put(fiscalizacao)
+          tx.objectStore('fila_mutacoes').put({
+            id: mutacaoId,
+            tipo: 'insert',
+            entity: 'fiscalizacoes',
+            payload: fiscalizacao,
+            status: 'pending',
+            attempts: 0,
+            lastError: '',
+            nextRetryAt: undefined,
+            created_at: fiscalizacao.created_at
+          })
+          tx.objectStore('pending_entities').put({
+            id: `fiscalizacoes:${fiscalizacao.id}`,
+            entity: 'fiscalizacoes',
+            local_id: fiscalizacao.id,
+            created_at: fiscalizacao.created_at
+          })
+          tx.oncomplete = () => {
+            db.close()
+            resolve()
+          }
+          tx.onerror = () => {
+            db.close()
+            reject(tx.error)
+          }
+        }
+      })
+    },
+    { dbName: DEXIE_DB_NAME, fiscalizacao, mutacaoId }
+  )
+}

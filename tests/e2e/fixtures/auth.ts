@@ -71,6 +71,15 @@ export async function obterStorageStateDoPerfil(
 type FixturesDeAutenticacao = {
   /** Página já autenticada como perfil "fiscal" — o mais usado (ciclo de campo, US1). */
   paginaFiscal: Page
+  /**
+   * Página autenticada como "fiscal" com login próprio, sem a sessão em cache. Para teste
+   * que faz o app renovar a sessão mais de uma vez: o Supabase rotaciona o token de renovação
+   * (enable_refresh_token_rotation) e a sessão em cache nunca é regravada — toda execução
+   * reabre com o mesmo token, aceito só enquanto for pai do token ativo. Uma renovação extra
+   * sobre a sessão em cache faz a próxima execução ser tratada como reuso, e o servidor revoga
+   * a sessão de todos os testes (achado ao escrever sessao-perto-de-expirar.spec.ts).
+   */
+  paginaFiscalSessaoPropria: Page
 }
 
 /**
@@ -86,6 +95,13 @@ export const test = base.extend<FixturesDeAutenticacao>({
     })
     const context = await browser.newContext({ storageState })
     const page = await context.newPage()
+    await use(page)
+    await context.close()
+  },
+  paginaFiscalSessaoPropria: async ({ browser }, use) => {
+    const context = await browser.newContext()
+    const page = await context.newPage()
+    await loginViaUI(page, credenciaisDe('fiscal'))
     await use(page)
     await context.close()
   },
