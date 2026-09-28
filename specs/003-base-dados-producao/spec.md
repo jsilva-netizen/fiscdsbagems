@@ -241,7 +241,7 @@ verificar que um revisor encontra, para cada regra, as quatro informações acim
 **Rastreabilidade e ordem**
 
 - **FR-012**: O mapa de rastreabilidade MUST atribuir cada objeto dos dois inventários a exatamente um módulo dono, ou a uma classificação explícita fora do escopo ("plataforma — não migra" ou "descartar", com motivo).
-- **FR-013**: A lista de módulos MUST seguir a organização em apps da constituição v2.0.0: core, checklists, um por diretoria ou câmara técnica, processo sancionador, portal do prestador, tramitação, com análises com IA dentro dos apps que as usam. Cada módulo MUST ter a lista dos objetos que possui.
+- **FR-013**: A lista de módulos MUST seguir a organização em apps da constituição v2.1.0: core, fiscalização, checklists, um por diretoria ou câmara técnica, processo sancionador, portal do prestador, tramitação, com análises com IA dentro dos apps que as usam. Cada módulo MUST ter a lista dos objetos que possui.
 - **FR-014**: A ordem de especificação dos módulos MUST ser derivada das dependências: chaves estrangeiras, chamadas entre funções, e funções usadas por políticas e gatilhos. Nenhum módulo pode vir antes de um módulo do qual depende. Dependências circulares MUST ser identificadas e resolvidas de forma explícita.
 - **FR-015**: O mapa MUST indicar, para cada objeto, a spec de módulo que o descreve. Enquanto ela não existir, o objeto aparece como lacuna. Assim o mapa mede o progresso do levantamento.
 
