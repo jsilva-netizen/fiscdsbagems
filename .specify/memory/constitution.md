@@ -43,24 +43,30 @@ por leitura de código.
 - O isolamento entre câmaras técnicas MUST ser tratado como fronteira de segurança, não
   como filtro de conveniência de interface.
 
-**Rationale**: o sistema hoje concentra o controle de acesso em 163 policies de Row Level
-Security que determinam quem enxerga processos, autos e pareceres de cada câmara técnica.
-A perda silenciosa de uma única regra não gera erro — gera vazamento entre áreas, e só é
-descoberta quando já aconteceu.
+**Rationale**: o banco de produção concentra o controle de acesso em 173 políticas de Row
+Level Security, apoiadas em funções auxiliares como `is_staff`, `current_role`,
+`can_access_fiscalizacao` e `can_access_unidade`, além de controles fora da RLS
+(inventário de produção, 2026-09-28). No sistema novo essas regras viram permissões do
+Django. A perda silenciosa de uma única regra na tradução não gera erro — gera vazamento
+entre áreas, e só é descoberta quando já aconteceu.
 
 ### IV. Produção Intocada e Mudança Reversível
 
-O sistema em uso MUST permanecer estável e disponível durante qualquer trabalho estrutural.
+O sistema em uso MUST permanecer estável e disponível até a virada para o sistema novo, e a
+virada MUST ser um passo único, preparado e verificado.
 
-- Reescritas e migrações MUST ocorrer sobre cópia isolada (branch), nunca sobre a produção.
-- A produção recebe apenas correção crítica enquanto houver trabalho estrutural em curso;
-  funcionalidade nova entra na cópia.
-- Todo passo MUST ser reversível, e mudanças irreversíveis (virada, expurgo, migração de
-  dados) exigem verificação prévia documentada.
+- O sistema novo MUST ser construído em paralelo, sem nenhuma dependência de escrita no
+  banco ou no armazenamento de produção do sistema atual.
+- Enquanto o sistema novo não substituir o atual, a produção atual (Supabase, branch
+  `main`) recebe apenas correção crítica; funcionalidade nova entra no sistema novo.
+- Toda correção feita na produção atual durante o levantamento MUST ser refletida nas specs
+  do sistema novo, para que a descrição não fique desatualizada.
+- Todo passo MUST ser reversível até a virada. A virada e a migração de dados são
+  irreversíveis e exigem os portões desta constituição satisfeitos e documentados.
 
 **Rationale**: não existe janela de manutenção confortável para um sistema que a agência
 usa em campo. A alternativa a "reversível" não é "rápido", é "indisponível por tempo
-indeterminado".
+indeterminado". Construir o novo em paralelo mantém o atual funcionando até o último dia.
 
 ### V. Manutenibilidade Acima de Sofisticação
 
@@ -76,32 +82,52 @@ do ecossistema consiga manter, e não a mais elegante, moderna ou concisa.
 **Rationale**: este é um sistema de agência pública, com equipe pequena e rotatividade
 real. Um sistema que só o seu autor sabe manter é um passivo, por melhor que seja.
 
-## Restrições Tecnológicas e de Integração
+## Arquitetura do Sistema Novo e Restrições Tecnológicas
 
-O fiscdsbagems opera como app Django dentro do SISREG, o sistema guarda-chuva de regulação
-da AGEMS. As restrições abaixo derivam dessa integração e do assessment registrado em
-`.specify/assessments/django-refactor/`. Alterá-las exige emenda a esta constituição, e
-aquelas que tocam o schema do SISREG exigem também acordo com a equipe responsável por ele.
+A AGEMS descartou o SISREG por inteiro e constrói um sistema próprio, que substitui o
+fiscdsbagems atual, reaproveitando a lógica de funcionamento dele (decisão registrada em
+`.specify/assessments/novo-sistema-django-apps/`, que substitui a de
+`.specify/assessments/django-refactor/`). Alterar as restrições abaixo exige emenda a esta
+constituição.
 
 **Stack obrigatória**
 
 - Backend: Django + Django REST Framework, autenticação por JWT (SimpleJWT).
-- Banco: PostgreSQL self-hosted, compartilhado com o SISREG. Sem Backend-as-a-Service.
-- Assíncrono: Celery + Redis, incluindo o agendamento de rotinas de prazo.
+- Banco: PostgreSQL self-hosted, próprio do sistema. Sem Backend-as-a-Service.
+- Assíncrono: Celery + Redis, incluindo o agendamento de rotinas de prazo e o processamento
+  assistido por IA.
 - Arquivos: `django-storages` com backend abstraído; nunca caminho de filesystem direto
   no código de aplicação.
-- Frontend: SPA React/Vite separada, consumindo a API. Armazenamento local offline em
-  Dexie/IndexedDB.
+- Frontend: SPA React/Vite nova e separada, consumindo a API, no mesmo modelo offline do
+  sistema atual: armazenamento local em Dexie/IndexedDB e sincronização com fila local.
+
+**Organização em apps**
+
+O sistema é modularizado ao máximo, em apps Django:
+
+- **core**: autenticação, perfis, entidades reguladas, instrumentos, diretorias e câmaras
+  técnicas.
+- **checklists**: o motor de checklists, comum a todas as câmaras.
+- **um app por diretoria/câmara técnica**: as especificidades de cada uma (ex.: DTR com mapa e
+  KML) e o layout próprio de relatórios.
+- **processo sancionador**: autos de infração, termos de notificação, análise da manifestação
+  e pareceres técnicos.
+- **portal do prestador**.
+- **tramitação de documentos e dados**.
+- **análises com IA**: embutidas nos apps que as usam, não como app isolado.
+
+O que é comum a mais de uma câmara MUST viver em `core` ou `checklists`. O que é específico
+de uma câmara MUST NOT vazar para os apps comuns.
 
 **Fronteiras de domínio**
 
-- O SISREG é fonte única de `Entidade` e `Instrumento`; campos exclusivos da fiscalização
-  vivem em tabela de extensão 1:1, nunca poluindo o cadastro compartilhado.
-- Câmara técnica corresponde à `Subunidade` do SISREG.
-- Fiscalização é entidade própria, com referência opcional à `Acao` do SISREG — planejamento
-  e execução de campo são conceitos distintos e MUST permanecer distintos.
-- Chaves primárias: cada app mantém sua convenção (SISREG em INTEGER, fiscalização em UUID).
-  A geração de identificador no cliente MUST ser preservada, pois o modelo offline depende dela.
+- O `core` é a fonte única de entidades reguladas e instrumentos; nenhum outro app mantém
+  cadastro próprio deles.
+- Toda câmara técnica pertence a uma diretoria.
+- Fiscalização é entidade própria; planejamento e execução de campo são conceitos distintos
+  e MUST permanecer distintos.
+- Chaves primárias em UUID, com geração de identificador no cliente preservada: o modelo
+  offline depende dela.
 
 ## Fluxo de Desenvolvimento e Portões de Qualidade
 
@@ -109,29 +135,49 @@ aquelas que tocam o schema do SISREG exigem também acordo com a equipe respons�
 (`intake → research → define → shape → decide`) antes de chegar a `/speckit-specify`.
 Matar uma ideia no assessment é resultado válido e desejável.
 
-**Isolamento**: trabalho estrutural ocorre em branch dedicada; `main` reflete a produção.
-Deploys automáticos MUST estar configurados de modo que nenhum push em branch de trabalho
-alcance produção.
+**Levantamento em specs**: antes de construir, todo o sistema atual MUST ser descrito em
+specs neste repositório (a partir de `specs/003`), nesta ordem:
+
+1. Inventário do banco de produção, que é a fonte da verdade do banco. As migrations do
+   repositório não servem para isso: produção não tem registro de migrations aplicadas e
+   diverge delas (inventário de 2026-09-28).
+2. Mapa de rastreabilidade: cada objeto do banco aponta para a spec de módulo que o
+   descreve. Objeto sem módulo é lacuna.
+3. Specs de módulo, uma de cada vez, em ordem de dependência.
+4. Jornadas de validação por perfil de usuário: cada passo de uma jornada MUST apontar para a
+   regra de uma spec de módulo. Passo sem regra é lacuna; regra que contradiz a jornada é erro.
+
+Cada spec descreve o comportamento **desejado** no sistema novo: todas as funcionalidades
+preservadas (Princípio I), defeitos corrigidos. Quando o desejado diferir do atual, a spec
+MUST registrar o comportamento atual e o motivo da mudança; diferença não registrada é perda.
+
+**Isolamento**: `main` reflete a produção atual; o trabalho de levantamento ocorre em branch
+dedicada. Deploys automáticos MUST estar configurados de modo que nenhum push em branch de
+trabalho alcance produção.
 
 **Dados de teste**: quando o desenvolvimento escrever no banco de produção, a escrita MUST
 ser rastreável — por usuário dedicado de teste e por entidades fictícias identificáveis.
 Dado de teste MUST ser expurgado ou explicitamente classificado antes de qualquer migração,
 sob pena de invalidar o critério binário do Princípio I.
 
-**Portões antes de mudança irreversível**
+**Portões antes da virada para o sistema novo**
 
-Antes de qualquer virada de sistema ou migração de dados, MUST estar satisfeito:
+Antes da virada e da migração de dados, MUST estar satisfeito:
 
-1. Inventário completo das tabelas com dado, conferido contra o modelo de destino.
-2. Plano verificável de drenagem dos dispositivos em campo, para que nenhum outbox local
-   se perca.
-3. Volume de arquivos medido e janela de indisponibilidade dimensionada.
+1. Inventário completo do banco de produção conferido contra o modelo do sistema novo. O
+   inventário estrutural existe desde 2026-09-28; a conferência contra o modelo novo, não.
+2. Nenhum dispositivo com fila local não sincronizada no momento da virada, comprovado por
+   procedimento verificável dispositivo a dispositivo, e não por suposição.
+3. Volume de arquivos medido e janela de indisponibilidade dimensionada. Em 2026-09-28 eram
+   8 buckets, 1.554 arquivos e cerca de 1 GB.
 4. Verificação de autorização executada e aprovada (Princípio III).
 5. Dados de teste expurgados ou classificados.
+6. Migração de dados conferida registro a registro por identificador (Princípio I).
 
-**Premissas externas**: decisões que dependem do SISREG (schema, subunidades, aceite da
-equipe) MUST ser marcadas como provisórias até confirmação, e MUST NOT ser tratadas como
-fechadas no planejamento.
+**Premissas externas**: decisões que dependem de interlocutores externos ao time — por
+exemplo, os requisitos das câmaras técnicas que ainda não têm funcionalidade — MUST ser
+marcadas como provisórias até confirmação, e MUST NOT ser tratadas como fechadas no
+planejamento.
 
 ## Governance
 
@@ -140,9 +186,8 @@ no projeto. Em conflito entre um princípio daqui e uma decisão de implementaç
 vence — ou a constituição é emendada explicitamente, com registro do motivo.
 
 **Emendas**: qualquer alteração exige (a) registro do que muda e por quê, (b) avaliação do
-impacto sobre trabalho em andamento, e (c) incremento de versão conforme a política abaixo.
-Emendas que afetem as Restrições Tecnológicas e de Integração e toquem o schema do SISREG
-exigem adicionalmente acordo com a equipe responsável por ele.
+impacto sobre trabalho em andamento, (c) incremento de versão conforme a política abaixo, e
+(d) aprovação do responsável pelo projeto.
 
 **Versionamento**: MAJOR para remoção ou redefinição incompatível de princípio; MINOR para
 princípio ou seção nova, ou expansão material de orientação; PATCH para esclarecimento,
@@ -153,4 +198,4 @@ constituição. Complexidade que viole o Princípio V MUST ser justificada por e
 removida. Violação de princípio marcado NÃO NEGOCIÁVEL bloqueia a entrega, sem exceção
 por prazo.
 
-**Version**: 1.0.0 | **Ratified**: 2026-09-18 | **Last Amended**: 2026-09-18
+**Version**: 2.0.0 | **Ratified**: 2026-09-18 | **Last Amended**: 2026-09-28
