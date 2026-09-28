@@ -1,0 +1,12 @@
+ordem,secao,total,conteudo
+25,papeis,1,"[{""papel"": ""anon"", ""superusuario"": false, ""herda"": true, ""pode_logar"": false, ""ignora_rls"": false, ""cria_papeis"": false, ""configuracao"": null, ""membro_de"": []}]"
+26,privilegios_padrao,1,"[{""dono"": ""postgres"", ""esquema"": ""public"", ""tipo_objeto"": ""tabela"", ""privilegios"": [""anon=arwdDxtm/postgres""]}]"
+27,privilegios_colunas,0,[]
+28,event_triggers,1,"[{""nome"": ""watch_ddl"", ""evento"": ""ddl_command_end"", ""situacao"": ""O"", ""comandos"": null, ""funcao"": ""extensions.watch"", ""dono"": ""postgres""}]"
+29,opcoes_tabelas,4,"[{""nome"": ""filho"", ""tipo"": ""tabela"", ""dono"": ""postgres"", ""opcoes"": null, ""replica_identity"": ""padrao"", ""e_particao"": false}, {""nome"": ""pai"", ""tipo"": ""tabela"", ""dono"": ""postgres"", ""opcoes"": null, ""replica_identity"": ""padrao"", ""e_particao"": false}, {""nome"": ""pai_x"", ""tipo"": ""tabela"", ""dono"": ""postgres"", ""opcoes"": null, ""replica_identity"": ""padrao"", ""e_particao"": false}, {""nome"": ""resumo_filhos"", ""tipo"": ""view"", ""dono"": ""postgres"", ""opcoes"": null, ""replica_identity"": ""padrao"", ""e_particao"": false}]"
+30,dependencias,1,"[{""dependente"": ""resumo_filhos"", ""tipo_dependente"": ""view"", ""depende_de"": ""filho"", ""coluna"": ""pai_id""}]"
+31,vault_nomes,1,"[{""nome"": ""CHAVE_WORKER"", ""descricao"": null, ""criado_em"": ""2026-01-01"", ""atualizado_em"": ""2026-01-01""}]"
+32,dominio_categorico,1,"[{""tabela"": ""filho"", ""coluna"": ""status"", ""tipo"": ""text"", ""distintos"": 2, ""valores"": {""aberto"": 3, ""fechado"": 2}}]"
+33,estrutura_json,1,"[{""tabela"": ""filho"", ""coluna"": ""fotos"", ""tipo"": ""jsonb"", ""linhas_preenchidas"": 5, ""formas"": {""array"": 5}, ""tipos_dos_elementos_das_listas"": {""object"": 7}, ""chaves"": [{""chave"": ""path"", ""tipo"": ""string"", ""ocorrencias"": 7}]}]"
+34,padroes_caminho_arquivos,1,"[{""bucket"": ""fotos"", ""padrao"": ""fiscalizacoes/<uuid>/<arquivo>.jpg"", ""arquivos"": 3}]"
+35,chaves_metadados_usuario,1,"{""raw_user_meta_data"": {""role"": 2}, ""raw_app_meta_data"": {""provider"": 2}}"

@@ -40,7 +40,7 @@ Escreva cada teste antes do código correspondente e confirme que ele falha.
 
 **Purpose**: estrutura de pastas e fixtures de teste
 
-- [ ] T001 Criar a estrutura de pastas do plano:
+- [X] T001 Criar a estrutura de pastas do plano:
   - `S/ferramentas/`
   - `S/ferramentas/testes/fixtures/`
   - `S/anotacoes/tabelas/`
@@ -51,8 +51,8 @@ Escreva cada teste antes do código correspondente e confirme que ele falha.
   - `S/formatos/`
 
   Criar também `S/ferramentas/__init__.py` e `S/ferramentas/testes/__init__.py`, ambos vazios.
-- [ ] T002 [P] Implementar `S/ferramentas/raiz.py` com `raiz_repositorio() -> pathlib.Path`, que sobe a partir de `__file__` até achar a pasta `.specify/`, e `resolver(caminho: str) -> Path`, que resolve caminho relativo a partir da raiz (contracts/ferramentas-cli.md, "Como rodar").
-- [ ] T003 [P] Criar fixtures pequenas em `S/ferramentas/testes/fixtures/`, no mesmo formato dos CSVs de produção:
+- [X] T002 [P] Implementar `S/ferramentas/raiz.py` com `raiz_repositorio() -> pathlib.Path`, que sobe a partir de `__file__` até achar a pasta `.specify/`, e `resolver(caminho: str) -> Path`, que resolve caminho relativo a partir da raiz (contracts/ferramentas-cli.md, "Como rodar").
+- [X] T003 [P] Criar fixtures pequenas em `S/ferramentas/testes/fixtures/`, no mesmo formato dos CSVs de produção:
   - `parte1-ok.csv`: todas as 29 seções, com 2 tabelas (`pai` e `filho`, este com uma chave estrangeira para `pai`), 1 view, colunas, 1 restrição de cada tipo, 1 índice, 3 funções (uma com duas sobrecargas; uma com `INSERT INTO filho` e chamada a outra; uma usada em política), 1 gatilho em `filho` e 1 em `auth.users`, 2 políticas (uma em `storage.objects` com `bucket_id = 'fotos'`), 1 tipo enum e 1 bucket;
   - `parte2-ok.csv`: as 11 seções, com 1 papel, 1 dependência de view, 1 nome de segredo, 1 coluna categórica e 1 coluna JSON;
   - variantes inválidas: `parte1-sem-secao.csv` (sem `gatilhos`), `parte1-total-errado.csv` (`total` diferente do número de itens) e `parte1-json-quebrado.csv`.
@@ -68,7 +68,7 @@ varredura. Tudo o que as histórias usam.
 
 **⚠️ CRITICAL**: nenhuma história começa antes desta fase.
 
-- [ ] T004 [P] Escrever `S/ferramentas/testes/test_inventario.py` cobrindo:
+- [X] T004 [P] Escrever `S/ferramentas/testes/test_inventario.py` cobrindo:
   - `parte1-ok.csv` e `parte2-ok.csv` carregam;
   - seção ausente, total que não bate e JSON quebrado são recusados com `InventarioInvalido`, e a mensagem cita a seção;
   - as seções de texto `migracoes_aplicadas` e `agendamentos` viram listas vazias;
@@ -76,11 +76,11 @@ varredura. Tudo o que as histórias usam.
   - toda chave segue [data-model.md](./data-model.md#chave-do-objeto);
   - colisão de chave é recusada;
   - um TSV do psql (colunas separadas por tab, sem cabeçalho de CSV) carrega igual ao CSV.
-- [ ] T005 Implementar `S/ferramentas/inventario.py` até a T004 passar.
+- [X] T005 Implementar `S/ferramentas/inventario.py` até a T004 passar.
   - `carregar(parte1, parte2) -> Inventario`: aceita CSV do SQL Editor ou TSV do psql, valida pelas regras de data-model.md, seção "Inventário", e expõe `secoes: dict` e `objetos: dict[chave, Objeto]`.
   - `Objeto` tem `chave`, `tipo`, `atributos` (o dict do inventário) e `pai` (a chave da tabela, para coluna, restrição, índice, gatilho e política).
   - Chaves: `tabela:`, `coluna:`, `restricao:`, `indice:`, `funcao:`, `gatilho:`, `politica:`, `tipo:`, `bucket:`, `papel:`, `privilegio:`, `segredo:`, mais `evento:<nome>` para event triggers e `privilegio_padrao:<dono>.<esquema>.<tipo_objeto>`. Acrescentar essas duas à tabela de chaves de `S/data-model.md`.
-- [ ] T006 [P] Escrever `S/ferramentas/testes/test_anotacoes.py` cobrindo as regras de [contracts/anotacoes.md](./contracts/anotacoes.md):
+- [X] T006 [P] Escrever `S/ferramentas/testes/test_anotacoes.py` cobrindo as regras de [contracts/anotacoes.md](./contracts/anotacoes.md):
   - TOML válido carrega;
   - chave órfã (sem objeto no inventário) → `AnotacaoInvalida` com a lista das órfãs;
   - tabela, view, função ou bucket sem `modulo` e sem `fora_escopo` → erro;
@@ -91,12 +91,12 @@ varredura. Tudo o que as histórias usam.
   - `classificacao` fora de `producao_vale | residuo_descartar | defeito_corrigir | aguardando_decisao` → erro;
   - `situacao` fora de `aguardando_decisao | decidido` → erro;
   - `decidido` sem `decisao`, `decidido_por` e `decidido_em` (AAAA-MM-DD) → erro.
-- [ ] T007 Implementar `S/ferramentas/anotacoes.py` até a T006 passar. `carregar(pasta, inventario) -> Anotacoes` lê os TOMLs de `S/anotacoes/`:
+- [X] T007 Implementar `S/ferramentas/anotacoes.py` até a T006 passar. `carregar(pasta, inventario) -> Anotacoes` lê os TOMLs de `S/anotacoes/`:
   - `modulos.toml`, `tabelas/*.toml`, `funcoes/*.toml`, `arquivos.toml`, `acesso.toml`, `plataforma.toml`, `divergencias.toml`, `achados.toml`;
   - `externos.toml`, novo: `[[externo]]` com `nome`, `descricao`, `como_obter`, `usado_por`. Documentar esse arquivo em `S/contracts/anotacoes.md`.
 
   Arquivo ausente conta como vazio.
-- [ ] T008 [P] Escrever `S/ferramentas/testes/test_gerar.py` cobrindo:
+- [X] T008 [P] Escrever `S/ferramentas/testes/test_gerar.py` cobrindo:
   - `gerar` com as fixtures e anotações vazias → retorno 0, e o resumo de completude na última linha mostra todos os objetos "sem anotação";
   - inventário inválido → retorno 1;
   - anotação inválida → retorno 2;
@@ -106,14 +106,14 @@ varredura. Tudo o que as histórias usam.
   - todo arquivo gerado começa com o aviso `<!-- GERADO por ferramentas/gerar.py ... Não editar. -->` ([contracts/artefatos-gerados.md](./contracts/artefatos-gerados.md)).
 
   Usar uma pasta temporária como saída.
-- [ ] T009 Implementar o esqueleto de `S/ferramentas/gerar.py` até a T008 passar.
+- [X] T009 Implementar o esqueleto de `S/ferramentas/gerar.py` até a T008 passar.
   - **CLI e retornos:** a CLI e os códigos de retorno de contracts/ferramentas-cli.md; `--saida` (padrão `S/`) para os testes.
   - **Escrita:** determinística (ordenação estável, `\n`, UTF-8, sem data de execução no conteúdo; só a data do inventário).
   - **Modo `--verificar`:** compara o que seria gerado com o disco.
   - **Resumo final:** objetos sem anotação, sem módulo, divergências não classificadas, violações de ordem e achados aguardando decisão.
 
   Nesta tarefa gera só `S/catalogo/README.md` com as contagens por tipo; as páginas vêm nas histórias.
-- [ ] T010 [P] Escrever `S/ferramentas/testes/test_varredura.py` e implementar `S/ferramentas/varredura.py` (research D8).
+- [X] T010 [P] Escrever `S/ferramentas/testes/test_varredura.py` e implementar `S/ferramentas/varredura.py` (research D8).
   - **Detecta:** e-mail, CPF e CNPJ (com e sem máscara), JWT, e sequência base64 ou hex com 40 caracteres ou mais fora de blocos de código SQL. O código de função pode ter hash legítimo; nesse caso a regra fica no próprio arquivo, com exceção explícita e justificada.
   - **Colunas pessoais:** falha se alguma coluna cujo nome bata no padrão de dado pessoal da parte 2 (`responsavel`, `razao`, `contato`, `nome`, `email`, `_by$`…) aparecer com valores listados.
   - **Mensagens:** cita arquivo, linha e tipo, **sem repetir o valor** encontrado.

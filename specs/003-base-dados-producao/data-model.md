@@ -49,6 +49,11 @@ Retrato de um banco numa data.
 | papel | `papel:<nome>` | `papel:authenticated` |
 | privilégio | `privilegio:<tabela ou função>.<papel>` | `privilegio:profiles.anon` |
 | segredo | `segredo:<nome>` | `segredo:RELATORIOS_WORKER_SECRET` |
+| privilégio padrão | `privilegio_padrao:<dono>.<esquema>.<tipo_objeto>` | `privilegio_padrao:postgres.public.tabela` |
+| privilégio de coluna | `privilegio_coluna:<tabela>.<coluna>.<papel>` | (nenhum em produção) |
+| event trigger | `evento:<nome>` | `evento:pgrst_ddl_watch` |
+| extensão | `extensao:<nome>` | `extensao:pg_net` |
+| sequência, publicação, agendamento | `sequencia:<nome>`, `publicacao:<pub>.<tabela>`, `agendamento:<nome>` | (nenhum em produção) |
 
 **Regras**:
 - chave é única no inventário, e o gerador falha se houver colisão;

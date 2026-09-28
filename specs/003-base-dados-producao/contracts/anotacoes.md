@@ -18,6 +18,7 @@ Chave anotada que não existe no inventário é **órfã** e faz o gerador falha
 | `plataforma.toml` | objetos classificados `plataforma` (em bloco, com motivo) |
 | `divergencias.toml` | classificação e justificativa de cada divergência |
 | `achados.toml` | achados, opções, recomendação e decisão |
+| `externos.toml` | informações do sistema atual que não estão no banco (FR-023) |
 
 ## Campos
 
@@ -35,6 +36,16 @@ fonte = ["src/lib/offline/syncEngine.ts:1013"]
 hipotese = false                   # true quando não há fonte que confirme
 ```
 
+- **Campo de texto por tipo** (o gerador conta como "sem anotação" quem não tem):
+  `finalidade` para tabela, view, função, bucket, tipo, papel, segredo, extensão, event trigger e
+  privilégio padrão; `significado` para coluna; `efeito` para gatilho; `descricao` (a política
+  em linguagem simples: quem, operação, condição) para política. Restrição, índice e privilégio
+  não exigem texto: a definição gerada já os descreve.
+- **Função** aceita também `chamada_por` (lista de telas ou edge functions, com arquivo:linha) e
+  `regra_de_negocio` (texto: qual regra a função implementa e qual spec de módulo vai descrevê-la).
+- **Herança de dono**: coluna, restrição, índice, gatilho, política e privilégio de tabela herdam
+  o dono da tabela; política de `storage.objects` herda do bucket citado em `bucket_id = '...'`;
+  privilégio de função herda da função. Objeto fora do escopo (próprio ou herdado) não exige texto.
 - `modulo` é obrigatório para tabela, view, função e bucket. Coluna, restrição, índice, gatilho e
   política herdam o módulo da tabela, a menos que declarem outro.
 - `fora_escopo = { classificacao = "plataforma" | "descartar", motivo = "...", achado = "A-NNN" }`
@@ -77,6 +88,16 @@ situacao = "aguardando_decisao"    # aguardando_decisao | decidido
 decisao = ""                       # texto; preenchido só pelo responsável pelo projeto
 decidido_por = ""
 decidido_em = ""                   # AAAA-MM-DD
+```
+
+### `externos.toml`
+
+```toml
+[[externo]]
+nome = "Código publicado das edge functions"
+descricao = """..."""
+como_obter = """..."""
+usado_por = ["..."]               # módulos ou specs que dependem desta informação
 ```
 
 ## Proibições
