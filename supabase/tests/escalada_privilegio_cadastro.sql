@@ -118,6 +118,9 @@ BEGIN
   PERFORM pg_temp.ok(public."current_role"() = '', 'inativo: current_role() é vazio');
   PERFORM pg_temp.ok(public.is_staff() IS FALSE, 'inativo: is_staff() é falso');
   PERFORM pg_temp.ok((SELECT count(*) FROM public.fiscalizacoes) = 0, 'inativo: não vê fiscalizações');
+  PERFORM pg_temp.ok((SELECT count(*) FROM public.profiles) = 1, 'inativo: não lê perfis de outros');
+  PERFORM pg_temp.ok((SELECT ativo FROM public.profiles WHERE id = auth.uid()) IS FALSE,
+    'inativo: lê o próprio perfil (tela de login mostra "aguarda aprovação")');
 
   UPDATE public.profiles SET ativo = true, role = 'admin' WHERE id = auth.uid();
   UPDATE public.profiles SET ativo = true WHERE id = '00000000-0000-4000-8000-00000000c001';
@@ -203,6 +206,9 @@ BEGIN
     'fiscal aprovado: vê a fiscalização da sua câmara');
   PERFORM pg_temp.ok((SELECT ativo FROM public.profiles WHERE id = auth.uid()) IS TRUE,
     'fiscal aprovado: lê o próprio perfil');
+  PERFORM pg_temp.ok((SELECT count(*) FROM public.profiles
+                      WHERE id::text LIKE '00000000-0000-4000-8000-%') >= 5,
+    'fiscal aprovado: lê os perfis dos outros');
 END $$;
 RESET ROLE;
 

@@ -5,7 +5,8 @@
 -- perfil inativo. Anônimos liam todos os perfis e podiam inserir perfis.
 --
 -- Depois: perfil só tem papel e vínculos no banco quando ativo; o cadastro só aceita os papéis
--- oferecidos na tela; inativo não se autoaprova; anônimo não lê nem insere perfis.
+-- oferecidos na tela; inativo não se autoaprova e só lê o próprio perfil; anônimo não lê nem
+-- insere perfis.
 --
 -- Parte das definições de produção (inventário de 2026-09-28), que diferem das migrations antigas.
 
@@ -188,9 +189,16 @@ $function$;
 
 -- 4. Políticas de profiles.
 
--- Anônimo lia todos os perfis (nome, e-mail, papel, vínculos). Autenticados continuam lendo pela
--- política "Leitura pública de perfis".
+-- Anônimo lia todos os perfis (nome, e-mail, papel, vínculos).
 DROP POLICY IF EXISTS "Leitura Geral" ON public.profiles;
+
+-- Qualquer logado lia todos os perfis e, com o cadastro público, isso é qualquer pessoa. Passa a:
+-- o próprio perfil (a tela de login lê `ativo` para mostrar "aguarda aprovação") ou todos, para
+-- quem tem perfil ativo.
+DROP POLICY IF EXISTS "Leitura pública de perfis" ON public.profiles;
+CREATE POLICY "Leitura pública de perfis" ON public.profiles
+  FOR SELECT TO authenticated
+  USING (id = auth.uid() OR (SELECT public.get_my_role()) IS NOT NULL);
 
 -- Anônimo inseria perfis. O perfil é criado pelo gatilho do cadastro; autenticado sem perfil
 -- continua com "Inserção Própria".
