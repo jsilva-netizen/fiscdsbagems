@@ -107,6 +107,9 @@ O sistema é modularizado ao máximo, em apps Django:
 
 - **core**: autenticação, perfis, entidades reguladas, instrumentos, diretorias e câmaras
   técnicas.
+- **fiscalização**: a fiscalização de campo comum às câmaras — fiscalizações, unidades
+  fiscalizadas, respostas de checklist, não conformidades, constatações, determinações,
+  recomendações e evidências fotográficas —, incluindo a operação offline.
 - **checklists**: o motor de checklists, comum a todas as câmaras.
 - **um app por diretoria/câmara técnica**: as especificidades de cada uma (ex.: DTR com mapa e
   KML) e o layout próprio de relatórios.
@@ -116,7 +119,7 @@ O sistema é modularizado ao máximo, em apps Django:
 - **tramitação de documentos e dados**.
 - **análises com IA**: embutidas nos apps que as usam, não como app isolado.
 
-O que é comum a mais de uma câmara MUST viver em `core` ou `checklists`. O que é específico
+O que é comum a mais de uma câmara MUST viver em `core`, `fiscalização` ou `checklists`. O que é específico
 de uma câmara MUST NOT vazar para os apps comuns.
 
 **Fronteiras de domínio**
@@ -198,4 +201,4 @@ constituição. Complexidade que viole o Princípio V MUST ser justificada por e
 removida. Violação de princípio marcado NÃO NEGOCIÁVEL bloqueia a entrega, sem exceção
 por prazo.
 
-**Version**: 2.0.0 | **Ratified**: 2026-09-18 | **Last Amended**: 2026-09-28
+**Version**: 2.1.0 | **Ratified**: 2026-09-18 | **Last Amended**: 2026-09-28
