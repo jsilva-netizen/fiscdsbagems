@@ -70,6 +70,15 @@ class TestGerar(Base):
         self.assertEqual(codigo, 3)
         self.assertFalse(self.saida.exists() and any(self.saida.rglob("*.md")))
 
+    def test_codigo_com_quebra_de_linha_do_windows_nao_quebra_o_verificar(self):
+        # Funções de produção vêm com \r\n; a saída precisa ser estável mesmo assim.
+        texto = (FIX / "parte1-ok.csv").read_text(encoding="utf-8")
+        alterado = texto.replace("BEGIN\\n  IF NOT", "BEGIN\\r\\n  IF NOT")
+        self.assertNotEqual(alterado, texto, "fixture mudou; ajustar o teste")
+        (self.tmp / "p1.csv").write_text(alterado, encoding="utf-8")
+        self.assertEqual(self.rodar(parte1=str(self.tmp / "p1.csv"))[0], 0)
+        self.assertEqual(self.rodar("--verificar", parte1=str(self.tmp / "p1.csv"))[0], 0)
+
     def test_todo_arquivo_gerado_tem_o_aviso(self):
         self.rodar()
         for nome, conteudo in self.arquivos().items():

@@ -15,7 +15,8 @@ arquivo gerado começa com:
 | `tabelas/<tabela>.md` | uma página por tabela/view (formato abaixo) | FR-001, FR-002, FR-005, FR-008 |
 | `funcoes/<nome>.md` | uma página por nome de função, com cada sobrecarga | FR-003, FR-008 |
 | `arquivos.md` | buckets: configuração, volume, padrão de caminho, políticas, colunas/funções que os referenciam | FR-006 |
-| `acesso.md` | papéis, privilégios por papel (inclui `anon`), privilégios padrão, funções executáveis sem login, nomes de segredos e quem os usa | FR-007 |
+| `acesso.md` | papéis, privilégios por papel (inclui `anon`), privilégios padrão e por coluna, funções executáveis sem login, nomes de segredos e quem os usa, extensões e event triggers | FR-007 |
+| `tipos.md` | tipos enumerados, com valores e as colunas que os usam | FR-001 |
 | `externos.md` | informações fora do banco (edge functions publicadas, configuração de autenticação), com como obter | FR-023 |
 
 ### Página de tabela

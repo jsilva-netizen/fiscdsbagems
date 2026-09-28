@@ -1,0 +1,42 @@
+<!-- GERADO por ferramentas/gerar.py a partir de .specify/assessments/novo-sistema-django-apps/inventario-producao.csv + .specify/assessments/novo-sistema-django-apps/inventario-producao-parte2.csv e anotacoes/. Não editar. -->
+
+# gerar_numero_auto
+
+## `gerar_numero_auto()`
+
+- **Retorno**: `text` · **Linguagem**: plpgsql · **Volatilidade**: volatile
+- **Permissão elevada** (`SECURITY DEFINER`): não
+- **Dono**: **sem dono** (lacuna)
+
+**Finalidade**: _Sem anotação._
+
+- **Lê**: [autos_infracao](../tabelas/autos_infracao.md)
+- **Escreve**: —
+- **Chama**: —
+- **Chamada por (banco)**: —
+- **Chamada por (telas e edge functions, anotado)**: _Sem anotação._
+
+<details><summary>Código completo (produção)</summary>
+
+```sql
+CREATE OR REPLACE FUNCTION public.gerar_numero_auto()
+ RETURNS text
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+    ano TEXT := to_char(NOW(), 'YYYY');
+    seq INTEGER;
+    novo_numero TEXT;
+BEGIN
+    SELECT COUNT(*) + 1 INTO seq FROM public.autos_infracao WHERE to_char(created_at, 'YYYY') = ano;
+    novo_numero := 'AI ' || lpad(seq::text, 3, '0') || '/' || ano || '/DSB/AGEMS';
+    RETURN novo_numero;
+END;
+$function$
+```
+
+</details>
+
+## Divergências e achados
+
+_Nenhuma divergência entre produção e migrations, nenhum achado._

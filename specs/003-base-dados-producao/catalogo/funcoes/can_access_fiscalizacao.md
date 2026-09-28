@@ -1,0 +1,41 @@
+<!-- GERADO por ferramentas/gerar.py a partir de .specify/assessments/novo-sistema-django-apps/inventario-producao.csv + .specify/assessments/novo-sistema-django-apps/inventario-producao-parte2.csv e anotacoes/. Não editar. -->
+
+# can_access_fiscalizacao
+
+## `can_access_fiscalizacao(fiscalizacao uuid)`
+
+- **Retorno**: `boolean` · **Linguagem**: sql · **Volatilidade**: stable
+- **Permissão elevada** (`SECURITY DEFINER`): **sim**
+- **Dono**: **sem dono** (lacuna)
+
+**Finalidade**: _Sem anotação._
+
+- **Lê**: [termos_notificacao](../tabelas/termos_notificacao.md)
+- **Escreve**: —
+- **Chama**: [current_prestador_servico_id()](../funcoes/current_prestador_servico_id.md)
+- **Chamada por (banco)**: `politica:public.respostas_determinacao.respostas_det_prestador_insert` (usa), `politica:public.respostas_determinacao.respostas_det_prestador_select` (usa), `politica:public.respostas_determinacao.respostas_det_prestador_update` (usa), `politica:public.unidades_fiscalizadas.unidades_prestador_select` (usa)
+- **Chamada por (telas e edge functions, anotado)**: _Sem anotação._
+
+<details><summary>Código completo (produção)</summary>
+
+```sql
+CREATE OR REPLACE FUNCTION public.can_access_fiscalizacao(fiscalizacao uuid)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  select exists (
+    select 1
+    from public.termos_notificacao t
+    where t.fiscalizacao_id = fiscalizacao
+      and t.prestador_servico_id = public.current_prestador_servico_id()
+  );
+$function$
+```
+
+</details>
+
+## Divergências e achados
+
+_Nenhuma divergência entre produção e migrations, nenhum achado._

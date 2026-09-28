@@ -41,6 +41,8 @@ hipotese = false                   # true quando não há fonte que confirme
   privilégio padrão; `significado` para coluna; `efeito` para gatilho; `descricao` (a política
   em linguagem simples: quem, operação, condição) para política. Restrição, índice e privilégio
   não exigem texto: a definição gerada já os descreve.
+- **Bucket** aceita também `referenciado_por` (lista de colunas, telas ou funções que guardam ou
+  montam referência para arquivos dele, com fonte).
 - **Função** aceita também `chamada_por` (lista de telas ou edge functions, com arquivo:linha) e
   `regra_de_negocio` (texto: qual regra a função implementa e qual spec de módulo vai descrevê-la).
 - **Herança de dono**: coluna, restrição, índice, gatilho, política e privilégio de tabela herdam

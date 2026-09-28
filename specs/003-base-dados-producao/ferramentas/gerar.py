@@ -9,11 +9,13 @@ Retornos: 0 ok · 1 inventário inválido · 2 anotação inválida · 3 disco d
 
 import argparse
 import sys
-from collections import Counter
+from collections import Counter, defaultdict
 from pathlib import Path
 
 from ferramentas import anotacoes as anot_mod
 from ferramentas import inventario as inv_mod
+from ferramentas import paginas
+from ferramentas.dependencias import extrair
 from ferramentas.raiz import PASTA_SPEC, raiz_repositorio, resolver
 
 PADRAO_P1 = ".specify/assessments/novo-sistema-django-apps/inventario-producao.csv"
@@ -37,15 +39,31 @@ ROTULO_TIPO = {
 class Contexto:
     """Tudo o que as páginas precisam, calculado uma vez."""
 
-    def __init__(self, inv, anot, fonte: str):
+    def __init__(self, inv, anot, fonte: str, divergencias=None):
         self.inv = inv
         self.anot = anot
         self.fonte = fonte
+        self.grafo = extrair(inv)
+        self.divergencias = divergencias or []
         self.sem_anotacao = anot.sem_anotacao(inv)
         self.sem_dono = anot.sem_dono(inv)
-        self.nao_classificadas = 0
+        self.nao_classificadas = sum(1 for d in self.divergencias if d.chave not in anot.divergencias)
         self.violacoes = 0
         self.aguardando = sum(1 for a in anot.achados if a.get("situacao") == "aguardando_decisao")
+        # Índices usados pelas páginas.
+        self.colunas = defaultdict(list)
+        for c in sorted(inv.secoes.get("colunas", []), key=lambda c: (c["tabela"], c["posicao"])):
+            self.colunas[c["tabela"]].append(c)
+        self.filhos = defaultdict(list)
+        for o in inv.objetos.values():
+            if o.pai:
+                self.filhos[o.pai].append(o)
+        self.dominio = {(d["tabela"], d["coluna"]): d for d in inv.secoes.get("dominio_categorico", [])}
+        self.json = {(d["tabela"], d["coluna"]): d for d in inv.secoes.get("estrutura_json", [])}
+        self.opcoes = {o["nome"]: o for o in inv.secoes.get("opcoes_tabelas", [])}
+
+    def classificacao(self, chave: str) -> str:
+        return self.anot.divergencias.get(chave, {}).get("classificacao", "nao_classificada")
 
     def aviso(self) -> str:
         return f"<!-- GERADO por ferramentas/gerar.py a partir de {self.fonte} e anotacoes/. Não editar. -->\n"
@@ -57,27 +75,64 @@ class Contexto:
 
 
 def _readme(ctx: Contexto) -> str:
-    por_tipo = Counter(o.tipo for o in ctx.inv.objetos.values())
-    pendentes = Counter(ctx.inv.objetos[c].tipo for c in ctx.sem_anotacao)
+    objs = ctx.inv.objetos
+    por_tipo = Counter(o.tipo for o in objs.values())
+    pendentes = Counter(objs[c].tipo for c in ctx.sem_anotacao)
     linhas = [
         ctx.aviso(),
         "# Catálogo do banco de produção\n",
-        f"Inventário de {ctx.inv.data or '(data desconhecida)'} · {len(ctx.inv.objetos)} objetos.\n",
+        f"Inventário de {ctx.inv.data or '(data desconhecida)'} · {len(objs)} objetos.\n",
+        "Páginas gerais: [repositórios de arquivos](arquivos.md) · [controle de acesso](acesso.md) · "
+        "[tipos](tipos.md) · [informações fora do banco](externos.md)\n",
         "## Objetos por tipo\n",
         "| Tipo | Total | Sem anotação |",
         "|---|---:|---:|",
     ]
     for tipo in sorted(por_tipo, key=lambda t: list(ROTULO_TIPO).index(t) if t in ROTULO_TIPO else 99):
-        rotulo = ROTULO_TIPO.get(tipo, tipo)
         exige = tipo in anot_mod.CAMPO_DE_TEXTO
-        linhas.append(f"| {rotulo} | {por_tipo[tipo]} | {pendentes[tipo] if exige else '—'} |")
+        linhas.append(f"| {ROTULO_TIPO.get(tipo, tipo)} | {por_tipo[tipo]} | {pendentes[tipo] if exige else '—'} |")
     linhas += ["", "## Completude\n", ctx.resumo(), ""]
+
+    # Índice por módulo: tabelas, views e funções de cada dono.
+    grupos = defaultdict(lambda: {"tabela": [], "funcao": []})
+    for o in objs.values():
+        if o.tipo in ("tabela", "view", "funcao"):
+            modulo, fora = ctx.anot.dono(o.chave, ctx.inv)
+            grupo = modulo or (f"fora do escopo: {fora['classificacao']}" if fora else "sem dono (lacuna)")
+            grupos[grupo]["tabela" if o.tipo in ("tabela", "view") else "funcao"].append(o)
+    ordem = {m["id"]: m.get("ordem", 99) for m in ctx.anot.modulos}
+    linhas += ["## Por módulo\n"]
+    for grupo in sorted(grupos, key=lambda g: (ordem.get(g, 999), g)):
+        tabs = sorted({o.atributos["nome"] for o in grupos[grupo]["tabela"]})
+        funcs = sorted({o.atributos["nome"] for o in grupos[grupo]["funcao"]})
+        linhas.append(f"### {grupo}\n")
+        if tabs:
+            linhas.append("Tabelas e views: " + " · ".join(f"[{t}](tabelas/{t}.md)" for t in tabs) + "\n")
+        if funcs:
+            linhas.append("Funções: " + " · ".join(f"[{f}](funcoes/{f}.md)" for f in funcs) + "\n")
+
+    hipoteses = sorted(c for c, a in ctx.anot.objetos.items() if a.get("hipotese") is True)
+    linhas += ["## Anotações marcadas como hipótese (para revisão)\n"]
+    linhas += [f"- `{c}` ({ctx.anot.origem[c]})" for c in hipoteses] or ["_Nenhuma._"]
+    linhas.append("")
     return "\n".join(linhas)
 
 
 def documentos(ctx: Contexto) -> dict[str, str]:
     """Caminho relativo à pasta de saída → conteúdo. Ordem e conteúdo determinísticos."""
-    return {"catalogo/README.md": _readme(ctx)}
+    docs = {"catalogo/README.md": _readme(ctx)}
+    for o in ctx.inv.objetos.values():
+        if o.tipo in ("tabela", "view"):
+            docs[f"catalogo/tabelas/{o.atributos['nome']}.md"] = paginas.pagina_tabela(ctx, o.chave)
+    for nome in sorted({o.atributos["nome"] for o in ctx.inv.objetos.values() if o.tipo == "funcao"}):
+        docs[f"catalogo/funcoes/{nome}.md"] = paginas.pagina_funcao(ctx, nome)
+    docs["catalogo/arquivos.md"] = paginas.pagina_arquivos(ctx)
+    docs["catalogo/acesso.md"] = paginas.pagina_acesso(ctx)
+    docs["catalogo/tipos.md"] = paginas.pagina_tipos(ctx)
+    docs["catalogo/externos.md"] = paginas.pagina_externos(ctx)
+    # O código de algumas funções de produção vem com quebras de linha do Windows (\r\n); a saída
+    # usa sempre \n, senão a comparação de --verificar nunca bate.
+    return {nome: texto.replace("\r\n", "\n").replace("\r", "\n") for nome, texto in sorted(docs.items())}
 
 
 def _existentes(saida: Path) -> dict[str, str]:

@@ -134,7 +134,7 @@ varredura. Tudo o que as histórias usam.
 
 ### Tests for User Story 1 ⚠️
 
-- [ ] T011 [P] [US1] Escrever `S/ferramentas/testes/test_dependencias.py` com as fixtures, cobrindo cada linha da tabela de [research.md D4](./research.md#d4--de-onde-sai-cada-dependência):
+- [X] T011 [P] [US1] Escrever `S/ferramentas/testes/test_dependencias.py` com as fixtures, cobrindo cada linha da tabela de [research.md D4](./research.md#d4--de-onde-sai-cada-dependência):
   - FK `filho → pai` (natureza `referencia`, origem `catalogo`);
   - view → tabela (`consulta`, `catalogo`);
   - gatilho → função (`dispara`, `catalogo`);
@@ -144,7 +144,7 @@ varredura. Tudo o que as histórias usam.
   - o nome de uma tabela dentro de outro nome (ex.: `pai` em `pai_x`) não conta.
 
   Garantir também que `dependentes_de(chave)` e `dependencias_de(chave)` são inversas.
-- [ ] T012 [P] [US1] Escrever `S/ferramentas/testes/test_paginas.py`. Gerar com as fixtures e verificar:
+- [X] T012 [P] [US1] Escrever `S/ferramentas/testes/test_paginas.py`. Gerar com as fixtures e verificar:
   - a página `catalogo/tabelas/filho.md` tem as 8 seções da "Página de tabela" de contracts/artefatos-gerados.md, na ordem;
   - a coluna com anotação `hipotese = true` aparece marcada como hipótese;
   - a página de função tem uma seção por sobrecarga;
@@ -153,26 +153,26 @@ varredura. Tudo o que as histórias usam.
 
 ### Implementation for User Story 1
 
-- [ ] T013 [US1] Implementar `S/ferramentas/dependencias.py` até a T011 passar. `extrair(inventario) -> Grafo`, com `dependencias_de(chave)` e `dependentes_de(chave)`, e cada aresta com natureza e origem (data-model.md, "Dependência"). Para função → tabela, casar o nome da tabela com borda de palavra, e decidir entre escrita e leitura pelo verbo SQL que precede a menção.
-- [ ] T014 [US1] Em `S/ferramentas/gerar.py`, gerar `S/catalogo/tabelas/<tabela>.md` para cada tabela e view, com as 8 seções de "Página de tabela" (contracts/artefatos-gerados.md):
+- [X] T013 [US1] Implementar `S/ferramentas/dependencias.py` até a T011 passar. `extrair(inventario) -> Grafo`, com `dependencias_de(chave)` e `dependentes_de(chave)`, e cada aresta com natureza e origem (data-model.md, "Dependência"). Para função → tabela, casar o nome da tabela com borda de palavra, e decidir entre escrita e leitura pelo verbo SQL que precede a menção.
+- [X] T014 [US1] Em `S/ferramentas/gerar.py`, gerar `S/catalogo/tabelas/<tabela>.md` para cada tabela e view, com as 8 seções de "Página de tabela" (contracts/artefatos-gerados.md):
   - valores em uso das colunas categóricas: seção `dominio_categorico` da parte 2;
   - estrutura das colunas JSON: seção `estrutura_json`;
   - condição original das políticas: em `<details>`.
-- [ ] T015 [US1] Em `S/ferramentas/gerar.py`, gerar `S/catalogo/funcoes/<nome>.md` para cada nome de função (37 nomes, 38 funções), com uma seção por sobrecarga: assinatura, retorno, linguagem, permissão elevada, finalidade, tabelas lidas e escritas, funções chamadas, quem a chama (gatilhos, políticas e o campo anotado `chamada_por` com telas e edge functions), regra de negócio e spec, e o código completo em `<details>`. Acrescentar `chamada_por` e `regra_de_negocio` ao contrato de anotação de função em `S/contracts/anotacoes.md`.
-- [ ] T016 [P] [US1] Em `S/ferramentas/gerar.py`, gerar `S/catalogo/arquivos.md` com os 8 buckets de produção:
+- [X] T015 [US1] Em `S/ferramentas/gerar.py`, gerar `S/catalogo/funcoes/<nome>.md` para cada nome de função (37 nomes, 38 funções), com uma seção por sobrecarga: assinatura, retorno, linguagem, permissão elevada, finalidade, tabelas lidas e escritas, funções chamadas, quem a chama (gatilhos, políticas e o campo anotado `chamada_por` com telas e edge functions), regra de negócio e spec, e o código completo em `<details>`. Acrescentar `chamada_por` e `regra_de_negocio` ao contrato de anotação de função em `S/contracts/anotacoes.md`.
+- [X] T016 [P] [US1] Em `S/ferramentas/gerar.py`, gerar `S/catalogo/arquivos.md` com os 8 buckets de produção:
   - configuração (`public`, `file_size_limit`, `allowed_mime_types`);
   - arquivos e bytes (seção `arquivos_por_bucket`) e padrões de caminho (seção `padroes_caminho_arquivos` da parte 2);
   - as políticas de `storage.objects` agrupadas pelo `bucket_id` da condição;
   - as colunas e funções que referenciam o bucket: buscar o nome do bucket no código das funções e nos valores padrão de colunas, e acrescentar o que estiver anotado em `anotacoes/arquivos.toml`.
-- [ ] T017 [P] [US1] Em `S/ferramentas/gerar.py`, gerar `S/catalogo/acesso.md`:
+- [X] T017 [P] [US1] Em `S/ferramentas/gerar.py`, gerar `S/catalogo/acesso.md`:
   - papéis (parte 2, `papeis`);
   - privilégios em tabelas e funções por papel, com destaque para `anon` e `PUBLIC` (parte 1, `permissoes_tabelas` e `permissoes_funcoes`);
   - privilégios padrão e privilégios por coluna;
   - nomes de segredos (parte 2, `vault_nomes`), com quem os usa: busca do nome no código das funções mais a anotação.
-- [ ] T018 [P] [US1] Em `S/ferramentas/gerar.py`, gerar `S/catalogo/externos.md` a partir de `anotacoes/externos.toml`, e criar esse arquivo com pelo menos duas entradas (FR-023):
+- [X] T018 [P] [US1] Em `S/ferramentas/gerar.py`, gerar `S/catalogo/externos.md` a partir de `anotacoes/externos.toml`, e criar esse arquivo com pelo menos duas entradas (FR-023):
   - o código publicado das 9 edge functions: `caters_ai_enqueue`, `caters_ai_status`, `caters_ai_worker`, `catesa_ai_enqueue`, `catesa_ai_status`, `catesa_ai_worker`, `relatorios_enqueue`, `relatorios_status`, `relatorios_worker`. Como obter: baixar pelo painel do Supabase. Referência provisória: `supabase/functions/` do repositório;
   - a configuração de autenticação (confirmação de e-mail, validade da sessão, URLs de retorno, envio de e-mail), obtida pelo painel.
-- [ ] T019 [US1] Completar `S/catalogo/README.md` em `gerar.py`: índice por módulo e por tipo, com links, e completude (anotados/total) por tipo. Rodar `python -m ferramentas.gerar` sobre produção e fazer commit da estrutura gerada, ainda sem anotações.
+- [X] T019 [US1] Completar `S/catalogo/README.md` em `gerar.py`: índice por módulo e por tipo, com links, e completude (anotados/total) por tipo. Rodar `python -m ferramentas.gerar` sobre produção e fazer commit da estrutura gerada, ainda sem anotações.
 
 **Anotações (o grosso do trabalho).** Para cada tabela:
 - `finalidade` com `fonte`;

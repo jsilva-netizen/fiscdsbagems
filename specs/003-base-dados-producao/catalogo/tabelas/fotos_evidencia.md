@@ -1,0 +1,96 @@
+<!-- GERADO por ferramentas/gerar.py a partir de .specify/assessments/novo-sistema-django-apps/inventario-producao.csv + .specify/assessments/novo-sistema-django-apps/inventario-producao-parte2.csv e anotacoes/. Não editar. -->
+
+# fotos_evidencia
+
+- **Tipo**: tabela
+- **Dono**: **sem dono** (lacuna)
+- **Linhas em produção**: 0
+- **RLS ativo**: sim
+
+## Finalidade
+
+_Sem anotação._
+
+## Colunas
+
+| # | Coluna | Tipo | Obrig. | Padrão | Significado | Valores em uso / estrutura |
+|---:|---|---|:---:|---|---|---|
+| 1 | `id` | uuid | sim | `uuid_generate_v4()` |  |  |
+| 2 | `fiscalizacao_id` | uuid |  |  |  |  |
+| 3 | `unidade_fiscalizada_id` | uuid |  |  |  |  |
+| 4 | `url` | text | sim |  |  |  |
+| 5 | `bucket_path` | text | sim |  |  |  |
+| 6 | `descricao` | text |  |  |  |  |
+| 7 | `created_at` | timestamp with time zone |  | `now()` |  |  |
+
+## Restrições e índices
+
+| Restrição | Tipo | Definição |
+|---|---|---|
+| `fotos_evidencia_fiscalizacao_id_fkey` | chave_estrangeira | `FOREIGN KEY (fiscalizacao_id) REFERENCES fiscalizacoes(id) ON DELETE CASCADE` |
+| `fotos_evidencia_pkey` | chave_primaria | `PRIMARY KEY (id)` |
+| `fotos_evidencia_unidade_fiscalizada_id_fkey` | chave_estrangeira | `FOREIGN KEY (unidade_fiscalizada_id) REFERENCES unidades_fiscalizadas(id) ON DELETE CASCADE` |
+
+| Índice | Definição |
+|---|---|
+| `fotos_evidencia_pkey` | `CREATE UNIQUE INDEX fotos_evidencia_pkey ON public.fotos_evidencia USING btree (id)` |
+
+## Dependências
+
+**Depende de:**
+
+- [fiscalizacoes](../tabelas/fiscalizacoes.md) — referencia (catalogo)
+- [unidades_fiscalizadas](../tabelas/unidades_fiscalizadas.md) — referencia (catalogo)
+
+**É usada por:**
+
+- _nada_
+
+## Gatilhos
+
+_Nenhum._
+
+## Políticas de acesso
+
+### Fiscais e Admins: acesso total em fotos
+
+- **Papéis**: authenticated · **Operação**: ALL · **PERMISSIVE**
+- **Em linguagem simples**: _Sem anotação._
+- **Funções auxiliares**: [get_my_role()](../funcoes/get_my_role.md)
+
+<details><summary>Condição original</summary>
+
+```sql
+USING:
+(get_my_role() = ANY (ARRAY['admin'::text, 'coordenador'::text, 'fiscal'::text]))
+
+WITH CHECK:
+(get_my_role() = ANY (ARRAY['admin'::text, 'coordenador'::text, 'fiscal'::text]))
+```
+
+</details>
+
+### Prestadores: ler suas próprias fotos
+
+- **Papéis**: authenticated · **Operação**: SELECT · **PERMISSIVE**
+- **Em linguagem simples**: _Sem anotação._
+- **Funções auxiliares**: [get_my_prestador_id()](../funcoes/get_my_prestador_id.md), [get_my_role()](../funcoes/get_my_role.md)
+
+<details><summary>Condição original</summary>
+
+```sql
+USING:
+((get_my_role() = 'prestador'::text) AND (EXISTS ( SELECT 1
+   FROM (unidades_fiscalizadas u
+     JOIN fiscalizacoes f ON ((f.id = u.fiscalizacao_id)))
+  WHERE ((u.id = fotos_evidencia.unidade_fiscalizada_id) AND (f.prestador_servico_id = get_my_prestador_id())))))
+
+WITH CHECK:
+(nenhuma)
+```
+
+</details>
+
+## Divergências e achados
+
+_Nenhuma divergência entre produção e migrations, nenhum achado._
