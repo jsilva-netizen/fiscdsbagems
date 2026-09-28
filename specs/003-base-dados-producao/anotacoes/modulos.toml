@@ -1,0 +1,75 @@
+# Módulos do levantamento e ordem de especificação (research.md D6; contracts/anotacoes.md).
+# Ordem 1–6 testada contra as 62 chaves estrangeiras de produção em 2026-09-28, sem violação.
+# `spec` é preenchido quando a spec do módulo existir; até lá, os objetos do módulo aparecem como LACUNA.
+
+[[modulo]]
+id = "core"
+nome = "Core"
+ordem = 1
+app = "core"
+spec = ""
+observacao = "Identidade, perfis, diretorias e câmaras técnicas, municípios, prestadores (entidades reguladas), contratos (instrumentos), auditoria e as funções de permissão usadas pelas políticas de todos os módulos."
+
+[[modulo]]
+id = "checklists"
+nome = "Checklists"
+ordem = 2
+app = "checklists"
+spec = ""
+observacao = "Motor de checklists comum: tipos de unidade e itens de checklist (versionados, append-only)."
+
+[[modulo]]
+id = "fiscalizacao"
+nome = "Fiscalização"
+ordem = 3
+app = "fiscalização"
+spec = ""
+observacao = "Fiscalização de campo comum às câmaras, incluindo a operação offline e a geração de relatórios."
+
+[[modulo]]
+id = "dtr"
+nome = "DTR"
+ordem = 4
+app = "app da diretoria/câmara DTR"
+spec = ""
+observacao = "Especificidades da DTR (tipos de ocorrência, mapa e KML); o fluxo usa as tabelas do módulo fiscalização."
+
+[[modulo]]
+id = "processo_sancionador"
+nome = "Processo sancionador"
+ordem = 5
+app = "processo sancionador"
+spec = ""
+observacao = "Termos de notificação, respostas a determinações, autos de infração, manifestações, pareceres técnicos, julgamentos e remessas para análise com IA."
+
+[[modulo]]
+id = "caters"
+nome = "CATERS"
+ordem = 6
+app = "app da câmara CATERS"
+spec = ""
+observacao = "Processos, recomendações e análises com IA da câmara de resíduos sólidos."
+
+[[modulo]]
+id = "catesa"
+nome = "CATESA"
+ordem = 7
+app = "app da câmara CATESA"
+spec = ""
+observacao = "Sem tabela própria em produção: a funcionalidade atual está nas edge functions catesa_ai_* e nas telas; a tabela catesa_ai_jobs existe só nas migrations."
+
+[[modulo]]
+id = "portal_prestador"
+nome = "Portal do prestador"
+ordem = 8
+app = "portal do prestador"
+spec = ""
+observacao = "Sem tabela própria no banco atual: existe como políticas de acesso para o papel prestador e como telas."
+
+[[modulo]]
+id = "tramitacao"
+nome = "Tramitação de documentos e dados"
+ordem = 9
+app = "tramitação de documentos e dados"
+spec = ""
+observacao = "Sem tabela própria no banco atual. Se corresponde a algo que já existe (remessas, respostas, histórico de análise) ou é funcionalidade nova é pergunta aberta da avaliação."
