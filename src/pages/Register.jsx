@@ -97,7 +97,8 @@ export default function Register() {
 
         try {
             // 1. Criar usuário no Supabase Auth com metadados adicionais
-            const { data: authData, error: authError } = await supabase.auth.signUp({
+            // O perfil é criado (inativo) pelo gatilho on_auth_user_created, na mesma transação.
+            const { error: authError } = await supabase.auth.signUp({
                 email,
                 password,
                 options: {
@@ -119,34 +120,6 @@ export default function Register() {
                     throw new Error('Este e-mail já possui cadastro. Use a senha existente para entrar ou peça ao administrador para excluir definitivamente o usuário antes de cadastrar novamente.');
                 }
                 throw authError;
-            }
-
-            // 2. Criar perfil manualmente se o trigger falhar ou demorar
-            if (authData?.user) {
-                const { data: existingProfile } = await supabase
-                    .from('profiles')
-                    .select('id')
-                    .eq('id', authData.user.id)
-                    .single();
-
-                if (!existingProfile) {
-                    const { error: profileError } = await supabase
-                        .from('profiles')
-                        .insert({
-                            id: authData.user.id,
-                            email: email,
-                            full_name: fullName,
-                            role: role,
-                            ativo: false,
-                            diretoria_id: ['fiscal', 'coordenador', 'diretor'].includes(role) ? selectedDiretoria : 'dsb',
-                            camara_tecnica_id: ['fiscal', 'coordenador'].includes(role) ? (selectedCamaraTecnica || null) : null,
-                            prestador_servico_id: role === 'prestador' ? (selectedPrestador || null) : null
-                        });
-                    
-                    if (profileError) {
-                        console.error('Erro ao criar perfil:', profileError);
-                    }
-                }
             }
 
             alert('Cadastro realizado com sucesso! Faça login para continuar.');
