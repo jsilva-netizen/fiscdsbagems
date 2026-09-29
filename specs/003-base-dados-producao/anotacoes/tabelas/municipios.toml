@@ -1,0 +1,50 @@
+[objeto."tabela:municipios"]
+modulo = "core"
+finalidade = """
+Os 79 municípios de Mato Grosso do Sul, com código IBGE. Todos foram carregados de uma vez em
+2026-02-24, e não há tela para criar ou editar: a tela Municípios só lista e busca.
+
+Usada:
+
+- para escolher o município de fiscalizações e termos de notificação (`termos_notificacao` tem
+  chave estrangeira para cá);
+- pelo portal do prestador;
+- pelo app offline, que baixa `id` e `nome` na sincronização.
+"""
+fonte = [
+  "inventário: dados_referencia.municipios",
+  "src/pages/Municipios.jsx:14",
+  "src/lib/offline/syncEngine.ts:2049",
+  "src/pages/PortalPrestadorHome.jsx:84",
+]
+
+[objeto."coluna:municipios.id"]
+significado = """
+Identificador do município, referenciado por `termos_notificacao.municipio_id` (chave
+estrangeira) e por `fiscalizacoes.municipio_id` (sem chave estrangeira).
+"""
+fonte = ["src/lib/offline/syncEngine.ts:2049"]
+
+[objeto."coluna:municipios.nome"]
+significado = "Nome do município, único na tabela. Aparece nas telas e nos relatórios."
+fonte = ["indice:municipios_nome_key", "src/pages/Municipios.jsx:14"]
+
+[objeto."coluna:municipios.created_at"]
+significado = "Quando o município foi carregado; igual para todos (carga única de 2026-02-24)."
+fonte = ["inventário: dados_referencia.municipios"]
+
+[objeto."coluna:municipios.codigo_ibge"]
+significado = "Código IBGE de 7 dígitos do município, mostrado e pesquisável na tela Municípios."
+fonte = ["src/pages/Municipios.jsx:19", "src/pages/Municipios.jsx:56"]
+
+[objeto."politica:public.municipios.Leitura pública de municípios"]
+descricao = """
+Qualquer logado lê os municípios, inclusive conta não aprovada. É dado público de referência.
+"""
+fonte = ["src/lib/offline/syncEngine.ts:2049"]
+
+[objeto."politica:public.municipios.Operadores gerenciam municípios"]
+descricao = """
+Admin e coordenador ativos leem, criam, alteram e excluem municípios. Não há tela para isso.
+"""
+fonte = ["funcao:get_my_role()", "src/pages/Municipios.jsx:14"]

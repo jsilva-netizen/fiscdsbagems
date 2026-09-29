@@ -1,0 +1,73 @@
+[objeto."tabela:audit_logs"]
+modulo = "core"
+finalidade = """
+Registro de auditoria: cada inclusão, alteração e exclusão nas tabelas auditadas, com quem fez,
+quando e os dados antes e depois. Produção tem cerca de 20 mil registros: 14 mil alterações,
+5,3 mil inclusões e 590 exclusões.
+
+- **Quem grava:** os gatilhos `trg_audit_*`, com a função `process_audit_log`, que ignora as
+  políticas.
+- **Tabelas auditadas:** `fiscalizacoes`, `unidades_fiscalizadas`, `respostas_checklist`,
+  `constatacoes_manuais`, `determinacoes`, `recomendacoes` e `relatorios_jobs`.
+- **Tabelas não auditadas:** perfis, prestadores, contratos, checklists e os processos
+  (termos, autos, CATERS).
+- **Onde aparece:** no histórico da fiscalização.
+"""
+fonte = [
+  "funcao:process_audit_log()",
+  "src/components/fiscalizacao/HistoricoFiscalizacao.jsx:412",
+  "inventário: dominio_categorico",
+]
+
+[objeto."coluna:audit_logs.id"]
+significado = "Identificador do registro de auditoria."
+fonte = ["funcao:process_audit_log()"]
+
+[objeto."coluna:audit_logs.table_name"]
+significado = "Tabela alterada (nome sem esquema). O histórico filtra por ela."
+fonte = ["funcao:process_audit_log()", "src/components/fiscalizacao/HistoricoFiscalizacao.jsx:395"]
+
+[objeto."coluna:audit_logs.record_id"]
+significado = "Id da linha alterada (o `id` novo ou, na exclusão, o antigo)."
+fonte = ["funcao:process_audit_log()", "src/components/fiscalizacao/HistoricoFiscalizacao.jsx:395"]
+
+[objeto."coluna:audit_logs.action"]
+significado = "Operação: `INSERT`, `UPDATE` ou `DELETE`."
+fonte = ["funcao:process_audit_log()", "inventário: dominio_categorico"]
+
+[objeto."coluna:audit_logs.user_id"]
+significado = """
+Quem fez a alteração: o usuário logado ou, nos trabalhos de relatório executados pela chave de
+serviço, quem pediu o relatório (`requested_by`). Fica vazio se a conta for excluída (`ON DELETE
+SET NULL`).
+"""
+fonte = ["funcao:process_audit_log()", "restricao:audit_logs.audit_logs_user_id_fkey"]
+
+[objeto."coluna:audit_logs.user_email"]
+significado = """
+E-mail de quem fez a alteração, gravado no momento do registro para continuar legível mesmo se a
+conta sumir. O histórico mostra "Sistema" quando está vazio.
+"""
+fonte = ["funcao:process_audit_log()", "src/components/fiscalizacao/HistoricoFiscalizacao.jsx:360"]
+
+[objeto."coluna:audit_logs.old_data"]
+significado = """
+A linha inteira antes da alteração ou exclusão (JSON); vazio na inclusão. O histórico também
+filtra por campos dentro dela, como `fiscalizacao_id` e `unidade_fiscalizada_id`.
+"""
+fonte = ["funcao:process_audit_log()", "src/components/fiscalizacao/HistoricoFiscalizacao.jsx:397"]
+
+[objeto."coluna:audit_logs.new_data"]
+significado = "A linha inteira depois da inclusão ou alteração (JSON); vazio na exclusão."
+fonte = ["funcao:process_audit_log()", "src/components/fiscalizacao/HistoricoFiscalizacao.jsx:396"]
+
+[objeto."coluna:audit_logs.created_at"]
+significado = "Quando a alteração foi registrada; o histórico ordena por aqui."
+fonte = ["indice:audit_logs_created_at_idx"]
+
+[objeto."politica:public.audit_logs.Fiscais, Coordenadores e Admins leem logs de auditoria"]
+descricao = """
+Admin, coordenador e fiscal ativos leem todos os registros de auditoria, de qualquer câmara.
+Ninguém grava pela API: não há política de escrita, e só a função de auditoria insere.
+"""
+fonte = ["funcao:get_my_role()", "funcao:process_audit_log()"]

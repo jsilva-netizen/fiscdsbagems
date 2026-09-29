@@ -3,22 +3,30 @@
 # municipios
 
 - **Tipo**: tabela
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **core**
 - **Linhas em produção**: 79
 - **RLS ativo**: sim
 
 ## Finalidade
 
-_Sem anotação._
+Os 79 municípios de Mato Grosso do Sul, com código IBGE. Todos foram carregados de uma vez em
+2026-02-24, e não há tela para criar ou editar: a tela Municípios só lista e busca.
+
+Usada:
+
+- para escolher o município de fiscalizações e termos de notificação (`termos_notificacao` tem
+  chave estrangeira para cá);
+- pelo portal do prestador;
+- pelo app offline, que baixa `id` e `nome` na sincronização. *(fonte: inventário: dados_referencia.municipios, src/pages/Municipios.jsx:14, src/lib/offline/syncEngine.ts:2049, src/pages/PortalPrestadorHome.jsx:84)*
 
 ## Colunas
 
 | # | Coluna | Tipo | Obrig. | Padrão | Significado | Valores em uso / estrutura |
 |---:|---|---|:---:|---|---|---|
-| 1 | `id` | uuid | sim | `uuid_generate_v4()` |  |  |
-| 2 | `nome` | text | sim |  |  |  |
-| 3 | `created_at` | timestamp with time zone |  | `now()` |  |  |
-| 4 | `codigo_ibge` | text |  |  |  |  |
+| 1 | `id` | uuid | sim | `uuid_generate_v4()` | Identificador do município, referenciado por `termos_notificacao.municipio_id` (chave<br>estrangeira) e por `fiscalizacoes.municipio_id` (sem chave estrangeira). *(fonte: src/lib/offline/syncEngine.ts:2049)* |  |
+| 2 | `nome` | text | sim |  | Nome do município, único na tabela. Aparece nas telas e nos relatórios. *(fonte: indice:municipios_nome_key, src/pages/Municipios.jsx:14)* |  |
+| 3 | `created_at` | timestamp with time zone |  | `now()` | Quando o município foi carregado; igual para todos (carga única de 2026-02-24). *(fonte: inventário: dados_referencia.municipios)* |  |
+| 4 | `codigo_ibge` | text |  |  | Código IBGE de 7 dígitos do município, mostrado e pesquisável na tela Municípios. *(fonte: src/pages/Municipios.jsx:19, src/pages/Municipios.jsx:56)* |  |
 
 ## Restrições e índices
 
@@ -54,7 +62,7 @@ _Nenhum._
 ### Leitura pública de municípios
 
 - **Papéis**: authenticated · **Operação**: SELECT · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: Qualquer logado lê os municípios, inclusive conta não aprovada. É dado público de referência. *(fonte: src/lib/offline/syncEngine.ts:2049)*
 
 <details><summary>Condição original</summary>
 
@@ -71,7 +79,7 @@ WITH CHECK:
 ### Operadores gerenciam municípios
 
 - **Papéis**: authenticated · **Operação**: ALL · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: Admin e coordenador ativos leem, criam, alteram e excluem municípios. Não há tela para isso. *(fonte: funcao:get_my_role(), src/pages/Municipios.jsx:14)*
 - **Funções auxiliares**: [get_my_role()](../funcoes/get_my_role.md)
 
 <details><summary>Condição original</summary>

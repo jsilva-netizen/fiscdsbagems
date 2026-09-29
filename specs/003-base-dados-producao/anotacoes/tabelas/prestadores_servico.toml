@@ -1,0 +1,211 @@
+# Core — entidades reguladas. A política "Prestadores visíveis para todos" não é anotada: foi
+# removida de produção em 2026-09-29 (migration 138) e some do catálogo quando o inventário for
+# refeito.
+
+[objeto."tabela:prestadores_servico"]
+modulo = "core"
+finalidade = """
+Entidades reguladas pela AGEMS: concessionárias e órgãos ou entidades públicas que prestam os
+serviços fiscalizados. Produção tem 9: 3 concessionárias e 6 órgãos públicos, todas de MS.
+
+São o alvo das fiscalizações e dos processos: termos de notificação, respostas a determinações,
+autos de infração, julgamentos e remessas apontam para cá. O usuário de papel prestador
+representa uma delas no portal do prestador.
+
+- **Manutenção:** telas Prestadores de Serviço e Detalhe do Prestador. Criar, editar e excluir
+  entra na fila offline e sincroniza depois.
+- **Uso por diretoria:** a lista é filtrada pelos serviços prestados (`tipo_servico`).
+"""
+fonte = [
+  "src/pages/PrestadoresServico.jsx:142",
+  "src/pages/DetalhePrestador.jsx:174",
+  "src/lib/offline/repository.ts:189",
+  "src/lib/offline/syncEngine.ts:188",
+  "inventário: dominio_categorico",
+]
+
+[objeto."coluna:prestadores_servico.id"]
+significado = """
+Identificador da entidade, gerado no aparelho quando ela é criada offline. É referenciado por
+perfis de prestador, contratos, termos de notificação, respostas a determinações, autos de
+infração, julgamentos e remessas.
+"""
+fonte = ["src/lib/offline/repository.ts:210", "restricao:profiles.profiles_prestador_servico_id_fkey"]
+
+[objeto."coluna:prestadores_servico.nome"]
+significado = """
+Nome de exibição da entidade, obrigatório. Usado em listas, filtros, relatórios e na lista do
+cadastro de usuário prestador.
+"""
+fonte = ["src/pages/DetalhePrestador.jsx:174", "src/pages/Register.jsx:43"]
+
+[objeto."coluna:prestadores_servico.ativo"]
+significado = """
+Se a entidade está ativa. Só as ativas aparecem no cadastro de usuário prestador
+(`prestadores_para_cadastro`). O app não envia este campo na sincronização, então na prática fica
+sempre no padrão `true` (todas as 9 estão ativas). Duplica o sentido de `status`.
+"""
+fonte = ["src/pages/Register.jsx:43", "src/lib/offline/syncEngine.ts:188", "inventário: dominio_categorico"]
+
+[objeto."coluna:prestadores_servico.created_at"]
+significado = "Quando a entidade foi cadastrada (gravado pelo aparelho que a criou)."
+fonte = ["src/lib/offline/repository.ts:210"]
+
+[objeto."coluna:prestadores_servico.razao_social"]
+significado = "Razão social; obrigatória na edição."
+fonte = ["src/pages/DetalhePrestador.jsx:174"]
+
+[objeto."coluna:prestadores_servico.email_contato"]
+significado = "E-mail de contato da entidade, mostrado no detalhe do prestador."
+fonte = ["src/pages/DetalhePrestador.jsx:264"]
+
+[objeto."coluna:prestadores_servico.cnpj"]
+significado = "CNPJ da entidade; obrigatório na edição."
+fonte = ["src/pages/DetalhePrestador.jsx:174"]
+
+[objeto."coluna:prestadores_servico.responsavel"]
+significado = """
+Nome da pessoa responsável pela entidade (dado pessoal), mostrado com o cargo no detalhe do
+prestador.
+"""
+fonte = ["src/pages/DetalhePrestador.jsx:405"]
+
+[objeto."coluna:prestadores_servico.cargo"]
+significado = "Cargo do responsável."
+fonte = ["src/pages/DetalhePrestador.jsx:406"]
+
+[objeto."coluna:prestadores_servico.tipo"]
+significado = """
+Classificação da entidade: `titular` (1), `prestador_servico` (3) ou vazio (5). Nenhuma tela lê
+nem grava este campo, só a sincronização o transporta. Provavelmente distinguia o titular do
+serviço (município) de quem o presta, papel hoje coberto por `tipo_entidade`.
+"""
+fonte = ["inventário: dominio_categorico", "src/lib/offline/syncEngine.ts:188"]
+hipotese = true
+
+[objeto."coluna:prestadores_servico.documentos"]
+significado = """
+Lista de documentos anexados à entidade. Cada item tem `nome`, `tipo`, `url`
+(`storage://documentos-prestadores/<entidade>/<data>.<ext>`), `bucket`, `path` e `data_upload`.
+
+Anexar envia o arquivo ao bucket `documentos-prestadores` e regrava a lista inteira. Excluir apaga
+o arquivo e regrava a lista.
+"""
+fonte = ["src/pages/DetalhePrestador.jsx:180", "src/pages/DetalhePrestador.jsx:205"]
+
+[objeto."coluna:prestadores_servico.endereco"]
+significado = "Endereço da entidade."
+fonte = ["src/pages/DetalhePrestador.jsx:390"]
+
+[objeto."coluna:prestadores_servico.cidade"]
+significado = "Cidade do endereço da entidade."
+fonte = ["src/pages/DetalhePrestador.jsx:390"]
+
+[objeto."coluna:prestadores_servico.telefone"]
+significado = "Telefone de contato da entidade."
+fonte = ["src/pages/DetalhePrestador.jsx:269"]
+
+[objeto."coluna:prestadores_servico.user_id"]
+significado = """
+Conta (`auth.users`) do usuário prestador que representa a entidade. É o vínculo inverso de
+`profiles.prestador_servico_id`, com índice único que permite no máximo uma conta por entidade.
+
+- **Quem grava:** a tela de usuários, na aprovação ou no vínculo, em passos separados da gravação
+  do perfil e sem transação, então os dois lados podem ficar diferentes.
+- **Quem usa:** a política `prestadores_prestador_select_own`.
+- **Sincronização:** o app não envia este campo.
+"""
+fonte = [
+  "src/pages/GerenciarUsuarios.jsx:149",
+  "src/pages/GerenciarUsuarios.jsx:199",
+  "indice:ux_prestadores_user_id",
+  "politica:public.prestadores_servico.prestadores_prestador_select_own",
+]
+
+[objeto."coluna:prestadores_servico.updated_at"]
+significado = """
+Última alteração. Gravada pelo aparelho que edita e pelo gatilho
+`update_prestadores_updated_at`. A sincronização incremental usa esta coluna para baixar só o que
+mudou.
+"""
+fonte = ["src/lib/offline/repository.ts:215", "gatilho:public.prestadores_servico.update_prestadores_updated_at"]
+
+[objeto."coluna:prestadores_servico.tipo_entidade"]
+significado = """
+Natureza da entidade: `Concessionária` (padrão, 3 em produção) ou `Órgão ou Entidade Pública`
+(6). Escolhida no cadastro e na edição da entidade.
+"""
+fonte = ["src/pages/DetalhePrestador.jsx:493", "inventário: dominio_categorico"]
+
+[objeto."coluna:prestadores_servico.tipo_servico"]
+significado = """
+Serviços que a entidade presta (lista). Define em que diretoria ela aparece:
+
+- **DSB:** Abastecimento de Água, Esgotamento Sanitário, Limpeza Urbana, Manejo de Resíduos
+  Sólidos e Drenagem Urbana;
+- **DTR:** Rodovias;
+- **DGE:** Energia Elétrica, Gás Canalizado e Iluminação Pública.
+"""
+fonte = ["src/lib/offline/repository.ts:173", "src/pages/DetalhePrestador.jsx:167"]
+
+[objeto."coluna:prestadores_servico.logo_url"]
+significado = """
+Logo da entidade, usado no detalhe, na lista de contratos e nos relatórios. Normalmente é o
+endereço público do arquivo no bucket `logos-entidades`.
+
+Se o envio do arquivo falha, a tela mantém a imagem em base64 (`data:`) e a grava nesta coluna.
+"""
+fonte = ["src/pages/DetalhePrestador.jsx:147", "src/pages/DetalhePrestador.jsx:155", "src/pages/Contratos.jsx:115"]
+
+[objeto."coluna:prestadores_servico.status"]
+significado = """
+Situação da entidade; o padrão e o único valor em produção é `ativa`. As telas só usam o campo
+para colorir o selo. Duplica o sentido de `ativo`.
+"""
+fonte = ["src/pages/DetalhePrestador.jsx:228", "src/pages/PrestadoresServico.jsx:373", "inventário: dominio_categorico"]
+
+[objeto."coluna:prestadores_servico.website"]
+significado = "Site da entidade, mostrado como link (acrescenta `https://` se faltar)."
+fonte = ["src/pages/DetalhePrestador.jsx:384"]
+
+[objeto."coluna:prestadores_servico.estado"]
+significado = "UF do endereço; padrão `MS`, único valor em produção."
+fonte = ["src/pages/DetalhePrestador.jsx:390", "inventário: dominio_categorico"]
+
+[objeto."coluna:prestadores_servico.cep"]
+significado = "CEP do endereço; padrão `79000-000`."
+fonte = ["src/pages/DetalhePrestador.jsx:390"]
+
+[objeto."coluna:prestadores_servico.observacoes"]
+significado = "Observações livres sobre a entidade."
+fonte = ["src/pages/DetalhePrestador.jsx:418"]
+
+[objeto."gatilho:public.prestadores_servico.update_prestadores_updated_at"]
+efeito = "Antes de cada alteração, grava a hora atual em `updated_at`."
+fonte = ["funcao:update_updated_at_column()"]
+
+[objeto."politica:public.prestadores_servico.Leitura pública de prestadores"]
+descricao = """
+Quem tem perfil ativo lê todas as entidades. Desde a migration 138; antes, qualquer logado lia,
+inclusive conta não aprovada.
+"""
+fonte = ["supabase/migrations/138_fix_open_policies.sql"]
+
+[objeto."politica:public.prestadores_servico.Operadores gerenciam prestadores"]
+descricao = "Admin, coordenador e fiscal ativos leem, criam, alteram e excluem entidades."
+fonte = ["funcao:get_my_role()", "src/pages/PrestadoresServico.jsx:142"]
+
+[objeto."politica:public.prestadores_servico.prestadores_prestador_select_own"]
+descricao = """
+O usuário prestador ativo lê a própria entidade, identificada pelo vínculo do perfil ou por
+`user_id`. Hoje está contida em `Leitura pública de prestadores`, que deixa o prestador ler
+todas.
+"""
+fonte = ["funcao:current_prestador_servico_id()", "src/pages/PortalPrestadorHome.jsx:52"]
+
+[objeto."politica:public.prestadores_servico.prestadores_staff_all"]
+descricao = """
+Admin, fiscal e coordenador ativos (`is_staff()`) têm acesso total. Redundante com `Operadores
+gerenciam prestadores`.
+"""
+fonte = ["funcao:is_staff()"]

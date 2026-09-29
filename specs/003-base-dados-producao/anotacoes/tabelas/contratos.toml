@@ -1,0 +1,90 @@
+# Core — instrumentos (contratos de concessão). Hoje só a DTR usa: rodovia, traçado KML e pontos de
+# KM são específicos dela e ficam com o módulo dtr.
+
+[objeto."tabela:contratos"]
+modulo = "core"
+finalidade = """
+Contratos entre a AGEMS e as entidades reguladas. Na avaliação, os instrumentos ficaram no core.
+
+Hoje só a DTR usa: cada contrato é de concessão de uma rodovia, com o traçado KML e os pontos de
+KM que o app usa em campo para achar o KM mais próximo pelo GPS. Produção tem 2.
+
+- **Manutenção:** a tela Contratos (número, prestador e rodovia obrigatórios, prestadores da DTR)
+  cria, edita e exclui pela fila offline.
+- **Traçado:** a aba "Rodovias & KML" das Definições da DTR envia o traçado direto ao banco.
+"""
+fonte = [
+  "src/pages/Contratos.jsx:37",
+  "src/pages/Contratos.jsx:96",
+  "src/pages/DefinicoesDTR.jsx:478",
+  "src/lib/offline/repository.ts:242",
+  "src/lib/offline/repository.ts:400",
+]
+
+[objeto."coluna:contratos.id"]
+significado = "Identificador do contrato, gerado no aparelho quando ele é criado offline."
+fonte = ["src/lib/offline/repository.ts:242"]
+
+[objeto."coluna:contratos.numero_contrato"]
+significado = "Número do contrato; obrigatório e usado para ordenar a lista."
+fonte = ["src/pages/Contratos.jsx:96", "src/lib/offline/repository.ts:232"]
+
+[objeto."coluna:contratos.prestador_servico_id"]
+significado = """
+Entidade contratada. Excluir a entidade exclui os contratos dela (`ON DELETE CASCADE`).
+"""
+fonte = ["restricao:contratos.contratos_prestador_servico_id_fkey", "src/pages/Contratos.jsx:96"]
+
+[objeto."coluna:contratos.rodovia"]
+modulo = "dtr"
+significado = """
+Rodovia objeto do contrato (ex.: MS-000); obrigatória. Dá nome ao arquivo KML e liga o contrato
+aos pontos de KM usados na vistoria de ocorrências da DTR.
+"""
+fonte = ["src/pages/Contratos.jsx:96", "src/lib/offline/repository.ts:400"]
+
+[objeto."coluna:contratos.ativo"]
+significado = "Se o contrato está vigente; padrão `true` (os 2 em produção estão)."
+fonte = ["inventário: dominio_categorico", "src/lib/offline/syncEngine.ts:213"]
+
+[objeto."coluna:contratos.created_at"]
+significado = "Quando o contrato foi cadastrado (gravado pelo aparelho que o criou)."
+fonte = ["src/lib/offline/repository.ts:242"]
+
+[objeto."coluna:contratos.updated_at"]
+significado = """
+Última alteração. Gravada pelo aparelho, pelo envio do KML e pelo gatilho
+`update_contratos_updated_at`. A sincronização incremental a usa para levar um KML novo aos
+aparelhos de campo.
+"""
+fonte = ["src/lib/offline/repository.ts:411", "gatilho:public.contratos.update_contratos_updated_at"]
+
+[objeto."coluna:contratos.kml_url"]
+modulo = "dtr"
+significado = """
+Referência ao traçado da rodovia no formato `storage://kml-rodovias/<rodovia>_<8 primeiros
+caracteres do id>.kml`. Gravada ao enviar o KML nas Definições da DTR; não passa pela fila
+offline.
+"""
+fonte = ["src/lib/offline/repository.ts:400", "src/pages/DefinicoesDTR.jsx:533"]
+
+[objeto."coluna:contratos.km_points"]
+modulo = "dtr"
+significado = """
+Pontos de KM extraídos do KML: lista de `{lat, lng, km, rodovia}` (cerca de 15 mil pontos nos 2
+contratos). Na vistoria de ocorrências da DTR, o app acha o KM mais próximo da posição GPS com
+estes pontos, 100% offline.
+"""
+fonte = ["src/pages/DefinicoesDTR.jsx:479", "src/pages/VistoriarOcorrenciaDTR.jsx:200", "inventário: estrutura_json"]
+
+[objeto."gatilho:public.contratos.update_contratos_updated_at"]
+efeito = "Antes de cada alteração, grava a hora atual em `updated_at`."
+fonte = ["funcao:update_updated_at_column()"]
+
+[objeto."politica:public.contratos.Acesso total autenticado (DEV)"]
+descricao = """
+Quem tem perfil ativo lê, cria, altera e exclui contratos. Desde a migration 138; antes, valia
+para qualquer logado, inclusive conta não aprovada. É a única política da tabela: não há
+restrição por papel.
+"""
+fonte = ["supabase/migrations/138_fix_open_policies.sql"]

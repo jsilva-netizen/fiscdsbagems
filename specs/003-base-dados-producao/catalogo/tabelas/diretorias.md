@@ -3,20 +3,24 @@
 # diretorias
 
 - **Tipo**: tabela
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **core**
 - **Linhas em produção**: 3
 - **RLS ativo**: sim
 
 ## Finalidade
 
-_Sem anotação._
+As 3 diretorias da AGEMS: `dsb` (saneamento básico e resíduos sólidos), `dtr` (transportes,
+rodovias, ferrovias, portos e aeroportos) e `dge` (gás canalizado, energia e mineração). Cada
+câmara técnica pertence a uma diretoria, e cada usuário tem uma.
+
+Dado de referência sem tela de manutenção: a interface também repete a lista no código. *(fonte: inventário: dados_referencia.diretorias, src/pages/GerenciarUsuarios.jsx:51, src/hooks/useModulo.js:57)*
 
 ## Colunas
 
 | # | Coluna | Tipo | Obrig. | Padrão | Significado | Valores em uso / estrutura |
 |---:|---|---|:---:|---|---|---|
-| 1 | `id` | text | sim |  |  |  |
-| 2 | `nome` | text | sim |  |  |  |
+| 1 | `id` | text | sim |  | Sigla da diretoria em minúsculas (`dsb`, `dtr`, `dge`). Usada como chave em<br>`camaras_tecnicas.diretoria_id` e `profiles.diretoria_id`, e fixa no código da interface. *(fonte: restricao:camaras_tecnicas.camaras_tecnicas_diretoria_id_fkey, restricao:profiles.profiles_diretoria_id_fkey)* |  |
+| 2 | `nome` | text | sim |  | Nome oficial da diretoria, mostrado na tela de usuários. *(fonte: src/pages/GerenciarUsuarios.jsx:51)* |  |
 
 ## Restrições e índices
 
@@ -48,7 +52,7 @@ _Nenhum._
 ### Diretorias visíveis para todos autenticados
 
 - **Papéis**: authenticated · **Operação**: SELECT · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: Qualquer logado lê as diretorias, inclusive conta não aprovada. É dado público de referência. *(fonte: src/pages/GerenciarUsuarios.jsx:51)*
 
 <details><summary>Condição original</summary>
 

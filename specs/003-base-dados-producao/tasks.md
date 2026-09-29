@@ -182,7 +182,7 @@ varredura. Tudo o que as histórias usam.
 
 Todas as tarefas abaixo são [P] entre si (arquivos diferentes).
 
-- [ ] T020 [P] [US1] Anotar as tabelas do **core** em `S/anotacoes/tabelas/`: `profiles.toml`, `diretorias.toml`, `camaras_tecnicas.toml`, `municipios.toml`, `prestadores_servico.toml`, `contratos.toml` e `audit_logs.toml`, com `modulo = "core"`. Em `camaras_tecnicas`, registrar que produção tem 12 câmaras (inclui `caterm` e `catesg`, ausentes de `src/lib/camaras.js`).
+- [X] T020 [P] [US1] Anotar as tabelas do **core** em `S/anotacoes/tabelas/`: `profiles.toml`, `diretorias.toml`, `camaras_tecnicas.toml`, `municipios.toml`, `prestadores_servico.toml`, `contratos.toml` e `audit_logs.toml`, com `modulo = "core"`. Em `camaras_tecnicas`, registrar que produção tem 12 câmaras (inclui `caterm` e `catesg`, ausentes de `src/lib/camaras.js`).
 - [ ] T021 [P] [US1] Anotar as tabelas de **checklists** em `S/anotacoes/tabelas/`: `tipos_unidade.toml` e `itens_checklist.toml`, com `modulo = "checklists"`. Em `itens_checklist`, registrar a semântica append-only com a fonte (`specs/001-data-access-abstraction/debitos-tecnicos-e-inconsistencias.md`, item 5).
 - [ ] T022 [P] [US1] Anotar as tabelas de **fiscalização** em `S/anotacoes/tabelas/`, com `modulo = "fiscalizacao"`: `fiscalizacoes.toml`, `unidades_fiscalizadas.toml`, `respostas_checklist.toml`, `nao_conformidades.toml`, `constatacoes_manuais.toml`, `determinacoes.toml`, `recomendacoes.toml`, `fotos_evidencia.toml` e `relatorios_jobs.toml`. Colunas usadas pelo sincronismo offline (ex.: `updated_at`, `fotos_unidade`) citam `src/lib/offline/syncEngine.ts` como fonte.
 - [ ] T023 [P] [US1] Anotar `S/anotacoes/tabelas/tipos_ocorrencia_dtr.toml`, com `modulo = "dtr"`.
