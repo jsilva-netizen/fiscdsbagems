@@ -226,4 +226,10 @@ WITH CHECK:
 
 ## Divergências e achados
 
-_Nenhuma divergência entre produção e migrations, nenhum achado._
+- Divergência `coluna:determinacoes.origem`: **estrutura_diferente**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `indice:idx_determinacoes_nc`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `indice:idx_determinacoes_numero`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `indice:idx_determinacoes_unidade`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.determinacoes.determinacoes_prestador_select`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.determinacoes.determinacoes_staff_all`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `restricao:determinacoes.determinacoes_status_check`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).

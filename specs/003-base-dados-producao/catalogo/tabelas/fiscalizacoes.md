@@ -237,4 +237,5 @@ WITH CHECK:
 
 ## Divergências e achados
 
-_Nenhuma divergência entre produção e migrations, nenhum achado._
+- Divergência `coluna:fiscalizacoes.tipo_modulo`: **estrutura_diferente**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.fiscalizacoes.Prestadores: ler apenas suas pr├│prias fiscaliza├º├Áe`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).

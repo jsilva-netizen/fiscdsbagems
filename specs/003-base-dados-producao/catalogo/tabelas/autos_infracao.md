@@ -181,4 +181,14 @@ is_staff()
 
 ## Divergências e achados
 
-_Nenhuma divergência entre produção e migrations, nenhum achado._
+- Divergência `coluna:autos_infracao.arquivo_defesa`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `coluna:autos_infracao.arquivo_defesa_oficio`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `coluna:autos_infracao.arquivo_protocolo_ai_recebido`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `coluna:autos_infracao.arquivo_protocolo_oficio`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `coluna:autos_infracao.arquivo_url`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `coluna:autos_infracao.pena_base_rs`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `coluna:autos_infracao.pena_base_uferms`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.autos_infracao.autos_prestador_select`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.autos_infracao.autos_staff_all`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `restricao:autos_infracao.autos_infracao_determinacao_id_fkey`: **estrutura_diferente**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `restricao:autos_infracao.autos_infracao_pena_base_rs_nonneg`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).

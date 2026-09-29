@@ -138,4 +138,5 @@ is_staff()
 
 ## Divergências e achados
 
-_Nenhuma divergência entre produção e migrations, nenhum achado._
+- Divergência `politica:public.julgamentos.julgamentos_prestador_select`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.julgamentos.julgamentos_staff_all`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).

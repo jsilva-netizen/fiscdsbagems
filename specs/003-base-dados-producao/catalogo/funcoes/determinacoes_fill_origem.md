@@ -59,4 +59,4 @@ $function$
 
 ## Divergências e achados
 
-_Nenhuma divergência entre produção e migrations, nenhum achado._
+- Divergência `funcao:determinacoes_fill_origem()`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).

@@ -39,4 +39,4 @@ $function$
 
 ## Divergências e achados
 
-_Nenhuma divergência entre produção e migrations, nenhum achado._
+- Divergência `funcao:update_updated_at_column()`: **codigo_diferente**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).

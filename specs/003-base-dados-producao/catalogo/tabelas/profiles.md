@@ -285,4 +285,14 @@ WITH CHECK:
 
 ## Divergências e achados
 
-_Nenhuma divergência entre produção e migrations, nenhum achado._
+- Divergência `coluna:profiles.ativo`: **estrutura_diferente**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `coluna:profiles.role`: **estrutura_diferente**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `indice:ux_profiles_prestador_servico_id`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.profiles.Edição Própria`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.profiles.Inserção Própria`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.profiles.Leitura pública de perfis`: **estrutura_diferente**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.profiles.profiles_admin_all`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.profiles.profiles_self_select`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.profiles.profiles_self_update`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `restricao:profiles.profiles_non_prestador_must_not_have_prestador_id`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `restricao:profiles.profiles_prestador_must_have_prestador_id`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).

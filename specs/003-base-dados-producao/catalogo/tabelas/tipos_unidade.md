@@ -99,4 +99,4 @@ WITH CHECK:
 
 ## Divergências e achados
 
-_Nenhuma divergência entre produção e migrations, nenhum achado._
+- Divergência `coluna:tipos_unidade.codigo`: **estrutura_diferente**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).

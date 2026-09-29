@@ -410,3 +410,51 @@ def pagina_externos(ctx) -> str:
     if not ctx.anot.externos:
         linhas.append("_Nenhuma registrada em anotacoes/externos.toml._")
     return "\n".join(linhas)
+
+
+# --- divergências (T036) -------------------------------------------------------------------
+
+TIPOS_DIVERGENCIA = ("so_producao", "so_migrations", "codigo_diferente", "estrutura_diferente")
+CLASSIFICACOES = ("producao_vale", "residuo_descartar", "defeito_corrigir", "aguardando_decisao", "nao_classificada")
+
+
+def pagina_divergencias(divs, anotadas: dict, aviso: str, rotulos: dict, cabecalho: str = "") -> str:
+    """divergencias.md: contagens no topo e uma seção por tipo de objeto (contracts/artefatos-gerados.md)."""
+    def classe(d):
+        return anotadas.get(d.chave, {}).get("classificacao", "nao_classificada")
+
+    linhas = [aviso, "# Divergências entre produção e migrations", ""]
+    if cabecalho:
+        linhas += [cabecalho, ""]
+    linhas += ["Diferenças entre o banco de produção e o banco montado só pelas migrations do repositório. "
+               "Nos diffs, `-` é a versão das migrations e `+` a de produção.", "",
+               "## Resumo", "",
+               "| Tipo | Total | " + " | ".join(CLASSIFICACOES) + " |",
+               "|---|---:|" + "---:|" * len(CLASSIFICACOES)]
+    for t in TIPOS_DIVERGENCIA:
+        do_tipo = [d for d in divs if d.tipo == t]
+        linhas.append(f"| {t} | {len(do_tipo)} | " + " | ".join(str(sum(1 for d in do_tipo if classe(d) == c))
+                                                             for c in CLASSIFICACOES) + " |")
+    linhas.append(f"| **total** | **{len(divs)}** | " + " | ".join(f"**{sum(1 for d in divs if classe(d) == c)}**"
+                                                               for c in CLASSIFICACOES) + " |")
+    linhas.append("")
+    ordem = list(rotulos)
+    for obj in sorted({d.objeto for d in divs}, key=lambda o: (ordem.index(o) if o in ordem else len(ordem), o)):
+        do_obj = sorted((d for d in divs if d.objeto == obj), key=lambda d: d.chave)
+        linhas += [f"## {rotulos.get(obj, obj)} ({len(do_obj)})", ""]
+        for d in do_obj:
+            a = anotadas.get(d.chave, {})
+            linhas += [f"### `{nome_de(d.chave)}`", "",
+                       f"- **Chave**: `{d.chave}`",
+                       f"- **Divergência**: {d.tipo}",
+                       f"- **Classificação**: **{classe(d)}**"]
+            if (a.get("justificativa") or "").strip():
+                linhas.append(f"- **Justificativa**: {' '.join(a['justificativa'].split())}")
+            if d.detalhe:
+                linhas.append(f"- **Diferença**: {d.detalhe}")
+            if (a.get("resumo_codigo") or "").strip():
+                linhas.append(f"- **O que muda**: {' '.join(a['resumo_codigo'].split())}")
+            linhas.append("")
+            if d.diff:
+                linhas.append(detalhes("Diff do código", d.diff, "diff"))
+    return "\n".join(linhas)

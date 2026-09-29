@@ -46,4 +46,4 @@ $function$
 
 ## Divergências e achados
 
-_Nenhuma divergência entre produção e migrations, nenhum achado._
+- Divergência `funcao:can_access_fiscalizacao(fiscalizacao uuid)`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).

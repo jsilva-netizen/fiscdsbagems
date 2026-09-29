@@ -100,6 +100,27 @@ sem classificação aparece como "não classificada" e conta contra o SC-003.
 preliminar de 2026-09-28 usou esse procedimento e encontrou 66/18 políticas, 8/4 funções, 27
 funções com código diferente, 15 índices, 6 restrições, 11 colunas, 2 buckets e 1 tabela.
 
+**Medição final (T035, 2026-09-29)**: 181 divergências — 119 só em produção, 40 só nas
+migrations, 1 código diferente e 21 de estrutura. Por tipo de objeto: políticas 60 só em produção,
+17 só nas migrations e 1 de estrutura; funções 5/2 e 1 com código diferente; índices 15/2;
+restrições 6/3 e 2 de estrutura; colunas 11 só em produção e 8 de estrutura; buckets 2 só em
+produção e 6 de estrutura; nenhuma tabela. O resto são privilégios, papéis e segredos. As
+contagens não batem com a medição preliminar por três motivos:
+
+1. **Fim de linha**: o código de 15 funções de produção vem com `\r\n`, e a medição preliminar
+   contava isso como código diferente. Normalizando espaço em branco, como manda esta decisão,
+   o inventário de 2026-09-28 dá 14 funções com código diferente, e não 27 (29 comparando o
+   texto bruto).
+2. **Correções 137 a 141**, aplicadas nos dois lados em 2026-09-29: levaram o código de produção
+   para as migrations (restou só `update_updated_at_column`), removeram 8 políticas só de
+   produção e criaram `catesa_ai_jobs` em produção (a tabela que divergia).
+3. **Banco reconstruído de verdade**: para montar o banco só pelas migrations, a 141 precisou de
+   ajuste, porque dependia de `claim_relatorios_jobs` (só existe em produção) e trocava o retorno
+   de `reabrir_fiscalizacao` (commit `83692d8`, sem efeito em produção).
+
+Atributos que medem dados ou momento de criação (linhas, tamanho, datas) e a posição física das
+colunas não geram divergência.
+
 **Alternatives considered**: *ler os arquivos SQL de migração e comparar com produção*.
 Descartado: as 120 migrations recriam e apagam objetos em sequência (261 `DROP POLICY`), então
 só o estado final, obtido executando-as, é comparável.

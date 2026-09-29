@@ -224,4 +224,6 @@ is_staff()
 
 ## Divergências e achados
 
-_Nenhuma divergência entre produção e migrations, nenhum achado._
+- Divergência `politica:public.termos_notificacao.termos_prestador_select_own`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.termos_notificacao.termos_prestador_update_own_until_respondido`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.termos_notificacao.termos_staff_all`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).

@@ -222,7 +222,7 @@ Todas as tarefas abaixo são [P] entre si (arquivos diferentes).
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T032 [P] [US2] Escrever `S/ferramentas/testes/test_divergencias.py` com dois inventários de fixture que diferem em:
+- [X] T032 [P] [US2] Escrever `S/ferramentas/testes/test_divergencias.py` com dois inventários de fixture que diferem em:
   - um objeto só de um lado e um só do outro;
   - uma função com código diferente só em espaços em branco, que **não** diverge;
   - uma função com código realmente diferente (`codigo_diferente`, com diff);
@@ -232,20 +232,20 @@ Todas as tarefas abaixo são [P] entre si (arquivos diferentes).
 
 ### Implementation for User Story 2
 
-- [ ] T033 [US2] Implementar `S/ferramentas/divergencias.py` até a T032 passar: `comparar(producao, migrations) -> list[Divergencia]` pela chave estável (research D5), com código normalizado por espaço em branco e diff via `difflib.unified_diff`.
-- [ ] T034 [US2] Implementar `S/ferramentas/inventario_migrations.py` (contracts/ferramentas-cli.md):
+- [X] T033 [US2] Implementar `S/ferramentas/divergencias.py` até a T032 passar: `comparar(producao, migrations) -> list[Divergencia]` pela chave estável (research D5), com código normalizado por espaço em branco e diff via `difflib.unified_diff`.
+- [X] T034 [US2] Implementar `S/ferramentas/inventario_migrations.py` (contracts/ferramentas-cli.md):
   - roda `.specify/assessments/novo-sistema-django-apps/inventario-producao.sql` e `inventario-producao-parte2.sql` no contêiner `supabase_db_fiscdsbagems`, com `docker exec -i ... psql -U postgres -d postgres -v ON_ERROR_STOP=1 -A -F <tab> -P pager=off -f -`;
   - grava `S/inventario/migrations-parte1.tsv` e `migrations-parte2.tsv`;
   - `--reconstruir` pede confirmação e roda `npx supabase db reset` antes;
   - recusa rodar se o contêiner não for local.
-- [ ] T035 [US2] Rodar `python -m ferramentas.inventario_migrations --reconstruir` (com o Supabase local no ar) e fazer commit dos dois TSVs. Conferir que as contagens batem com a medição de 2026-09-28:
+- [X] T035 [US2] Rodar `python -m ferramentas.inventario_migrations --reconstruir` (com o Supabase local no ar) e fazer commit dos dois TSVs. Conferir que as contagens batem com a medição de 2026-09-28:
   - políticas: 66 só em produção e 18 só nas migrations;
   - funções: 8 só em produção e 4 só nas migrations;
   - 27 funções com o mesmo nome e código diferente;
   - também divergem 15 índices, 6 restrições, 11 colunas, 2 buckets e 1 tabela.
 
   Se não baterem, registrar o motivo em `S/research.md`, D5.
-- [ ] T036 [US2] Em `S/ferramentas/gerar.py`, gerar `S/divergencias.md` (contracts/artefatos-gerados.md) e incluir, em cada página de catálogo, as divergências do objeto.
+- [X] T036 [US2] Em `S/ferramentas/gerar.py`, gerar `S/divergencias.md` (contracts/artefatos-gerados.md) e incluir, em cada página de catálogo, as divergências do objeto.
 - [ ] T037 [US2] Classificar **todas** as divergências em `S/anotacoes/divergencias.toml`, com `classificacao` (`producao_vale | residuo_descartar | defeito_corrigir | aguardando_decisao`) e `justificativa`. Para cada uma das 27 funções com código diferente, preencher `resumo_codigo`, dizendo o que muda de comportamento entre as versões (FR-011). Políticas `e2e_test_*` que existem só em produção levam `residuo_descartar` e referência ao achado correspondente da US4.
 - [ ] T038 [US2] Validar: `python -m ferramentas.gerar` com **0 divergências não classificadas** (SC-003). Fazer commit.
 

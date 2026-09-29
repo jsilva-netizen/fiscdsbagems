@@ -16,6 +16,8 @@ from ferramentas import anotacoes as anot_mod
 from ferramentas import inventario as inv_mod
 from ferramentas import paginas
 from ferramentas.dependencias import extrair
+from ferramentas.divergencias import comparar
+from ferramentas.divergencias import validar_anotacoes as validar_divergencias
 from ferramentas.raiz import PASTA_SPEC, raiz_repositorio, resolver
 
 PADRAO_P1 = ".specify/assessments/novo-sistema-django-apps/inventario-producao.csv"
@@ -39,10 +41,11 @@ ROTULO_TIPO = {
 class Contexto:
     """Tudo o que as páginas precisam, calculado uma vez."""
 
-    def __init__(self, inv, anot, fonte: str, divergencias=None):
+    def __init__(self, inv, anot, fonte: str, divergencias=None, migrations=None):
         self.inv = inv
         self.anot = anot
         self.fonte = fonte
+        self.migrations = migrations  # inventário do banco das migrations, se houver
         self.grafo = extrair(inv)
         self.divergencias = divergencias or []
         self.sem_anotacao = anot.sem_anotacao(inv)
@@ -130,6 +133,13 @@ def documentos(ctx: Contexto) -> dict[str, str]:
     docs["catalogo/acesso.md"] = paginas.pagina_acesso(ctx)
     docs["catalogo/tipos.md"] = paginas.pagina_tipos(ctx)
     docs["catalogo/externos.md"] = paginas.pagina_externos(ctx)
+    if ctx.migrations is not None:
+        cabecalho = (f"Produção: inventário de {ctx.inv.data or '(data desconhecida)'}. Migrations: inventário de "
+                     f"{ctx.migrations.data or '(data desconhecida)'}, do banco local reconstruído "
+                     "(`python -m ferramentas.inventario_migrations --reconstruir`).")
+        aviso = ctx.aviso().replace(" e anotacoes/", f" + {PADRAO_MIGRATIONS}/migrations-parte*.tsv e anotacoes/")
+        docs["divergencias.md"] = paginas.pagina_divergencias(ctx.divergencias, ctx.anot.divergencias, aviso,
+                                                              ROTULO_TIPO, cabecalho)
     # O código de algumas funções de produção vem com quebras de linha do Windows (\r\n); a saída
     # usa sempre \n, senão a comparação de --verificar nunca bate.
     return {nome: texto.replace("\r\n", "\n").replace("\r", "\n") for nome, texto in sorted(docs.items())}
@@ -181,7 +191,23 @@ def main(argv=None) -> int:
         print(f"Anotação inválida:\n{e}", file=sys.stderr)
         return 2
 
-    ctx = Contexto(inv, anot, _rotulo_fonte(p1, p2))
+    # Banco das migrations (US2): opcional; sem ele, não há divergências a mostrar.
+    pasta_mig = resolver(a.migrations)
+    m1, m2 = pasta_mig / "migrations-parte1.tsv", pasta_mig / "migrations-parte2.tsv"
+    mig, divs = None, []
+    if m1.exists() and m2.exists():
+        try:
+            mig = inv_mod.carregar(m1, m2)
+        except inv_mod.InventarioInvalido as e:
+            print(f"Inventário das migrations inválido: {e}", file=sys.stderr)
+            return 1
+        divs = comparar(inv, mig)
+        erros = validar_divergencias(divs, anot.divergencias)
+        if erros:
+            print("Anotação inválida:\n" + "\n".join(erros), file=sys.stderr)
+            return 2
+
+    ctx = Contexto(inv, anot, _rotulo_fonte(p1, p2), divs, mig)
     novos = documentos(ctx)
     saida = resolver(a.saida)
     atuais = _existentes(saida)

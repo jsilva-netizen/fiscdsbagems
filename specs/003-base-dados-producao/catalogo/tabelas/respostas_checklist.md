@@ -210,4 +210,7 @@ is_staff()
 
 ## Divergências e achados
 
-_Nenhuma divergência entre produção e migrations, nenhum achado._
+- Divergência `coluna:respostas_checklist.comentario`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `coluna:respostas_checklist.pergunta`: **estrutura_diferente**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.respostas_checklist.respostas_checklist_prestador_select`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.respostas_checklist.respostas_checklist_staff_all`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).

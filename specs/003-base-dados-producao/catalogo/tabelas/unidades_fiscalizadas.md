@@ -285,4 +285,15 @@ is_staff()
 
 ## Divergências e achados
 
-_Nenhuma divergência entre produção e migrations, nenhum achado._
+- Divergência `coluna:unidades_fiscalizadas.total_determinacoes`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `coluna:unidades_fiscalizadas.total_recomendacoes`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `indice:idx_unidades_codigo`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `indice:idx_unidades_fiscalizacao`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `indice:idx_unidades_fotos_gin`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `indice:idx_unidades_nome`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `indice:idx_unidades_status`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `indice:idx_unidades_tipo`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.unidades_fiscalizadas.Prestadores: ler suas pr├│prias unidades`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.unidades_fiscalizadas.unidades_prestador_select`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.unidades_fiscalizadas.unidades_staff_all`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `restricao:unidades_fiscalizadas.unidades_fiscalizadas_fotos_is_array_check`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).

@@ -155,4 +155,9 @@ is_staff()
 
 ## Divergências e achados
 
-_Nenhuma divergência entre produção e migrations, nenhum achado._
+- Divergência `indice:idx_nc_resposta`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `indice:idx_nc_resposta_checklist`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `indice:idx_nc_unidade`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.nao_conformidades.ncs_prestador_select`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.nao_conformidades.ncs_staff_all`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `restricao:nao_conformidades.nao_conformidades_resposta_checklist_id_fkey`: **estrutura_diferente**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
