@@ -92,3 +92,25 @@ Usuário ativo da CATERS ou admin lê e altera os trabalhos (a tela só marca co
 criação é feita pela edge function, com a chave de serviço.
 """
 fonte = ["funcao:is_caters_user()", "supabase/functions/caters_ai_enqueue/index.ts:216"]
+
+[objeto."tipo:caters_ai_job_type"]
+modulo = "caters"
+finalidade = """
+Tipos de análise por IA do CATERS:
+
+- `extract_pdf`: lê o relatório de fiscalização e cadastra todas as recomendações encontradas;
+- `match_response_pdf`: lê o ofício de resposta do município e liga cada trecho a uma
+  recomendação já cadastrada, com a ação e o prazo relatados;
+- `analyze_response`: avalia, para cada recomendação, se a resposta registrada e as evidências
+  anexadas atendem ao que foi determinado, com um veredito por recomendação e um geral.
+
+Usado só em `caters_ai_jobs.job_type`.
+"""
+fonte = [
+  "coluna:caters_ai_jobs.job_type",
+  "supabase/functions/caters_ai_worker/index.ts:49",
+  "supabase/functions/caters_ai_worker/index.ts:75",
+  "supabase/functions/caters_ai_worker/index.ts:251",
+  "src/pages/CatersProcessoDetalhe.jsx:391",
+  "src/pages/CatersProcessoDetalhe.jsx:420",
+]

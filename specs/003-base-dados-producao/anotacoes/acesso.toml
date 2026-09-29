@@ -1,0 +1,146 @@
+# Papéis que a aplicação usa, segredos, extensões de que ela depende e privilégios padrão do
+# esquema da aplicação (T030). O que é só da plataforma Supabase está em plataforma.toml.
+#
+# Estado descrito: produção depois das migrations 137 a 141 (2026-09-29).
+
+# --- Papéis -----------------------------------------------------------------------------------
+
+[objeto."papel:anon"]
+modulo = "core"
+finalidade = """
+Quem usa o aplicativo sem login. O navegador fala com o banco pela chave pública do projeto, e
+toda requisição sem sessão roda como `anon` (limite de 3 segundos por comando).
+
+Depois das migrations 137, 138 e 141, `anon` só faz três coisas: entrar, criar conta (a lista de
+entidades do cadastro vem de `prestadores_para_cadastro`) e ler os logotipos das entidades. Os
+privilégios de tabela continuam concedidos a `anon` (privilégio padrão do esquema `public`); o que
+o impede de ler e gravar são as regras de acesso por linha.
+
+No sistema novo, requisição sem login só alcança login, cadastro e a lista de entidades do
+cadastro.
+"""
+fonte = [
+  "src/lib/supabase.js:4",
+  "src/lib/AuthContext.jsx:284",
+  "src/pages/Register.jsx:47",
+  "src/pages/Register.jsx:106",
+  "supabase/migrations/138_fix_open_policies.sql",
+  "supabase/migrations/141_fix_funcoes_sem_verificacao.sql",
+]
+
+[objeto."papel:authenticated"]
+modulo = "core"
+finalidade = """
+Todo usuário com sessão: equipe da AGEMS (admin, coordenador, fiscal, diretor) e prestador. O
+banco não distingue os papéis da aplicação por papel do Postgres: as regras de acesso leem o
+papel, a câmara, a diretoria e a entidade do perfil com `get_my_role` e funções irmãs, que desde a
+migration 137 só respondem para perfil ativo. Conta sem perfil ativo tem sessão, mas só lê o
+próprio perfil. Limite de 8 segundos por comando.
+"""
+fonte = [
+  "funcao:get_my_role()",
+  "politica:public.profiles.Leitura pública de perfis",
+  "funcao:can_access_camara(row_camara text)",
+  "supabase/migrations/137_fix_signup_privilege_escalation.sql",
+]
+
+[objeto."papel:service_role"]
+modulo = "core"
+finalidade = """
+Chave de serviço, usada só pelas edge functions: filas de relatórios (`relatorios_*`) e de IA do
+CATERS e da CATESA (`caters_ai_*`, `catesa_ai_*`). Ignora as regras de acesso por linha. Desde a
+migration 141, as funções que reivindicam trabalhos das filas e que disparam o worker só
+executam com ela, e `e_chave_de_servico()` a reconhece dentro das funções que também aceitam
+usuários.
+
+No sistema novo, esse papel corresponde aos processos de fundo (Celery), que rodam com permissão
+de sistema.
+"""
+fonte = [
+  "supabase/functions/relatorios_worker/index.ts:2531",
+  "supabase/functions/caters_ai_worker/index.ts:339",
+  "supabase/migrations/141_fix_funcoes_sem_verificacao.sql:23",
+]
+
+# --- Segredos (cofre do banco) ----------------------------------------------------------------
+# Só os nomes estão no inventário; os valores nunca saem do cofre.
+
+[objeto."segredo:RELATORIOS_INVOKE_APIKEY"]
+modulo = "fiscalizacao"
+finalidade = """
+Chave pública do projeto, guardada no cofre para que `kick_relatorios_worker` chame o worker de
+relatórios por HTTP. Criada à mão em cada projeto (o cofre não é copiado entre projetos). Sem
+ela, o disparo não acontece e o pedido de relatório fica na fila até o worker ser disparado de
+novo.
+"""
+fonte = ["funcao:kick_relatorios_worker(p_job_id uuid, p_limit integer)", "supabase/migrations/132_kick_relatorios_worker.sql:10"]
+
+[objeto."segredo:RELATORIOS_WORKER_SECRET"]
+modulo = "fiscalizacao"
+finalidade = """
+Segredo compartilhado entre o banco e o worker de relatórios: `kick_relatorios_worker` o envia no
+cabeçalho `x-worker-secret`, e o worker o compara com o segredo de mesmo nome da edge function.
+Quando o worker não tem o segredo configurado, aceita só admin logado.
+"""
+fonte = [
+  "funcao:kick_relatorios_worker(p_job_id uuid, p_limit integer)",
+  "supabase/migrations/132_kick_relatorios_worker.sql:10",
+  "supabase/functions/relatorios_worker/index.ts:2534",
+]
+
+# --- Extensões usadas pela aplicação ----------------------------------------------------------
+
+[objeto."extensao:pg_net"]
+modulo = "fiscalizacao"
+finalidade = """
+Chamadas HTTP de dentro do banco. Usada só por `kick_relatorios_worker`, para disparar o worker
+de relatórios logo depois do pedido. No sistema novo, a fila de tarefas faz esse papel.
+"""
+fonte = ["funcao:kick_relatorios_worker(p_job_id uuid, p_limit integer)", "supabase/migrations/132_kick_relatorios_worker.sql:18"]
+
+[objeto."extensao:supabase_vault"]
+modulo = "fiscalizacao"
+finalidade = """
+Cofre de segredos criptografados do banco. Guarda os dois segredos do disparo do worker de
+relatórios. No sistema novo, segredos ficam na configuração do servidor.
+"""
+fonte = ["segredo:RELATORIOS_INVOKE_APIKEY", "segredo:RELATORIOS_WORKER_SECRET"]
+
+[objeto."extensao:uuid-ossp"]
+modulo = "core"
+finalidade = """
+Geração de UUID no banco (`uuid_generate_v4`), padrão da chave de 23 colunas criadas nas
+primeiras migrations; as mais novas usam `gen_random_uuid`, nativo. Os ids normalmente vêm do
+aparelho, e o padrão do banco só vale quando o registro chega sem id.
+"""
+fonte = ["coluna:fiscalizacoes.id", "supabase/migrations/001_initial_schema.sql:17"]
+
+# --- Privilégios padrão do esquema da aplicação -----------------------------------------------
+# Valem para todo objeto novo criado pelo dono `postgres` no esquema `public`.
+
+[objeto."privilegio_padrao:postgres.public.tabela"]
+modulo = "core"
+finalidade = """
+Toda tabela nova do esquema `public` nasce com todos os privilégios para `anon`, `authenticated`
+e `service_role`. É o padrão do Supabase: quem protege os dados são as regras de acesso por
+linha, e tabela criada sem ativá-las fica aberta a qualquer um, até sem login. No sistema novo, o
+acesso é negado por padrão.
+"""
+fonte = ["inventário: privilegios_padrao"]
+
+[objeto."privilegio_padrao:postgres.public.funcao"]
+modulo = "core"
+finalidade = """
+Toda função nova do esquema `public` nasce executável por `anon`, `authenticated` e
+`service_role`. Foi a origem das funções executáveis sem login corrigidas nas migrations 137 e
+141: cada função com permissão elevada precisa revogar o acesso ou verificar quem chama.
+"""
+fonte = ["inventário: privilegios_padrao", "supabase/migrations/141_fix_funcoes_sem_verificacao.sql"]
+
+[objeto."privilegio_padrao:postgres.public.sequencia"]
+modulo = "core"
+finalidade = """
+Toda sequência nova do esquema `public` nasce utilizável por `anon`, `authenticated` e
+`service_role`. Produção não tem sequência no esquema `public` (os ids são UUID).
+"""
+fonte = ["inventário: privilegios_padrao"]

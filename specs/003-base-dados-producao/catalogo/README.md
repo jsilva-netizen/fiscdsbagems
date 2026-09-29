@@ -16,20 +16,20 @@ Páginas gerais: [repositórios de arquivos](arquivos.md) · [controle de acesso
 | Restrições | 113 | — |
 | Índices | 80 | — |
 | Funções | 38 | 0 |
-| Gatilhos | 30 | 1 |
+| Gatilhos | 30 | 0 |
 | Políticas de acesso | 173 | 8 |
-| Tipos | 5 | 5 |
+| Tipos | 5 | 0 |
 | Repositórios de arquivos | 8 | 0 |
-| Papéis | 17 | 17 |
+| Papéis | 17 | 0 |
 | Privilégios | 249 | — |
-| Privilégios padrão | 21 | 21 |
-| Segredos (nomes) | 2 | 2 |
-| Event triggers | 6 | 6 |
-| Extensões | 6 | 6 |
+| Privilégios padrão | 21 | 0 |
+| Segredos (nomes) | 2 | 0 |
+| Event triggers | 6 | 0 |
+| Extensões | 6 | 0 |
 
 ## Completude
 
-Completude: 66 objetos sem anotação | 58 sem dono | 0 divergências não classificadas | 0 violações de ordem | 0 achados aguardando decisão
+Completude: 8 objetos sem anotação | 0 sem dono | 0 divergências não classificadas | 0 violações de ordem | 0 achados aguardando decisão
 
 ## Por módulo
 

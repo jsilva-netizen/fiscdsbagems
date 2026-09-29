@@ -248,3 +248,12 @@ O usuário altera o próprio perfil, sem poder trocar de dono. Terceira polític
 efeito; os campos protegidos são limitados pelo gatilho.
 """
 fonte = ["gatilho:public.profiles.trg_enforce_profile_security"]
+
+[objeto."gatilho:auth.users.on_auth_user_created"]
+modulo = "core"
+efeito = """
+Depois de cada conta nova criada no serviço de autenticação, chama `handle_new_user`, que cria o
+perfil inativo com nome, papel pedido e vínculos escolhidos na tela de cadastro. É a única forma
+de um perfil nascer. No sistema novo, o cadastro cria conta e perfil juntos.
+"""
+fonte = ["funcao:handle_new_user()", "src/pages/Register.jsx:103"]

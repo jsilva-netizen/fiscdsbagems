@@ -6,23 +6,23 @@
 
 | Papel | Superusuário | Faz login | Ignora RLS | Membro de | Dono / finalidade |
 |---|:---:|:---:|:---:|---|---|
-| `anon` |  |  |  |  | **sem dono** (lacuna) |
-| `authenticated` |  |  |  |  | **sem dono** (lacuna) |
-| `authenticator` |  | sim |  | anon, authenticated, service_role | **sem dono** (lacuna) |
-| `cli_login_postgres` |  | sim |  | postgres | **sem dono** (lacuna) |
-| `dashboard_user` |  |  |  |  | **sem dono** (lacuna) |
-| `pgbouncer` |  | sim |  |  | **sem dono** (lacuna) |
-| `postgres` |  | sim | **sim** | anon, authenticated, authenticator, pg_create_subscription, pg_monitor, pg_read_all_data, pg_signal_backend, service_role, supabase_privileged_role | **sem dono** (lacuna) |
-| `service_role` |  |  | **sim** |  | **sem dono** (lacuna) |
-| `supabase_admin` | sim | sim | **sim** |  | **sem dono** (lacuna) |
-| `supabase_auth_admin` |  | sim |  |  | **sem dono** (lacuna) |
-| `supabase_etl_admin` |  | sim | **sim** | pg_monitor, pg_read_all_data, supabase_privileged_role | **sem dono** (lacuna) |
-| `supabase_functions_admin` |  | sim |  |  | **sem dono** (lacuna) |
-| `supabase_privileged_role` |  |  |  |  | **sem dono** (lacuna) |
-| `supabase_read_only_user` |  | sim | **sim** | pg_monitor, pg_read_all_data | **sem dono** (lacuna) |
-| `supabase_realtime_admin` |  |  |  |  | **sem dono** (lacuna) |
-| `supabase_replication_admin` |  | sim |  |  | **sem dono** (lacuna) |
-| `supabase_storage_admin` |  | sim |  | authenticator | **sem dono** (lacuna) |
+| `anon` |  |  |  |  | módulo **core** — Quem usa o aplicativo sem login. O navegador fala com o banco pela chave pública do projeto, e<br>toda requisição sem sessão roda como `anon` (limite de 3 segundos por comando).<br>Depois das migrations 137, 138 e 141, `anon` só faz três coisas: entrar, criar conta (a lista de<br>entidades do cadastro vem de `prestadores_para_cadastro`) e ler os logotipos das entidades. Os<br>privilégios de tabela continuam concedidos a `anon` (privilégio padrão do esquema `public`); o que<br>o impede de ler e gravar são as regras de acesso por linha.<br>No sistema novo, requisição sem login só alcança login, cadastro e a lista de entidades do<br>cadastro. *(fonte: src/lib/supabase.js:4, src/lib/AuthContext.jsx:284, src/pages/Register.jsx:47, src/pages/Register.jsx:106, supabase/migrations/138_fix_open_policies.sql, supabase/migrations/141_fix_funcoes_sem_verificacao.sql)* |
+| `authenticated` |  |  |  |  | módulo **core** — Todo usuário com sessão: equipe da AGEMS (admin, coordenador, fiscal, diretor) e prestador. O<br>banco não distingue os papéis da aplicação por papel do Postgres: as regras de acesso leem o<br>papel, a câmara, a diretoria e a entidade do perfil com `get_my_role` e funções irmãs, que desde a<br>migration 137 só respondem para perfil ativo. Conta sem perfil ativo tem sessão, mas só lê o<br>próprio perfil. Limite de 8 segundos por comando. *(fonte: funcao:get_my_role(), politica:public.profiles.Leitura pública de perfis, funcao:can_access_camara(row_camara text), supabase/migrations/137_fix_signup_privilege_escalation.sql)* |
+| `authenticator` |  | sim |  | anon, authenticated, service_role | fora do escopo: **plataforma** — Papel com que a API REST se conecta e depois assume anon, authenticated ou service_role conforme a chave ou a sessão. |
+| `cli_login_postgres` |  | sim |  | postgres | fora do escopo: **plataforma** — Login temporário da CLI do Supabase, membro de postgres. |
+| `dashboard_user` |  |  |  |  | fora do escopo: **plataforma** — Usado pelo painel do Supabase. |
+| `pgbouncer` |  | sim |  |  | fora do escopo: **plataforma** — Usado pelo agrupador de conexões do Supabase. |
+| `postgres` |  | sim | **sim** | anon, authenticated, authenticator, pg_create_subscription, pg_monitor, pg_read_all_data, pg_signal_backend, service_role, supabase_privileged_role | fora do escopo: **plataforma** — Dono dos objetos da aplicação e papel das migrations e do SQL Editor. Ignora as regras de acesso por linha. No sistema novo, o banco tem dono próprio. |
+| `service_role` |  |  | **sim** |  | módulo **core** — Chave de serviço, usada só pelas edge functions: filas de relatórios (`relatorios_*`) e de IA do<br>CATERS e da CATESA (`caters_ai_*`, `catesa_ai_*`). Ignora as regras de acesso por linha. Desde a<br>migration 141, as funções que reivindicam trabalhos das filas e que disparam o worker só<br>executam com ela, e `e_chave_de_servico()` a reconhece dentro das funções que também aceitam<br>usuários.<br>No sistema novo, esse papel corresponde aos processos de fundo (Celery), que rodam com permissão<br>de sistema. *(fonte: supabase/functions/relatorios_worker/index.ts:2531, supabase/functions/caters_ai_worker/index.ts:339, supabase/migrations/141_fix_funcoes_sem_verificacao.sql:23)* |
+| `supabase_admin` | sim | sim | **sim** |  | fora do escopo: **plataforma** — Superusuário da plataforma Supabase. |
+| `supabase_auth_admin` |  | sim |  |  | fora do escopo: **plataforma** — Dono do esquema auth, usado pelo serviço de autenticação. |
+| `supabase_etl_admin` |  | sim | **sim** | pg_monitor, pg_read_all_data, supabase_privileged_role | fora do escopo: **plataforma** — Replicação e ETL da plataforma Supabase. |
+| `supabase_functions_admin` |  | sim |  |  | fora do escopo: **plataforma** — Dono do esquema das funções da plataforma (webhooks). |
+| `supabase_privileged_role` |  |  |  |  | fora do escopo: **plataforma** — Papel de privilégios internos da plataforma Supabase. |
+| `supabase_read_only_user` |  | sim | **sim** | pg_monitor, pg_read_all_data | fora do escopo: **plataforma** — Acesso só de leitura da plataforma (ex.: réplicas e suporte). |
+| `supabase_realtime_admin` |  |  |  |  | fora do escopo: **plataforma** — Serviço de tempo real do Supabase. A aplicação não usa tempo real. |
+| `supabase_replication_admin` |  | sim |  |  | fora do escopo: **plataforma** — Replicação lógica da plataforma Supabase. |
+| `supabase_storage_admin` |  | sim |  | authenticator | fora do escopo: **plataforma** — Dono do esquema storage, usado pelo serviço de arquivos. |
 
 ## Privilégios em tabelas e views, por papel
 
@@ -139,23 +139,28 @@ _Nenhum privilégio de coluna diferente do da tabela._
 
 ## Segredos guardados no banco (só os nomes)
 
-- **RELATORIOS_INVOKE_APIKEY** — usado por: [kick_relatorios_worker](funcoes/kick_relatorios_worker.md). _Sem anotação._
-- **RELATORIOS_WORKER_SECRET** — usado por: [kick_relatorios_worker](funcoes/kick_relatorios_worker.md). _Sem anotação._
+- **RELATORIOS_INVOKE_APIKEY** — usado por: [kick_relatorios_worker](funcoes/kick_relatorios_worker.md). Chave pública do projeto, guardada no cofre para que `kick_relatorios_worker` chame o worker de
+relatórios por HTTP. Criada à mão em cada projeto (o cofre não é copiado entre projetos). Sem
+ela, o disparo não acontece e o pedido de relatório fica na fila até o worker ser disparado de
+novo. *(fonte: funcao:kick_relatorios_worker(p_job_id uuid, p_limit integer), supabase/migrations/132_kick_relatorios_worker.sql:10)*
+- **RELATORIOS_WORKER_SECRET** — usado por: [kick_relatorios_worker](funcoes/kick_relatorios_worker.md). Segredo compartilhado entre o banco e o worker de relatórios: `kick_relatorios_worker` o envia no
+cabeçalho `x-worker-secret`, e o worker o compara com o segredo de mesmo nome da edge function.
+Quando o worker não tem o segredo configurado, aceita só admin logado. *(fonte: funcao:kick_relatorios_worker(p_job_id uuid, p_limit integer), supabase/migrations/132_kick_relatorios_worker.sql:10, supabase/functions/relatorios_worker/index.ts:2534)*
 
 ## Extensões
 
-- `pg_net` 0.20.4 (esquema extensions) — **sem dono** (lacuna)
-- `pg_stat_statements` 1.11 (esquema extensions) — **sem dono** (lacuna)
-- `pgcrypto` 1.3 (esquema extensions) — **sem dono** (lacuna)
-- `plpgsql` 1.0 (esquema pg_catalog) — **sem dono** (lacuna)
-- `supabase_vault` 0.3.1 (esquema vault) — **sem dono** (lacuna)
-- `uuid-ossp` 1.1 (esquema extensions) — **sem dono** (lacuna)
+- `pg_net` 0.20.4 (esquema extensions) — módulo **fiscalizacao**
+- `pg_stat_statements` 1.11 (esquema extensions) — fora do escopo: **plataforma** — Estatísticas de consultas do painel do Supabase. A aplicação não a usa.
+- `pgcrypto` 1.3 (esquema extensions) — fora do escopo: **plataforma** — Instalada por padrão no Supabase. Nenhuma função, coluna ou política da aplicação a usa.
+- `plpgsql` 1.0 (esquema pg_catalog) — fora do escopo: **plataforma** — Linguagem das funções do banco, parte do Postgres. O sistema novo leva as regras para o Django.
+- `supabase_vault` 0.3.1 (esquema vault) — módulo **fiscalizacao**
+- `uuid-ossp` 1.1 (esquema extensions) — módulo **core**
 
 ## Event triggers
 
-- `issue_graphql_placeholder` (sql_drop) → `extensions.set_graphql_placeholder` — **sem dono** (lacuna)
-- `issue_pg_cron_access` (ddl_command_end) → `extensions.grant_pg_cron_access` — **sem dono** (lacuna)
-- `issue_pg_graphql_access` (ddl_command_end) → `extensions.grant_pg_graphql_access` — **sem dono** (lacuna)
-- `issue_pg_net_access` (ddl_command_end) → `extensions.grant_pg_net_access` — **sem dono** (lacuna)
-- `pgrst_ddl_watch` (ddl_command_end) → `extensions.pgrst_ddl_watch` — **sem dono** (lacuna)
-- `pgrst_drop_watch` (sql_drop) → `extensions.pgrst_drop_watch` — **sem dono** (lacuna)
+- `issue_graphql_placeholder` (sql_drop) → `extensions.set_graphql_placeholder` — fora do escopo: **plataforma** — Recria o marcador da API GraphQL do Supabase quando a extensão é removida. A aplicação não usa GraphQL.
+- `issue_pg_cron_access` (ddl_command_end) → `extensions.grant_pg_cron_access` — fora do escopo: **plataforma** — Concede acesso ao agendador pg_cron quando a extensão é criada. Produção não tem pg_cron nem agendamentos.
+- `issue_pg_graphql_access` (ddl_command_end) → `extensions.grant_pg_graphql_access` — fora do escopo: **plataforma** — Concede acesso à API GraphQL quando a extensão é criada. A aplicação não usa GraphQL.
+- `issue_pg_net_access` (ddl_command_end) → `extensions.grant_pg_net_access` — fora do escopo: **plataforma** — Concede acesso a pg_net quando a extensão é criada. A aplicação usa pg_net (ver acesso.toml), mas este gatilho é da plataforma.
+- `pgrst_ddl_watch` (ddl_command_end) → `extensions.pgrst_ddl_watch` — fora do escopo: **plataforma** — Avisa a API REST (PostgREST) para recarregar o esquema depois de mudanças de estrutura. No sistema novo, a API é o Django.
+- `pgrst_drop_watch` (sql_drop) → `extensions.pgrst_drop_watch` — fora do escopo: **plataforma** — Avisa a API REST (PostgREST) para recarregar o esquema depois de remoções. No sistema novo, a API é o Django.

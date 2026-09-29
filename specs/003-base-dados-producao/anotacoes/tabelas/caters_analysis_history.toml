@@ -60,3 +60,12 @@ fonte = ["funcao:is_caters_user()"]
 [objeto."politica:public.caters_analysis_history.CATERS historico: leitura"]
 descricao = "Usuário ativo da CATERS ou admin lê o histórico. Não há política de alteração nem de exclusão."
 fonte = ["funcao:is_caters_user()"]
+
+[objeto."tipo:caters_analysis_action_type"]
+modulo = "caters"
+finalidade = """
+Tipos de evento do histórico do CATERS: `criacao`, `atualizacao_status`, `resposta_recebida`,
+`prazo_estendido`, `documento_anexado`, `encerramento` e `observacao`. Usado só em
+`caters_analysis_history.action_type`.
+"""
+fonte = ["coluna:caters_analysis_history.action_type", "src/lib/caters/history.js:3"]

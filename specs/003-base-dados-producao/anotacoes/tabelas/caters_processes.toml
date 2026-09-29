@@ -170,3 +170,15 @@ fonte = ["supabase/migrations/136_e2e_test_user_write_restriction_child_tables.s
 [objeto."politica:public.caters_processes.e2e_test_user_own_rows_only_delete"]
 descricao = "Mesma restrição, para exclusão."
 fonte = ["supabase/migrations/136_e2e_test_user_write_restriction_child_tables.sql"]
+
+[objeto."tipo:caters_process_status"]
+modulo = "caters"
+finalidade = """
+Situações de um processo CATERS: `aguardando_analise`, `em_analise`, `respondido`, `no_prazo`,
+`critico`, `atrasado` e `encerrado`. Usado só em `caters_processes.status`.
+
+A tela e o painel também usam `dilacao_solicitada`, que não está no tipo; gravar esse valor
+falha. No sistema novo, a lista de situações inclui a dilação solicitada ou a tela deixa de
+oferecê-la (decisão no achado da dilação).
+"""
+fonte = ["coluna:caters_processes.status", "src/lib/caters/processes.js:9", "src/lib/caters/dashboard.js:126"]

@@ -1,0 +1,137 @@
+# Objetos da plataforma Supabase, fora do escopo do sistema novo (T030).
+# Cada um tem o motivo. O que a aplicação usa (anon, authenticated, service_role, pg_net, cofre,
+# uuid-ossp, privilégios padrão de public) está em acesso.toml.
+
+# --- Event triggers --------------------------------------------------------------------------
+
+[objeto."evento:issue_graphql_placeholder"]
+fora_escopo = { classificacao = "plataforma", motivo = "Recria o marcador da API GraphQL do Supabase quando a extensão é removida. A aplicação não usa GraphQL." }
+
+[objeto."evento:issue_pg_cron_access"]
+fora_escopo = { classificacao = "plataforma", motivo = "Concede acesso ao agendador pg_cron quando a extensão é criada. Produção não tem pg_cron nem agendamentos." }
+
+[objeto."evento:issue_pg_graphql_access"]
+fora_escopo = { classificacao = "plataforma", motivo = "Concede acesso à API GraphQL quando a extensão é criada. A aplicação não usa GraphQL." }
+
+[objeto."evento:issue_pg_net_access"]
+fora_escopo = { classificacao = "plataforma", motivo = "Concede acesso a pg_net quando a extensão é criada. A aplicação usa pg_net (ver acesso.toml), mas este gatilho é da plataforma." }
+
+[objeto."evento:pgrst_ddl_watch"]
+fora_escopo = { classificacao = "plataforma", motivo = "Avisa a API REST (PostgREST) para recarregar o esquema depois de mudanças de estrutura. No sistema novo, a API é o Django." }
+
+[objeto."evento:pgrst_drop_watch"]
+fora_escopo = { classificacao = "plataforma", motivo = "Avisa a API REST (PostgREST) para recarregar o esquema depois de remoções. No sistema novo, a API é o Django." }
+
+
+# --- Extensões --------------------------------------------------------------------------------
+
+[objeto."extensao:pg_stat_statements"]
+fora_escopo = { classificacao = "plataforma", motivo = "Estatísticas de consultas do painel do Supabase. A aplicação não a usa." }
+
+[objeto."extensao:pgcrypto"]
+fora_escopo = { classificacao = "plataforma", motivo = "Instalada por padrão no Supabase. Nenhuma função, coluna ou política da aplicação a usa." }
+
+[objeto."extensao:plpgsql"]
+fora_escopo = { classificacao = "plataforma", motivo = "Linguagem das funções do banco, parte do Postgres. O sistema novo leva as regras para o Django." }
+
+
+# --- Papéis da plataforma ---------------------------------------------------------------------
+
+[objeto."papel:authenticator"]
+fora_escopo = { classificacao = "plataforma", motivo = "Papel com que a API REST se conecta e depois assume anon, authenticated ou service_role conforme a chave ou a sessão." }
+
+[objeto."papel:cli_login_postgres"]
+fora_escopo = { classificacao = "plataforma", motivo = "Login temporário da CLI do Supabase, membro de postgres." }
+
+[objeto."papel:dashboard_user"]
+fora_escopo = { classificacao = "plataforma", motivo = "Usado pelo painel do Supabase." }
+
+[objeto."papel:pgbouncer"]
+fora_escopo = { classificacao = "plataforma", motivo = "Usado pelo agrupador de conexões do Supabase." }
+
+[objeto."papel:postgres"]
+fora_escopo = { classificacao = "plataforma", motivo = "Dono dos objetos da aplicação e papel das migrations e do SQL Editor. Ignora as regras de acesso por linha. No sistema novo, o banco tem dono próprio." }
+
+[objeto."papel:supabase_admin"]
+fora_escopo = { classificacao = "plataforma", motivo = "Superusuário da plataforma Supabase." }
+
+[objeto."papel:supabase_auth_admin"]
+fora_escopo = { classificacao = "plataforma", motivo = "Dono do esquema auth, usado pelo serviço de autenticação." }
+
+[objeto."papel:supabase_etl_admin"]
+fora_escopo = { classificacao = "plataforma", motivo = "Replicação e ETL da plataforma Supabase." }
+
+[objeto."papel:supabase_functions_admin"]
+fora_escopo = { classificacao = "plataforma", motivo = "Dono do esquema das funções da plataforma (webhooks)." }
+
+[objeto."papel:supabase_privileged_role"]
+fora_escopo = { classificacao = "plataforma", motivo = "Papel de privilégios internos da plataforma Supabase." }
+
+[objeto."papel:supabase_read_only_user"]
+fora_escopo = { classificacao = "plataforma", motivo = "Acesso só de leitura da plataforma (ex.: réplicas e suporte)." }
+
+[objeto."papel:supabase_realtime_admin"]
+fora_escopo = { classificacao = "plataforma", motivo = "Serviço de tempo real do Supabase. A aplicação não usa tempo real." }
+
+[objeto."papel:supabase_replication_admin"]
+fora_escopo = { classificacao = "plataforma", motivo = "Replicação lógica da plataforma Supabase." }
+
+[objeto."papel:supabase_storage_admin"]
+fora_escopo = { classificacao = "plataforma", motivo = "Dono do esquema storage, usado pelo serviço de arquivos." }
+
+
+# --- Privilégios padrão dos esquemas da plataforma --------------------------------------------
+
+[objeto."privilegio_padrao:postgres.storage.tabela"]
+fora_escopo = { classificacao = "plataforma", motivo = "Privilégio padrão do esquema storage, da plataforma Supabase." }
+
+[objeto."privilegio_padrao:postgres.storage.funcao"]
+fora_escopo = { classificacao = "plataforma", motivo = "Privilégio padrão do esquema storage, da plataforma Supabase." }
+
+[objeto."privilegio_padrao:postgres.storage.sequencia"]
+fora_escopo = { classificacao = "plataforma", motivo = "Privilégio padrão do esquema storage, da plataforma Supabase." }
+
+[objeto."privilegio_padrao:supabase_admin.extensions.tabela"]
+fora_escopo = { classificacao = "plataforma", motivo = "Privilégio padrão do esquema extensions, da plataforma Supabase." }
+
+[objeto."privilegio_padrao:supabase_admin.extensions.funcao"]
+fora_escopo = { classificacao = "plataforma", motivo = "Privilégio padrão do esquema extensions, da plataforma Supabase." }
+
+[objeto."privilegio_padrao:supabase_admin.extensions.sequencia"]
+fora_escopo = { classificacao = "plataforma", motivo = "Privilégio padrão do esquema extensions, da plataforma Supabase." }
+
+[objeto."privilegio_padrao:supabase_admin.graphql.tabela"]
+fora_escopo = { classificacao = "plataforma", motivo = "Privilégio padrão do esquema graphql, da plataforma Supabase." }
+
+[objeto."privilegio_padrao:supabase_admin.graphql.funcao"]
+fora_escopo = { classificacao = "plataforma", motivo = "Privilégio padrão do esquema graphql, da plataforma Supabase." }
+
+[objeto."privilegio_padrao:supabase_admin.graphql.sequencia"]
+fora_escopo = { classificacao = "plataforma", motivo = "Privilégio padrão do esquema graphql, da plataforma Supabase." }
+
+[objeto."privilegio_padrao:supabase_admin.graphql_public.tabela"]
+fora_escopo = { classificacao = "plataforma", motivo = "Privilégio padrão do esquema graphql_public, da plataforma Supabase." }
+
+[objeto."privilegio_padrao:supabase_admin.graphql_public.funcao"]
+fora_escopo = { classificacao = "plataforma", motivo = "Privilégio padrão do esquema graphql_public, da plataforma Supabase." }
+
+[objeto."privilegio_padrao:supabase_admin.graphql_public.sequencia"]
+fora_escopo = { classificacao = "plataforma", motivo = "Privilégio padrão do esquema graphql_public, da plataforma Supabase." }
+
+[objeto."privilegio_padrao:supabase_admin.realtime.tabela"]
+fora_escopo = { classificacao = "plataforma", motivo = "Privilégio padrão do esquema realtime, da plataforma Supabase." }
+
+[objeto."privilegio_padrao:supabase_admin.realtime.funcao"]
+fora_escopo = { classificacao = "plataforma", motivo = "Privilégio padrão do esquema realtime, da plataforma Supabase." }
+
+[objeto."privilegio_padrao:supabase_admin.realtime.sequencia"]
+fora_escopo = { classificacao = "plataforma", motivo = "Privilégio padrão do esquema realtime, da plataforma Supabase." }
+
+[objeto."privilegio_padrao:supabase_auth_admin.auth.tabela"]
+fora_escopo = { classificacao = "plataforma", motivo = "Privilégio padrão do esquema auth, da plataforma Supabase." }
+
+[objeto."privilegio_padrao:supabase_auth_admin.auth.funcao"]
+fora_escopo = { classificacao = "plataforma", motivo = "Privilégio padrão do esquema auth, da plataforma Supabase." }
+
+[objeto."privilegio_padrao:supabase_auth_admin.auth.sequencia"]
+fora_escopo = { classificacao = "plataforma", motivo = "Privilégio padrão do esquema auth, da plataforma Supabase." }

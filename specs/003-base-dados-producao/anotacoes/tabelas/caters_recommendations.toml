@@ -129,3 +129,16 @@ fonte = ["supabase/migrations/136_e2e_test_user_write_restriction_child_tables.s
 [objeto."politica:public.caters_recommendations.e2e_test_user_own_rows_only_delete"]
 descricao = "Mesma restrição, para exclusão."
 fonte = ["supabase/migrations/136_e2e_test_user_write_restriction_child_tables.sql"]
+
+[objeto."tipo:caters_recommendation_priority"]
+modulo = "caters"
+finalidade = "Prioridades de uma recomendação do CATERS: `baixa`, `media`, `alta` e `critica`. Usado só em `caters_recommendations.priority`."
+fonte = ["coluna:caters_recommendations.priority", "src/lib/caters/recommendations.js:17"]
+
+[objeto."tipo:caters_recommendation_status"]
+modulo = "caters"
+finalidade = """
+Situações de uma recomendação do CATERS: `pendente`, `em_andamento`, `vencido` e `cumprido`. Usado
+só em `caters_recommendations.status`, que a tela deriva ao gravar.
+"""
+fonte = ["coluna:caters_recommendations.status", "src/lib/caters/recommendations.js:4"]
