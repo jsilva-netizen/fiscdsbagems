@@ -24,9 +24,9 @@ qualquer pessoa, inclusive sem login, podia executá-la. *(fonte: src/lib/offlin
 **Regra de negócio**: Reabrir desfaz a finalização e invalida os relatórios. A spec de fiscalização deve dizer quem
 pode reabrir e o que acontece com NCs e números já emitidos.
 
-- **Lê**: —
+- **Lê**: [fiscalizacoes](../tabelas/fiscalizacoes.md)
 - **Escreve**: [fiscalizacoes](../tabelas/fiscalizacoes.md), [relatorios_jobs](../tabelas/relatorios_jobs.md), [unidades_fiscalizadas](../tabelas/unidades_fiscalizadas.md)
-- **Chama**: —
+- **Chama**: [can_access_camara(row_camara text)](../funcoes/can_access_camara.md), [e_chave_de_servico()](../funcoes/e_chave_de_servico.md), [get_my_role()](../funcoes/get_my_role.md)
 - **Chamada por (banco)**: —
 - **Chamada por (telas e edge functions, anotado)**: src/lib/offline/syncEngine.ts:1008 (fila offline: reabrir_fiscalizacao)
 
@@ -42,6 +42,14 @@ DECLARE
   v_retries INT := 3;
   v_retry_delay INT := 100;
 BEGIN
+  -- Chave de serviço, ou admin, coordenador ou fiscal ativo com acesso à câmara da fiscalização.
+  IF NOT public.e_chave_de_servico() AND NOT (
+       COALESCE(public.get_my_role(), '') IN ('admin', 'coordenador', 'fiscal')
+       AND public.can_access_camara((SELECT f.camara_tecnica_id FROM public.fiscalizacoes f WHERE f.id = p_fiscalizacao_id))
+     ) THEN
+    RAISE EXCEPTION 'Acesso negado: sem permissão para reabrir esta fiscalização.' USING ERRCODE = '42501';
+  END IF;
+
   -- Tentar até 3 vezes em caso de deadlock
   FOR i IN 1..v_retries LOOP
     BEGIN

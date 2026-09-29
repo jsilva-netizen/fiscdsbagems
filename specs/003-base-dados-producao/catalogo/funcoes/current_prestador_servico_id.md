@@ -29,7 +29,7 @@ CREATE OR REPLACE FUNCTION public.current_prestador_servico_id()
  STABLE SECURITY DEFINER
  SET search_path TO 'public'
 AS $function$
-  select (select prestador_servico_id from public.profiles where id = auth.uid());
+  select (select prestador_servico_id from public.profiles where id = auth.uid() and ativo is true);
 $function$
 ```
 

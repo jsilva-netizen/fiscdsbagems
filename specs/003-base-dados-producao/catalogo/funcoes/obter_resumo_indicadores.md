@@ -16,7 +16,7 @@ exige perfil ativo que não seja prestador. *(fonte: src/pages/Relatorios.jsx:57
 
 - **Lê**: [constatacoes_manuais](../tabelas/constatacoes_manuais.md), [determinacoes](../tabelas/determinacoes.md), [fiscalizacoes](../tabelas/fiscalizacoes.md), [municipios](../tabelas/municipios.md), [nao_conformidades](../tabelas/nao_conformidades.md), [recomendacoes](../tabelas/recomendacoes.md), [respostas_checklist](../tabelas/respostas_checklist.md), [unidades_fiscalizadas](../tabelas/unidades_fiscalizadas.md)
 - **Escreve**: —
-- **Chama**: —
+- **Chama**: [e_chave_de_servico()](../funcoes/e_chave_de_servico.md), [get_my_role()](../funcoes/get_my_role.md)
 - **Chamada por (banco)**: —
 - **Chamada por (telas e edge functions, anotado)**: _Sem anotação._
 
@@ -40,6 +40,11 @@ DECLARE
   v_por_servico jsonb := '[]'::jsonb;
   v_ranking_determ jsonb := '[]'::jsonb;
 BEGIN
+  -- Chave de serviço, ou perfil ativo que não seja prestador.
+  IF NOT public.e_chave_de_servico() AND COALESCE(public.get_my_role(), 'prestador') = 'prestador' THEN
+    RAISE EXCEPTION 'Acesso negado: indicadores só para a equipe.' USING ERRCODE = '42501';
+  END IF;
+
   -- Criar tabelas temporárias para armazenar os IDs das entidades filtradas no escopo desta transação
   CREATE TEMP TABLE temp_fisc ON COMMIT DROP AS
   SELECT f.id, f.status, f.municipio_id, f.municipio_nome, f.prestador_servico_id, f.prestador_servico_nome, f.servicos, f.created_at
@@ -172,7 +177,7 @@ finalizadas). A spec de relatórios e indicadores deve descrevê-la.
 
 - **Lê**: [determinacoes](../tabelas/determinacoes.md), [fiscalizacoes](../tabelas/fiscalizacoes.md), [municipios](../tabelas/municipios.md), [nao_conformidades](../tabelas/nao_conformidades.md), [recomendacoes](../tabelas/recomendacoes.md), [unidades_fiscalizadas](../tabelas/unidades_fiscalizadas.md)
 - **Escreve**: —
-- **Chama**: —
+- **Chama**: [e_chave_de_servico()](../funcoes/e_chave_de_servico.md), [get_my_role()](../funcoes/get_my_role.md)
 - **Chamada por (banco)**: —
 - **Chamada por (telas e edge functions, anotado)**: src/pages/Relatorios.jsx:574 (painel de indicadores)
 
@@ -198,6 +203,11 @@ DECLARE
   v_por_servico         jsonb := '[]'::jsonb;
   v_ranking_determ      jsonb := '[]'::jsonb;
 BEGIN
+  -- Chave de serviço, ou perfil ativo que não seja prestador.
+  IF NOT public.e_chave_de_servico() AND COALESCE(public.get_my_role(), 'prestador') = 'prestador' THEN
+    RAISE EXCEPTION 'Acesso negado: indicadores só para a equipe.' USING ERRCODE = '42501';
+  END IF;
+
   -- Tabela temporária com todas as fiscalizações do filtro (para contar totais)
   CREATE TEMP TABLE temp_fisc_todas ON COMMIT DROP AS
   SELECT f.id, f.status, f.municipio_id, f.municipio_nome,

@@ -1,0 +1,7 @@
+[objeto."funcao:catesa_ai_jobs_set_updated_at()"]
+modulo = "catesa"
+finalidade = """
+Função do gatilho `trg_catesa_ai_jobs_updated_at`: grava a hora atual em `updated_at`. Repete
+`update_updated_at_column` do core e `caters_set_updated_at` do CATERS.
+"""
+fonte = ["gatilho:public.catesa_ai_jobs.trg_catesa_ai_jobs_updated_at", "funcao:update_updated_at_column()"]

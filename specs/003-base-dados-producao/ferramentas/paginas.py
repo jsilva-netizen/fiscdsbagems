@@ -67,6 +67,12 @@ def descrever_dono(ctx, chave: str) -> str:
     return "**sem dono** (lacuna)"
 
 
+def dono_e_texto(ctx, chave: str, campo: str) -> str:
+    """Dono do objeto seguido do texto anotado, quando houver."""
+    texto = texto_anotado(ctx.anot.objetos.get(chave, {}), campo)
+    return descrever_dono(ctx, chave) + (" — " + texto if texto else "")
+
+
 def secao_divergencias_e_achados(ctx, chaves: list[str], base: str) -> list[str]:
     linhas = ["## Divergências e achados", ""]
     divs = [d for d in ctx.divergencias if d.chave in chaves]
@@ -331,10 +337,12 @@ def pagina_acesso(ctx) -> str:
     linhas += [f"- [{f}](funcoes/{f}.md)" for f in sem_login] or ["- _nenhuma_"]
     linhas.append("")
     # Privilégios padrão e de coluna
-    linhas += ["## Privilégios padrão", "", "| Dono | Esquema | Objeto | Privilégios |", "|---|---|---|---|"]
+    linhas += ["## Privilégios padrão", "", "| Dono | Esquema | Objeto | Privilégios | Dono / finalidade |",
+               "|---|---|---|---|---|"]
     for p in sorted(ctx.inv.secoes.get("privilegios_padrao", []), key=lambda p: (p["dono"], p["esquema"] or "", p["tipo_objeto"] or "")):
+        chave = f"privilegio_padrao:{p['dono']}.{p['esquema']}.{p['tipo_objeto']}"
         linhas.append(f"| {codigo(p['dono'])} | {codigo(p['esquema'])} | {p['tipo_objeto']} | "
-                      f"{celula(', '.join(p.get('privilegios') or []))} |")
+                      f"{celula(', '.join(p.get('privilegios') or []))} | {celula(dono_e_texto(ctx, chave, 'finalidade'))} |")
     linhas += ["", "## Privilégios por coluna", ""]
     colunas = ctx.inv.secoes.get("privilegios_colunas", [])
     linhas += [f"- `{p['tabela']}.{p['coluna']}` para {p['papel']}: {p['privilegios']}" for p in colunas] or [
@@ -353,11 +361,24 @@ def pagina_acesso(ctx) -> str:
     linhas += ["## Extensões", ""]
     for o in sorted((o for o in objs.values() if o.tipo == "extensao"), key=lambda o: o.chave):
         linhas.append(f"- `{o.atributos['nome']}` {o.atributos['versao']} (esquema {o.atributos['esquema']}) — "
-                      f"{descrever_dono(ctx, o.chave)}")
+                      f"{dono_e_texto(ctx, o.chave, 'finalidade')}")
     linhas += ["", "## Event triggers", ""]
     for o in sorted((o for o in objs.values() if o.tipo == "evento"), key=lambda o: o.chave):
         linhas.append(f"- `{o.atributos['nome']}` ({o.atributos['evento']}) → `{o.atributos['funcao']}` — "
-                      f"{descrever_dono(ctx, o.chave)}")
+                      f"{dono_e_texto(ctx, o.chave, 'finalidade')}")
+    linhas.append("")
+    # Gatilhos em tabelas fora do esquema da aplicação (ex.: auth.users), que não têm página própria
+    linhas += ["## Gatilhos em tabelas da plataforma", ""]
+    fora_public = sorted((o for o in objs.values() if o.tipo == "gatilho" and o.atributos.get("esquema") != "public"),
+                         key=lambda o: o.chave)
+    for o in fora_public:
+        g = o.atributos
+        funcao = str(g.get("funcao") or "").split(".")[-1]
+        linhas += [f"- `{g['esquema']}.{g['tabela']}.{g['nome']}` → [{funcao}](funcoes/{funcao}.md) — "
+                   f"{dono_e_texto(ctx, o.chave, 'efeito')}",
+                   f"  - Definição: {codigo(g.get('definicao') or '')}"]
+    if not fora_public:
+        linhas.append("_Nenhum._")
     linhas.append("")
     return "\n".join(linhas)
 

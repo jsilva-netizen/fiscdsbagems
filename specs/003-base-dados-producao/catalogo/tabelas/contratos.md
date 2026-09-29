@@ -75,15 +75,16 @@ CREATE TRIGGER update_contratos_updated_at BEFORE UPDATE ON contratos FOR EACH R
 - **Em linguagem simples**: Quem tem perfil ativo lê, cria, altera e exclui contratos. Desde a migration 138; antes, valia
 para qualquer logado, inclusive conta não aprovada. É a única política da tabela: não há
 restrição por papel. *(fonte: supabase/migrations/138_fix_open_policies.sql)*
+- **Funções auxiliares**: [get_my_role()](../funcoes/get_my_role.md)
 
 <details><summary>Condição original</summary>
 
 ```sql
 USING:
-true
+(( SELECT get_my_role() AS get_my_role) IS NOT NULL)
 
 WITH CHECK:
-true
+(( SELECT get_my_role() AS get_my_role) IS NOT NULL)
 ```
 
 </details>

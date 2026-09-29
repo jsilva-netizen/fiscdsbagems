@@ -99,17 +99,16 @@ CREATE TRIGGER trg_enforce_profile_security BEFORE INSERT OR UPDATE ON profiles 
 
 ### Admins can delete profiles
 
-- **Papéis**: public · **Operação**: DELETE · **PERMISSIVE**
+- **Papéis**: authenticated · **Operação**: DELETE · **PERMISSIVE**
 - **Em linguagem simples**: Admin ativo exclui qualquer perfil. Desde a migration 137, só para logados e via `get_my_role()`;
 antes, lia o papel direto da tabela, sem olhar `ativo`, e valia também para o papel `public`. *(fonte: supabase/migrations/137_fix_signup_privilege_escalation.sql)*
+- **Funções auxiliares**: [get_my_role()](../funcoes/get_my_role.md)
 
 <details><summary>Condição original</summary>
 
 ```sql
 USING:
-(EXISTS ( SELECT 1
-   FROM profiles profiles_1
-  WHERE ((profiles_1.id = auth.uid()) AND (profiles_1.role = 'admin'::text))))
+(get_my_role() = 'admin'::text)
 
 WITH CHECK:
 (nenhuma)
@@ -119,22 +118,19 @@ WITH CHECK:
 
 ### Admins can update any profile
 
-- **Papéis**: public · **Operação**: UPDATE · **PERMISSIVE**
+- **Papéis**: authenticated · **Operação**: UPDATE · **PERMISSIVE**
 - **Em linguagem simples**: Admin ativo altera qualquer perfil. Mesma mudança da migration 137 que a política de exclusão. É
 redundante com `profiles_admin_all` e `Admins e coordenadores gerenciam perfis`. *(fonte: supabase/migrations/137_fix_signup_privilege_escalation.sql)*
+- **Funções auxiliares**: [get_my_role()](../funcoes/get_my_role.md)
 
 <details><summary>Condição original</summary>
 
 ```sql
 USING:
-(( SELECT profiles_1.role
-   FROM profiles profiles_1
-  WHERE (profiles_1.id = auth.uid())) = 'admin'::text)
+(get_my_role() = 'admin'::text)
 
 WITH CHECK:
-(( SELECT profiles_1.role
-   FROM profiles profiles_1
-  WHERE (profiles_1.id = auth.uid())) = 'admin'::text)
+(get_my_role() = 'admin'::text)
 ```
 
 </details>
@@ -180,23 +176,6 @@ WITH CHECK:
 
 </details>
 
-### Enable insert for authenticated users and during sign up
-
-- **Papéis**: public · **Operação**: INSERT · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
-
-<details><summary>Condição original</summary>
-
-```sql
-USING:
-(nenhuma)
-
-WITH CHECK:
-true
-```
-
-</details>
-
 ### Inserção Própria
 
 - **Papéis**: public · **Operação**: INSERT · **PERMISSIVE**
@@ -212,23 +191,6 @@ USING:
 
 WITH CHECK:
 (auth.uid() = id)
-```
-
-</details>
-
-### Leitura Geral
-
-- **Papéis**: public · **Operação**: SELECT · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
-
-<details><summary>Condição original</summary>
-
-```sql
-USING:
-true
-
-WITH CHECK:
-(nenhuma)
 ```
 
 </details>

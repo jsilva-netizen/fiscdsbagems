@@ -1,0 +1,10 @@
+[objeto."funcao:claim_catesa_ai_jobs(p_limit integer, p_job_id uuid, p_stale_minutes integer)"]
+modulo = "catesa"
+finalidade = """
+Reivindica trabalhos da fila de IA da CATESA para o worker: marca como `processing` um trabalho
+específico ou os mais antigos em `queued`, e também os `processing` parados, sem pegar o que outro
+worker já travou. Só a chave de serviço executa (migration 141). Mesmo padrão de
+`claim_caters_ai_jobs` e `claim_relatorios_jobs`.
+"""
+fonte = ["supabase/functions/catesa_ai_worker/index.ts:30", "supabase/migrations/141_fix_funcoes_sem_verificacao.sql:925"]
+chamada_por = ["supabase/functions/catesa_ai_worker/index.ts:30 (chave de serviço)"]

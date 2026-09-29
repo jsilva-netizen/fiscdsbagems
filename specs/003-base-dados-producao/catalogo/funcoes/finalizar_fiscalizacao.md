@@ -35,7 +35,7 @@ excluída.
 
 - **Lê**: [constatacoes_manuais](../tabelas/constatacoes_manuais.md), [determinacoes](../tabelas/determinacoes.md), [fiscalizacoes](../tabelas/fiscalizacoes.md), [nao_conformidades](../tabelas/nao_conformidades.md), [recomendacoes](../tabelas/recomendacoes.md), [respostas_checklist](../tabelas/respostas_checklist.md), [unidades_fiscalizadas](../tabelas/unidades_fiscalizadas.md)
 - **Escreve**: [fiscalizacoes](../tabelas/fiscalizacoes.md)
-- **Chama**: [gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)](../funcoes/gerar_ncs_unidade.md), [get_my_role()](../funcoes/get_my_role.md)
+- **Chama**: [e_chave_de_servico()](../funcoes/e_chave_de_servico.md), [gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)](../funcoes/gerar_ncs_unidade.md), [get_my_role()](../funcoes/get_my_role.md)
 - **Chamada por (banco)**: —
 - **Chamada por (telas e edge functions, anotado)**: src/lib/offline/syncEngine.ts:991 (fila offline: finalizacao_fiscalizacao), supabase/functions/relatorios_enqueue/index.ts:99 (antes de gerar o relatório)
 
@@ -67,7 +67,8 @@ DECLARE
   has_total_recomendacoes boolean;
 BEGIN
   -- Segurança: Bloquear se o executor não for admin, coordenador ou fiscal
-  IF COALESCE(public.get_my_role(), '') NOT IN ('admin', 'coordenador', 'fiscal') THEN
+  IF COALESCE(public.get_my_role(), '') NOT IN ('admin', 'coordenador', 'fiscal')
+     AND NOT public.e_chave_de_servico() THEN
     RETURN jsonb_build_object('success', false, 'error', 'Acesso negado: privilégios insuficientes.');
   END IF;
 

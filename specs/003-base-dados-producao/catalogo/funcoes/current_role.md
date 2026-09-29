@@ -32,7 +32,7 @@ CREATE OR REPLACE FUNCTION public."current_role"()
  STABLE SECURITY DEFINER
  SET search_path TO 'public'
 AS $function$
-  select coalesce((select role from public.profiles where id = auth.uid()), '');
+  select coalesce((select role from public.profiles where id = auth.uid() and ativo is true), '');
 $function$
 ```
 

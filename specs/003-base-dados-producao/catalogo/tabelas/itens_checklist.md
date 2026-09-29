@@ -89,12 +89,13 @@ _Nenhum._
 - **Papéis**: authenticated · **Operação**: SELECT · **PERMISSIVE**
 - **Em linguagem simples**: Quem tem perfil ativo lê todos os itens, inclusive o prestador. Desde a migration 138; antes,
 qualquer logado lia. *(fonte: supabase/migrations/138_fix_open_policies.sql)*
+- **Funções auxiliares**: [get_my_role()](../funcoes/get_my_role.md)
 
 <details><summary>Condição original</summary>
 
 ```sql
 USING:
-true
+(( SELECT get_my_role() AS get_my_role) IS NOT NULL)
 
 WITH CHECK:
 (nenhuma)
@@ -118,23 +119,6 @@ USING:
 
 WITH CHECK:
 (nenhuma)
-```
-
-</details>
-
-### Public Access
-
-- **Papéis**: public · **Operação**: ALL · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
-
-<details><summary>Condição original</summary>
-
-```sql
-USING:
-true
-
-WITH CHECK:
-true
 ```
 
 </details>

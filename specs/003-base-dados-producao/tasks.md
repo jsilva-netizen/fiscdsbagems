@@ -195,11 +195,20 @@ Todas as tarefas abaixo são [P] entre si (arquivos diferentes).
   - `modulo = "caters"`: `caters_import_from_fiscalizacao`, `caters_set_updated_at` e `claim_caters_ai_jobs`.
 - [X] T029 [P] [US1] Anotar os 8 buckets em `S/anotacoes/arquivos.toml`: `documentos-autos`, `documentos-prestadores`, `documentos-termos`, `evidencias-determinacoes`, `fotos_fiscalizacao`, `kml-rodovias`, `logos-entidades` (público) e `relatorios_fiscalizacao`. Para cada um: `modulo`, `finalidade` e as colunas ou telas que guardam referência (fonte no código).
 - [X] T030 [P] [US1] Anotar `S/anotacoes/acesso.toml` (papéis `anon`, `authenticated` e `service_role`, com o que cada um representa na aplicação; os 2 segredos e quem os usa) e `S/anotacoes/plataforma.toml` (event triggers `issue_*` e `pgrst_*`, papéis `supabase_*`, `authenticator`, `dashboard_user`, `pgbouncer`, `cli_login_postgres`…, com `fora_escopo = { classificacao = "plataforma", motivo = "..." }`).
-- [ ] T031 [US1] Validar a US1:
+- [X] T031 [US1] Validar a US1:
   - `python -m ferramentas.gerar`: a última linha mostra **0 objetos sem anotação** (SC-001) e, entre as anotações, 0 sem fonte que não estejam marcadas como hipótese;
   - executar o quickstart, passo 6, com os casos obrigatórios;
   - listar em `S/catalogo/README.md` as anotações marcadas `hipotese = true`, para revisão;
   - fazer commit.
+  - **Resultado (2026-09-29, inventário refeito depois das migrations 137 a 141)**: 0 sem anotação e 0
+    sem dono; `--verificar` e varredura com retorno 0; 27 anotações marcadas como hipótese. Casos
+    obrigatórios conferidos: `unidades_fiscalizadas` mostra `fiscalizacoes`, 8 tabelas dependentes,
+    3 gatilhos e 7 políticas; as funções que a usam passaram de 7 para 8 com
+    `proteger_resposta_determinacao_prestador` (migration 139). `gerar_ncs_unidade` mostra tabelas
+    lidas e escritas e chama `get_my_role`. Amostra de 10 chaves (tabela, coluna, função, política de
+    `storage.objects`, bucket, gatilho em `auth.users`, gatilho, política, tipo e papel) conferida
+    contra os CSVs: 10 de 10. A leitura por uma pessoa que não conhece o banco fica para a revisão
+    do catálogo.
 
 **Checkpoint**: catálogo completo e explicado. Qualquer objeto é consultável sem abrir banco nem código (MVP).
 

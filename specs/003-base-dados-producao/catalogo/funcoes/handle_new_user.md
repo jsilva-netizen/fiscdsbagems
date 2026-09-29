@@ -42,69 +42,39 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
  SECURITY DEFINER
  SET search_path TO 'public'
 AS $function$
-
+DECLARE
+  v_role TEXT := NEW.raw_user_meta_data->>'role';
+  v_prestador UUID;
 BEGIN
+  IF v_role IS NULL OR v_role NOT IN ('fiscal', 'coordenador', 'diretor', 'prestador') THEN
+    v_role := 'fiscal';
+  END IF;
+
+  -- Vínculo com prestador só para o papel prestador (restrições de profiles).
+  IF v_role = 'prestador' THEN
+    v_prestador := NULLIF(NEW.raw_user_meta_data->>'prestador_servico_id', '')::uuid;
+  END IF;
 
   INSERT INTO public.profiles (
-
-    id, 
-
-    email, 
-
-    full_name, 
-
-    role, 
-
-    ativo, 
-
-    diretoria_id, 
-
-    camara_tecnica_id, 
-
-    prestador_servico_id
-
+    id, email, full_name, role, ativo, diretoria_id, camara_tecnica_id, prestador_servico_id
   )
-
   VALUES (
-
     NEW.id,
-
     NEW.email,
-
     COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.email),
-
-    COALESCE(NEW.raw_user_meta_data->>'role', 'fiscal'),
-
-    FALSE, -- Sempre inativo at├® aprova├º├úo do admin
-
+    v_role,
+    FALSE, -- Sempre inativo até aprovação do admin
     COALESCE(NEW.raw_user_meta_data->>'diretoria_id', 'dsb'),
-
     NULLIF(NEW.raw_user_meta_data->>'camara_tecnica_id', ''),
-
-    NULLIF(NEW.raw_user_meta_data->>'prestador_servico_id', '')::uuid
-
+    v_prestador
   )
-
   ON CONFLICT (id) DO UPDATE
-
   SET email = EXCLUDED.email,
-
       full_name = EXCLUDED.full_name,
-
-      role = COALESCE(NEW.raw_user_meta_data->>'role', EXCLUDED.role),
-
-      diretoria_id = COALESCE(NEW.raw_user_meta_data->>'diretoria_id', EXCLUDED.diretoria_id),
-
-      camara_tecnica_id = NULLIF(NEW.raw_user_meta_data->>'camara_tecnica_id', ''),
-
-      prestador_servico_id = NULLIF(NEW.raw_user_meta_data->>'prestador_servico_id', '')::uuid,
-
       updated_at = NOW();
 
   RETURN NEW;
-
 END;
-
 $function$
 ```
 

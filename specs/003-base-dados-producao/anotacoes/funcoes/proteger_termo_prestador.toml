@@ -1,0 +1,27 @@
+[objeto."funcao:proteger_termo_prestador()"]
+modulo = "processo_sancionador"
+finalidade = """
+Função do gatilho `trg_proteger_termo_prestador`. Quando quem altera o termo é o prestador,
+descarta tudo o que ele mandou, menos o TN assinado e os arquivos da resposta, e calcula no
+servidor, pela data de Mato Grosso do Sul:
+
+- **TN assinado enviado pela primeira vez:** marca a assinatura como válida, grava a data de
+  protocolo e a de início do prazo como hoje, e a data-limite como hoje mais o prazo do termo (30
+  dias se vazio); o termo passa a `aguardando_resposta`. Reenviar troca o arquivo sem reiniciar o
+  prazo.
+- **Conclusão da resposta** (pedido de `respondido`): grava a data de recebimento e se chegou no
+  prazo, contando o último dia.
+
+Alterações da equipe passam sem mudança. Criada na migration 139; antes, o aparelho do prestador
+calculava e gravava prazos e pontualidade.
+"""
+fonte = ["supabase/migrations/139_fix_prestador_prazos.sql:17", "src/pages/ResponderTermo.jsx:667"]
+regra_de_negocio = """
+O prazo de resposta ao TN começa no dia em que a entidade envia o TN assinado e termina N dias
+depois (padrão 30), contando o último dia; a pontualidade é medida pela data do servidor. A spec do
+processo sancionador deve descrever essa regra.
+"""
+
+[objeto."gatilho:public.termos_notificacao.trg_proteger_termo_prestador"]
+efeito = "Antes de cada alteração de termo, aplica `proteger_termo_prestador` (só age quando quem altera é o prestador)."
+fonte = ["funcao:proteger_termo_prestador()"]

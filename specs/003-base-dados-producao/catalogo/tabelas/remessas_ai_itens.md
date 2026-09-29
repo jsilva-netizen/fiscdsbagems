@@ -58,15 +58,16 @@ _Nenhum._
 - **Papéis**: authenticated · **Operação**: ALL · **PERMISSIVE**
 - **Em linguagem simples**: Quem tem perfil ativo, de qualquer papel, lê, cria, altera e exclui qualquer item de remessa.
 Desde a migration 138; antes, qualquer logado. *(fonte: supabase/migrations/138_fix_open_policies.sql)*
+- **Funções auxiliares**: [get_my_role()](../funcoes/get_my_role.md)
 
 <details><summary>Condição original</summary>
 
 ```sql
 USING:
-true
+(( SELECT get_my_role() AS get_my_role) IS NOT NULL)
 
 WITH CHECK:
-(nenhuma)
+(( SELECT get_my_role() AS get_my_role) IS NOT NULL)
 ```
 
 </details>

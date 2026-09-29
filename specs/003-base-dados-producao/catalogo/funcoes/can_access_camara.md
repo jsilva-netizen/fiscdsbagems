@@ -31,7 +31,7 @@ A spec do core deve decidir se essas exceções continuam no sistema novo.
 - **Lê**: —
 - **Escreve**: —
 - **Chama**: [get_my_camara_tecnica()](../funcoes/get_my_camara_tecnica.md), [get_my_role()](../funcoes/get_my_role.md)
-- **Chamada por (banco)**: `politica:public.autos_infracao.Fiscais e Admins: acesso por camara em autos` (usa), `politica:public.fiscalizacoes.Fiscais e Admins: acesso por camara em fiscalizacoes` (usa), `politica:public.manifestacoes_auto.Fiscais e Admins: acesso por camara em manifestacoes` (usa), `politica:public.pareceres_tecnicos.Fiscais e Admins: acesso por camara em pareceres` (usa), `politica:public.remessas_ai.Fiscais e Admins: acesso por camara em remessas` (usa), `politica:public.remessas_ai_itens.Fiscais e Admins: acesso por camara em itens de remessas` (usa)
+- **Chamada por (banco)**: [reabrir_fiscalizacao(p_fiscalizacao_id uuid)](../funcoes/reabrir_fiscalizacao.md) (chama), `politica:public.autos_infracao.Fiscais e Admins: acesso por camara em autos` (usa), `politica:public.catesa_ai_jobs.CATESA ai jobs: gestao` (usa), `politica:public.fiscalizacoes.Fiscais e Admins: acesso por camara em fiscalizacoes` (usa), `politica:public.manifestacoes_auto.Fiscais e Admins: acesso por camara em manifestacoes` (usa), `politica:public.pareceres_tecnicos.Fiscais e Admins: acesso por camara em pareceres` (usa), `politica:public.remessas_ai.Fiscais e Admins: acesso por camara em remessas` (usa), `politica:public.remessas_ai_itens.Fiscais e Admins: acesso por camara em itens de remessas` (usa)
 - **Chamada por (telas e edge functions, anotado)**: _Sem anotação._
 
 <details><summary>Código completo (produção)</summary>

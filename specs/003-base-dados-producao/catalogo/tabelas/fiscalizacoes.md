@@ -77,6 +77,7 @@ andamento; 24 de saneamento (DSB) e 2 de rodovias (DTR).
 - [obter_resumo_indicadores(p_anos text[], p_servicos text[], p_municipio_ids uuid[], p_prestador_ids uuid[], p_tipo_modulo text[])](../funcoes/obter_resumo_indicadores.md) — le (codigo)
 - [propagate_modification_to_parent()](../funcoes/propagate_modification_to_parent.md) — escreve (codigo)
 - [reabrir_fiscalizacao(p_fiscalizacao_id uuid)](../funcoes/reabrir_fiscalizacao.md) — escreve (codigo)
+- [reabrir_fiscalizacao(p_fiscalizacao_id uuid)](../funcoes/reabrir_fiscalizacao.md) — le (codigo)
 - [trg_auto_set_camara()](../funcoes/trg_auto_set_camara.md) — le (codigo)
 - [trg_remessa_set_camara()](../funcoes/trg_remessa_set_camara.md) — le (codigo)
 - [autos_infracao](../tabelas/autos_infracao.md) — referencia (catalogo)

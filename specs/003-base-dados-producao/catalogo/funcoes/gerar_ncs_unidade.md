@@ -36,7 +36,7 @@ fiscalização.
 
 - **Lê**: [constatacoes_manuais](../tabelas/constatacoes_manuais.md), [determinacoes](../tabelas/determinacoes.md), [itens_checklist](../tabelas/itens_checklist.md), [nao_conformidades](../tabelas/nao_conformidades.md), [recomendacoes](../tabelas/recomendacoes.md), [respostas_checklist](../tabelas/respostas_checklist.md), [unidades_fiscalizadas](../tabelas/unidades_fiscalizadas.md)
 - **Escreve**: [determinacoes](../tabelas/determinacoes.md), [nao_conformidades](../tabelas/nao_conformidades.md), [recomendacoes](../tabelas/recomendacoes.md), [unidades_fiscalizadas](../tabelas/unidades_fiscalizadas.md)
-- **Chama**: [get_my_role()](../funcoes/get_my_role.md)
+- **Chama**: [e_chave_de_servico()](../funcoes/e_chave_de_servico.md), [get_my_role()](../funcoes/get_my_role.md)
 - **Chamada por (banco)**: [finalizar_fiscalizacao(p_fiscalizacao_id uuid)](../funcoes/finalizar_fiscalizacao.md) (chama)
 - **Chamada por (telas e edge functions, anotado)**: funcao finalizar_fiscalizacao (uma vez por unidade)
 
@@ -78,7 +78,8 @@ DECLARE
   v_valid_det_origens text[] := array[]::text[];
 BEGIN
   -- Segurança: Bloquear se o executor não for admin, coordenador ou fiscal
-  IF COALESCE(public.get_my_role(), '') NOT IN ('admin', 'coordenador', 'fiscal') THEN
+  IF COALESCE(public.get_my_role(), '') NOT IN ('admin', 'coordenador', 'fiscal')
+     AND NOT public.e_chave_de_servico() THEN
     RETURN jsonb_build_object('success', false, 'error', 'Acesso negado: privilégios insuficientes.');
   END IF;
 

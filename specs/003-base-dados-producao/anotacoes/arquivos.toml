@@ -2,7 +2,7 @@
 #
 # Estado descrito: produção depois da migration 138 (2026-09-29). Toda política para
 # `authenticated` passou a exigir perfil ativo — `(SELECT get_my_role()) IS NOT NULL` — além do
-# bucket. O inventário de 2026-09-28 ainda mostra as condições antigas, só com o bucket.
+# bucket. O inventário refeito em 2026-09-29 já mostra essas condições.
 #
 # Visão geral: nenhuma política olha o caminho do arquivo, a câmara ou a entidade. Qualquer
 # usuário ativo, inclusive o prestador, lê, envia, troca e apaga qualquer arquivo de qualquer

@@ -43,23 +43,24 @@ AS $function$
 DECLARE
   current_user_role TEXT;
 BEGIN
-  -- Se for uma operação interna sem usuário logado (auth trigger, migrations, seeds), permitir tudo
+  -- Operação interna sem usuário logado (gatilho do cadastro, service role, migrations): permitir.
+  -- O cadastro é validado em handle_new_user().
   IF auth.uid() IS NULL THEN
     RETURN NEW;
   END IF;
 
-  -- Obter a role de quem está executando a operação
-  SELECT role INTO current_user_role FROM public.profiles WHERE id = auth.uid();
+  -- Papel de quem executa, só se o perfil estiver ativo.
+  SELECT role INTO current_user_role FROM public.profiles WHERE id = auth.uid() AND ativo IS TRUE;
 
   -- Se for INSERÇÃO (Cadastro Inicial)
   IF TG_OP = 'INSERT' THEN
-    -- Apenas admins podem cadastrar novos perfis como admin ou coordenador
-    IF NEW.role IN ('admin', 'coordenador') AND COALESCE(current_user_role, '') <> 'admin' THEN
+    -- Quem não é admin só cria perfil de fiscal, diretor ou prestador
+    IF NEW.role NOT IN ('fiscal', 'diretor', 'prestador') AND COALESCE(current_user_role, '') <> 'admin' THEN
       NEW.role := 'fiscal';
     END IF;
 
     -- Apenas admins podem cadastrar novos perfis já ativos
-    IF NEW.ativo = TRUE AND COALESCE(current_user_role, '') <> 'admin' THEN
+    IF NEW.ativo IS TRUE AND COALESCE(current_user_role, '') <> 'admin' THEN
       NEW.ativo := FALSE;
     END IF;
   END IF;
@@ -67,29 +68,28 @@ BEGIN
   -- Se for ATUALIZAÇÃO (Edição de Perfil)
   IF TG_OP = 'UPDATE' THEN
     -- Impedir alteração de role por quem não é admin
-    IF OLD.role <> NEW.role AND COALESCE(current_user_role, '') <> 'admin' THEN
+    IF OLD.role IS DISTINCT FROM NEW.role AND COALESCE(current_user_role, '') <> 'admin' THEN
       NEW.role := OLD.role;
     END IF;
 
     -- Impedir alteração de ativo (aprovação) por quem não é admin
-    IF OLD.ativo <> NEW.ativo AND COALESCE(current_user_role, '') <> 'admin' THEN
+    IF OLD.ativo IS DISTINCT FROM NEW.ativo AND COALESCE(current_user_role, '') <> 'admin' THEN
       NEW.ativo := OLD.ativo;
     END IF;
 
     -- Impedir alteração de vínculo de prestador por quem não é admin
-    IF COALESCE(OLD.prestador_servico_id, '00000000-0000-0000-0000-000000000000'::uuid) <>
-       COALESCE(NEW.prestador_servico_id, '00000000-0000-0000-0000-000000000000'::uuid)
+    IF OLD.prestador_servico_id IS DISTINCT FROM NEW.prestador_servico_id
        AND COALESCE(current_user_role, '') <> 'admin' THEN
       NEW.prestador_servico_id := OLD.prestador_servico_id;
     END IF;
 
     -- Impedir alteração de diretoria/câmara técnica por quem não é admin
-    IF COALESCE(OLD.diretoria_id, '') <> COALESCE(NEW.diretoria_id, '')
+    IF OLD.diretoria_id IS DISTINCT FROM NEW.diretoria_id
        AND COALESCE(current_user_role, '') <> 'admin' THEN
       NEW.diretoria_id := OLD.diretoria_id;
     END IF;
 
-    IF COALESCE(OLD.camara_tecnica_id, '') <> COALESCE(NEW.camara_tecnica_id, '')
+    IF OLD.camara_tecnica_id IS DISTINCT FROM NEW.camara_tecnica_id
        AND COALESCE(current_user_role, '') <> 'admin' THEN
       NEW.camara_tecnica_id := OLD.camara_tecnica_id;
     END IF;

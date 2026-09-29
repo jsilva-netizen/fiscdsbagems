@@ -69,6 +69,7 @@ representa uma delas no portal do prestador.
 
 **É usada por:**
 
+- [prestadores_para_cadastro()](../funcoes/prestadores_para_cadastro.md) — le (codigo)
 - [set_fiscalizacao_cache_fields()](../funcoes/set_fiscalizacao_cache_fields.md) — le (codigo)
 - [autos_infracao](../tabelas/autos_infracao.md) — referencia (catalogo)
 - [contratos](../tabelas/contratos.md) — referencia (catalogo)
@@ -99,12 +100,13 @@ CREATE TRIGGER update_prestadores_updated_at BEFORE UPDATE ON prestadores_servic
 - **Papéis**: authenticated · **Operação**: SELECT · **PERMISSIVE**
 - **Em linguagem simples**: Quem tem perfil ativo lê todas as entidades. Desde a migration 138; antes, qualquer logado lia,
 inclusive conta não aprovada. *(fonte: supabase/migrations/138_fix_open_policies.sql)*
+- **Funções auxiliares**: [get_my_role()](../funcoes/get_my_role.md)
 
 <details><summary>Condição original</summary>
 
 ```sql
 USING:
-true
+(( SELECT get_my_role() AS get_my_role) IS NOT NULL)
 
 WITH CHECK:
 (nenhuma)
@@ -123,23 +125,6 @@ WITH CHECK:
 ```sql
 USING:
 (get_my_role() = ANY (ARRAY['admin'::text, 'coordenador'::text, 'fiscal'::text]))
-
-WITH CHECK:
-(nenhuma)
-```
-
-</details>
-
-### Prestadores visíveis para todos
-
-- **Papéis**: public · **Operação**: SELECT · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
-
-<details><summary>Condição original</summary>
-
-```sql
-USING:
-true
 
 WITH CHECK:
 (nenhuma)

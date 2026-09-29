@@ -70,15 +70,16 @@ _Nenhum._
 - **Papéis**: authenticated · **Operação**: ALL · **PERMISSIVE**
 - **Em linguagem simples**: Quem tem perfil ativo, de qualquer papel e câmara, lê, cria, altera e exclui dilações de qualquer
 processo, sem exigir a CATERS. Desde a migration 138; antes, valia para qualquer logado. *(fonte: supabase/migrations/138_fix_open_policies.sql)*
+- **Funções auxiliares**: [get_my_role()](../funcoes/get_my_role.md)
 
 <details><summary>Condição original</summary>
 
 ```sql
 USING:
-true
+(( SELECT get_my_role() AS get_my_role) IS NOT NULL)
 
 WITH CHECK:
-true
+(( SELECT get_my_role() AS get_my_role) IS NOT NULL)
 ```
 
 </details>

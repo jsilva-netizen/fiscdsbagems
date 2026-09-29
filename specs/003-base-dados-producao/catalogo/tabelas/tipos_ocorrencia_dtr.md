@@ -93,15 +93,16 @@ CREATE TRIGGER update_tipos_ocorrencia_dtr_updated_at BEFORE UPDATE ON tipos_oco
 - **Papéis**: authenticated · **Operação**: ALL · **PERMISSIVE**
 - **Em linguagem simples**: Apesar do nome, não é só para admin: quem tem perfil ativo, de qualquer papel, cria, altera e
 apaga tipos, inclusive o "Limpar base". Desde a migration 138; antes, valia para qualquer logado. *(fonte: supabase/migrations/138_fix_open_policies.sql)*
+- **Funções auxiliares**: [get_my_role()](../funcoes/get_my_role.md)
 
 <details><summary>Condição original</summary>
 
 ```sql
 USING:
-true
+(( SELECT get_my_role() AS get_my_role) IS NOT NULL)
 
 WITH CHECK:
-true
+(( SELECT get_my_role() AS get_my_role) IS NOT NULL)
 ```
 
 </details>
@@ -111,12 +112,13 @@ true
 - **Papéis**: authenticated · **Operação**: SELECT · **PERMISSIVE**
 - **Em linguagem simples**: Quem tem perfil ativo lê os tipos. Desde a migration 138; antes, qualquer logado. O worker de
 relatórios lê com a chave de serviço. *(fonte: supabase/migrations/138_fix_open_policies.sql, supabase/functions/relatorios_worker/index.ts:294)*
+- **Funções auxiliares**: [get_my_role()](../funcoes/get_my_role.md)
 
 <details><summary>Condição original</summary>
 
 ```sql
 USING:
-true
+(( SELECT get_my_role() AS get_my_role) IS NOT NULL)
 
 WITH CHECK:
 (nenhuma)

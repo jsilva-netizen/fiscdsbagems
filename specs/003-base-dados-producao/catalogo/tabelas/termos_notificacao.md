@@ -100,13 +100,24 @@ protocolo e resposta recebidos em papel, e o termo não aparece para o prestador
 - [can_access_fiscalizacao(fiscalizacao uuid)](../funcoes/can_access_fiscalizacao.md) — le (codigo)
 - [can_access_unidade(unidade uuid)](../funcoes/can_access_unidade.md) — le (codigo)
 - [gerar_numero_am()](../funcoes/gerar_numero_am.md) — le (codigo)
+- [proteger_resposta_determinacao_prestador()](../funcoes/proteger_resposta_determinacao_prestador.md) — le (codigo)
+- [catesa_ai_jobs](../tabelas/catesa_ai_jobs.md) — referencia (catalogo)
 - [remessas_ai](../tabelas/remessas_ai.md) — referencia (catalogo)
 
 ## Gatilhos
 
 | Gatilho | Situação | Função | Efeito |
 |---|---|---|---|
+| `trg_proteger_termo_prestador` | ativo | [proteger_termo_prestador()](../funcoes/proteger_termo_prestador.md) | Antes de cada alteração de termo, aplica `proteger_termo_prestador` (só age quando quem altera é o prestador). *(fonte: funcao:proteger_termo_prestador())* |
 | `trg_termos_notificacao_set_ano_geracao` | ativo | [set_termos_notificacao_ano_geracao()](../funcoes/set_termos_notificacao_ano_geracao.md) | Antes de inserir, ou de alterar `data_geracao`, grava o ano em `ano_geracao`. *(fonte: funcao:set_termos_notificacao_ano_geracao())* |
+
+<details><summary>Definição de trg_proteger_termo_prestador</summary>
+
+```sql
+CREATE TRIGGER trg_proteger_termo_prestador BEFORE UPDATE ON termos_notificacao FOR EACH ROW EXECUTE FUNCTION proteger_termo_prestador()
+```
+
+</details>
 
 <details><summary>Definição de trg_termos_notificacao_set_ano_geracao</summary>
 
@@ -150,24 +161,6 @@ USING:
 
 WITH CHECK:
 (nenhuma)
-```
-
-</details>
-
-### Prestadores: responder seus termos
-
-- **Papéis**: authenticated · **Operação**: UPDATE · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
-- **Funções auxiliares**: [get_my_prestador_id()](../funcoes/get_my_prestador_id.md), [get_my_role()](../funcoes/get_my_role.md)
-
-<details><summary>Condição original</summary>
-
-```sql
-USING:
-((get_my_role() = 'prestador'::text) AND (prestador_servico_id = get_my_prestador_id()))
-
-WITH CHECK:
-((get_my_role() = 'prestador'::text) AND (prestador_servico_id = get_my_prestador_id()))
 ```
 
 </details>

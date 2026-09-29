@@ -27,7 +27,7 @@ CREATE OR REPLACE FUNCTION public.get_my_diretoria()
  STABLE SECURITY DEFINER
  SET search_path TO 'public'
 AS $function$
-  SELECT diretoria_id FROM public.profiles WHERE id = auth.uid();
+  SELECT diretoria_id FROM public.profiles WHERE id = auth.uid() AND ativo IS TRUE;
 $function$
 ```
 

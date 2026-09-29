@@ -1,0 +1,25 @@
+[objeto."funcao:proteger_resposta_determinacao_prestador()"]
+modulo = "processo_sancionador"
+finalidade = """
+Função do gatilho `trg_proteger_resposta_determinacao_prestador`. Quando quem cria ou altera a
+resposta é o prestador:
+
+- recusa alterar resposta já analisada pela AGEMS;
+- tira da determinação a unidade e a fiscalização, e do perfil a entidade;
+- mantém a análise da equipe (`descricao_atendimento`) como estava;
+- só aceita as situações `rascunho` e `aguardando_analise`;
+- no envio (`aguardando_analise`), grava a data do servidor e se chegou no prazo, contra a
+  data-limite do termo mais recente da entidade naquela fiscalização, contando o último dia.
+
+Alterações da equipe passam sem mudança. Criada na migration 139.
+"""
+fonte = ["supabase/migrations/139_fix_prestador_prazos.sql:76", "src/pages/ResponderTermo.jsx:255"]
+regra_de_negocio = """
+A resposta da entidade a cada determinação é rascunho até ser enviada; depois do envio, só a equipe
+a analisa; a pontualidade é a data do envio contra a data-limite do termo. A spec do processo
+sancionador deve descrever essa regra.
+"""
+
+[objeto."gatilho:public.respostas_determinacao.trg_proteger_resposta_determinacao_prestador"]
+efeito = "Antes de cada inclusão ou alteração de resposta, aplica `proteger_resposta_determinacao_prestador` (só age para o prestador)."
+fonte = ["funcao:proteger_resposta_determinacao_prestador()"]

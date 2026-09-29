@@ -1,0 +1,95 @@
+[objeto."tabela:catesa_ai_jobs"]
+modulo = "catesa"
+finalidade = """
+Fila de análises por IA da resposta a um termo de notificação, pedida na tela Analisar resposta.
+Para cada determinação do termo, o modelo Gemini compara o que foi determinado com a resposta da
+entidade e as evidências anexadas, e devolve um veredito (`adequate` ou `needs_revision`) com a
+justificativa, além de um veredito geral. A equipe revisa e pode aplicar o veredito à resposta.
+
+Fluxo: `catesa_ai_enqueue` monta a entrada, cria o trabalho e chama o worker esperando a
+resposta; `catesa_ai_worker` reivindica o trabalho (`claim_catesa_ai_jobs`), chama a IA e grava o
+resultado; a tela consulta `catesa_ai_status` a cada 3 segundos, por até 90 segundos.
+
+Só usuário com acesso à CATESA (admin, ou coordenador e fiscal da CATESA ou sem câmara) cria e
+consulta trabalhos. O botão aparece em todo termo, de qualquer câmara, e para os demais usuários
+o pedido é recusado.
+
+Criada em produção pela migration 141 (a 128, que a criava, não tinha sido aplicada); até então a
+análise falhava sempre. Produção tem 0 trabalhos.
+"""
+fonte = [
+  "supabase/functions/catesa_ai_enqueue/index.ts:104",
+  "supabase/functions/catesa_ai_enqueue/index.ts:180",
+  "supabase/functions/catesa_ai_worker/index.ts:61",
+  "supabase/functions/catesa_ai_status/index.ts:83",
+  "src/lib/catesa/aiJobs.js:5",
+  "src/pages/AnalisarResposta.jsx:229",
+  "supabase/migrations/141_fix_funcoes_sem_verificacao.sql:883",
+]
+
+[objeto."coluna:catesa_ai_jobs.id"]
+significado = "Identificador do trabalho; a tela acompanha o andamento por ele."
+fonte = ["src/lib/catesa/aiJobs.js:5"]
+
+[objeto."coluna:catesa_ai_jobs.termo_id"]
+significado = "Termo de notificação analisado. Excluir o termo exclui os trabalhos."
+fonte = ["restricao:catesa_ai_jobs.catesa_ai_jobs_termo_id_fkey", "supabase/functions/catesa_ai_enqueue/index.ts:183"]
+
+[objeto."coluna:catesa_ai_jobs.input_text"]
+significado = """
+Entrada da análise, em JSON: as determinações das unidades da fiscalização do termo, cada uma com
+número, descrição, prazo (a coluna antiga `determinacoes.prazo`, hoje sempre vazia), a resposta
+mais recente da entidade (manifestação, análise da equipe, situação, pontualidade) e as
+referências das evidências. As evidências vão para a IA à parte, como arquivos.
+"""
+fonte = ["supabase/functions/catesa_ai_enqueue/index.ts:149", "supabase/functions/catesa_ai_enqueue/index.ts:178"]
+
+[objeto."coluna:catesa_ai_jobs.status"]
+significado = """
+`queued` (padrão), `processing`, `done` ou `error`; o banco aceita só esses. O worker reivindica
+os `queued` e retoma os `processing` parados há mais de 5 minutos (`claim_catesa_ai_jobs`).
+"""
+fonte = ["restricao:catesa_ai_jobs.catesa_ai_jobs_status_check", "supabase/functions/catesa_ai_worker/index.ts:30"]
+
+[objeto."coluna:catesa_ai_jobs.result_json"]
+significado = """
+Resultado da IA: `verdict` e `rationale` gerais e, em `per_determinacao`, um item por
+determinação com `determinacao_id`, `verdict`, `rationale` e `evidence_reviewed` (se as evidências
+foram de fato examinadas).
+"""
+fonte = ["supabase/functions/catesa_ai_worker/index.ts:61", "supabase/functions/catesa_ai_worker/index.ts:186"]
+
+[objeto."coluna:catesa_ai_jobs.error_message"]
+significado = "Motivo da falha, quando `error` (inclui o limite de requisições do Gemini esgotado)."
+fonte = ["supabase/functions/catesa_ai_worker/index.ts:201", "supabase/functions/catesa_ai_worker/index.ts:207"]
+
+[objeto."coluna:catesa_ai_jobs.requested_by"]
+significado = "Usuário que pediu a análise."
+fonte = ["supabase/functions/catesa_ai_enqueue/index.ts:186"]
+
+[objeto."coluna:catesa_ai_jobs.reviewed_at"]
+significado = "Quando a equipe marcou o resultado como revisado, ao fechar o diálogo da análise."
+fonte = ["src/lib/catesa/aiJobs.js:15", "src/components/camaras/CatesaAiAnalysisDialog.jsx:38"]
+
+[objeto."coluna:catesa_ai_jobs.reviewed_by"]
+significado = "Quem marcou o resultado como revisado."
+fonte = ["src/lib/catesa/aiJobs.js:18"]
+
+[objeto."coluna:catesa_ai_jobs.created_at"]
+significado = "Quando o trabalho foi criado; o worker atende primeiro os mais antigos."
+fonte = ["funcao:claim_catesa_ai_jobs(p_limit integer, p_job_id uuid, p_stale_minutes integer)"]
+
+[objeto."coluna:catesa_ai_jobs.updated_at"]
+significado = "Última alteração, gravada pelo gatilho e pelo worker; serve para achar trabalhos `processing` parados."
+fonte = ["gatilho:public.catesa_ai_jobs.trg_catesa_ai_jobs_updated_at", "supabase/functions/catesa_ai_worker/index.ts:24"]
+
+[objeto."gatilho:public.catesa_ai_jobs.trg_catesa_ai_jobs_updated_at"]
+efeito = "Antes de cada alteração, grava a hora atual em `updated_at`."
+fonte = ["funcao:catesa_ai_jobs_set_updated_at()"]
+
+[objeto."politica:public.catesa_ai_jobs.CATESA ai jobs: gestao"]
+descricao = """
+Usuário com acesso à CATESA (`can_access_camara('catesa')`) lê, cria, altera e apaga qualquer
+trabalho. A tela só grava a revisão; criar e consultar passam pelas edge functions.
+"""
+fonte = ["funcao:can_access_camara(row_camara text)", "src/lib/catesa/aiJobs.js:15"]

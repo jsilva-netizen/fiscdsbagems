@@ -26,7 +26,7 @@ CREATE OR REPLACE FUNCTION public.get_my_camara_tecnica()
  STABLE SECURITY DEFINER
  SET search_path TO 'public'
 AS $function$
-  SELECT camara_tecnica_id FROM public.profiles WHERE id = auth.uid();
+  SELECT camara_tecnica_id FROM public.profiles WHERE id = auth.uid() AND ativo IS TRUE;
 $function$
 ```
 

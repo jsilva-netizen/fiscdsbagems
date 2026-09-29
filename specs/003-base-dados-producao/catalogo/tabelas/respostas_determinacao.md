@@ -73,7 +73,17 @@ teste ("a", "aa", "aaa"), ou seja, **há dados de teste em produção**. *(fonte
 
 ## Gatilhos
 
-_Nenhum._
+| Gatilho | Situação | Função | Efeito |
+|---|---|---|---|
+| `trg_proteger_resposta_determinacao_prestador` | ativo | [proteger_resposta_determinacao_prestador()](../funcoes/proteger_resposta_determinacao_prestador.md) | Antes de cada inclusão ou alteração de resposta, aplica `proteger_resposta_determinacao_prestador` (só age para o prestador). *(fonte: funcao:proteger_resposta_determinacao_prestador())* |
+
+<details><summary>Definição de trg_proteger_resposta_determinacao_prestador</summary>
+
+```sql
+CREATE TRIGGER trg_proteger_resposta_determinacao_prestador BEFORE INSERT OR UPDATE ON respostas_determinacao FOR EACH ROW EXECUTE FUNCTION proteger_resposta_determinacao_prestador()
+```
+
+</details>
 
 ## Políticas de acesso
 
@@ -91,42 +101,6 @@ USING:
 
 WITH CHECK:
 (get_my_role() = ANY (ARRAY['admin'::text, 'coordenador'::text, 'fiscal'::text]))
-```
-
-</details>
-
-### Prestadores: atualizar suas próprias respostas determinacoes
-
-- **Papéis**: authenticated · **Operação**: UPDATE · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
-- **Funções auxiliares**: [get_my_prestador_id()](../funcoes/get_my_prestador_id.md), [get_my_role()](../funcoes/get_my_role.md)
-
-<details><summary>Condição original</summary>
-
-```sql
-USING:
-((get_my_role() = 'prestador'::text) AND (prestador_servico_id = get_my_prestador_id()))
-
-WITH CHECK:
-((get_my_role() = 'prestador'::text) AND (prestador_servico_id = get_my_prestador_id()))
-```
-
-</details>
-
-### Prestadores: cadastrar respostas determinacoes
-
-- **Papéis**: authenticated · **Operação**: INSERT · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
-- **Funções auxiliares**: [get_my_prestador_id()](../funcoes/get_my_prestador_id.md), [get_my_role()](../funcoes/get_my_role.md)
-
-<details><summary>Condição original</summary>
-
-```sql
-USING:
-(nenhuma)
-
-WITH CHECK:
-((get_my_role() = 'prestador'::text) AND (prestador_servico_id = get_my_prestador_id()))
 ```
 
 </details>

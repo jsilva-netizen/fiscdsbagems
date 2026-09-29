@@ -40,6 +40,11 @@ class TestPaginas(unittest.TestCase):
             [objeto."coluna:filho.status"]
             significado = "Situação do filho, provavelmente."
             hipotese = true
+
+            [objeto."gatilho:auth.users.ao_criar_usuario"]
+            modulo = "base"
+            efeito = "Cria o perfil do usuário novo."
+            fonte = ["src/x.js:2"]
         """), encoding="utf-8")
         args = ["--producao-parte1", str(FIX / "parte1-ok.csv"), "--producao-parte2", str(FIX / "parte2-ok.csv"),
                 "--migrations", str(cls.tmp / "nada"), "--anotacoes", str(anot), "--saida", str(cls.tmp / "saida")]
@@ -89,6 +94,12 @@ class TestPaginas(unittest.TestCase):
         texto = self.ler("arquivos.md")
         bloco = texto[texto.index("## fotos"):]
         self.assertIn("ler fotos", bloco)
+
+    def test_acesso_mostra_gatilho_em_tabela_da_plataforma(self):
+        texto = self.ler("acesso.md")
+        bloco = texto[texto.index("## Gatilhos em tabelas da plataforma"):]
+        self.assertIn("ao_criar_usuario", bloco)
+        self.assertIn("Cria o perfil do usuário novo.", bloco)
 
     def test_acesso_lista_privilegios_do_anon(self):
         texto = self.ler("acesso.md")

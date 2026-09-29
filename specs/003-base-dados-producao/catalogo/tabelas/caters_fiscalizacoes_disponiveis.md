@@ -4,7 +4,7 @@
 
 - **Tipo**: view
 - **Dono**: módulo **caters**
-- **Opções**: nenhuma — a view **não** declara `security_invoker`, então roda com as permissões do dono
+- **Opções**: `security_invoker=true`
 
 ## Finalidade
 

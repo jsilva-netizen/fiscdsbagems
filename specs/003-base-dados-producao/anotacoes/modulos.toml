@@ -1,5 +1,5 @@
 # Módulos do levantamento e ordem de especificação (research.md D6; contracts/anotacoes.md).
-# Ordem 1–6 testada contra as 62 chaves estrangeiras de produção em 2026-09-28, sem violação.
+# Ordem testada contra as 65 chaves estrangeiras de produção em 2026-09-29, sem violação.
 # `spec` é preenchido quando a spec do módulo existir; até lá, os objetos do módulo aparecem como LACUNA.
 
 [[modulo]]
@@ -56,7 +56,7 @@ nome = "CATESA"
 ordem = 7
 app = "app da câmara CATESA"
 spec = ""
-observacao = "Sem tabela própria em produção: a funcionalidade atual está nas edge functions catesa_ai_* e nas telas; a tabela catesa_ai_jobs existe só nas migrations."
+observacao = "Análise por IA da resposta ao termo de notificação (edge functions catesa_ai_* e tabela catesa_ai_jobs, criada em produção pela migration 141)."
 
 [[modulo]]
 id = "portal_prestador"

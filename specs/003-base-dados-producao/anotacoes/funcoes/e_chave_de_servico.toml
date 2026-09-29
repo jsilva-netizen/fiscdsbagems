@@ -1,0 +1,13 @@
+[objeto."funcao:e_chave_de_servico()"]
+modulo = "core"
+finalidade = """
+Diz se a requisição veio com a chave de serviço (papel `service_role` na sessão). Usada pelas
+funções que aceitam tanto usuários quanto processos de fundo (reabrir e finalizar fiscalização,
+gerar NCs, resumo de indicadores), para deixar passar a chave de serviço sem exigir perfil.
+Criada na migration 141. No sistema novo, a distinção é entre usuário e tarefa de sistema.
+"""
+fonte = [
+  "supabase/migrations/141_fix_funcoes_sem_verificacao.sql:23",
+  "funcao:reabrir_fiscalizacao(p_fiscalizacao_id uuid)",
+  "funcao:finalizar_fiscalizacao(p_fiscalizacao_id uuid)",
+]
