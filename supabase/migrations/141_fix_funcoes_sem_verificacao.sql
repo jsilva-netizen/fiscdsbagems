@@ -31,8 +31,15 @@ $function$;
 
 -- 1. Funções só dos workers ---------------------------------------------------------------------
 
-REVOKE EXECUTE ON FUNCTION public.claim_relatorios_jobs(integer, uuid, integer) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.claim_relatorios_jobs(integer, uuid, integer) TO service_role;
+-- claim_relatorios_jobs foi criada direto em produção, sem migration: num banco montado só pelas
+-- migrations ela não existe, e o REVOKE falharia.
+DO $$
+BEGIN
+  IF to_regprocedure('public.claim_relatorios_jobs(integer, uuid, integer)') IS NOT NULL THEN
+    REVOKE EXECUTE ON FUNCTION public.claim_relatorios_jobs(integer, uuid, integer) FROM PUBLIC, anon, authenticated;
+    GRANT EXECUTE ON FUNCTION public.claim_relatorios_jobs(integer, uuid, integer) TO service_role;
+  END IF;
+END $$;
 REVOKE EXECUTE ON FUNCTION public.claim_caters_ai_jobs(integer, uuid, integer) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.claim_caters_ai_jobs(integer, uuid, integer) TO service_role;
 REVOKE EXECUTE ON FUNCTION public.kick_relatorios_worker(uuid, integer) FROM PUBLIC, anon, authenticated;
@@ -40,6 +47,10 @@ GRANT EXECUTE ON FUNCTION public.kick_relatorios_worker(uuid, integer) TO servic
 
 -- 2. Reabrir fiscalização -------------------------------------------------------------------------
 
+-- Em produção a função devolve void; pelas migrations (114) devolve jsonb, e CREATE OR REPLACE não
+-- troca o tipo de retorno. O app só olha o retorno quando é um objeto com success = false; com void,
+-- segue normalmente.
+DROP FUNCTION IF EXISTS public.reabrir_fiscalizacao(uuid);
 CREATE OR REPLACE FUNCTION public.reabrir_fiscalizacao(p_fiscalizacao_id uuid)
  RETURNS void
  LANGUAGE plpgsql
