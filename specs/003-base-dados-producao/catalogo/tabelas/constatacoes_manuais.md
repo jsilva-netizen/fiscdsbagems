@@ -3,30 +3,35 @@
 # constatacoes_manuais
 
 - **Tipo**: tabela
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **fiscalizacao**
 - **Linhas em produção**: 299
 - **RLS ativo**: sim
 
 ## Finalidade
 
-_Sem anotação._
+Constatações que o fiscal escreve livremente na unidade, fora do checklist. Cada uma é numerada
+junto com as respostas do checklist (C1, C2…). Pode gerar NC e, com ela, uma determinação ou uma
+recomendação, com os textos da própria constatação. Produção tem 299, 123 delas gerando NC.
+
+Criadas e editadas offline e sincronizadas pela fila. A NC, a determinação e a recomendação
+correspondentes são feitas por `gerar_ncs_unidade`, com origem `manual_constatacao:<id>`. *(fonte: src/lib/offline/repository.ts:2268, src/lib/offline/repository.ts:1820, funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean), inventário: dominio_categorico)*
 
 ## Colunas
 
 | # | Coluna | Tipo | Obrig. | Padrão | Significado | Valores em uso / estrutura |
 |---:|---|---|:---:|---|---|---|
-| 1 | `id` | uuid | sim | `uuid_generate_v4()` |  |  |
-| 2 | `unidade_fiscalizada_id` | uuid |  |  |  |  |
-| 3 | `descricao` | text | sim |  |  |  |
-| 4 | `ordem` | bigint |  | `0` |  |  |
-| 5 | `created_at` | timestamp with time zone |  | `now()` |  |  |
-| 6 | `numero_constatacao` | text |  |  |  |  |
-| 7 | `gera_nc` | boolean |  | `false` |  | `false` (176), `true` (123) |
-| 8 | `artigo_portaria` | text |  |  |  |  |
-| 9 | `texto_determinacao` | text |  |  |  |  |
-| 10 | `texto_recomendacao` | text |  |  |  |  |
-| 11 | `descricao_nc` | text |  |  |  |  |
-| 12 | `updated_at` | timestamp with time zone |  | `now()` |  |  |
+| 1 | `id` | uuid | sim | `uuid_generate_v4()` | Identificador, gerado no aparelho. Compõe a origem da determinação e da recomendação geradas<br>(`manual_constatacao:<id>`). *(fonte: funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean))* |  |
+| 2 | `unidade_fiscalizada_id` | uuid |  |  | Unidade da constatação. Excluir a unidade exclui as constatações. *(fonte: restricao:constatacoes_manuais.constatacoes_manuais_unidade_fiscalizada_id_fkey)* |  |
+| 3 | `descricao` | text | sim |  | Texto da constatação escrito pelo fiscal; sai no relatório. *(fonte: src/lib/offline/repository.ts:2268)* |  |
+| 4 | `ordem` | bigint |  | `0` | Posição da constatação. A numeração C usa `numero_constatacao`, não esta coluna. ⚠️ *hipótese* |  |
+| 5 | `created_at` | timestamp with time zone |  | `now()` | Quando a constatação foi criada; desempata a numeração. *(fonte: src/lib/offline/repository.ts:1820)* |  |
+| 6 | `numero_constatacao` | text |  |  | Número da constatação (C<n>), na mesma sequência das respostas do checklist, refeito pelo<br>aparelho. *(fonte: src/lib/offline/repository.ts:1820, src/lib/offline/repository.ts:1927)* |  |
+| 7 | `gera_nc` | boolean |  | `false` | Se a constatação gera NC (e determinação ou recomendação). *(fonte: funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean), inventário: dominio_categorico)* | `false` (176), `true` (123) |
+| 8 | `artigo_portaria` | text |  |  | Dispositivo normativo descumprido, usado na descrição da NC. *(fonte: funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean))* |  |
+| 9 | `texto_determinacao` | text |  |  | Texto da determinação a gerar ("Sanar NC<n>. <texto>"). Quando preenchido, a recomendação não é<br>gerada. *(fonte: funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean))* |  |
+| 10 | `texto_recomendacao` | text |  |  | Texto da recomendação a gerar quando não há texto de determinação. *(fonte: funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean))* |  |
+| 11 | `descricao_nc` | text |  |  | Descrição da NC escrita pelo fiscal. Se vazia, a NC usa "Constatação C<n>: não cumprimento do<br><artigo>;". *(fonte: funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean), src/pages/VistoriarUnidade.jsx:771)* |  |
+| 12 | `updated_at` | timestamp with time zone |  | `now()` | Última alteração, gravada pelo aparelho (não há gatilho). Ordena o processamento das<br>constatações no servidor. *(fonte: src/lib/offline/repository.ts:2268, funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean))* |  |
 
 ## Restrições e índices
 
@@ -56,8 +61,8 @@ _Sem anotação._
 
 | Gatilho | Situação | Função | Efeito |
 |---|---|---|---|
-| `trg_audit_constatacoes` | ativo | [process_audit_log()](../funcoes/process_audit_log.md) | _Sem anotação._ |
-| `trg_propagate_constatacoes` | ativo | [propagate_modification_to_parent()](../funcoes/propagate_modification_to_parent.md) | _Sem anotação._ |
+| `trg_audit_constatacoes` | ativo | [process_audit_log()](../funcoes/process_audit_log.md) | Depois de cada inclusão, alteração ou exclusão, grava o registro de auditoria. *(fonte: funcao:process_audit_log())* |
+| `trg_propagate_constatacoes` | ativo | [propagate_modification_to_parent()](../funcoes/propagate_modification_to_parent.md) | Depois de cada mudança, atualiza `updated_at` da fiscalização da unidade. *(fonte: funcao:propagate_modification_to_parent())* |
 
 <details><summary>Definição de trg_audit_constatacoes</summary>
 
@@ -80,7 +85,7 @@ CREATE TRIGGER trg_propagate_constatacoes AFTER INSERT OR DELETE OR UPDATE ON co
 ### Fiscais e Admins: acesso total em constatacoes
 
 - **Papéis**: authenticated · **Operação**: ALL · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: Admin, coordenador e fiscal ativos têm acesso total, sem olhar a câmara. *(fonte: funcao:get_my_role())*
 - **Funções auxiliares**: [get_my_role()](../funcoes/get_my_role.md)
 
 <details><summary>Condição original</summary>
@@ -98,7 +103,8 @@ WITH CHECK:
 ### Prestadores: ler suas próprias constatacoes
 
 - **Papéis**: authenticated · **Operação**: SELECT · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: O prestador ativo lê as constatações de unidades de fiscalizações da própria entidade, sem exigir
+termo de notificação. *(fonte: funcao:get_my_prestador_id())*
 - **Funções auxiliares**: [get_my_prestador_id()](../funcoes/get_my_prestador_id.md), [get_my_role()](../funcoes/get_my_role.md)
 
 <details><summary>Condição original</summary>
@@ -119,7 +125,7 @@ WITH CHECK:
 ### constatacoes_prestador_select
 
 - **Papéis**: authenticated · **Operação**: SELECT · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: Leitura pelo prestador com termo de notificação; sem efeito próprio hoje. *(fonte: funcao:can_access_unidade(unidade uuid))*
 - **Funções auxiliares**: [can_access_unidade(unidade uuid)](../funcoes/can_access_unidade.md)
 
 <details><summary>Condição original</summary>
@@ -137,7 +143,7 @@ WITH CHECK:
 ### constatacoes_staff_all
 
 - **Papéis**: authenticated · **Operação**: ALL · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: Acesso total para admin, fiscal e coordenador ativos (`is_staff`); redundante. *(fonte: funcao:is_staff())*
 - **Funções auxiliares**: [is_staff()](../funcoes/is_staff.md)
 
 <details><summary>Condição original</summary>
@@ -155,7 +161,7 @@ is_staff()
 ### e2e_test_user_own_rows_only
 
 - **Papéis**: authenticated · **Operação**: UPDATE · **RESTRICTIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: Restritiva: o usuário de teste e2e só altera constatações de fiscalizações que ele criou. *(fonte: supabase/migrations/136_e2e_test_user_write_restriction_child_tables.sql)*
 
 <details><summary>Condição original</summary>
 
@@ -175,7 +181,7 @@ WITH CHECK:
 ### e2e_test_user_own_rows_only_delete
 
 - **Papéis**: authenticated · **Operação**: DELETE · **RESTRICTIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: Mesma restrição, para exclusão. *(fonte: supabase/migrations/136_e2e_test_user_write_restriction_child_tables.sql)*
 
 <details><summary>Condição original</summary>
 

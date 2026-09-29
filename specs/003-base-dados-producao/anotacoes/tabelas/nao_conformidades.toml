@@ -1,0 +1,102 @@
+[objeto."tabela:nao_conformidades"]
+modulo = "fiscalizacao"
+finalidade = """
+Não conformidades (NCs) de cada unidade: uma para cada resposta Não em item que gera NC e para
+cada constatação manual marcada como NC. Produção tem 478.
+
+São totalmente derivadas: `gerar_ncs_unidade` apaga todas as NCs da unidade e as recria a cada
+execução, na sincronização da vistoria e na finalização. A numeração (NC1, NC2…) continua de uma
+unidade para a outra dentro da fiscalização.
+
+Nenhuma tela as edita. A única outra gravação é a importação de uma fiscalização exportada
+(Exportar/Importar), que insere as NCs do arquivo.
+
+Ao serem recriadas, as determinações perdem o vínculo com a NC antiga (`ON DELETE SET NULL`) e
+recebem o da nova.
+"""
+fonte = [
+  "funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)",
+  "src/pages/ExportarImportar.jsx:363",
+  "restricao:determinacoes.determinacoes_nao_conformidade_id_fkey",
+  "inventário: dominio_categorico",
+]
+
+[objeto."coluna:nao_conformidades.id"]
+significado = "Identificador da NC; muda a cada regeneração."
+fonte = ["funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)"]
+
+[objeto."coluna:nao_conformidades.unidade_fiscalizada_id"]
+significado = "Unidade da NC. Excluir a unidade exclui as NCs."
+fonte = ["restricao:nao_conformidades.nao_conformidades_unidade_fiscalizada_id_fkey"]
+
+[objeto."coluna:nao_conformidades.descricao"]
+significado = """
+Texto da NC: "Constatação C<n>: não cumprimento do <artigo>;". Usa "artigo aplicável" quando o
+item não tem artigo; para constatação manual, usa a descrição de NC dela, se houver.
+"""
+fonte = ["funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)"]
+
+[objeto."coluna:nao_conformidades.gravidade"]
+significado = """
+Gravidade da NC. É sempre `Média`: é o valor fixo gravado pela função, e as 478 linhas de
+produção o têm.
+"""
+fonte = ["funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)", "inventário: dominio_categorico"]
+
+[objeto."coluna:nao_conformidades.created_at"]
+significado = "Quando a NC foi (re)criada."
+fonte = ["funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)"]
+
+[objeto."coluna:nao_conformidades.resposta_checklist_id"]
+significado = """
+Resposta do checklist que originou a NC; vazio para NC de constatação manual. Fica vazio se a
+resposta for apagada. Há dois índices idênticos nesta coluna.
+"""
+fonte = ["restricao:nao_conformidades.nao_conformidades_resposta_checklist_id_fkey", "indice:idx_nc_resposta", "indice:idx_nc_resposta_checklist"]
+
+[objeto."coluna:nao_conformidades.fotos"]
+significado = """
+Fotos da NC (lista), vazia em produção: a função não preenche. Só a limpeza de arquivos a lê,
+para apagar fotos antigas. As fotos da vistoria ficam na unidade.
+"""
+fonte = ["inventário: estrutura_json", "src/lib/storageCleanup.js:189", "funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)"]
+
+[objeto."coluna:nao_conformidades.latitude_foto"]
+significado = "Sem uso: nenhuma função ou tela lê ou grava."
+fonte = ["funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)"]
+hipotese = true
+
+[objeto."coluna:nao_conformidades.longitude_foto"]
+significado = "Sem uso: nenhuma função ou tela lê ou grava."
+fonte = ["funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)"]
+hipotese = true
+
+[objeto."coluna:nao_conformidades.numero_nc"]
+significado = """
+Número da NC (NC1, NC2…), sequencial na fiscalização: continua depois das NCs das unidades
+finalizadas antes desta. As determinações citam este número ("Sanar NC<n>").
+"""
+fonte = ["funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)"]
+
+[objeto."coluna:nao_conformidades.artigo_portaria"]
+significado = "Dispositivo normativo descumprido, copiado do item do checklist ou da constatação manual."
+fonte = ["funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)"]
+
+[objeto."politica:public.nao_conformidades.Fiscais e Admins: acesso total em ncs"]
+descricao = "Admin, coordenador e fiscal ativos têm acesso total, sem olhar a câmara."
+fonte = ["funcao:get_my_role()"]
+
+[objeto."politica:public.nao_conformidades.Prestadores: ler suas próprias ncs"]
+descricao = """
+O prestador ativo lê as NCs de unidades de fiscalizações da própria entidade, sem exigir termo de
+notificação.
+"""
+fonte = ["funcao:get_my_prestador_id()"]
+
+[objeto."politica:public.nao_conformidades.ncs_prestador_select"]
+descricao = "Leitura pelo prestador com termo de notificação; sem efeito próprio hoje (a anterior já libera)."
+fonte = ["funcao:can_access_unidade(unidade uuid)"]
+
+[objeto."politica:public.nao_conformidades.ncs_staff_all"]
+descricao = "Acesso total para admin, fiscal e coordenador ativos (`is_staff`); redundante."
+fonte = ["funcao:is_staff()"]

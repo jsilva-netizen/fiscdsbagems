@@ -1,0 +1,130 @@
+[objeto."tabela:respostas_checklist"]
+modulo = "fiscalizacao"
+finalidade = """
+Resposta do fiscal a cada item do checklist de uma unidade: Sim ou Não, com observação. Cada
+resposta Sim ou Não é uma constatação numerada (C1, C2…) no relatório. Um Não em item que gera NC
+produz a não conformidade e, pelo item, uma determinação ou recomendação. Produção tem 3.454
+respostas, 355 delas gerando NC.
+
+- **Gravação:** feita offline (`saveResposta`), com uma resposta por item e unidade (índice
+  único).
+- **Cópia do item:** a resposta guarda a pergunta e aponta para a versão do item respondida, e
+  assim preserva o texto da época.
+- **Numeração:** a numeração C é refeita no aparelho quando constatações entram ou saem.
+"""
+fonte = [
+  "src/lib/offline/repository.ts:1739",
+  "src/lib/offline/repository.ts:1820",
+  "src/pages/VistoriarUnidade.jsx:370",
+  "funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)",
+  "inventário: dominio_categorico",
+]
+
+[objeto."coluna:respostas_checklist.id"]
+significado = """
+Identificador da resposta, gerado no aparelho. A NC gerada aponta para ele
+(`nao_conformidades.resposta_checklist_id`).
+"""
+fonte = ["src/lib/offline/repository.ts:1739", "restricao:nao_conformidades.nao_conformidades_resposta_checklist_id_fkey"]
+
+[objeto."coluna:respostas_checklist.unidade_fiscalizada_id"]
+significado = "Unidade respondida. Excluir a unidade exclui as respostas (`ON DELETE CASCADE`)."
+fonte = ["restricao:respostas_checklist.respostas_checklist_unidade_fiscalizada_id_fkey"]
+
+[objeto."coluna:respostas_checklist.pergunta"]
+significado = """
+Texto da pergunta copiado do item no momento da resposta. Relatórios e contagens usam esta cópia,
+e só contam como constatação respostas com pergunta preenchida.
+"""
+fonte = ["funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)", "src/pages/VistoriarUnidade.jsx:207"]
+
+[objeto."coluna:respostas_checklist.resposta"]
+significado = """
+`SIM` ou `NAO`, gravados pela tela. O servidor também aceita `NÃO`. Vazio ou outro valor não conta
+como constatação.
+"""
+fonte = ["src/pages/VistoriarUnidade.jsx:370", "funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)"]
+
+[objeto."coluna:respostas_checklist.comentario"]
+significado = """
+Campo antigo de comentário. A tela atual grava em `observacao`, e a sincronização não envia este
+campo.
+"""
+fonte = ["src/lib/offline/syncEngine.ts:111"]
+hipotese = true
+
+[objeto."coluna:respostas_checklist.created_at"]
+significado = "Quando a resposta foi gravada."
+fonte = ["src/lib/offline/repository.ts:1739"]
+
+[objeto."coluna:respostas_checklist.numero_constatacao"]
+significado = """
+Número da constatação na unidade (C1, C2…). O aparelho numera as respostas Sim ou Não junto com
+as constatações manuais (`recomputeConstatacoesNumeracao`), mantendo a ordem já definida. Compõe
+a descrição da NC ("Constatação C<n>: …").
+"""
+fonte = ["src/lib/offline/repository.ts:1820", "src/lib/offline/repository.ts:1880"]
+
+[objeto."coluna:respostas_checklist.gera_nc"]
+significado = """
+Se esta resposta gera NC: resposta Não em item que gera NC. Gravado pela tela a partir do item.
+"""
+fonte = ["src/pages/VistoriarUnidade.jsx:387", "inventário: dominio_categorico"]
+
+[objeto."coluna:respostas_checklist.observacao"]
+significado = "Observação livre do fiscal sobre a resposta."
+fonte = ["src/lib/offline/syncEngine.ts:111"]
+
+[objeto."coluna:respostas_checklist.item_checklist_id"]
+significado = """
+Versão do item de checklist respondida. Garante que a vistoria continue mostrando o texto da época
+mesmo depois de o item ser editado.
+"""
+fonte = ["restricao:respostas_checklist.respostas_checklist_item_checklist_id_fkey", "src/lib/offline/repository.ts:670"]
+
+[objeto."coluna:respostas_checklist.updated_at"]
+significado = """
+Última alteração. Não há gatilho que a mantenha: o aparelho grava. O servidor usa esta coluna para
+escolher a resposta mais recente quando há duplicatas.
+"""
+fonte = ["funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)"]
+
+[objeto."gatilho:public.respostas_checklist.trg_audit_respostas"]
+efeito = "Depois de cada inclusão, alteração ou exclusão, grava o registro de auditoria."
+fonte = ["funcao:process_audit_log()"]
+
+[objeto."gatilho:public.respostas_checklist.trg_propagate_respostas"]
+efeito = "Depois de cada mudança, atualiza `updated_at` da fiscalização da unidade."
+fonte = ["funcao:propagate_modification_to_parent()"]
+
+[objeto."politica:public.respostas_checklist.Fiscais e Admins: acesso total em respostas"]
+descricao = "Admin, coordenador e fiscal ativos têm acesso total, sem olhar a câmara."
+fonte = ["funcao:get_my_role()"]
+
+[objeto."politica:public.respostas_checklist.Prestadores: ler suas próprias respostas"]
+descricao = """
+O prestador ativo lê as respostas de unidades de fiscalizações da própria entidade, sem exigir
+termo de notificação.
+"""
+fonte = ["funcao:get_my_prestador_id()"]
+
+[objeto."politica:public.respostas_checklist.respostas_checklist_prestador_select"]
+descricao = """
+O prestador ativo lê as respostas se houver termo de notificação para a entidade dele
+(`can_access_unidade`). Sem efeito próprio hoje: a política anterior já libera sem termo.
+"""
+fonte = ["funcao:can_access_unidade(unidade uuid)"]
+
+[objeto."politica:public.respostas_checklist.respostas_checklist_staff_all"]
+descricao = "Acesso total para admin, fiscal e coordenador ativos (`is_staff`); redundante."
+fonte = ["funcao:is_staff()"]
+
+[objeto."politica:public.respostas_checklist.e2e_test_user_own_rows_only"]
+descricao = """
+Restritiva: o usuário de teste e2e só altera respostas de fiscalizações que ele criou.
+"""
+fonte = ["supabase/migrations/136_e2e_test_user_write_restriction_child_tables.sql"]
+
+[objeto."politica:public.respostas_checklist.e2e_test_user_own_rows_only_delete"]
+descricao = "Mesma restrição, para exclusão."
+fonte = ["supabase/migrations/136_e2e_test_user_write_restriction_child_tables.sql"]

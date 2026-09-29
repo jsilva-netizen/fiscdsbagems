@@ -3,25 +3,29 @@
 # recomendacoes
 
 - **Tipo**: tabela
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **fiscalizacao**
 - **Linhas em produção**: 350
 - **RLS ativo**: sim
 
 ## Finalidade
 
-_Sem anotação._
+Recomendações à entidade: orientações sem prazo nem sanção, geradas quando o item ou a constatação
+gera NC e tem texto de recomendação, mas não de determinação. Produção tem 350.
+
+Como as determinações, são preservadas pela `origem` nas regenerações (texto e numeração
+editados na tela ficam) e apagadas quando perdem a origem. *(fonte: funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean), src/lib/offline/repository.ts:870, src/lib/offline/repository.ts:785)*
 
 ## Colunas
 
 | # | Coluna | Tipo | Obrig. | Padrão | Significado | Valores em uso / estrutura |
 |---:|---|---|:---:|---|---|---|
-| 1 | `id` | uuid | sim | `uuid_generate_v4()` |  |  |
-| 2 | `unidade_fiscalizada_id` | uuid |  |  |  |  |
-| 3 | `descricao` | text | sim |  |  |  |
-| 4 | `created_at` | timestamp with time zone |  | `now()` |  |  |
-| 5 | `numero_recomendacao` | text |  |  |  |  |
-| 6 | `origem` | text |  | `'checklist'::text` |  |  |
-| 7 | `updated_at` | timestamp with time zone |  | `now()` |  |  |
+| 1 | `id` | uuid | sim | `uuid_generate_v4()` | Identificador da recomendação. *(fonte: src/lib/offline/repository.ts:870)* |  |
+| 2 | `unidade_fiscalizada_id` | uuid |  |  | Unidade da recomendação. Excluir a unidade exclui as recomendações. *(fonte: restricao:recomendacoes.recomendacoes_unidade_fiscalizada_id_fkey)* |  |
+| 3 | `descricao` | text | sim |  | Texto da recomendação, vindo do item ou da constatação; editável e preservado. *(fonte: funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean), src/lib/offline/repository.ts:785)* |  |
+| 4 | `created_at` | timestamp with time zone |  | `now()` | Quando a recomendação foi criada. *(fonte: src/lib/offline/repository.ts:870)* |  |
+| 5 | `numero_recomendacao` | text |  |  | Número na unidade (R1, R2…), dado pelo aparelho (`recomputeRecomendacoesNumeracao`) e mantido na<br>ordem definida pelo fiscal, reordenável por arrastar. Único por unidade; há dois índices únicos<br>equivalentes, um deles parcial. *(fonte: src/lib/offline/repository.ts:795, indice:recomendacoes_unidade_numero_unq, indice:ux_recomendacoes_unidade_numero)* |  |
+| 6 | `origem` | text |  | `'checklist'::text` | De onde veio a recomendação:<br>- `checklist:<id do item>`;<br>- `manual_constatacao:<id>`;<br>- `legacy_rec:<id>`.<br>O padrão da coluna, `checklist` sem id, marca linhas antigas; a função as reaproveita e as<br>renomeia. *(fonte: funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean))* |  |
+| 7 | `updated_at` | timestamp with time zone |  | `now()` | Última alteração, gravada pelo aparelho e pela função (não há gatilho de `updated_at`). *(fonte: src/lib/offline/repository.ts:785)* |  |
 
 ## Restrições e índices
 
@@ -57,8 +61,8 @@ _Sem anotação._
 
 | Gatilho | Situação | Função | Efeito |
 |---|---|---|---|
-| `trg_audit_recomendacoes` | ativo | [process_audit_log()](../funcoes/process_audit_log.md) | _Sem anotação._ |
-| `trg_propagate_recomendacoes` | ativo | [propagate_modification_to_parent()](../funcoes/propagate_modification_to_parent.md) | _Sem anotação._ |
+| `trg_audit_recomendacoes` | ativo | [process_audit_log()](../funcoes/process_audit_log.md) | Depois de cada inclusão, alteração ou exclusão, grava o registro de auditoria. *(fonte: funcao:process_audit_log())* |
+| `trg_propagate_recomendacoes` | ativo | [propagate_modification_to_parent()](../funcoes/propagate_modification_to_parent.md) | Depois de cada mudança, atualiza `updated_at` da fiscalização da unidade. *(fonte: funcao:propagate_modification_to_parent())* |
 
 <details><summary>Definição de trg_audit_recomendacoes</summary>
 
@@ -81,7 +85,7 @@ CREATE TRIGGER trg_propagate_recomendacoes AFTER INSERT OR DELETE OR UPDATE ON r
 ### Fiscais e Admins: acesso total em recomendacoes
 
 - **Papéis**: authenticated · **Operação**: ALL · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: Admin, coordenador e fiscal ativos têm acesso total, sem olhar a câmara. *(fonte: funcao:get_my_role())*
 - **Funções auxiliares**: [get_my_role()](../funcoes/get_my_role.md)
 
 <details><summary>Condição original</summary>
@@ -99,7 +103,8 @@ WITH CHECK:
 ### Prestadores: ler suas próprias recomendacoes
 
 - **Papéis**: authenticated · **Operação**: SELECT · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: O prestador ativo lê as recomendações de unidades de fiscalizações da própria entidade, sem exigir
+termo de notificação. *(fonte: funcao:get_my_prestador_id())*
 - **Funções auxiliares**: [get_my_prestador_id()](../funcoes/get_my_prestador_id.md), [get_my_role()](../funcoes/get_my_role.md)
 
 <details><summary>Condição original</summary>
@@ -120,7 +125,7 @@ WITH CHECK:
 ### e2e_test_user_own_rows_only
 
 - **Papéis**: authenticated · **Operação**: UPDATE · **RESTRICTIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: Restritiva: o usuário de teste e2e só altera recomendações de fiscalizações que ele criou. *(fonte: supabase/migrations/136_e2e_test_user_write_restriction_child_tables.sql)*
 
 <details><summary>Condição original</summary>
 
@@ -140,7 +145,7 @@ WITH CHECK:
 ### e2e_test_user_own_rows_only_delete
 
 - **Papéis**: authenticated · **Operação**: DELETE · **RESTRICTIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: Mesma restrição, para exclusão. *(fonte: supabase/migrations/136_e2e_test_user_write_restriction_child_tables.sql)*
 
 <details><summary>Condição original</summary>
 
@@ -160,7 +165,7 @@ WITH CHECK:
 ### recomendacoes_prestador_select
 
 - **Papéis**: authenticated · **Operação**: SELECT · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: Leitura pelo prestador com termo de notificação; sem efeito próprio hoje. *(fonte: funcao:can_access_unidade(unidade uuid))*
 - **Funções auxiliares**: [can_access_unidade(unidade uuid)](../funcoes/can_access_unidade.md)
 
 <details><summary>Condição original</summary>
@@ -178,7 +183,7 @@ WITH CHECK:
 ### recomendacoes_staff_all
 
 - **Papéis**: authenticated · **Operação**: ALL · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: Acesso total para admin, fiscal e coordenador ativos (`is_staff`); redundante. *(fonte: funcao:is_staff())*
 - **Funções auxiliares**: [is_staff()](../funcoes/is_staff.md)
 
 <details><summary>Condição original</summary>

@@ -1,0 +1,44 @@
+[objeto."tabela:fotos_evidencia"]
+modulo = "fiscalizacao"
+finalidade = """
+Tabela de fotos de evidência por fiscalização ou unidade, **sem uso**: está vazia em produção e
+nenhuma tela, função ou edge function a lê ou grava. As fotos da vistoria ficam na lista
+`unidades_fiscalizadas.fotos_unidade`. É candidata a descarte, a decidir nos achados.
+"""
+fonte = ["inventário: tabelas", "tabela:unidades_fiscalizadas"]
+
+[objeto."coluna:fotos_evidencia.id"]
+significado = "Identificador da foto (tabela sem uso)."
+fonte = ["inventário: tabelas"]
+
+[objeto."coluna:fotos_evidencia.fiscalizacao_id"]
+significado = "Fiscalização da foto (tabela sem uso); excluir a fiscalização excluiria as fotos."
+fonte = ["restricao:fotos_evidencia.fotos_evidencia_fiscalizacao_id_fkey"]
+
+[objeto."coluna:fotos_evidencia.unidade_fiscalizada_id"]
+significado = "Unidade da foto (tabela sem uso)."
+fonte = ["restricao:fotos_evidencia.fotos_evidencia_unidade_fiscalizada_id_fkey"]
+
+[objeto."coluna:fotos_evidencia.url"]
+significado = "Endereço da foto (tabela sem uso)."
+fonte = ["inventário: tabelas"]
+
+[objeto."coluna:fotos_evidencia.bucket_path"]
+significado = "Caminho do arquivo no bucket (tabela sem uso)."
+fonte = ["inventário: tabelas"]
+
+[objeto."coluna:fotos_evidencia.descricao"]
+significado = "Legenda da foto (tabela sem uso)."
+fonte = ["inventário: tabelas"]
+
+[objeto."coluna:fotos_evidencia.created_at"]
+significado = "Quando a foto foi registrada (tabela sem uso)."
+fonte = ["inventário: tabelas"]
+
+[objeto."politica:public.fotos_evidencia.Fiscais e Admins: acesso total em fotos"]
+descricao = "Admin, coordenador e fiscal ativos teriam acesso total (tabela sem uso)."
+fonte = ["funcao:get_my_role()"]
+
+[objeto."politica:public.fotos_evidencia.Prestadores: ler suas próprias fotos"]
+descricao = "O prestador ativo leria as fotos de fiscalizações da própria entidade (tabela sem uso)."
+fonte = ["funcao:get_my_prestador_id()"]

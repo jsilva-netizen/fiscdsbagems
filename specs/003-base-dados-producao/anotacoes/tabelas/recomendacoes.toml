@@ -1,0 +1,90 @@
+[objeto."tabela:recomendacoes"]
+modulo = "fiscalizacao"
+finalidade = """
+Recomendações à entidade: orientações sem prazo nem sanção, geradas quando o item ou a constatação
+gera NC e tem texto de recomendação, mas não de determinação. Produção tem 350.
+
+Como as determinações, são preservadas pela `origem` nas regenerações (texto e numeração
+editados na tela ficam) e apagadas quando perdem a origem.
+"""
+fonte = [
+  "funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)",
+  "src/lib/offline/repository.ts:870",
+  "src/lib/offline/repository.ts:785",
+]
+
+[objeto."coluna:recomendacoes.id"]
+significado = "Identificador da recomendação."
+fonte = ["src/lib/offline/repository.ts:870"]
+
+[objeto."coluna:recomendacoes.unidade_fiscalizada_id"]
+significado = "Unidade da recomendação. Excluir a unidade exclui as recomendações."
+fonte = ["restricao:recomendacoes.recomendacoes_unidade_fiscalizada_id_fkey"]
+
+[objeto."coluna:recomendacoes.descricao"]
+significado = "Texto da recomendação, vindo do item ou da constatação; editável e preservado."
+fonte = ["funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)", "src/lib/offline/repository.ts:785"]
+
+[objeto."coluna:recomendacoes.created_at"]
+significado = "Quando a recomendação foi criada."
+fonte = ["src/lib/offline/repository.ts:870"]
+
+[objeto."coluna:recomendacoes.numero_recomendacao"]
+significado = """
+Número na unidade (R1, R2…), dado pelo aparelho (`recomputeRecomendacoesNumeracao`) e mantido na
+ordem definida pelo fiscal, reordenável por arrastar. Único por unidade; há dois índices únicos
+equivalentes, um deles parcial.
+"""
+fonte = ["src/lib/offline/repository.ts:795", "indice:recomendacoes_unidade_numero_unq", "indice:ux_recomendacoes_unidade_numero"]
+
+[objeto."coluna:recomendacoes.origem"]
+significado = """
+De onde veio a recomendação:
+
+- `checklist:<id do item>`;
+- `manual_constatacao:<id>`;
+- `legacy_rec:<id>`.
+
+O padrão da coluna, `checklist` sem id, marca linhas antigas; a função as reaproveita e as
+renomeia.
+"""
+fonte = ["funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)"]
+
+[objeto."coluna:recomendacoes.updated_at"]
+significado = "Última alteração, gravada pelo aparelho e pela função (não há gatilho de `updated_at`)."
+fonte = ["src/lib/offline/repository.ts:785"]
+
+[objeto."gatilho:public.recomendacoes.trg_audit_recomendacoes"]
+efeito = "Depois de cada inclusão, alteração ou exclusão, grava o registro de auditoria."
+fonte = ["funcao:process_audit_log()"]
+
+[objeto."gatilho:public.recomendacoes.trg_propagate_recomendacoes"]
+efeito = "Depois de cada mudança, atualiza `updated_at` da fiscalização da unidade."
+fonte = ["funcao:propagate_modification_to_parent()"]
+
+[objeto."politica:public.recomendacoes.Fiscais e Admins: acesso total em recomendacoes"]
+descricao = "Admin, coordenador e fiscal ativos têm acesso total, sem olhar a câmara."
+fonte = ["funcao:get_my_role()"]
+
+[objeto."politica:public.recomendacoes.Prestadores: ler suas próprias recomendacoes"]
+descricao = """
+O prestador ativo lê as recomendações de unidades de fiscalizações da própria entidade, sem exigir
+termo de notificação.
+"""
+fonte = ["funcao:get_my_prestador_id()"]
+
+[objeto."politica:public.recomendacoes.recomendacoes_prestador_select"]
+descricao = "Leitura pelo prestador com termo de notificação; sem efeito próprio hoje."
+fonte = ["funcao:can_access_unidade(unidade uuid)"]
+
+[objeto."politica:public.recomendacoes.recomendacoes_staff_all"]
+descricao = "Acesso total para admin, fiscal e coordenador ativos (`is_staff`); redundante."
+fonte = ["funcao:is_staff()"]
+
+[objeto."politica:public.recomendacoes.e2e_test_user_own_rows_only"]
+descricao = "Restritiva: o usuário de teste e2e só altera recomendações de fiscalizações que ele criou."
+fonte = ["supabase/migrations/136_e2e_test_user_write_restriction_child_tables.sql"]
+
+[objeto."politica:public.recomendacoes.e2e_test_user_own_rows_only_delete"]
+descricao = "Mesma restrição, para exclusão."
+fonte = ["supabase/migrations/136_e2e_test_user_write_restriction_child_tables.sql"]

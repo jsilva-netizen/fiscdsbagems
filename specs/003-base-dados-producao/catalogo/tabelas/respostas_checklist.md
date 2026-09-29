@@ -3,29 +3,38 @@
 # respostas_checklist
 
 - **Tipo**: tabela
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **fiscalizacao**
 - **Linhas em produção**: 3454
 - **RLS ativo**: sim
 
 ## Finalidade
 
-_Sem anotação._
+Resposta do fiscal a cada item do checklist de uma unidade: Sim ou Não, com observação. Cada
+resposta Sim ou Não é uma constatação numerada (C1, C2…) no relatório. Um Não em item que gera NC
+produz a não conformidade e, pelo item, uma determinação ou recomendação. Produção tem 3.454
+respostas, 355 delas gerando NC.
+
+- **Gravação:** feita offline (`saveResposta`), com uma resposta por item e unidade (índice
+  único).
+- **Cópia do item:** a resposta guarda a pergunta e aponta para a versão do item respondida, e
+  assim preserva o texto da época.
+- **Numeração:** a numeração C é refeita no aparelho quando constatações entram ou saem. *(fonte: src/lib/offline/repository.ts:1739, src/lib/offline/repository.ts:1820, src/pages/VistoriarUnidade.jsx:370, funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean), inventário: dominio_categorico)*
 
 ## Colunas
 
 | # | Coluna | Tipo | Obrig. | Padrão | Significado | Valores em uso / estrutura |
 |---:|---|---|:---:|---|---|---|
-| 1 | `id` | uuid | sim | `uuid_generate_v4()` |  |  |
-| 2 | `unidade_fiscalizada_id` | uuid |  |  |  |  |
-| 3 | `pergunta` | text | sim |  |  |  |
-| 4 | `resposta` | text |  |  |  |  |
-| 5 | `comentario` | text |  |  |  |  |
-| 6 | `created_at` | timestamp with time zone |  | `now()` |  |  |
-| 7 | `numero_constatacao` | text |  |  |  |  |
-| 8 | `gera_nc` | boolean |  | `false` |  | `false` (3099), `true` (355) |
-| 9 | `observacao` | text |  |  |  |  |
-| 10 | `item_checklist_id` | uuid |  |  |  |  |
-| 11 | `updated_at` | timestamp with time zone |  | `now()` |  |  |
+| 1 | `id` | uuid | sim | `uuid_generate_v4()` | Identificador da resposta, gerado no aparelho. A NC gerada aponta para ele<br>(`nao_conformidades.resposta_checklist_id`). *(fonte: src/lib/offline/repository.ts:1739, restricao:nao_conformidades.nao_conformidades_resposta_checklist_id_fkey)* |  |
+| 2 | `unidade_fiscalizada_id` | uuid |  |  | Unidade respondida. Excluir a unidade exclui as respostas (`ON DELETE CASCADE`). *(fonte: restricao:respostas_checklist.respostas_checklist_unidade_fiscalizada_id_fkey)* |  |
+| 3 | `pergunta` | text | sim |  | Texto da pergunta copiado do item no momento da resposta. Relatórios e contagens usam esta cópia,<br>e só contam como constatação respostas com pergunta preenchida. *(fonte: funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean), src/pages/VistoriarUnidade.jsx:207)* |  |
+| 4 | `resposta` | text |  |  | `SIM` ou `NAO`, gravados pela tela. O servidor também aceita `NÃO`. Vazio ou outro valor não conta<br>como constatação. *(fonte: src/pages/VistoriarUnidade.jsx:370, funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean))* |  |
+| 5 | `comentario` | text |  |  | Campo antigo de comentário. A tela atual grava em `observacao`, e a sincronização não envia este<br>campo. ⚠️ *hipótese* |  |
+| 6 | `created_at` | timestamp with time zone |  | `now()` | Quando a resposta foi gravada. *(fonte: src/lib/offline/repository.ts:1739)* |  |
+| 7 | `numero_constatacao` | text |  |  | Número da constatação na unidade (C1, C2…). O aparelho numera as respostas Sim ou Não junto com<br>as constatações manuais (`recomputeConstatacoesNumeracao`), mantendo a ordem já definida. Compõe<br>a descrição da NC ("Constatação C<n>: …"). *(fonte: src/lib/offline/repository.ts:1820, src/lib/offline/repository.ts:1880)* |  |
+| 8 | `gera_nc` | boolean |  | `false` | Se esta resposta gera NC: resposta Não em item que gera NC. Gravado pela tela a partir do item. *(fonte: src/pages/VistoriarUnidade.jsx:387, inventário: dominio_categorico)* | `false` (3099), `true` (355) |
+| 9 | `observacao` | text |  |  | Observação livre do fiscal sobre a resposta. *(fonte: src/lib/offline/syncEngine.ts:111)* |  |
+| 10 | `item_checklist_id` | uuid |  |  | Versão do item de checklist respondida. Garante que a vistoria continue mostrando o texto da época<br>mesmo depois de o item ser editado. *(fonte: restricao:respostas_checklist.respostas_checklist_item_checklist_id_fkey, src/lib/offline/repository.ts:670)* |  |
+| 11 | `updated_at` | timestamp with time zone |  | `now()` | Última alteração. Não há gatilho que a mantenha: o aparelho grava. O servidor usa esta coluna para<br>escolher a resposta mais recente quando há duplicatas. *(fonte: funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean))* |  |
 
 ## Restrições e índices
 
@@ -61,8 +70,8 @@ _Sem anotação._
 
 | Gatilho | Situação | Função | Efeito |
 |---|---|---|---|
-| `trg_audit_respostas` | ativo | [process_audit_log()](../funcoes/process_audit_log.md) | _Sem anotação._ |
-| `trg_propagate_respostas` | ativo | [propagate_modification_to_parent()](../funcoes/propagate_modification_to_parent.md) | _Sem anotação._ |
+| `trg_audit_respostas` | ativo | [process_audit_log()](../funcoes/process_audit_log.md) | Depois de cada inclusão, alteração ou exclusão, grava o registro de auditoria. *(fonte: funcao:process_audit_log())* |
+| `trg_propagate_respostas` | ativo | [propagate_modification_to_parent()](../funcoes/propagate_modification_to_parent.md) | Depois de cada mudança, atualiza `updated_at` da fiscalização da unidade. *(fonte: funcao:propagate_modification_to_parent())* |
 
 <details><summary>Definição de trg_audit_respostas</summary>
 
@@ -85,7 +94,7 @@ CREATE TRIGGER trg_propagate_respostas AFTER INSERT OR DELETE OR UPDATE ON respo
 ### Fiscais e Admins: acesso total em respostas
 
 - **Papéis**: authenticated · **Operação**: ALL · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: Admin, coordenador e fiscal ativos têm acesso total, sem olhar a câmara. *(fonte: funcao:get_my_role())*
 - **Funções auxiliares**: [get_my_role()](../funcoes/get_my_role.md)
 
 <details><summary>Condição original</summary>
@@ -103,7 +112,8 @@ WITH CHECK:
 ### Prestadores: ler suas próprias respostas
 
 - **Papéis**: authenticated · **Operação**: SELECT · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: O prestador ativo lê as respostas de unidades de fiscalizações da própria entidade, sem exigir
+termo de notificação. *(fonte: funcao:get_my_prestador_id())*
 - **Funções auxiliares**: [get_my_prestador_id()](../funcoes/get_my_prestador_id.md), [get_my_role()](../funcoes/get_my_role.md)
 
 <details><summary>Condição original</summary>
@@ -124,7 +134,7 @@ WITH CHECK:
 ### e2e_test_user_own_rows_only
 
 - **Papéis**: authenticated · **Operação**: UPDATE · **RESTRICTIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: Restritiva: o usuário de teste e2e só altera respostas de fiscalizações que ele criou. *(fonte: supabase/migrations/136_e2e_test_user_write_restriction_child_tables.sql)*
 
 <details><summary>Condição original</summary>
 
@@ -144,7 +154,7 @@ WITH CHECK:
 ### e2e_test_user_own_rows_only_delete
 
 - **Papéis**: authenticated · **Operação**: DELETE · **RESTRICTIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: Mesma restrição, para exclusão. *(fonte: supabase/migrations/136_e2e_test_user_write_restriction_child_tables.sql)*
 
 <details><summary>Condição original</summary>
 
@@ -164,7 +174,8 @@ WITH CHECK:
 ### respostas_checklist_prestador_select
 
 - **Papéis**: authenticated · **Operação**: SELECT · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: O prestador ativo lê as respostas se houver termo de notificação para a entidade dele
+(`can_access_unidade`). Sem efeito próprio hoje: a política anterior já libera sem termo. *(fonte: funcao:can_access_unidade(unidade uuid))*
 - **Funções auxiliares**: [can_access_unidade(unidade uuid)](../funcoes/can_access_unidade.md)
 
 <details><summary>Condição original</summary>
@@ -182,7 +193,7 @@ WITH CHECK:
 ### respostas_checklist_staff_all
 
 - **Papéis**: authenticated · **Operação**: ALL · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: Acesso total para admin, fiscal e coordenador ativos (`is_staff`); redundante. *(fonte: funcao:is_staff())*
 - **Funções auxiliares**: [is_staff()](../funcoes/is_staff.md)
 
 <details><summary>Condição original</summary>

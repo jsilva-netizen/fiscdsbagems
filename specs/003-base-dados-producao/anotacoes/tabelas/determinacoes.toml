@@ -1,0 +1,137 @@
+[objeto."tabela:determinacoes"]
+modulo = "fiscalizacao"
+finalidade = """
+Determinações que a AGEMS impõe à entidade para sanar cada NC, com prazo. São geradas a partir do
+checklist ou das constatações manuais (item ou constatação com NC e texto de determinação), e
+depois acompanhadas na tela de acompanhamento e respondidas pelo prestador
+(`respostas_determinacao`). Produção tem 183, todas pendentes.
+
+Diferente das NCs, **não são recriadas**: `gerar_ncs_unidade` identifica cada uma pela `origem` e
+preserva o texto, o prazo e a numeração editados na tela. Ela só cria as que faltam e apaga as que
+deixaram de ter origem válida (por exemplo, a resposta voltou para Sim).
+"""
+fonte = [
+  "funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)",
+  "src/lib/offline/repository.ts:1219",
+  "src/lib/offline/repository.ts:1123",
+  "src/pages/AcompanhamentoDeterminacoes.jsx:142",
+  "inventário: dominio_categorico",
+]
+
+[objeto."coluna:determinacoes.id"]
+significado = "Identificador da determinação; as respostas do prestador apontam para ele."
+fonte = ["src/lib/offline/repository.ts:1219"]
+
+[objeto."coluna:determinacoes.unidade_fiscalizada_id"]
+significado = "Unidade da determinação. Excluir a unidade exclui as determinações."
+fonte = ["restricao:determinacoes.determinacoes_unidade_fiscalizada_id_fkey"]
+
+[objeto."coluna:determinacoes.descricao"]
+significado = """
+Texto da determinação. Nasce como "Sanar NC<n>. <texto do item ou da constatação>"; o aparelho
+usa "NC?" até saber o número. É editável, e a edição é preservada nas regenerações.
+"""
+fonte = ["funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)", "src/lib/offline/repository.ts:1219"]
+
+[objeto."coluna:determinacoes.prazo"]
+significado = """
+Coluna antiga de prazo (data). A geração atual grava `prazo_dias` e `data_limite`, e não esta
+coluna.
+"""
+fonte = ["funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)"]
+hipotese = true
+
+[objeto."coluna:determinacoes.created_at"]
+significado = "Quando a determinação foi criada; filtra o acompanhamento por período."
+fonte = ["src/pages/AcompanhamentoDeterminacoes.jsx:142"]
+
+[objeto."coluna:determinacoes.nao_conformidade_id"]
+significado = """
+NC que a determinação manda sanar. Fica vazio quando as NCs são recriadas e é religado na mesma
+execução. Há dois índices idênticos nesta coluna.
+"""
+fonte = ["restricao:determinacoes.determinacoes_nao_conformidade_id_fkey", "indice:idx_determinacoes_nc", "indice:idx_dets_nc"]
+
+[objeto."coluna:determinacoes.numero_determinacao"]
+significado = """
+Número da determinação na unidade (D1, D2…), dado pelo aparelho (`recomputeDeterminacoesNumeracao`)
+e mantido na ordem definida pelo fiscal. O servidor cria sem número.
+"""
+fonte = ["src/lib/offline/repository.ts:1133", "src/lib/offline/repository.ts:1189"]
+
+[objeto."coluna:determinacoes.prazo_dias"]
+significado = """
+Prazo em dias para cumprir, vindo do item do checklist (padrão 30; em produção, 30 em 182 e vazio
+em 1).
+"""
+fonte = ["funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)", "inventário: dominio_categorico"]
+
+[objeto."coluna:determinacoes.data_limite"]
+significado = """
+Data-limite: a data de criação mais `prazo_dias`. O acompanhamento marca como vencida a
+determinação pendente depois desta data.
+"""
+fonte = ["funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)", "src/pages/AcompanhamentoDeterminacoes.jsx:159"]
+
+[objeto."coluna:determinacoes.status"]
+significado = """
+`pendente`, `cumprida`, `nao_cumprida` ou `prorrogada`: o banco aceita só esses valores. Nenhuma
+tela nem função muda o status: as 183 de produção estão `pendente`. O cumprimento é acompanhado
+pelas respostas do prestador.
+"""
+fonte = ["restricao:determinacoes.determinacoes_status_check", "inventário: dominio_categorico"]
+
+[objeto."coluna:determinacoes.origem"]
+significado = """
+De onde veio a determinação. É o que permite preservar edições:
+
+- `checklist:<id do item>`;
+- `manual_constatacao:<id da constatação>`;
+- `legacy:<id>`: o padrão da coluna, para linhas antigas ou sem origem conhecida.
+
+Única por unidade (`determinacoes_unidade_origem_unq`).
+"""
+fonte = ["funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)", "indice:determinacoes_unidade_origem_unq"]
+
+[objeto."coluna:determinacoes.updated_at"]
+significado = "Última alteração: gravada pelo aparelho, pela função e pelo gatilho `update_determinacoes_updated_at`."
+fonte = ["gatilho:public.determinacoes.update_determinacoes_updated_at"]
+
+[objeto."gatilho:public.determinacoes.trg_audit_determinacoes"]
+efeito = "Depois de cada inclusão, alteração ou exclusão, grava o registro de auditoria."
+fonte = ["funcao:process_audit_log()"]
+
+[objeto."gatilho:public.determinacoes.trg_propagate_determinacoes"]
+efeito = "Depois de cada mudança, atualiza `updated_at` da fiscalização da unidade."
+fonte = ["funcao:propagate_modification_to_parent()"]
+
+[objeto."gatilho:public.determinacoes.update_determinacoes_updated_at"]
+efeito = "Antes de cada alteração, grava a hora atual em `updated_at`."
+fonte = ["funcao:update_updated_at_column()"]
+
+[objeto."politica:public.determinacoes.Fiscais e Admins: acesso total em determinacoes"]
+descricao = "Admin, coordenador e fiscal ativos têm acesso total, sem olhar a câmara."
+fonte = ["funcao:get_my_role()"]
+
+[objeto."politica:public.determinacoes.Prestadores: ler suas próprias determinacoes"]
+descricao = """
+O prestador ativo lê as determinações de unidades de fiscalizações da própria entidade, sem exigir
+termo de notificação.
+"""
+fonte = ["funcao:get_my_prestador_id()", "src/pages/PortalPrestadorHome.jsx:114"]
+
+[objeto."politica:public.determinacoes.determinacoes_prestador_select"]
+descricao = "Leitura pelo prestador com termo de notificação; sem efeito próprio hoje."
+fonte = ["funcao:can_access_unidade(unidade uuid)"]
+
+[objeto."politica:public.determinacoes.determinacoes_staff_all"]
+descricao = "Acesso total para admin, fiscal e coordenador ativos (`is_staff`); redundante."
+fonte = ["funcao:is_staff()"]
+
+[objeto."politica:public.determinacoes.e2e_test_user_own_rows_only"]
+descricao = "Restritiva: o usuário de teste e2e só altera determinações de fiscalizações que ele criou."
+fonte = ["supabase/migrations/136_e2e_test_user_write_restriction_child_tables.sql"]
+
+[objeto."politica:public.determinacoes.e2e_test_user_own_rows_only_delete"]
+descricao = "Mesma restrição, para exclusão."
+fonte = ["supabase/migrations/136_e2e_test_user_write_restriction_child_tables.sql"]

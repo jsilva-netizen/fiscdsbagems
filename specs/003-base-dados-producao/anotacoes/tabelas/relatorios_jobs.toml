@@ -1,0 +1,98 @@
+[objeto."tabela:relatorios_jobs"]
+modulo = "fiscalizacao"
+finalidade = """
+Fila de geração do relatório de fiscalização (PDF). O relatório é gerado fora do app, pelas edge
+functions:
+
+- **Pedido:** o app pede à `relatorios_enqueue`, que cria o trabalho `queued`.
+- **Execução:** `relatorios_worker` reivindica o trabalho (`claim_relatorios_jobs`), monta o PDF
+  com as unidades e fotos, atualizando o progresso, e grava o arquivo no bucket
+  `relatorios_fiscalizacao`.
+- **Relatório grande:** é dividido em partes, que o app baixa e junta.
+- **Consulta:** o app acompanha pela `relatorios_status`.
+
+Reabrir a fiscalização apaga os trabalhos dela, para forçar um relatório novo. Produção tem 18,
+todos concluídos. Inclusão e exclusão são auditadas.
+"""
+fonte = [
+  "supabase/functions/relatorios_enqueue/index.ts:124",
+  "supabase/functions/relatorios_worker/index.ts:2574",
+  "src/components/fiscalizacao/RelatorioFiscalizacao.jsx:11",
+  "funcao:reabrir_fiscalizacao(p_fiscalizacao_id uuid)",
+  "inventário: dominio_categorico",
+]
+
+[objeto."coluna:relatorios_jobs.id"]
+significado = "Identificador do trabalho de relatório."
+fonte = ["supabase/functions/relatorios_enqueue/index.ts:124"]
+
+[objeto."coluna:relatorios_jobs.fiscalizacao_id"]
+significado = "Fiscalização do relatório. Excluir a fiscalização exclui os trabalhos."
+fonte = ["restricao:relatorios_jobs.relatorios_jobs_fiscalizacao_id_fkey"]
+
+[objeto."coluna:relatorios_jobs.requested_by"]
+significado = """
+Quem pediu o relatório (perfil). A auditoria usa como autor quando o trabalho é alterado pela
+chave de serviço. Pode excluir o próprio trabalho. A chave estrangeira sem regra de exclusão
+impede excluir definitivamente um usuário que já pediu relatório.
+"""
+fonte = ["restricao:relatorios_jobs.relatorios_jobs_requested_by_fkey", "funcao:process_audit_log()", "funcao:admin_delete_user(p_user_id uuid)"]
+
+[objeto."coluna:relatorios_jobs.status"]
+significado = """
+`queued` (padrão, ao pedir), `processing` (em geração), `done` (pronto) ou `error`: o banco aceita
+só esses valores.
+"""
+fonte = ["restricao:relatorios_jobs.relatorios_jobs_status_check", "supabase/functions/relatorios_worker/index.ts:2576"]
+
+[objeto."coluna:relatorios_jobs.progress_unidades"]
+significado = "Quantas unidades já entraram no relatório; mostrado como progresso."
+fonte = ["supabase/functions/relatorios_worker/index.ts:2512"]
+
+[objeto."coluna:relatorios_jobs.progress_fotos"]
+significado = "Quantas fotos já foram processadas; mostrado como progresso."
+fonte = ["supabase/functions/relatorios_worker/index.ts:1853"]
+
+[objeto."coluna:relatorios_jobs.error_message"]
+significado = "Mensagem do erro quando a geração falha (status `error`); limpa ao reprocessar."
+fonte = ["supabase/functions/relatorios_worker/index.ts:2583"]
+
+[objeto."coluna:relatorios_jobs.storage_path"]
+significado = "Caminho do PDF final no bucket `relatorios_fiscalizacao`, gravado ao concluir."
+fonte = ["supabase/functions/relatorios_worker/index.ts:2574"]
+
+[objeto."coluna:relatorios_jobs.created_at"]
+significado = "Quando o relatório foi pedido."
+fonte = ["supabase/functions/relatorios_enqueue/index.ts:124"]
+
+[objeto."coluna:relatorios_jobs.updated_at"]
+significado = "Última mudança de estado ou progresso, gravada pelo worker."
+fonte = ["supabase/functions/relatorios_worker/index.ts:193"]
+
+[objeto."coluna:relatorios_jobs.parts_count"]
+significado = """
+Em quantas partes o PDF foi gerado (padrão 1). Com mais de uma, o app baixa cada parte e junta no
+navegador. Em produção: 1 parte (10), 2 (3), 3 (4) e 7 (1).
+"""
+fonte = ["src/components/fiscalizacao/RelatorioFiscalizacao.jsx:11", "inventário: dominio_categorico"]
+
+[objeto."gatilho:public.relatorios_jobs.trg_audit_relatorios_jobs"]
+efeito = """
+Depois de cada inclusão ou exclusão (não em alterações de progresso), grava o registro de
+auditoria. O histórico da fiscalização mostra os relatórios gerados.
+"""
+fonte = ["funcao:process_audit_log()", "src/components/fiscalizacao/HistoricoFiscalizacao.jsx:396"]
+
+[objeto."politica:public.relatorios_jobs.Delete relatorios_jobs (owner/admin)"]
+descricao = """
+Usuário ativo exclui os trabalhos que pediu; admin ativo exclui qualquer um. Inclusão e alteração
+não têm política: só as edge functions, com a chave de serviço, gravam.
+"""
+fonte = ["supabase/functions/relatorios_enqueue/index.ts:124"]
+
+[objeto."politica:public.relatorios_jobs.Select relatorios_jobs (any active user)"]
+descricao = """
+Qualquer usuário ativo lê todos os trabalhos de relatório, de qualquer câmara e inclusive o
+prestador. Já exigia perfil ativo antes das correções de 2026-09-29.
+"""
+fonte = ["tabela:profiles"]

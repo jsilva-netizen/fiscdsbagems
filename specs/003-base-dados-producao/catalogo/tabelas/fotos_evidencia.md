@@ -3,25 +3,27 @@
 # fotos_evidencia
 
 - **Tipo**: tabela
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **fiscalizacao**
 - **Linhas em produção**: 0
 - **RLS ativo**: sim
 
 ## Finalidade
 
-_Sem anotação._
+Tabela de fotos de evidência por fiscalização ou unidade, **sem uso**: está vazia em produção e
+nenhuma tela, função ou edge function a lê ou grava. As fotos da vistoria ficam na lista
+`unidades_fiscalizadas.fotos_unidade`. É candidata a descarte, a decidir nos achados. *(fonte: inventário: tabelas, tabela:unidades_fiscalizadas)*
 
 ## Colunas
 
 | # | Coluna | Tipo | Obrig. | Padrão | Significado | Valores em uso / estrutura |
 |---:|---|---|:---:|---|---|---|
-| 1 | `id` | uuid | sim | `uuid_generate_v4()` |  |  |
-| 2 | `fiscalizacao_id` | uuid |  |  |  |  |
-| 3 | `unidade_fiscalizada_id` | uuid |  |  |  |  |
-| 4 | `url` | text | sim |  |  |  |
-| 5 | `bucket_path` | text | sim |  |  |  |
-| 6 | `descricao` | text |  |  |  |  |
-| 7 | `created_at` | timestamp with time zone |  | `now()` |  |  |
+| 1 | `id` | uuid | sim | `uuid_generate_v4()` | Identificador da foto (tabela sem uso). *(fonte: inventário: tabelas)* |  |
+| 2 | `fiscalizacao_id` | uuid |  |  | Fiscalização da foto (tabela sem uso); excluir a fiscalização excluiria as fotos. *(fonte: restricao:fotos_evidencia.fotos_evidencia_fiscalizacao_id_fkey)* |  |
+| 3 | `unidade_fiscalizada_id` | uuid |  |  | Unidade da foto (tabela sem uso). *(fonte: restricao:fotos_evidencia.fotos_evidencia_unidade_fiscalizada_id_fkey)* |  |
+| 4 | `url` | text | sim |  | Endereço da foto (tabela sem uso). *(fonte: inventário: tabelas)* |  |
+| 5 | `bucket_path` | text | sim |  | Caminho do arquivo no bucket (tabela sem uso). *(fonte: inventário: tabelas)* |  |
+| 6 | `descricao` | text |  |  | Legenda da foto (tabela sem uso). *(fonte: inventário: tabelas)* |  |
+| 7 | `created_at` | timestamp with time zone |  | `now()` | Quando a foto foi registrada (tabela sem uso). *(fonte: inventário: tabelas)* |  |
 
 ## Restrições e índices
 
@@ -55,7 +57,7 @@ _Nenhum._
 ### Fiscais e Admins: acesso total em fotos
 
 - **Papéis**: authenticated · **Operação**: ALL · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: Admin, coordenador e fiscal ativos teriam acesso total (tabela sem uso). *(fonte: funcao:get_my_role())*
 - **Funções auxiliares**: [get_my_role()](../funcoes/get_my_role.md)
 
 <details><summary>Condição original</summary>
@@ -73,7 +75,7 @@ WITH CHECK:
 ### Prestadores: ler suas próprias fotos
 
 - **Papéis**: authenticated · **Operação**: SELECT · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: O prestador ativo leria as fotos de fiscalizações da própria entidade (tabela sem uso). *(fonte: funcao:get_my_prestador_id())*
 - **Funções auxiliares**: [get_my_prestador_id()](../funcoes/get_my_prestador_id.md), [get_my_role()](../funcoes/get_my_role.md)
 
 <details><summary>Condição original</summary>

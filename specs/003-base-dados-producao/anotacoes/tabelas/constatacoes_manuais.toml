@@ -1,0 +1,117 @@
+[objeto."tabela:constatacoes_manuais"]
+modulo = "fiscalizacao"
+finalidade = """
+Constatações que o fiscal escreve livremente na unidade, fora do checklist. Cada uma é numerada
+junto com as respostas do checklist (C1, C2…). Pode gerar NC e, com ela, uma determinação ou uma
+recomendação, com os textos da própria constatação. Produção tem 299, 123 delas gerando NC.
+
+Criadas e editadas offline e sincronizadas pela fila. A NC, a determinação e a recomendação
+correspondentes são feitas por `gerar_ncs_unidade`, com origem `manual_constatacao:<id>`.
+"""
+fonte = [
+  "src/lib/offline/repository.ts:2268",
+  "src/lib/offline/repository.ts:1820",
+  "funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)",
+  "inventário: dominio_categorico",
+]
+
+[objeto."coluna:constatacoes_manuais.id"]
+significado = """
+Identificador, gerado no aparelho. Compõe a origem da determinação e da recomendação geradas
+(`manual_constatacao:<id>`).
+"""
+fonte = ["funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)"]
+
+[objeto."coluna:constatacoes_manuais.unidade_fiscalizada_id"]
+significado = "Unidade da constatação. Excluir a unidade exclui as constatações."
+fonte = ["restricao:constatacoes_manuais.constatacoes_manuais_unidade_fiscalizada_id_fkey"]
+
+[objeto."coluna:constatacoes_manuais.descricao"]
+significado = "Texto da constatação escrito pelo fiscal; sai no relatório."
+fonte = ["src/lib/offline/repository.ts:2268"]
+
+[objeto."coluna:constatacoes_manuais.ordem"]
+significado = """
+Posição da constatação. A numeração C usa `numero_constatacao`, não esta coluna.
+"""
+fonte = ["src/lib/offline/repository.ts:1820"]
+hipotese = true
+
+[objeto."coluna:constatacoes_manuais.created_at"]
+significado = "Quando a constatação foi criada; desempata a numeração."
+fonte = ["src/lib/offline/repository.ts:1820"]
+
+[objeto."coluna:constatacoes_manuais.numero_constatacao"]
+significado = """
+Número da constatação (C<n>), na mesma sequência das respostas do checklist, refeito pelo
+aparelho.
+"""
+fonte = ["src/lib/offline/repository.ts:1820", "src/lib/offline/repository.ts:1927"]
+
+[objeto."coluna:constatacoes_manuais.gera_nc"]
+significado = "Se a constatação gera NC (e determinação ou recomendação)."
+fonte = ["funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)", "inventário: dominio_categorico"]
+
+[objeto."coluna:constatacoes_manuais.artigo_portaria"]
+significado = "Dispositivo normativo descumprido, usado na descrição da NC."
+fonte = ["funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)"]
+
+[objeto."coluna:constatacoes_manuais.texto_determinacao"]
+significado = """
+Texto da determinação a gerar ("Sanar NC<n>. <texto>"). Quando preenchido, a recomendação não é
+gerada.
+"""
+fonte = ["funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)"]
+
+[objeto."coluna:constatacoes_manuais.texto_recomendacao"]
+significado = "Texto da recomendação a gerar quando não há texto de determinação."
+fonte = ["funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)"]
+
+[objeto."coluna:constatacoes_manuais.descricao_nc"]
+significado = """
+Descrição da NC escrita pelo fiscal. Se vazia, a NC usa "Constatação C<n>: não cumprimento do
+<artigo>;".
+"""
+fonte = ["funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)", "src/pages/VistoriarUnidade.jsx:771"]
+
+[objeto."coluna:constatacoes_manuais.updated_at"]
+significado = """
+Última alteração, gravada pelo aparelho (não há gatilho). Ordena o processamento das
+constatações no servidor.
+"""
+fonte = ["src/lib/offline/repository.ts:2268", "funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)"]
+
+[objeto."gatilho:public.constatacoes_manuais.trg_audit_constatacoes"]
+efeito = "Depois de cada inclusão, alteração ou exclusão, grava o registro de auditoria."
+fonte = ["funcao:process_audit_log()"]
+
+[objeto."gatilho:public.constatacoes_manuais.trg_propagate_constatacoes"]
+efeito = "Depois de cada mudança, atualiza `updated_at` da fiscalização da unidade."
+fonte = ["funcao:propagate_modification_to_parent()"]
+
+[objeto."politica:public.constatacoes_manuais.Fiscais e Admins: acesso total em constatacoes"]
+descricao = "Admin, coordenador e fiscal ativos têm acesso total, sem olhar a câmara."
+fonte = ["funcao:get_my_role()"]
+
+[objeto."politica:public.constatacoes_manuais.Prestadores: ler suas próprias constatacoes"]
+descricao = """
+O prestador ativo lê as constatações de unidades de fiscalizações da própria entidade, sem exigir
+termo de notificação.
+"""
+fonte = ["funcao:get_my_prestador_id()"]
+
+[objeto."politica:public.constatacoes_manuais.constatacoes_prestador_select"]
+descricao = "Leitura pelo prestador com termo de notificação; sem efeito próprio hoje."
+fonte = ["funcao:can_access_unidade(unidade uuid)"]
+
+[objeto."politica:public.constatacoes_manuais.constatacoes_staff_all"]
+descricao = "Acesso total para admin, fiscal e coordenador ativos (`is_staff`); redundante."
+fonte = ["funcao:is_staff()"]
+
+[objeto."politica:public.constatacoes_manuais.e2e_test_user_own_rows_only"]
+descricao = "Restritiva: o usuário de teste e2e só altera constatações de fiscalizações que ele criou."
+fonte = ["supabase/migrations/136_e2e_test_user_write_restriction_child_tables.sql"]
+
+[objeto."politica:public.constatacoes_manuais.e2e_test_user_own_rows_only_delete"]
+descricao = "Mesma restrição, para exclusão."
+fonte = ["supabase/migrations/136_e2e_test_user_write_restriction_child_tables.sql"]
