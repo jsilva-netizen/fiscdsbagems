@@ -3,32 +3,37 @@
 # respostas_determinacao
 
 - **Tipo**: tabela
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **processo_sancionador**
 - **Linhas em produção**: 34
 - **RLS ativo**: sim
 
 ## Finalidade
 
-_Sem anotação._
+Resposta da entidade a cada determinação do termo de notificação: manifestação escrita e
+evidências anexadas pelo prestador no portal, depois a análise da equipe (atendida ou não
+atendida). As determinações não atendidas viram autos de infração na Análise da Manifestação.
+
+Produção tem 34 respostas: 33 aguardando análise e 1 não atendida. As manifestações têm textos de
+teste ("a", "aa", "aaa"), ou seja, **há dados de teste em produção**. *(fonte: src/pages/ResponderTermo.jsx:255, src/pages/AnalisarResposta.jsx:181, src/pages/AnaliseManifestacao.jsx:268, inventário: dominio_categorico)*
 
 ## Colunas
 
 | # | Coluna | Tipo | Obrig. | Padrão | Significado | Valores em uso / estrutura |
 |---:|---|---|:---:|---|---|---|
-| 1 | `id` | uuid | sim | `uuid_generate_v4()` |  |  |
-| 2 | `determinacao_id` | uuid |  |  |  |  |
-| 3 | `unidade_fiscalizada_id` | uuid |  |  |  |  |
-| 4 | `fiscalizacao_id` | uuid |  |  |  |  |
-| 5 | `prestador_servico_id` | uuid |  |  |  |  |
-| 6 | `resposta` | text |  |  |  |  |
-| 7 | `status` | text |  |  |  | `aguardando_analise` (33), `nao_atendida` (1) |
-| 8 | `manifestacao_prestador` | text |  |  |  | `a` (14), `aa` (13), `aaa` (6), `aaaaaaaaa` (1) |
-| 9 | `descricao_atendimento` | text |  |  |  |  |
-| 10 | `dentro_prazo` | boolean |  |  |  | `true` (34) |
-| 11 | `tipo_resposta` | text |  |  |  |  |
-| 12 | `data_resposta` | timestamp with time zone |  | `now()` |  |  |
-| 13 | `created_at` | timestamp with time zone |  | `now()` |  |  |
-| 14 | `evidencias` | jsonb |  | `'[]'::jsonb` |  | JSON — formas: array (34) |
+| 1 | `id` | uuid | sim | `uuid_generate_v4()` | Identificador da resposta. *(fonte: src/lib/offline/repository.ts:1466)* |  |
+| 2 | `determinacao_id` | uuid |  |  | Determinação respondida; o portal mantém uma resposta por determinação (atualiza se já existe).<br>Excluir a determinação exclui a resposta. *(fonte: src/pages/ResponderTermo.jsx:256, restricao:respostas_determinacao.respostas_determinacao_determinacao_id_fkey)* |  |
+| 3 | `unidade_fiscalizada_id` | uuid |  |  | Unidade da determinação, copiada pelo portal. A chave estrangeira não tem regra de exclusão, então<br>não é possível excluir uma unidade com resposta. *(fonte: src/pages/ResponderTermo.jsx:263, restricao:respostas_determinacao.respostas_determinacao_unidade_fiscalizada_id_fkey)* |  |
+| 4 | `fiscalizacao_id` | uuid |  |  | Fiscalização do termo, copiada pelo portal. É usada por `can_access_fiscalizacao` nas políticas do<br>prestador. *(fonte: src/pages/ResponderTermo.jsx:264, funcao:can_access_fiscalizacao(fiscalizacao uuid))* |  |
+| 5 | `prestador_servico_id` | uuid |  |  | Entidade que respondeu, copiada do termo. Limita o que o prestador vê e altera. *(fonte: src/pages/ResponderTermo.jsx:265)* |  |
+| 6 | `resposta` | text |  |  | Sem uso: nenhuma tela grava; a manifestação fica em `manifestacao_prestador`. ⚠️ *hipótese* |  |
+| 7 | `status` | text |  |  | Situação da resposta:<br>- `aguardando_analise`: ao responder;<br>- `atendida` ou `nao_atendida`: definido pela equipe na análise.<br>Não é validado pelo banco, e o prestador pode alterá-lo pela API. *(fonte: src/pages/ResponderTermo.jsx:268, src/pages/AnalisarResposta.jsx:891, politica:public.respostas_determinacao.Prestadores: atualizar suas próprias respostas determinacoes, inventário: dominio_categorico)* | `aguardando_analise` (33), `nao_atendida` (1) |
+| 8 | `manifestacao_prestador` | text |  |  | Texto da manifestação da entidade sobre a determinação. Vai para a Análise da Manifestação. *(fonte: src/pages/ResponderTermo.jsx:266, src/pages/AnaliseManifestacao.jsx:377)* | `a` (14), `aa` (13), `aaa` (6), `aaaaaaaaa` (1) |
+| 9 | `descricao_atendimento` | text |  |  | Análise da equipe sobre a resposta (por que foi ou não atendida). *(fonte: src/pages/AnalisarResposta.jsx:183, src/pages/AnaliseManifestacao.jsx:378)* |  |
+| 10 | `dentro_prazo` | boolean |  |  | Se a resposta foi dada até a data-limite do termo. É calculado pelo **aparelho do prestador** com<br>o relógio dele, e as 34 de produção estão `true`. *(fonte: src/pages/ResponderTermo.jsx:258, inventário: dominio_categorico)* | `true` (34) |
+| 11 | `tipo_resposta` | text |  |  | Sem uso: nenhuma tela lê ou grava. ⚠️ *hipótese* |  |
+| 12 | `data_resposta` | timestamp with time zone |  | `now()` | Quando a resposta foi dada, pelo relógio do aparelho do prestador. É a base dos tempos médios de<br>resposta. *(fonte: src/pages/ResponderTermo.jsx:269, src/components/determinacoes/AnaliseTemposMedios.jsx:12)* |  |
+| 13 | `created_at` | timestamp with time zone |  | `now()` | Quando a resposta foi criada. *(fonte: src/lib/offline/repository.ts:1466)* |  |
+| 14 | `evidencias` | jsonb |  | `'[]'::jsonb` | Evidências anexadas pela entidade (lista de arquivos no bucket `evidencias-determinacoes`, com<br>nome, tipo, tamanho, data, caminho e endereço). O portal remove duplicadas antes de gravar. *(fonte: src/lib/offline/repository.ts:1616, src/pages/ResponderTermo.jsx:260)* | JSON — formas: array (34) |
 
 ## Restrições e índices
 
@@ -66,7 +71,7 @@ _Nenhum._
 ### Fiscais e Admins: acesso total em respostas determinacoes
 
 - **Papéis**: authenticated · **Operação**: ALL · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: Admin, coordenador e fiscal ativos têm acesso total, sem olhar a câmara. *(fonte: funcao:get_my_role())*
 - **Funções auxiliares**: [get_my_role()](../funcoes/get_my_role.md)
 
 <details><summary>Condição original</summary>
@@ -84,7 +89,8 @@ WITH CHECK:
 ### Prestadores: atualizar suas próprias respostas determinacoes
 
 - **Papéis**: authenticated · **Operação**: UPDATE · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: O prestador ativo altera as respostas da própria entidade, em qualquer situação e em qualquer
+coluna, inclusive `status`, `dentro_prazo` e a análise da equipe. *(fonte: funcao:get_my_prestador_id())*
 - **Funções auxiliares**: [get_my_prestador_id()](../funcoes/get_my_prestador_id.md), [get_my_role()](../funcoes/get_my_role.md)
 
 <details><summary>Condição original</summary>
@@ -102,7 +108,7 @@ WITH CHECK:
 ### Prestadores: cadastrar respostas determinacoes
 
 - **Papéis**: authenticated · **Operação**: INSERT · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: O prestador ativo cria respostas em nome da própria entidade. *(fonte: funcao:get_my_prestador_id())*
 - **Funções auxiliares**: [get_my_prestador_id()](../funcoes/get_my_prestador_id.md), [get_my_role()](../funcoes/get_my_role.md)
 
 <details><summary>Condição original</summary>
@@ -120,7 +126,7 @@ WITH CHECK:
 ### Prestadores: ler suas próprias respostas determinacoes
 
 - **Papéis**: authenticated · **Operação**: SELECT · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: O prestador ativo lê as respostas da própria entidade. *(fonte: funcao:get_my_prestador_id())*
 - **Funções auxiliares**: [get_my_prestador_id()](../funcoes/get_my_prestador_id.md), [get_my_role()](../funcoes/get_my_role.md)
 
 <details><summary>Condição original</summary>
@@ -138,7 +144,7 @@ WITH CHECK:
 ### respostas_det_prestador_insert
 
 - **Papéis**: authenticated · **Operação**: INSERT · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: Mesma inclusão pelo prestador, com as funções de outro conjunto de políticas; redundante. *(fonte: funcao:current_prestador_servico_id())*
 - **Funções auxiliares**: [can_access_fiscalizacao(fiscalizacao uuid)](../funcoes/can_access_fiscalizacao.md), [current_prestador_servico_id()](../funcoes/current_prestador_servico_id.md)
 
 <details><summary>Condição original</summary>
@@ -156,7 +162,8 @@ WITH CHECK:
 ### respostas_det_prestador_select
 
 - **Papéis**: authenticated · **Operação**: SELECT · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: Leitura pelo prestador exigindo também termo para a fiscalização; sem efeito próprio (a política
+de leitura anterior não exige termo). *(fonte: funcao:can_access_fiscalizacao(fiscalizacao uuid))*
 - **Funções auxiliares**: [can_access_fiscalizacao(fiscalizacao uuid)](../funcoes/can_access_fiscalizacao.md), [current_prestador_servico_id()](../funcoes/current_prestador_servico_id.md)
 
 <details><summary>Condição original</summary>
@@ -174,7 +181,7 @@ WITH CHECK:
 ### respostas_det_prestador_update
 
 - **Papéis**: authenticated · **Operação**: UPDATE · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: Alteração pelo prestador exigindo termo; sem efeito próprio (a anterior não exige). *(fonte: funcao:can_access_fiscalizacao(fiscalizacao uuid))*
 - **Funções auxiliares**: [can_access_fiscalizacao(fiscalizacao uuid)](../funcoes/can_access_fiscalizacao.md), [current_prestador_servico_id()](../funcoes/current_prestador_servico_id.md)
 
 <details><summary>Condição original</summary>
@@ -192,7 +199,7 @@ WITH CHECK:
 ### respostas_det_staff_all
 
 - **Papéis**: authenticated · **Operação**: ALL · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: Acesso total para admin, fiscal e coordenador ativos (`is_staff`); redundante. *(fonte: funcao:is_staff())*
 - **Funções auxiliares**: [is_staff()](../funcoes/is_staff.md)
 
 <details><summary>Condição original</summary>

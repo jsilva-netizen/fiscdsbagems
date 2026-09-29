@@ -1,0 +1,126 @@
+[objeto."tabela:remessas_ai"]
+modulo = "processo_sancionador"
+finalidade = """
+Remessa (lote) de autos de infração enviada a uma entidade: agrupa os autos de um termo de
+notificação e acompanha as etapas com a entidade. Há uma remessa ativa por termo, verificada só
+pela tela. **Vazia em produção.**
+
+**Etapas:**
+
+- **`preparada`:** criada na Gestão de Autos.
+- **`enviada`:** ao enviar, com a lista dos autos em PDF.
+- **`recebida`:** quando o prestador assina todos os autos no portal.
+- **`defesa_enviada`:** quando o prestador envia o ofício de defesa.
+- **`parecer_enviado`:** quando a equipe encaminha os pareceres assinados.
+"""
+fonte = [
+  "src/pages/GestaoAutos.jsx:418",
+  "src/pages/GestaoAutos.jsx:473",
+  "src/pages/PortalPrestadorHome.jsx:584",
+  "src/pages/PortalPrestadorHome.jsx:738",
+  "src/pages/GestaoAutos.jsx:278",
+  "inventário: tabelas",
+]
+
+[objeto."coluna:remessas_ai.id"]
+significado = "Identificador da remessa."
+fonte = ["src/lib/offline/repository.ts:1583"]
+
+[objeto."coluna:remessas_ai.termo_id"]
+significado = "Termo de notificação da remessa; excluir o termo exclui a remessa."
+fonte = ["src/pages/GestaoAutos.jsx:427", "restricao:remessas_ai.remessas_ai_termo_id_fkey"]
+
+[objeto."coluna:remessas_ai.fiscalizacao_id"]
+significado = "Fiscalização da remessa; define a câmara pelo gatilho `tr_camara_remessas`."
+fonte = ["src/pages/GestaoAutos.jsx:428", "gatilho:public.remessas_ai.tr_camara_remessas"]
+
+[objeto."coluna:remessas_ai.prestador_servico_id"]
+significado = "Entidade destinatária; limita o acesso do prestador às próprias remessas."
+fonte = ["src/pages/GestaoAutos.jsx:429", "src/pages/PortalPrestadorHome.jsx:187"]
+
+[objeto."coluna:remessas_ai.numero_rfp"]
+significado = "Identificação do relatório de fiscalização do termo (ex.: RFP/DSB/<câmara>/<número>/<ano>)."
+fonte = ["src/pages/GestaoAutos.jsx:430"]
+
+[objeto."coluna:remessas_ai.numero_tn"]
+significado = """
+Número do termo de notificação. **Sempre vazio**: a tela lê `termo.numero_tn`, que não existe; o
+certo seria `numero_termo_notificacao`.
+"""
+fonte = ["src/pages/GestaoAutos.jsx:431", "coluna:termos_notificacao.numero_termo_notificacao"]
+
+[objeto."coluna:remessas_ai.status"]
+significado = """
+Etapa da remessa: `preparada` (padrão), `enviada`, `recebida`, `defesa_enviada` e
+`parecer_enviado`. Não é validado pelo banco, e o prestador grava duas das etapas.
+"""
+fonte = ["src/pages/GestaoAutos.jsx:432", "src/pages/PortalPrestadorHome.jsx:585", "src/pages/PortalPrestadorHome.jsx:739"]
+
+[objeto."coluna:remessas_ai.arquivo_lista_pdf_url"]
+significado = "PDF com a lista dos autos, gerado e anexado ao enviar."
+fonte = ["src/pages/GestaoAutos.jsx:472"]
+
+[objeto."coluna:remessas_ai.arquivo_recebimento_assinado_url"]
+significado = "Comprovante de recebimento assinado pelo prestador."
+fonte = ["src/pages/PortalPrestadorHome.jsx:571"]
+hipotese = true
+
+[objeto."coluna:remessas_ai.arquivo_oficio_defesa_url"]
+significado = "Ofício de defesa enviado pelo prestador no portal."
+fonte = ["src/pages/PortalPrestadorHome.jsx:705"]
+
+[objeto."coluna:remessas_ai.arquivo_parecer_assinado_url"]
+significado = "Pareceres assinados encaminhados à entidade."
+fonte = ["src/pages/GestaoAutos.jsx:277"]
+hipotese = true
+
+[objeto."coluna:remessas_ai.criada_em"]
+significado = "Quando a remessa foi criada."
+fonte = ["src/pages/GestaoAutos.jsx:433"]
+
+[objeto."coluna:remessas_ai.enviada_em"]
+significado = "Quando foi enviada à entidade."
+fonte = ["src/pages/GestaoAutos.jsx:473"]
+
+[objeto."coluna:remessas_ai.recebida_em"]
+significado = "Quando o prestador concluiu o recebimento (relógio do aparelho dele)."
+fonte = ["src/pages/PortalPrestadorHome.jsx:584"]
+
+[objeto."coluna:remessas_ai.defesa_enviada_em"]
+significado = "Quando o prestador enviou a defesa (relógio do aparelho dele)."
+fonte = ["src/pages/PortalPrestadorHome.jsx:738"]
+
+[objeto."coluna:remessas_ai.parecer_enviado_em"]
+significado = "Quando a equipe encaminhou os pareceres."
+fonte = ["src/pages/GestaoAutos.jsx:278", "src/pages/PareceresTecnicos.jsx:176"]
+
+[objeto."coluna:remessas_ai.updated_at"]
+significado = "Última alteração, gravada pela função de atualização da tela."
+fonte = ["src/lib/offline/repository.ts:1589"]
+
+[objeto."coluna:remessas_ai.camara_tecnica_id"]
+significado = """
+Câmara da remessa, herdada da fiscalização pelo gatilho. Controla o acesso por câmara, mas a
+política "(DEV)" libera qualquer usuário ativo.
+"""
+fonte = ["funcao:trg_remessa_set_camara()", "politica:public.remessas_ai.Acesso total autenticado (DEV)"]
+
+[objeto."gatilho:public.remessas_ai.tr_camara_remessas"]
+efeito = "Antes de inserir, se a câmara vier vazia, copia a câmara da fiscalização."
+fonte = ["funcao:trg_remessa_set_camara()"]
+
+[objeto."politica:public.remessas_ai.Acesso total autenticado (DEV)"]
+descricao = """
+Quem tem perfil ativo, de qualquer papel e câmara, lê, cria, altera e exclui qualquer remessa. É o
+que permite ao prestador registrar recebimento e defesa, mas também deixa um prestador alterar a
+remessa de outro. Desde a migration 138; antes, valia para qualquer logado.
+"""
+fonte = ["supabase/migrations/138_fix_open_policies.sql", "src/pages/PortalPrestadorHome.jsx:583"]
+
+[objeto."politica:public.remessas_ai.Fiscais e Admins: acesso por camara em remessas"]
+descricao = "Admin total; coordenador e fiscal ativos, pelas remessas da sua câmara. Sem efeito prático por causa da política \"(DEV)\"."
+fonte = ["funcao:can_access_camara(row_camara text)"]
+
+[objeto."politica:public.remessas_ai.Prestadores: ler suas próprias remessas"]
+descricao = "O prestador ativo lê as remessas da própria entidade; contida na política \"(DEV)\"."
+fonte = ["funcao:get_my_prestador_id()"]

@@ -3,28 +3,31 @@
 # julgamentos
 
 - **Tipo**: tabela
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **processo_sancionador**
 - **Linhas em produção**: 0
 - **RLS ativo**: sim
 
 ## Finalidade
 
-_Sem anotação._
+Julgamento de um auto de infração, a partir do parecer técnico: decisão, multa final e
+justificativa. **Sem uso**: está vazia em produção, e a função que a grava
+(`createJulgamentoOnline`) existe no código, mas nenhuma tela a chama. O julgamento é a etapa do
+processo sancionador que o sistema atual ainda não cobre. *(fonte: src/lib/offline/repository.ts:1610, inventário: tabelas)*
 
 ## Colunas
 
 | # | Coluna | Tipo | Obrig. | Padrão | Significado | Valores em uso / estrutura |
 |---:|---|---|:---:|---|---|---|
-| 1 | `id` | uuid | sim | `uuid_generate_v4()` |  |  |
-| 2 | `parecer_tecnico_id` | uuid |  |  |  |  |
-| 3 | `auto_id` | uuid |  |  |  |  |
-| 4 | `prestador_servico_id` | uuid |  |  |  |  |
-| 5 | `decisao` | text |  |  |  |  |
-| 6 | `valor_multa_final` | numeric(10,2) |  |  |  |  |
-| 7 | `justificativa_decisao` | text |  |  |  |  |
-| 8 | `data_julgamento` | timestamp with time zone |  | `now()` |  |  |
-| 9 | `status` | text |  | `'julgado'::text` |  |  |
-| 10 | `created_at` | timestamp with time zone |  | `now()` |  |  |
+| 1 | `id` | uuid | sim | `uuid_generate_v4()` | Identificador do julgamento (tabela sem uso). *(fonte: inventário: tabelas)* |  |
+| 2 | `parecer_tecnico_id` | uuid |  |  | Parecer que fundamenta o julgamento (tabela sem uso). *(fonte: restricao:julgamentos.julgamentos_parecer_tecnico_id_fkey)* |  |
+| 3 | `auto_id` | uuid |  |  | Auto julgado (tabela sem uso). A chave estrangeira não tem regra de exclusão, então não é possível<br>excluir um auto julgado. *(fonte: restricao:julgamentos.julgamentos_auto_id_fkey)* |  |
+| 4 | `prestador_servico_id` | uuid |  |  | Entidade julgada (tabela sem uso). *(fonte: restricao:julgamentos.julgamentos_prestador_servico_id_fkey)* |  |
+| 5 | `decisao` | text |  |  | Decisão do julgamento (tabela sem uso). *(fonte: inventário: tabelas)* |  |
+| 6 | `valor_multa_final` | numeric(10,2) |  |  | Multa aplicada na decisão (tabela sem uso). *(fonte: inventário: tabelas)* |  |
+| 7 | `justificativa_decisao` | text |  |  | Fundamentação da decisão (tabela sem uso). *(fonte: inventário: tabelas)* |  |
+| 8 | `data_julgamento` | timestamp with time zone |  | `now()` | Quando foi julgado (tabela sem uso). *(fonte: inventário: tabelas)* |  |
+| 9 | `status` | text |  | `'julgado'::text` | Situação do julgamento; padrão `julgado` (tabela sem uso). *(fonte: inventário: tabelas)* |  |
+| 10 | `created_at` | timestamp with time zone |  | `now()` | Quando o registro foi criado (tabela sem uso). *(fonte: inventário: tabelas)* |  |
 
 ## Restrições e índices
 
@@ -60,7 +63,7 @@ _Nenhum._
 ### Fiscais e Admins: acesso total em julgamentos
 
 - **Papéis**: authenticated · **Operação**: ALL · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: Admin, coordenador e fiscal ativos teriam acesso total, sem olhar a câmara. *(fonte: funcao:get_my_role())*
 - **Funções auxiliares**: [get_my_role()](../funcoes/get_my_role.md)
 
 <details><summary>Condição original</summary>
@@ -78,7 +81,7 @@ WITH CHECK:
 ### Prestadores: ler julgamentos de seus autos
 
 - **Papéis**: authenticated · **Operação**: SELECT · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: O prestador ativo leria os julgamentos dos autos da própria entidade. *(fonte: funcao:get_my_prestador_id())*
 - **Funções auxiliares**: [get_my_prestador_id()](../funcoes/get_my_prestador_id.md), [get_my_role()](../funcoes/get_my_role.md)
 
 <details><summary>Condição original</summary>
@@ -98,7 +101,7 @@ WITH CHECK:
 ### julgamentos_prestador_select
 
 - **Papéis**: authenticated · **Operação**: SELECT · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: Mesma leitura pelo prestador, também pela entidade do julgamento; redundante. *(fonte: funcao:current_prestador_servico_id())*
 - **Funções auxiliares**: [current_prestador_servico_id()](../funcoes/current_prestador_servico_id.md)
 
 <details><summary>Condição original</summary>
@@ -118,7 +121,7 @@ WITH CHECK:
 ### julgamentos_staff_all
 
 - **Papéis**: authenticated · **Operação**: ALL · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: Acesso total para admin, fiscal e coordenador ativos (`is_staff`). *(fonte: funcao:is_staff())*
 - **Funções auxiliares**: [is_staff()](../funcoes/is_staff.md)
 
 <details><summary>Condição original</summary>

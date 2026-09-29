@@ -1,0 +1,173 @@
+[objeto."tabela:autos_infracao"]
+modulo = "processo_sancionador"
+finalidade = """
+Autos de Infração (AI): um por determinação não atendida. Formaliza a infração da entidade e abre
+o prazo de defesa. **Vazia em produção**: o fluxo existe nas telas, mas ainda não foi usado.
+
+**Fluxo:**
+
+1. **Emissão:** a Análise da Manifestação emite o AI com número. A tela de análise de resposta
+   também gera autos, sem número.
+2. **Pena e envio:** a Gestão de Autos calcula a pena base (UFERMS e R$), agrupa os autos da
+   entidade numa remessa e envia.
+3. **Defesa:** o prestador assina o recebimento e apresenta defesa pelo portal (texto e anexos).
+4. **Parecer e finalização:** vem o parecer técnico e o auto é finalizado.
+
+**Documentos:** podem ser anexados pelo fluxo de upload (AI assinado, protocolos, defesa), que
+também muda o status.
+
+**Defeito latente:** o prestador não tem política de alteração nesta tabela, só de leitura. Quando
+o portal grava a defesa ou o AI assinado, a alteração não afeta nenhuma linha e não dá erro: a
+defesa se perde em silêncio. Ainda não aconteceu porque a tabela está vazia.
+"""
+fonte = [
+  "src/pages/AnaliseManifestacao.jsx:268",
+  "src/pages/AnalisarResposta.jsx:255",
+  "src/pages/GestaoAutos.jsx:157",
+  "src/pages/PortalPrestadorHome.jsx:572",
+  "inventário: tabelas",
+]
+
+[objeto."coluna:autos_infracao.id"]
+significado = "Identificador do auto; itens de remessa, manifestações e pareceres apontam para ele."
+fonte = ["restricao:remessas_ai_itens.remessas_ai_itens_auto_infracao_id_fkey"]
+
+[objeto."coluna:autos_infracao.prestador_servico_id"]
+significado = "Entidade autuada, copiada do termo."
+fonte = ["src/pages/AnaliseManifestacao.jsx:276"]
+
+[objeto."coluna:autos_infracao.unidade_fiscalizada_id"]
+significado = "Unidade da determinação descumprida."
+fonte = ["src/pages/AnaliseManifestacao.jsx:274"]
+
+[objeto."coluna:autos_infracao.fiscalizacao_id"]
+significado = "Fiscalização de origem; define a câmara do auto pelo gatilho `tr_camara_autos`."
+fonte = ["src/pages/AnaliseManifestacao.jsx:275", "gatilho:public.autos_infracao.tr_camara_autos"]
+
+[objeto."coluna:autos_infracao.determinacao_id"]
+significado = """
+Determinação não atendida que originou o auto. A tela não gera dois autos para a mesma
+determinação, e o vínculo fica vazio se a determinação for apagada.
+"""
+fonte = ["src/pages/AnaliseManifestacao.jsx:269", "restricao:autos_infracao.autos_infracao_determinacao_id_fkey"]
+
+[objeto."coluna:autos_infracao.resposta_determinacao_id"]
+significado = "Resposta da entidade analisada; não é gravado pelas telas atuais."
+fonte = ["src/pages/AnaliseManifestacao.jsx:268"]
+hipotese = true
+
+[objeto."coluna:autos_infracao.numero_auto"]
+significado = """
+Número do AI: `AI NNN/AAAA/DSB/AGEMS`. É gerado por `gerar_numero_auto` como a contagem dos autos
+do ano mais 1, o que pode repetir números em pedidos simultâneos ou depois de exclusões. A sigla
+"DSB" é fixa.
+"""
+fonte = ["funcao:gerar_numero_auto()", "src/pages/AnaliseManifestacao.jsx:271"]
+
+[objeto."coluna:autos_infracao.descricao"]
+significado = "Texto do auto: \"Determinação D<n> não atendida: <descrição>\"."
+fonte = ["src/pages/AnaliseManifestacao.jsx:279"]
+
+[objeto."coluna:autos_infracao.valor"]
+significado = "Valor do auto; as telas atuais usam `pena_base_rs`."
+fonte = ["src/pages/GestaoAutos.jsx:120"]
+hipotese = true
+
+[objeto."coluna:autos_infracao.status"]
+significado = """
+Situação do auto:
+
+- `gerado` (padrão da coluna: `pendente`);
+- `enviado`: com a remessa ou os protocolos;
+- `em_analise`: com a defesa;
+- `finalizado`: com o parecer.
+
+Não é validado pelo banco.
+
+Ao enviar a remessa, a tela tenta gravar também `data_envio` e `data_limite_manifestacao`,
+colunas que não existem. A gravação falha e a tela a refaz só com o status, então **o prazo de
+defesa (30 dias) não fica registrado em lugar nenhum**, embora o acompanhamento tente mostrá-lo.
+"""
+fonte = [
+  "src/pages/GestaoAutos.jsx:333",
+  "src/components/autos/FluxoUploadDocumentos.jsx:40",
+  "src/pages/GestaoAutos.jsx:483",
+  "src/pages/AcompanhamentoDeterminacoes.jsx:618",
+]
+
+[objeto."coluna:autos_infracao.data_emissao"]
+significado = "Quando o auto foi emitido."
+fonte = ["src/pages/AnaliseManifestacao.jsx:278"]
+
+[objeto."coluna:autos_infracao.arquivo_url"]
+significado = "AI assinado pela AGEMS (bucket `documentos-autos`)."
+fonte = ["src/components/autos/FluxoUploadDocumentos.jsx:34"]
+
+[objeto."coluna:autos_infracao.arquivo_protocolo_oficio"]
+significado = "Protocolo do ofício de encaminhamento do AI."
+fonte = ["src/components/autos/FluxoUploadDocumentos.jsx:36"]
+
+[objeto."coluna:autos_infracao.arquivo_protocolo_ai_recebido"]
+significado = "Protocolo de recebimento do AI pela entidade; com o do ofício, o auto passa a `enviado`."
+fonte = ["src/components/autos/FluxoUploadDocumentos.jsx:38"]
+
+[objeto."coluna:autos_infracao.arquivo_defesa_oficio"]
+significado = "Ofício de defesa da entidade."
+fonte = ["src/components/autos/FluxoUploadDocumentos.jsx:44"]
+
+[objeto."coluna:autos_infracao.arquivo_defesa"]
+significado = "Documento de defesa; com o ofício, o auto passa a `em_analise`."
+fonte = ["src/components/autos/FluxoUploadDocumentos.jsx:46"]
+
+[objeto."coluna:autos_infracao.created_at"]
+significado = "Quando o auto foi criado; `gerar_numero_auto` o usa para contar os autos do ano."
+fonte = ["funcao:gerar_numero_auto()"]
+
+[objeto."coluna:autos_infracao.defesa_texto"]
+significado = "Texto da defesa escrita pelo prestador no portal."
+fonte = ["src/pages/PortalPrestadorHome.jsx:608", "src/pages/PareceresTecnicos.jsx:323"]
+
+[objeto."coluna:autos_infracao.defesa_arquivos"]
+significado = "Anexos da defesa enviados pelo prestador (lista de arquivos)."
+fonte = ["src/pages/PortalPrestadorHome.jsx:639", "src/pages/GestaoAutos.jsx:861"]
+
+[objeto."coluna:autos_infracao.pena_base_rs"]
+significado = "Pena base em reais, calculada a partir das UFERMS; não pode ser negativa."
+fonte = ["src/pages/GestaoAutos.jsx:120", "restricao:autos_infracao.autos_infracao_pena_base_rs_nonneg"]
+
+[objeto."coluna:autos_infracao.pena_base_uferms"]
+significado = "Pena base em UFERMS (unidade fiscal de MS), informada na Gestão de Autos."
+fonte = ["src/pages/GestaoAutos.jsx:157"]
+
+[objeto."coluna:autos_infracao.camara_tecnica_id"]
+significado = """
+Câmara do auto, herdada da fiscalização pelo gatilho `tr_camara_autos`. Controla o acesso por
+câmara (`can_access_camara`), mas `autos_staff_all` libera a equipe toda.
+"""
+fonte = ["funcao:trg_auto_set_camara()", "politica:public.autos_infracao.autos_staff_all"]
+
+[objeto."gatilho:public.autos_infracao.tr_camara_autos"]
+efeito = "Antes de inserir, se a câmara vier vazia, copia a câmara da fiscalização."
+fonte = ["funcao:trg_auto_set_camara()"]
+
+[objeto."politica:public.autos_infracao.Fiscais e Admins: acesso por camara em autos"]
+descricao = """
+Admin total; coordenador e fiscal ativos, pelos autos da sua câmara (`can_access_camara`). Sem
+efeito prático, porque `autos_staff_all` dá acesso total à equipe.
+"""
+fonte = ["funcao:can_access_camara(row_camara text)"]
+
+[objeto."politica:public.autos_infracao.Prestadores: ler seus próprios autos"]
+descricao = "O prestador ativo lê os autos da própria entidade."
+fonte = ["funcao:get_my_prestador_id()"]
+
+[objeto."politica:public.autos_infracao.autos_prestador_select"]
+descricao = "Mesma leitura pelo prestador, de outro conjunto de políticas; redundante."
+fonte = ["funcao:current_prestador_servico_id()"]
+
+[objeto."politica:public.autos_infracao.autos_staff_all"]
+descricao = """
+Admin, fiscal e coordenador ativos (`is_staff`) têm acesso total a todos os autos. Por somar-se à
+política por câmara, **anula o isolamento por câmara** nos autos.
+"""
+fonte = ["funcao:is_staff()", "politica:public.autos_infracao.Fiscais e Admins: acesso por camara em autos"]

@@ -3,53 +3,71 @@
 # termos_notificacao
 
 - **Tipo**: tabela
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **processo_sancionador**
 - **Linhas em produção**: 5
 - **RLS ativo**: sim
 
 ## Finalidade
 
-_Sem anotação._
+Termo de Notificação (TN) de uma fiscalização, com o relatório de fiscalização (RFP, RFE ou RAO)
+que o acompanha. Abre o processo sancionador: notifica a entidade das determinações e abre prazo
+para ela responder. Há um termo por fiscalização, com a unicidade verificada só pela tela.
+Produção tem 5 (3 da CATESA e 2 do CATERS).
+
+**Fluxo.** O status é calculado pela tela a partir dos arquivos e das datas:
+
+1. **`pendente_tn`:** a equipe gera o TN na tela Gerenciar Termos, com número, relatório, prazo
+   e câmara, e envia o TN e o relatório assinados.
+2. **`aguardando_assinatura_prestador`:** o prestador baixa o TN no portal, assina e devolve.
+   Nesse momento o **aparelho do prestador** grava o início do prazo e a data-limite.
+3. **`aguardando_resposta`:** o prestador responde cada determinação (`respostas_determinacao`)
+   e conclui a resposta. O status só aparece como `prazo_vencido` na tela; não é gravado.
+4. **`respondido`:** a conclusão grava a data de recebimento e se chegou no prazo.
+5. **Análise:** a equipe analisa as respostas; a Análise da Manifestação (AM) gera os autos de
+   infração.
+
+**Fluxo manual:** quando `fluxo_manual`, o termo corre fora do portal. A equipe registra
+protocolo e resposta recebidos em papel, e o termo não aparece para o prestador. *(fonte: src/pages/GerenciarTermos.jsx:318, src/pages/GerenciarTermos.jsx:436, src/pages/ResponderTermo.jsx:667, src/lib/offline/repository.ts:1712, src/pages/AnaliseManifestacao.jsx:261, src/pages/PortalPrestadorHome.jsx:73, inventário: dominio_categorico)*
 
 ## Colunas
 
 | # | Coluna | Tipo | Obrig. | Padrão | Significado | Valores em uso / estrutura |
 |---:|---|---|:---:|---|---|---|
-| 1 | `id` | uuid | sim | `uuid_generate_v4()` |  |  |
-| 2 | `numero_termo_notificacao` | text |  |  |  |  |
-| 3 | `numero_rfp` | text |  |  |  |  |
-| 4 | `municipio_id` | uuid |  |  |  |  |
-| 5 | `prestador_servico_id` | uuid |  |  |  |  |
-| 6 | `fiscalizacao_id` | uuid |  |  |  |  |
-| 7 | `numero_processo` | text |  |  |  |  |
-| 8 | `camara_tecnica` | text |  |  |  | `CATESA` (3), `CATERS` (2) |
-| 9 | `data_protocolo` | date |  |  |  |  |
-| 10 | `prazo_resposta_dias` | integer |  | `30` |  |  |
-| 11 | `observacoes` | text |  |  |  |  |
-| 12 | `arquivo_url` | text |  |  |  |  |
-| 13 | `arquivo_protocolo_url` | text |  |  |  |  |
-| 14 | `arquivo_oficio_protocolo` | text |  |  |  |  |
-| 15 | `data_maxima_resposta` | date |  |  |  |  |
-| 16 | `data_geracao` | timestamp with time zone |  | `now()` |  |  |
-| 17 | `data_recebimento_resposta` | date |  |  |  |  |
-| 18 | `recebida_no_prazo` | boolean |  |  |  | `(nulo)` (3), `false` (1), `true` (1) |
-| 19 | `arquivos_resposta` | jsonb |  | `'[]'::jsonb` |  | JSON — formas: array (5); elementos: object (1); chaves: `assinatura_digital_valida`:boolean (1), `bucket`:string (1), `categoria`:string (1), `data_upload`:string (1), `nome`:string (1), `path`:string (1), `tamanho`:number (1), `tipo`:string (1), `url`:string (1) |
-| 20 | `arquivo_oficio_resposta` | text |  |  |  |  |
-| 21 | `numero_am` | text |  |  |  |  |
-| 22 | `status` | text |  | `'pendente_tn'::text` |  | `aguardando_assinatura_prestador` (2), `respondido` (2), `aguardando_resposta` (1) |
-| 23 | `created_at` | timestamp with time zone |  | `now()` |  |  |
-| 24 | `updated_at` | timestamp with time zone |  | `now()` |  |  |
-| 25 | `arquivo_rfp_url` | text |  |  |  |  |
-| 26 | `arquivo_tn_prestador_url` | text |  |  |  |  |
-| 27 | `assinatura_prestador_valida` | boolean |  | `false` |  |  |
-| 28 | `data_assinatura_prestador` | timestamp with time zone |  |  |  |  |
-| 29 | `data_inicio_prazo` | date |  |  |  |  |
-| 30 | `fluxo_manual` | boolean |  | `false` |  | `true` (3), `false` (2) |
-| 31 | `arquivo_am_assinada_url` | text |  |  |  |  |
-| 32 | `am_concluida_em` | timestamp with time zone |  |  |  |  |
-| 33 | `tipo_relatorio` | text | sim | `'RFP'::text` |  | `RFP` (4), `RFE` (1) |
-| 34 | `ano_geracao` | integer |  | `(EXTRACT(year FROM now()))::integer` |  | `2026` (5) |
-| 35 | `arquivo_resposta_url` | text |  |  |  |  |
+| 1 | `id` | uuid | sim | `uuid_generate_v4()` | Identificador do termo. Remessas de autos e o portal do prestador apontam para ele. *(fonte: restricao:remessas_ai.remessas_ai_termo_id_fkey)* |  |
+| 2 | `numero_termo_notificacao` | text |  |  | Número do TN, no formato `TN NNN/AAAA/DSB/AGEMS`. É sugerido pela tela como o maior número do ano<br>mais 1, calculado no navegador, e é editável. O banco não garante que seja único, e a sigla<br>"DSB" é fixa, qualquer que seja a diretoria. *(fonte: src/pages/GerenciarTermos.jsx:196, src/pages/GerenciarTermos.jsx:213)* |  |
+| 3 | `numero_rfp` | text |  |  | Número do relatório de fiscalização que acompanha o TN, digitado pela equipe (só dígitos). É único<br>por tipo de relatório, câmara e ano (`termos_notificacao_tipo_camara_numero_ano_uniq`). Compõe a<br>identificação "RFP/DSB/<câmara>/<número>/<ano>" usada nas telas. *(fonte: src/pages/GerenciarTermos.jsx:765, indice:termos_notificacao_tipo_camara_numero_ano_uniq, src/pages/AcompanhamentoDeterminacoes.jsx:233)* |  |
+| 4 | `municipio_id` | uuid |  |  | Município do termo, vindo da fiscalização (chave estrangeira para `municipios`). *(fonte: src/pages/GerenciarTermos.jsx:567, restricao:termos_notificacao.termos_notificacao_municipio_id_fkey)* |  |
+| 5 | `prestador_servico_id` | uuid |  |  | Entidade notificada, vinda da fiscalização. Define quem vê e responde o termo no portal, e é a base<br>de `can_access_fiscalizacao`. *(fonte: src/pages/GerenciarTermos.jsx:561, funcao:can_access_fiscalizacao(fiscalizacao uuid))* |  |
+| 6 | `fiscalizacao_id` | uuid |  |  | Fiscalização notificada. A tela impede um segundo termo para a mesma fiscalização. A chave<br>estrangeira não tem regra de exclusão, então não é possível excluir uma fiscalização com termo. *(fonte: src/pages/GerenciarTermos.jsx:436, restricao:termos_notificacao.termos_notificacao_fiscalizacao_id_fkey)* |  |
+| 7 | `numero_processo` | text |  |  | Número do processo administrativo, digitado pela equipe. *(fonte: src/pages/GerenciarTermos.jsx:789)* |  |
+| 8 | `camara_tecnica` | text |  |  | Câmara do termo, em maiúsculas (`CATESA`, `CATERS`); o padrão da tela é CATESA. Diferente do resto<br>do sistema, é texto livre, sem chave estrangeira e sem o padrão `camara_tecnica_id` em minúsculas.<br>Compõe a unicidade do número do relatório. *(fonte: src/pages/GerenciarTermos.jsx:96, src/pages/GerenciarTermos.jsx:510, inventário: dominio_categorico)* | `CATESA` (3), `CATERS` (2) |
+| 9 | `data_protocolo` | date |  |  | Data do protocolo do TN junto à entidade. No fluxo pelo portal, é a data em que o prestador enviou<br>o TN assinado, gravada pelo aparelho dele; no fluxo manual, a equipe informa. É a base da<br>data-limite. *(fonte: src/pages/ResponderTermo.jsx:676, src/pages/GerenciarTermos.jsx:427)* |  |
+| 10 | `prazo_resposta_dias` | integer |  | `30` | Prazo, em dias, para a entidade responder (padrão 30). *(fonte: src/pages/GerenciarTermos.jsx:851)* |  |
+| 11 | `observacoes` | text |  |  | Observações livres da equipe sobre o termo. ⚠️ *hipótese* |  |
+| 12 | `arquivo_url` | text |  |  | TN assinado pela AGEMS (`storage://documentos-termos/...`). Junto com o relatório assinado, tira o<br>termo de `pendente_tn`. *(fonte: src/pages/GerenciarTermos.jsx:347, src/pages/GerenciarTermos.jsx:318)* |  |
+| 13 | `arquivo_protocolo_url` | text |  |  | Comprovante de protocolo do TN, no fluxo manual. *(fonte: src/pages/GerenciarTermos.jsx:1401)* |  |
+| 14 | `arquivo_oficio_protocolo` | text |  |  | Ofício de encaminhamento do TN, no fluxo manual. *(fonte: src/pages/GerenciarTermos.jsx:1401)* |  |
+| 15 | `data_maxima_resposta` | date |  |  | Data-limite para a entidade responder: início do prazo mais `prazo_resposta_dias`.<br>- **Fluxo pelo portal:** calculada e gravada pelo **aparelho do prestador** ao enviar o TN<br>assinado. Ela decide se a resposta chegou no prazo, então o regulado pode alterá-la pela API.<br>- **Criação e edição pela equipe:** calculada pela tela a partir da data de protocolo. *(fonte: src/pages/ResponderTermo.jsx:678, src/pages/GerenciarTermos.jsx:440, politica:public.termos_notificacao.Prestadores: responder seus termos)* |  |
+| 16 | `data_geracao` | timestamp with time zone |  | `now()` | Quando o termo foi gerado. Define `ano_geracao` pelo gatilho, e o ano é a base das numerações. *(fonte: src/pages/GerenciarTermos.jsx:454, funcao:set_termos_notificacao_ano_geracao())* |  |
+| 17 | `data_recebimento_resposta` | date |  |  | Quando a resposta da entidade foi recebida: gravada ao concluir a resposta no portal, ou informada<br>pela equipe no fluxo manual. Com ela o status vira `respondido`. *(fonte: src/lib/offline/repository.ts:1716, src/pages/GerenciarTermos.jsx:1574)* |  |
+| 18 | `recebida_no_prazo` | boolean |  |  | Se a resposta chegou até a data-limite. Calculado no navegador de quem conclui a resposta, a partir<br>de `data_maxima_resposta`; vale `true` quando não há data-limite. Em produção: 1 no prazo, 1 fora e<br>3 vazios. *(fonte: src/lib/offline/repository.ts:1718, inventário: dominio_categorico)* | `(nulo)` (3), `false` (1), `true` (1) |
+| 19 | `arquivos_resposta` | jsonb |  | `'[]'::jsonb` | Arquivos da resposta da entidade (lista). Cada um tem `nome`, `tipo`, `categoria`, `tamanho`,<br>`url`, `bucket`, `path`, `data_upload` e `assinatura_digital_valida`. O portal acrescenta um a um<br>(substituindo o de mesmo caminho). *(fonte: src/lib/offline/repository.ts:1700, inventário: estrutura_json)* | JSON — formas: array (5); elementos: object (1); chaves: `assinatura_digital_valida`:boolean (1), `bucket`:string (1), `categoria`:string (1), `data_upload`:string (1), `nome`:string (1), `path`:string (1), `tamanho`:number (1), `tipo`:string (1), `url`:string (1) |
+| 20 | `arquivo_oficio_resposta` | text |  |  | Ofício de resposta da entidade, registrado pela equipe no fluxo manual. *(fonte: src/pages/GerenciarTermos.jsx:1576)* |  |
+| 21 | `numero_am` | text |  |  | Número da Análise da Manifestação (AM): `AM NNN/AAAA/DSB/AGEMS`. É gerado por `gerar_numero_am`<br>como a contagem das AMs do ano mais 1, o que pode repetir números em pedidos simultâneos. Refazer a<br>análise limpa o número. *(fonte: src/pages/AnaliseManifestacao.jsx:261, funcao:gerar_numero_am(), src/pages/AnaliseManifestacao.jsx:240)* |  |
+| 22 | `status` | text |  | `'pendente_tn'::text` | Estágio do termo:<br>- `pendente_tn` (padrão);<br>- `aguardando_assinatura_prestador`;<br>- `aguardando_resposta`;<br>- `respondido`.<br>É calculado pela tela a partir dos arquivos e datas, e não é validado pelo banco. O portal também<br>grava o status ao receber o TN assinado. Em produção: 2 respondidos, 1 aguardando resposta e 2<br>aguardando assinatura. *(fonte: src/pages/GerenciarTermos.jsx:318, src/pages/ResponderTermo.jsx:679, inventário: dominio_categorico)* | `aguardando_assinatura_prestador` (2), `respondido` (2), `aguardando_resposta` (1) |
+| 23 | `created_at` | timestamp with time zone |  | `now()` | Quando o termo foi criado; `gerar_numero_am` o usa para contar as AMs do ano. *(fonte: funcao:gerar_numero_am())* |  |
+| 24 | `updated_at` | timestamp with time zone |  | `now()` | Última alteração, gravada pelas telas (não há gatilho de `updated_at`). *(fonte: src/pages/ResponderTermo.jsx:680)* |  |
+| 25 | `arquivo_rfp_url` | text |  |  | Relatório de fiscalização assinado; necessário, com o TN, para sair de `pendente_tn`. *(fonte: src/pages/GerenciarTermos.jsx:381, src/pages/GerenciarTermos.jsx:318)* |  |
+| 26 | `arquivo_tn_prestador_url` | text |  |  | TN assinado pelo prestador, enviado pelo portal ou pela equipe. Com a assinatura considerada<br>válida, inicia o prazo. *(fonte: src/pages/ResponderTermo.jsx:673, src/pages/GerenciarTermos.jsx:1142)* |  |
+| 27 | `assinatura_prestador_valida` | boolean |  | `false` | Se a assinatura do prestador no TN foi aceita. O portal grava `true` automaticamente ao enviar; a<br>equipe pode marcar ou desmarcar. Não há verificação da assinatura digital. *(fonte: src/pages/ResponderTermo.jsx:674, src/pages/GerenciarTermos.jsx:1107)* |  |
+| 28 | `data_assinatura_prestador` | timestamp with time zone |  |  | Quando o prestador enviou o TN assinado (relógio do aparelho dele). *(fonte: src/pages/ResponderTermo.jsx:675)* |  |
+| 29 | `data_inicio_prazo` | date |  |  | Início da contagem do prazo de resposta: o dia do envio do TN assinado, pelo aparelho do<br>prestador, ou a data informada pela equipe. *(fonte: src/pages/ResponderTermo.jsx:677, src/pages/GerenciarTermos.jsx:1121)* |  |
+| 30 | `fluxo_manual` | boolean |  | `false` | `true` quando o termo corre fora do portal: protocolo e resposta em papel, registrados pela equipe.<br>Esses termos não aparecem para o prestador. Em produção: 3 manuais e 2 pelo portal. *(fonte: src/pages/GerenciarTermos.jsx:928, src/pages/PortalPrestadorHome.jsx:73, inventário: dominio_categorico)* | `true` (3), `false` (2) |
+| 31 | `arquivo_am_assinada_url` | text |  |  | Análise da Manifestação assinada; enviada ao concluir a AM. *(fonte: src/pages/AnaliseManifestacao.jsx:828)* |  |
+| 32 | `am_concluida_em` | timestamp with time zone |  |  | Quando a Análise da Manifestação foi concluída; limpo ao refazer a análise. *(fonte: src/pages/AnaliseManifestacao.jsx:264, src/pages/AnaliseManifestacao.jsx:240)* |  |
+| 33 | `tipo_relatorio` | text | sim | `'RFP'::text` | Tipo do relatório que acompanha o TN: `RFP` (padrão), `RFE` ou `RAO`; o banco aceita só esses.<br>Compõe a unicidade do número. Em produção: 4 RFP e 1 RFE. *(fonte: restricao:termos_notificacao.termos_notificacao_tipo_relatorio_check, src/pages/GerenciarTermos.jsx:747, inventário: dominio_categorico)* | `RFP` (4), `RFE` (1) |
+| 34 | `ano_geracao` | integer |  | `(EXTRACT(year FROM now()))::integer` | Ano de geração do termo, mantido pelo gatilho a partir de `data_geracao`. Compõe a unicidade do<br>número do relatório por ano. *(fonte: funcao:set_termos_notificacao_ano_geracao(), indice:termos_notificacao_tipo_camara_numero_ano_uniq)* | `2026` (5) |
+| 35 | `arquivo_resposta_url` | text |  |  | Arquivo da resposta recebida, registrado pela equipe no fluxo manual. *(fonte: src/pages/GerenciarTermos.jsx:1575)* |  |
 
 ## Restrições e índices
 
@@ -85,7 +103,7 @@ _Sem anotação._
 
 | Gatilho | Situação | Função | Efeito |
 |---|---|---|---|
-| `trg_termos_notificacao_set_ano_geracao` | ativo | [set_termos_notificacao_ano_geracao()](../funcoes/set_termos_notificacao_ano_geracao.md) | _Sem anotação._ |
+| `trg_termos_notificacao_set_ano_geracao` | ativo | [set_termos_notificacao_ano_geracao()](../funcoes/set_termos_notificacao_ano_geracao.md) | Antes de inserir, ou de alterar `data_geracao`, grava o ano em `ano_geracao`. *(fonte: funcao:set_termos_notificacao_ano_geracao())* |
 
 <details><summary>Definição de trg_termos_notificacao_set_ano_geracao</summary>
 
@@ -100,7 +118,7 @@ CREATE TRIGGER trg_termos_notificacao_set_ano_geracao BEFORE INSERT OR UPDATE OF
 ### Fiscais e Admins: acesso total em termos
 
 - **Papéis**: authenticated · **Operação**: ALL · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: Admin, coordenador e fiscal ativos têm acesso total a todos os termos, sem olhar a câmara. *(fonte: funcao:get_my_role())*
 - **Funções auxiliares**: [get_my_role()](../funcoes/get_my_role.md)
 
 <details><summary>Condição original</summary>
@@ -118,7 +136,7 @@ WITH CHECK:
 ### Prestadores: ler seus termos
 
 - **Papéis**: authenticated · **Operação**: SELECT · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: O prestador ativo lê os termos da própria entidade. *(fonte: funcao:get_my_prestador_id())*
 - **Funções auxiliares**: [get_my_prestador_id()](../funcoes/get_my_prestador_id.md), [get_my_role()](../funcoes/get_my_role.md)
 
 <details><summary>Condição original</summary>
@@ -136,7 +154,10 @@ WITH CHECK:
 ### Prestadores: responder seus termos
 
 - **Papéis**: authenticated · **Operação**: UPDATE · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: O prestador ativo altera os termos da própria entidade, **qualquer coluna e em qualquer status**.
+Isso inclui datas de prazo, status, "recebida no prazo" e arquivos da AGEMS. Por somar-se à
+política seguinte, anula a trava "até respondido". Na prática, o regulado pode alterar pela API os
+dados do próprio processo. *(fonte: funcao:get_my_prestador_id(), politica:public.termos_notificacao.termos_prestador_update_own_until_respondido)*
 - **Funções auxiliares**: [get_my_prestador_id()](../funcoes/get_my_prestador_id.md), [get_my_role()](../funcoes/get_my_role.md)
 
 <details><summary>Condição original</summary>
@@ -154,7 +175,7 @@ WITH CHECK:
 ### termos_prestador_select_own
 
 - **Papéis**: authenticated · **Operação**: SELECT · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: Mesma leitura pelo prestador, com as funções de outro conjunto de políticas; redundante. *(fonte: funcao:current_prestador_servico_id())*
 - **Funções auxiliares**: [current_prestador_servico_id()](../funcoes/current_prestador_servico_id.md)
 
 <details><summary>Condição original</summary>
@@ -172,7 +193,8 @@ WITH CHECK:
 ### termos_prestador_update_own_until_respondido
 
 - **Papéis**: authenticated · **Operação**: UPDATE · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: O prestador altera o próprio termo só até o termo ser `respondido`. Hoje sem efeito, porque a
+política anterior libera a alteração em qualquer status. *(fonte: funcao:current_prestador_servico_id())*
 - **Funções auxiliares**: [current_prestador_servico_id()](../funcoes/current_prestador_servico_id.md)
 
 <details><summary>Condição original</summary>
@@ -190,7 +212,7 @@ WITH CHECK:
 ### termos_staff_all
 
 - **Papéis**: authenticated · **Operação**: ALL · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: Acesso total para admin, fiscal e coordenador ativos (`is_staff`); redundante. *(fonte: funcao:is_staff())*
 - **Funções auxiliares**: [is_staff()](../funcoes/is_staff.md)
 
 <details><summary>Condição original</summary>

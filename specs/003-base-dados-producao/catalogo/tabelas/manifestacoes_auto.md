@@ -3,24 +3,27 @@
 # manifestacoes_auto
 
 - **Tipo**: tabela
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **processo_sancionador**
 - **Linhas em produção**: 0
 - **RLS ativo**: sim
 
 ## Finalidade
 
-_Sem anotação._
+Manifestações (defesas) da entidade sobre um auto de infração, **sem uso**. Está vazia em
+produção, e nenhuma tela grava nela: só a limpeza de arquivos a lê e apaga. A defesa atual fica no
+próprio auto (`defesa_texto`, `defesa_arquivos`, arquivos de defesa) e no ofício de defesa da
+remessa. *(fonte: src/lib/storageCleanup.js:110, tabela:autos_infracao, inventário: tabelas)*
 
 ## Colunas
 
 | # | Coluna | Tipo | Obrig. | Padrão | Significado | Valores em uso / estrutura |
 |---:|---|---|:---:|---|---|---|
-| 1 | `id` | uuid | sim | `uuid_generate_v4()` |  |  |
-| 2 | `auto_infracao_id` | uuid |  |  |  |  |
-| 3 | `descricao` | text |  |  |  |  |
-| 4 | `data_manifestacao` | timestamp with time zone |  | `now()` |  |  |
-| 5 | `arquivo_url` | text |  |  |  |  |
-| 6 | `created_at` | timestamp with time zone |  | `now()` |  |  |
+| 1 | `id` | uuid | sim | `uuid_generate_v4()` | Identificador da manifestação (tabela sem uso). *(fonte: inventário: tabelas)* |  |
+| 2 | `auto_infracao_id` | uuid |  |  | Auto contestado; excluir o auto excluiria a manifestação (tabela sem uso). *(fonte: restricao:manifestacoes_auto.manifestacoes_auto_auto_infracao_id_fkey)* |  |
+| 3 | `descricao` | text |  |  | Texto da manifestação (tabela sem uso). *(fonte: inventário: tabelas)* |  |
+| 4 | `data_manifestacao` | timestamp with time zone |  | `now()` | Quando a manifestação foi feita (tabela sem uso). *(fonte: inventário: tabelas)* |  |
+| 5 | `arquivo_url` | text |  |  | Arquivo da manifestação; a limpeza de arquivos o apaga (tabela sem uso). *(fonte: src/lib/storageCleanup.js:110)* |  |
+| 6 | `created_at` | timestamp with time zone |  | `now()` | Quando o registro foi criado (tabela sem uso). *(fonte: inventário: tabelas)* |  |
 
 ## Restrições e índices
 
@@ -52,7 +55,8 @@ _Nenhum._
 ### Fiscais e Admins: acesso por camara em manifestacoes
 
 - **Papéis**: authenticated · **Operação**: ALL · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: Admin total; coordenador e fiscal ativos, pelas manifestações de autos da sua câmara. Sem efeito
+prático: `manifestacoes_staff_all` libera a equipe toda. *(fonte: funcao:get_my_role(), funcao:get_my_camara_tecnica())*
 - **Funções auxiliares**: [can_access_camara(row_camara text)](../funcoes/can_access_camara.md), [get_my_role()](../funcoes/get_my_role.md)
 
 <details><summary>Condição original</summary>
@@ -74,7 +78,7 @@ WITH CHECK:
 ### Prestadores: atualizar suas próprias manifestações
 
 - **Papéis**: authenticated · **Operação**: UPDATE · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: O prestador ativo altera manifestações de autos da própria entidade. *(fonte: funcao:get_my_prestador_id())*
 - **Funções auxiliares**: [get_my_prestador_id()](../funcoes/get_my_prestador_id.md), [get_my_role()](../funcoes/get_my_role.md)
 
 <details><summary>Condição original</summary>
@@ -96,7 +100,7 @@ WITH CHECK:
 ### Prestadores: cadastrar suas próprias manifestações
 
 - **Papéis**: authenticated · **Operação**: INSERT · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: O prestador ativo cria manifestações para autos da própria entidade. *(fonte: funcao:get_my_prestador_id())*
 - **Funções auxiliares**: [get_my_prestador_id()](../funcoes/get_my_prestador_id.md), [get_my_role()](../funcoes/get_my_role.md)
 
 <details><summary>Condição original</summary>
@@ -116,7 +120,7 @@ WITH CHECK:
 ### Prestadores: ler suas próprias manifestações
 
 - **Papéis**: authenticated · **Operação**: SELECT · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: O prestador ativo lê manifestações de autos da própria entidade. *(fonte: funcao:get_my_prestador_id())*
 - **Funções auxiliares**: [get_my_prestador_id()](../funcoes/get_my_prestador_id.md), [get_my_role()](../funcoes/get_my_role.md)
 
 <details><summary>Condição original</summary>
@@ -136,7 +140,7 @@ WITH CHECK:
 ### manifestacoes_prestador_select
 
 - **Papéis**: authenticated · **Operação**: SELECT · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: Mesma leitura pelo prestador, de outro conjunto de políticas; redundante. *(fonte: funcao:current_prestador_servico_id())*
 - **Funções auxiliares**: [current_prestador_servico_id()](../funcoes/current_prestador_servico_id.md)
 
 <details><summary>Condição original</summary>
@@ -156,7 +160,7 @@ WITH CHECK:
 ### manifestacoes_staff_all
 
 - **Papéis**: authenticated · **Operação**: ALL · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: Acesso total para admin, fiscal e coordenador ativos (`is_staff`), sem olhar a câmara. *(fonte: funcao:is_staff())*
 - **Funções auxiliares**: [is_staff()](../funcoes/is_staff.md)
 
 <details><summary>Condição original</summary>

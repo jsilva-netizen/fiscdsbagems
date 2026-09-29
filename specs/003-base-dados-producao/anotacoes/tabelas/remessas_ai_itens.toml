@@ -1,0 +1,39 @@
+[objeto."tabela:remessas_ai_itens"]
+modulo = "processo_sancionador"
+finalidade = """
+Autos de infração que compõem cada remessa: um registro por auto, e um auto no máximo uma vez por
+remessa. Criados ao montar a remessa na Gestão de Autos e lidos pelo portal e pelos pareceres.
+**Vazia em produção.**
+"""
+fonte = ["src/pages/GestaoAutos.jsx:437", "src/pages/PortalPrestadorHome.jsx:225", "src/pages/PareceresTecnicos.jsx:32"]
+
+[objeto."coluna:remessas_ai_itens.id"]
+significado = "Identificador do item."
+fonte = ["src/lib/offline/repository.ts:1595"]
+
+[objeto."coluna:remessas_ai_itens.remessa_ai_id"]
+significado = "Remessa; excluir a remessa exclui os itens."
+fonte = ["restricao:remessas_ai_itens.remessas_ai_itens_remessa_ai_id_fkey"]
+
+[objeto."coluna:remessas_ai_itens.auto_infracao_id"]
+significado = "Auto incluído na remessa; excluir o auto o retira da remessa."
+fonte = ["restricao:remessas_ai_itens.remessas_ai_itens_auto_infracao_id_fkey", "indice:remessas_ai_itens_remessa_ai_id_auto_infracao_id_key"]
+
+[objeto."coluna:remessas_ai_itens.created_at"]
+significado = "Quando o auto foi incluído na remessa."
+fonte = ["src/lib/offline/repository.ts:1595"]
+
+[objeto."politica:public.remessas_ai_itens.Acesso total autenticado (DEV)"]
+descricao = """
+Quem tem perfil ativo, de qualquer papel, lê, cria, altera e exclui qualquer item de remessa.
+Desde a migration 138; antes, qualquer logado.
+"""
+fonte = ["supabase/migrations/138_fix_open_policies.sql"]
+
+[objeto."politica:public.remessas_ai_itens.Fiscais e Admins: acesso por camara em itens de remessas"]
+descricao = "Admin total; coordenador e fiscal ativos, pelos itens de remessas da sua câmara. Sem efeito prático por causa da política \"(DEV)\"."
+fonte = ["funcao:get_my_role()", "funcao:get_my_camara_tecnica()"]
+
+[objeto."politica:public.remessas_ai_itens.Prestadores: ler itens de suas próprias remessas"]
+descricao = "O prestador ativo lê os itens das remessas da própria entidade; contida na política \"(DEV)\"."
+fonte = ["funcao:get_my_prestador_id()"]

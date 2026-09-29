@@ -10,14 +10,14 @@ Páginas gerais: [repositórios de arquivos](arquivos.md) · [controle de acesso
 
 | Tipo | Total | Sem anotação |
 |---|---:|---:|
-| Tabelas | 35 | 16 |
+| Tabelas | 35 | 8 |
 | Views | 1 | 1 |
-| Colunas | 446 | 221 |
+| Colunas | 446 | 104 |
 | Restrições | 113 | — |
 | Índices | 80 | — |
 | Funções | 38 | 20 |
-| Gatilhos | 30 | 8 |
-| Políticas de acesso | 173 | 102 |
+| Gatilhos | 30 | 5 |
+| Políticas de acesso | 173 | 64 |
 | Tipos | 5 | 5 |
 | Repositórios de arquivos | 8 | 8 |
 | Papéis | 17 | 17 |
@@ -29,7 +29,7 @@ Páginas gerais: [repositórios de arquivos](arquivos.md) · [controle de acesso
 
 ## Completude
 
-Completude: 433 objetos sem anotação | 644 sem dono | 0 divergências não classificadas | 0 violações de ordem | 0 achados aguardando decisão
+Completude: 267 objetos sem anotação | 409 sem dono | 0 divergências não classificadas | 0 violações de ordem | 0 achados aguardando decisão
 
 ## Por módulo
 
@@ -51,14 +51,20 @@ Tabelas e views: [constatacoes_manuais](tabelas/constatacoes_manuais.md) · [det
 
 Tabelas e views: [tipos_ocorrencia_dtr](tabelas/tipos_ocorrencia_dtr.md)
 
+### processo_sancionador
+
+Tabelas e views: [autos_infracao](tabelas/autos_infracao.md) · [julgamentos](tabelas/julgamentos.md) · [manifestacoes_auto](tabelas/manifestacoes_auto.md) · [pareceres_tecnicos](tabelas/pareceres_tecnicos.md) · [remessas_ai](tabelas/remessas_ai.md) · [remessas_ai_itens](tabelas/remessas_ai_itens.md) · [respostas_determinacao](tabelas/respostas_determinacao.md) · [termos_notificacao](tabelas/termos_notificacao.md)
+
 ### sem dono (lacuna)
 
-Tabelas e views: [autos_infracao](tabelas/autos_infracao.md) · [caters_ai_jobs](tabelas/caters_ai_jobs.md) · [caters_analysis_history](tabelas/caters_analysis_history.md) · [caters_deadline_extensions](tabelas/caters_deadline_extensions.md) · [caters_extra_documents](tabelas/caters_extra_documents.md) · [caters_fiscalizacoes_disponiveis](tabelas/caters_fiscalizacoes_disponiveis.md) · [caters_municipality_responses](tabelas/caters_municipality_responses.md) · [caters_notification_reads](tabelas/caters_notification_reads.md) · [caters_processes](tabelas/caters_processes.md) · [caters_recommendations](tabelas/caters_recommendations.md) · [julgamentos](tabelas/julgamentos.md) · [manifestacoes_auto](tabelas/manifestacoes_auto.md) · [pareceres_tecnicos](tabelas/pareceres_tecnicos.md) · [remessas_ai](tabelas/remessas_ai.md) · [remessas_ai_itens](tabelas/remessas_ai_itens.md) · [respostas_determinacao](tabelas/respostas_determinacao.md) · [termos_notificacao](tabelas/termos_notificacao.md)
+Tabelas e views: [caters_ai_jobs](tabelas/caters_ai_jobs.md) · [caters_analysis_history](tabelas/caters_analysis_history.md) · [caters_deadline_extensions](tabelas/caters_deadline_extensions.md) · [caters_extra_documents](tabelas/caters_extra_documents.md) · [caters_fiscalizacoes_disponiveis](tabelas/caters_fiscalizacoes_disponiveis.md) · [caters_municipality_responses](tabelas/caters_municipality_responses.md) · [caters_notification_reads](tabelas/caters_notification_reads.md) · [caters_processes](tabelas/caters_processes.md) · [caters_recommendations](tabelas/caters_recommendations.md)
 
 Funções: [caters_import_from_fiscalizacao](funcoes/caters_import_from_fiscalizacao.md) · [caters_set_updated_at](funcoes/caters_set_updated_at.md) · [claim_caters_ai_jobs](funcoes/claim_caters_ai_jobs.md) · [claim_relatorios_jobs](funcoes/claim_relatorios_jobs.md) · [determinacoes_fill_origem](funcoes/determinacoes_fill_origem.md) · [finalizar_fiscalizacao](funcoes/finalizar_fiscalizacao.md) · [gerar_ncs_unidade](funcoes/gerar_ncs_unidade.md) · [gerar_numero_am](funcoes/gerar_numero_am.md) · [gerar_numero_auto](funcoes/gerar_numero_auto.md) · [kick_relatorios_worker](funcoes/kick_relatorios_worker.md) · [obter_resumo_indicadores](funcoes/obter_resumo_indicadores.md) · [propagate_modification_to_parent](funcoes/propagate_modification_to_parent.md) · [reabrir_fiscalizacao](funcoes/reabrir_fiscalizacao.md) · [set_fiscalizacao_cache_fields](funcoes/set_fiscalizacao_cache_fields.md) · [set_fiscalizacao_last_modified](funcoes/set_fiscalizacao_last_modified.md) · [set_termos_notificacao_ano_geracao](funcoes/set_termos_notificacao_ano_geracao.md) · [trg_auto_set_camara](funcoes/trg_auto_set_camara.md) · [trg_fiscalizacao_set_camara](funcoes/trg_fiscalizacao_set_camara.md) · [trg_remessa_set_camara](funcoes/trg_remessa_set_camara.md)
 
 ## Anotações marcadas como hipótese (para revisão)
 
+- `coluna:autos_infracao.resposta_determinacao_id` (tabelas/autos_infracao.toml)
+- `coluna:autos_infracao.valor` (tabelas/autos_infracao.toml)
 - `coluna:constatacoes_manuais.ordem` (tabelas/constatacoes_manuais.toml)
 - `coluna:determinacoes.prazo` (tabelas/determinacoes.toml)
 - `coluna:itens_checklist.created_by` (tabelas/itens_checklist.toml)
@@ -68,6 +74,14 @@ Funções: [caters_import_from_fiscalizacao](funcoes/caters_import_from_fiscaliz
 - `coluna:itens_checklist.updated_date` (tabelas/itens_checklist.toml)
 - `coluna:nao_conformidades.latitude_foto` (tabelas/nao_conformidades.toml)
 - `coluna:nao_conformidades.longitude_foto` (tabelas/nao_conformidades.toml)
+- `coluna:pareceres_tecnicos.analise_tecnica` (tabelas/pareceres_tecnicos.toml)
+- `coluna:pareceres_tecnicos.recomendacao` (tabelas/pareceres_tecnicos.toml)
+- `coluna:pareceres_tecnicos.valor_multa_sugerido` (tabelas/pareceres_tecnicos.toml)
 - `coluna:prestadores_servico.tipo` (tabelas/prestadores_servico.toml)
+- `coluna:remessas_ai.arquivo_parecer_assinado_url` (tabelas/remessas_ai.toml)
+- `coluna:remessas_ai.arquivo_recebimento_assinado_url` (tabelas/remessas_ai.toml)
 - `coluna:respostas_checklist.comentario` (tabelas/respostas_checklist.toml)
+- `coluna:respostas_determinacao.resposta` (tabelas/respostas_determinacao.toml)
+- `coluna:respostas_determinacao.tipo_resposta` (tabelas/respostas_determinacao.toml)
+- `coluna:termos_notificacao.observacoes` (tabelas/termos_notificacao.toml)
 - `coluna:unidades_fiscalizadas.tipo_unidade_nome` (tabelas/unidades_fiscalizadas.toml)

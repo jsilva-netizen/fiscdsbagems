@@ -1,0 +1,73 @@
+[objeto."tabela:pareceres_tecnicos"]
+modulo = "processo_sancionador"
+finalidade = """
+Parecer técnico sobre a defesa de cada auto de infração. A equipe o escreve na tela Pareceres
+Técnicos, finaliza, anexa a versão assinada e encaminha junto com a remessa. **Vazia em
+produção.**
+"""
+fonte = [
+  "src/pages/PareceresTecnicos.jsx:119",
+  "src/lib/offline/repository.ts:1548",
+  "src/pages/GestaoAutos.jsx:251",
+  "inventário: tabelas",
+]
+
+[objeto."coluna:pareceres_tecnicos.id"]
+significado = "Identificador do parecer."
+fonte = ["src/lib/offline/repository.ts:1548"]
+
+[objeto."coluna:pareceres_tecnicos.auto_id"]
+significado = "Auto de infração analisado; excluir o auto exclui o parecer."
+fonte = ["src/lib/offline/repository.ts:1566", "restricao:pareceres_tecnicos.pareceres_tecnicos_auto_id_fkey"]
+
+[objeto."coluna:pareceres_tecnicos.recomendacao"]
+significado = "Conclusão do parecer: o que se recomenda decidir sobre o auto."
+fonte = ["src/pages/PareceresTecnicos.jsx:119"]
+hipotese = true
+
+[objeto."coluna:pareceres_tecnicos.valor_multa_sugerido"]
+significado = "Valor de multa sugerido pelo parecer."
+fonte = ["src/pages/PareceresTecnicos.jsx:119"]
+hipotese = true
+
+[objeto."coluna:pareceres_tecnicos.analise_tecnica"]
+significado = "Texto da análise técnica da defesa."
+fonte = ["src/pages/PareceresTecnicos.jsx:119"]
+hipotese = true
+
+[objeto."coluna:pareceres_tecnicos.status"]
+significado = """
+`rascunho` enquanto é escrito, `finalizado` ao concluir e `parecer_enviado` ao encaminhar; o
+padrão da coluna é `pendente`.
+"""
+fonte = ["src/pages/PareceresTecnicos.jsx:119", "src/pages/PareceresTecnicos.jsx:145", "src/pages/PareceresTecnicos.jsx:177"]
+
+[objeto."coluna:pareceres_tecnicos.created_at"]
+significado = "Quando o parecer foi criado."
+fonte = ["src/lib/offline/repository.ts:1548"]
+
+[objeto."coluna:pareceres_tecnicos.arquivo_parecer_assinado_url"]
+significado = """
+Parecer assinado, anexado na Gestão de Autos. O parecer só conta como pronto quando tem este
+arquivo.
+"""
+fonte = ["src/pages/GestaoAutos.jsx:251", "src/pages/GestaoAutos.jsx:274"]
+
+[objeto."politica:public.pareceres_tecnicos.Fiscais e Admins: acesso por camara em pareceres"]
+descricao = """
+Admin total; coordenador e fiscal ativos, pelos pareceres de autos da sua câmara. Sem efeito
+prático: `pareceres_staff_all` libera a equipe toda.
+"""
+fonte = ["funcao:get_my_role()", "funcao:get_my_camara_tecnica()"]
+
+[objeto."politica:public.pareceres_tecnicos.Prestadores: ler pareceres de seus autos"]
+descricao = "O prestador ativo lê os pareceres dos autos da própria entidade."
+fonte = ["funcao:get_my_prestador_id()"]
+
+[objeto."politica:public.pareceres_tecnicos.pareceres_prestador_select"]
+descricao = "Mesma leitura pelo prestador, de outro conjunto de políticas; redundante."
+fonte = ["funcao:current_prestador_servico_id()"]
+
+[objeto."politica:public.pareceres_tecnicos.pareceres_staff_all"]
+descricao = "Acesso total para admin, fiscal e coordenador ativos (`is_staff`), sem olhar a câmara."
+fonte = ["funcao:is_staff()"]

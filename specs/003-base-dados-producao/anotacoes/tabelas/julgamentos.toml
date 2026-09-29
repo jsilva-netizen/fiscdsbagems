@@ -1,0 +1,68 @@
+[objeto."tabela:julgamentos"]
+modulo = "processo_sancionador"
+finalidade = """
+Julgamento de um auto de infração, a partir do parecer técnico: decisão, multa final e
+justificativa. **Sem uso**: está vazia em produção, e a função que a grava
+(`createJulgamentoOnline`) existe no código, mas nenhuma tela a chama. O julgamento é a etapa do
+processo sancionador que o sistema atual ainda não cobre.
+"""
+fonte = ["src/lib/offline/repository.ts:1610", "inventário: tabelas"]
+
+[objeto."coluna:julgamentos.id"]
+significado = "Identificador do julgamento (tabela sem uso)."
+fonte = ["inventário: tabelas"]
+
+[objeto."coluna:julgamentos.parecer_tecnico_id"]
+significado = "Parecer que fundamenta o julgamento (tabela sem uso)."
+fonte = ["restricao:julgamentos.julgamentos_parecer_tecnico_id_fkey"]
+
+[objeto."coluna:julgamentos.auto_id"]
+significado = """
+Auto julgado (tabela sem uso). A chave estrangeira não tem regra de exclusão, então não é possível
+excluir um auto julgado.
+"""
+fonte = ["restricao:julgamentos.julgamentos_auto_id_fkey"]
+
+[objeto."coluna:julgamentos.prestador_servico_id"]
+significado = "Entidade julgada (tabela sem uso)."
+fonte = ["restricao:julgamentos.julgamentos_prestador_servico_id_fkey"]
+
+[objeto."coluna:julgamentos.decisao"]
+significado = "Decisão do julgamento (tabela sem uso)."
+fonte = ["inventário: tabelas"]
+
+[objeto."coluna:julgamentos.valor_multa_final"]
+significado = "Multa aplicada na decisão (tabela sem uso)."
+fonte = ["inventário: tabelas"]
+
+[objeto."coluna:julgamentos.justificativa_decisao"]
+significado = "Fundamentação da decisão (tabela sem uso)."
+fonte = ["inventário: tabelas"]
+
+[objeto."coluna:julgamentos.data_julgamento"]
+significado = "Quando foi julgado (tabela sem uso)."
+fonte = ["inventário: tabelas"]
+
+[objeto."coluna:julgamentos.status"]
+significado = "Situação do julgamento; padrão `julgado` (tabela sem uso)."
+fonte = ["inventário: tabelas"]
+
+[objeto."coluna:julgamentos.created_at"]
+significado = "Quando o registro foi criado (tabela sem uso)."
+fonte = ["inventário: tabelas"]
+
+[objeto."politica:public.julgamentos.Fiscais e Admins: acesso total em julgamentos"]
+descricao = "Admin, coordenador e fiscal ativos teriam acesso total, sem olhar a câmara."
+fonte = ["funcao:get_my_role()"]
+
+[objeto."politica:public.julgamentos.Prestadores: ler julgamentos de seus autos"]
+descricao = "O prestador ativo leria os julgamentos dos autos da própria entidade."
+fonte = ["funcao:get_my_prestador_id()"]
+
+[objeto."politica:public.julgamentos.julgamentos_prestador_select"]
+descricao = "Mesma leitura pelo prestador, também pela entidade do julgamento; redundante."
+fonte = ["funcao:current_prestador_servico_id()"]
+
+[objeto."politica:public.julgamentos.julgamentos_staff_all"]
+descricao = "Acesso total para admin, fiscal e coordenador ativos (`is_staff`)."
+fonte = ["funcao:is_staff()"]

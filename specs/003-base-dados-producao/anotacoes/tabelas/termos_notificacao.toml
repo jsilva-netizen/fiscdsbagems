@@ -1,0 +1,286 @@
+[objeto."tabela:termos_notificacao"]
+modulo = "processo_sancionador"
+finalidade = """
+Termo de Notificação (TN) de uma fiscalização, com o relatório de fiscalização (RFP, RFE ou RAO)
+que o acompanha. Abre o processo sancionador: notifica a entidade das determinações e abre prazo
+para ela responder. Há um termo por fiscalização, com a unicidade verificada só pela tela.
+Produção tem 5 (3 da CATESA e 2 do CATERS).
+
+**Fluxo.** O status é calculado pela tela a partir dos arquivos e das datas:
+
+1. **`pendente_tn`:** a equipe gera o TN na tela Gerenciar Termos, com número, relatório, prazo
+   e câmara, e envia o TN e o relatório assinados.
+2. **`aguardando_assinatura_prestador`:** o prestador baixa o TN no portal, assina e devolve.
+   Nesse momento o **aparelho do prestador** grava o início do prazo e a data-limite.
+3. **`aguardando_resposta`:** o prestador responde cada determinação (`respostas_determinacao`)
+   e conclui a resposta. O status só aparece como `prazo_vencido` na tela; não é gravado.
+4. **`respondido`:** a conclusão grava a data de recebimento e se chegou no prazo.
+5. **Análise:** a equipe analisa as respostas; a Análise da Manifestação (AM) gera os autos de
+   infração.
+
+**Fluxo manual:** quando `fluxo_manual`, o termo corre fora do portal. A equipe registra
+protocolo e resposta recebidos em papel, e o termo não aparece para o prestador.
+"""
+fonte = [
+  "src/pages/GerenciarTermos.jsx:318",
+  "src/pages/GerenciarTermos.jsx:436",
+  "src/pages/ResponderTermo.jsx:667",
+  "src/lib/offline/repository.ts:1712",
+  "src/pages/AnaliseManifestacao.jsx:261",
+  "src/pages/PortalPrestadorHome.jsx:73",
+  "inventário: dominio_categorico",
+]
+
+[objeto."coluna:termos_notificacao.id"]
+significado = "Identificador do termo. Remessas de autos e o portal do prestador apontam para ele."
+fonte = ["restricao:remessas_ai.remessas_ai_termo_id_fkey"]
+
+[objeto."coluna:termos_notificacao.numero_termo_notificacao"]
+significado = """
+Número do TN, no formato `TN NNN/AAAA/DSB/AGEMS`. É sugerido pela tela como o maior número do ano
+mais 1, calculado no navegador, e é editável. O banco não garante que seja único, e a sigla
+"DSB" é fixa, qualquer que seja a diretoria.
+"""
+fonte = ["src/pages/GerenciarTermos.jsx:196", "src/pages/GerenciarTermos.jsx:213"]
+
+[objeto."coluna:termos_notificacao.numero_rfp"]
+significado = """
+Número do relatório de fiscalização que acompanha o TN, digitado pela equipe (só dígitos). É único
+por tipo de relatório, câmara e ano (`termos_notificacao_tipo_camara_numero_ano_uniq`). Compõe a
+identificação "RFP/DSB/<câmara>/<número>/<ano>" usada nas telas.
+"""
+fonte = ["src/pages/GerenciarTermos.jsx:765", "indice:termos_notificacao_tipo_camara_numero_ano_uniq", "src/pages/AcompanhamentoDeterminacoes.jsx:233"]
+
+[objeto."coluna:termos_notificacao.municipio_id"]
+significado = "Município do termo, vindo da fiscalização (chave estrangeira para `municipios`)."
+fonte = ["src/pages/GerenciarTermos.jsx:567", "restricao:termos_notificacao.termos_notificacao_municipio_id_fkey"]
+
+[objeto."coluna:termos_notificacao.prestador_servico_id"]
+significado = """
+Entidade notificada, vinda da fiscalização. Define quem vê e responde o termo no portal, e é a base
+de `can_access_fiscalizacao`.
+"""
+fonte = ["src/pages/GerenciarTermos.jsx:561", "funcao:can_access_fiscalizacao(fiscalizacao uuid)"]
+
+[objeto."coluna:termos_notificacao.fiscalizacao_id"]
+significado = """
+Fiscalização notificada. A tela impede um segundo termo para a mesma fiscalização. A chave
+estrangeira não tem regra de exclusão, então não é possível excluir uma fiscalização com termo.
+"""
+fonte = ["src/pages/GerenciarTermos.jsx:436", "restricao:termos_notificacao.termos_notificacao_fiscalizacao_id_fkey"]
+
+[objeto."coluna:termos_notificacao.numero_processo"]
+significado = "Número do processo administrativo, digitado pela equipe."
+fonte = ["src/pages/GerenciarTermos.jsx:789"]
+
+[objeto."coluna:termos_notificacao.camara_tecnica"]
+significado = """
+Câmara do termo, em maiúsculas (`CATESA`, `CATERS`); o padrão da tela é CATESA. Diferente do resto
+do sistema, é texto livre, sem chave estrangeira e sem o padrão `camara_tecnica_id` em minúsculas.
+Compõe a unicidade do número do relatório.
+"""
+fonte = ["src/pages/GerenciarTermos.jsx:96", "src/pages/GerenciarTermos.jsx:510", "inventário: dominio_categorico"]
+
+[objeto."coluna:termos_notificacao.data_protocolo"]
+significado = """
+Data do protocolo do TN junto à entidade. No fluxo pelo portal, é a data em que o prestador enviou
+o TN assinado, gravada pelo aparelho dele; no fluxo manual, a equipe informa. É a base da
+data-limite.
+"""
+fonte = ["src/pages/ResponderTermo.jsx:676", "src/pages/GerenciarTermos.jsx:427"]
+
+[objeto."coluna:termos_notificacao.prazo_resposta_dias"]
+significado = "Prazo, em dias, para a entidade responder (padrão 30)."
+fonte = ["src/pages/GerenciarTermos.jsx:851"]
+
+[objeto."coluna:termos_notificacao.observacoes"]
+significado = "Observações livres da equipe sobre o termo."
+fonte = ["src/pages/GerenciarTermos.jsx:99"]
+hipotese = true
+
+[objeto."coluna:termos_notificacao.arquivo_url"]
+significado = """
+TN assinado pela AGEMS (`storage://documentos-termos/...`). Junto com o relatório assinado, tira o
+termo de `pendente_tn`.
+"""
+fonte = ["src/pages/GerenciarTermos.jsx:347", "src/pages/GerenciarTermos.jsx:318"]
+
+[objeto."coluna:termos_notificacao.arquivo_protocolo_url"]
+significado = "Comprovante de protocolo do TN, no fluxo manual."
+fonte = ["src/pages/GerenciarTermos.jsx:1401"]
+
+[objeto."coluna:termos_notificacao.arquivo_oficio_protocolo"]
+significado = "Ofício de encaminhamento do TN, no fluxo manual."
+fonte = ["src/pages/GerenciarTermos.jsx:1401"]
+
+[objeto."coluna:termos_notificacao.data_maxima_resposta"]
+significado = """
+Data-limite para a entidade responder: início do prazo mais `prazo_resposta_dias`.
+
+- **Fluxo pelo portal:** calculada e gravada pelo **aparelho do prestador** ao enviar o TN
+  assinado. Ela decide se a resposta chegou no prazo, então o regulado pode alterá-la pela API.
+- **Criação e edição pela equipe:** calculada pela tela a partir da data de protocolo.
+"""
+fonte = ["src/pages/ResponderTermo.jsx:678", "src/pages/GerenciarTermos.jsx:440", "politica:public.termos_notificacao.Prestadores: responder seus termos"]
+
+[objeto."coluna:termos_notificacao.data_geracao"]
+significado = """
+Quando o termo foi gerado. Define `ano_geracao` pelo gatilho, e o ano é a base das numerações.
+"""
+fonte = ["src/pages/GerenciarTermos.jsx:454", "funcao:set_termos_notificacao_ano_geracao()"]
+
+[objeto."coluna:termos_notificacao.data_recebimento_resposta"]
+significado = """
+Quando a resposta da entidade foi recebida: gravada ao concluir a resposta no portal, ou informada
+pela equipe no fluxo manual. Com ela o status vira `respondido`.
+"""
+fonte = ["src/lib/offline/repository.ts:1716", "src/pages/GerenciarTermos.jsx:1574"]
+
+[objeto."coluna:termos_notificacao.recebida_no_prazo"]
+significado = """
+Se a resposta chegou até a data-limite. Calculado no navegador de quem conclui a resposta, a partir
+de `data_maxima_resposta`; vale `true` quando não há data-limite. Em produção: 1 no prazo, 1 fora e
+3 vazios.
+"""
+fonte = ["src/lib/offline/repository.ts:1718", "inventário: dominio_categorico"]
+
+[objeto."coluna:termos_notificacao.arquivos_resposta"]
+significado = """
+Arquivos da resposta da entidade (lista). Cada um tem `nome`, `tipo`, `categoria`, `tamanho`,
+`url`, `bucket`, `path`, `data_upload` e `assinatura_digital_valida`. O portal acrescenta um a um
+(substituindo o de mesmo caminho).
+"""
+fonte = ["src/lib/offline/repository.ts:1700", "inventário: estrutura_json"]
+
+[objeto."coluna:termos_notificacao.arquivo_oficio_resposta"]
+significado = "Ofício de resposta da entidade, registrado pela equipe no fluxo manual."
+fonte = ["src/pages/GerenciarTermos.jsx:1576"]
+
+[objeto."coluna:termos_notificacao.numero_am"]
+significado = """
+Número da Análise da Manifestação (AM): `AM NNN/AAAA/DSB/AGEMS`. É gerado por `gerar_numero_am`
+como a contagem das AMs do ano mais 1, o que pode repetir números em pedidos simultâneos. Refazer a
+análise limpa o número.
+"""
+fonte = ["src/pages/AnaliseManifestacao.jsx:261", "funcao:gerar_numero_am()", "src/pages/AnaliseManifestacao.jsx:240"]
+
+[objeto."coluna:termos_notificacao.status"]
+significado = """
+Estágio do termo:
+
+- `pendente_tn` (padrão);
+- `aguardando_assinatura_prestador`;
+- `aguardando_resposta`;
+- `respondido`.
+
+É calculado pela tela a partir dos arquivos e datas, e não é validado pelo banco. O portal também
+grava o status ao receber o TN assinado. Em produção: 2 respondidos, 1 aguardando resposta e 2
+aguardando assinatura.
+"""
+fonte = ["src/pages/GerenciarTermos.jsx:318", "src/pages/ResponderTermo.jsx:679", "inventário: dominio_categorico"]
+
+[objeto."coluna:termos_notificacao.created_at"]
+significado = "Quando o termo foi criado; `gerar_numero_am` o usa para contar as AMs do ano."
+fonte = ["funcao:gerar_numero_am()"]
+
+[objeto."coluna:termos_notificacao.updated_at"]
+significado = "Última alteração, gravada pelas telas (não há gatilho de `updated_at`)."
+fonte = ["src/pages/ResponderTermo.jsx:680"]
+
+[objeto."coluna:termos_notificacao.arquivo_rfp_url"]
+significado = "Relatório de fiscalização assinado; necessário, com o TN, para sair de `pendente_tn`."
+fonte = ["src/pages/GerenciarTermos.jsx:381", "src/pages/GerenciarTermos.jsx:318"]
+
+[objeto."coluna:termos_notificacao.arquivo_tn_prestador_url"]
+significado = """
+TN assinado pelo prestador, enviado pelo portal ou pela equipe. Com a assinatura considerada
+válida, inicia o prazo.
+"""
+fonte = ["src/pages/ResponderTermo.jsx:673", "src/pages/GerenciarTermos.jsx:1142"]
+
+[objeto."coluna:termos_notificacao.assinatura_prestador_valida"]
+significado = """
+Se a assinatura do prestador no TN foi aceita. O portal grava `true` automaticamente ao enviar; a
+equipe pode marcar ou desmarcar. Não há verificação da assinatura digital.
+"""
+fonte = ["src/pages/ResponderTermo.jsx:674", "src/pages/GerenciarTermos.jsx:1107"]
+
+[objeto."coluna:termos_notificacao.data_assinatura_prestador"]
+significado = "Quando o prestador enviou o TN assinado (relógio do aparelho dele)."
+fonte = ["src/pages/ResponderTermo.jsx:675"]
+
+[objeto."coluna:termos_notificacao.data_inicio_prazo"]
+significado = """
+Início da contagem do prazo de resposta: o dia do envio do TN assinado, pelo aparelho do
+prestador, ou a data informada pela equipe.
+"""
+fonte = ["src/pages/ResponderTermo.jsx:677", "src/pages/GerenciarTermos.jsx:1121"]
+
+[objeto."coluna:termos_notificacao.fluxo_manual"]
+significado = """
+`true` quando o termo corre fora do portal: protocolo e resposta em papel, registrados pela equipe.
+Esses termos não aparecem para o prestador. Em produção: 3 manuais e 2 pelo portal.
+"""
+fonte = ["src/pages/GerenciarTermos.jsx:928", "src/pages/PortalPrestadorHome.jsx:73", "inventário: dominio_categorico"]
+
+[objeto."coluna:termos_notificacao.arquivo_am_assinada_url"]
+significado = "Análise da Manifestação assinada; enviada ao concluir a AM."
+fonte = ["src/pages/AnaliseManifestacao.jsx:828"]
+
+[objeto."coluna:termos_notificacao.am_concluida_em"]
+significado = "Quando a Análise da Manifestação foi concluída; limpo ao refazer a análise."
+fonte = ["src/pages/AnaliseManifestacao.jsx:264", "src/pages/AnaliseManifestacao.jsx:240"]
+
+[objeto."coluna:termos_notificacao.tipo_relatorio"]
+significado = """
+Tipo do relatório que acompanha o TN: `RFP` (padrão), `RFE` ou `RAO`; o banco aceita só esses.
+Compõe a unicidade do número. Em produção: 4 RFP e 1 RFE.
+"""
+fonte = ["restricao:termos_notificacao.termos_notificacao_tipo_relatorio_check", "src/pages/GerenciarTermos.jsx:747", "inventário: dominio_categorico"]
+
+[objeto."coluna:termos_notificacao.ano_geracao"]
+significado = """
+Ano de geração do termo, mantido pelo gatilho a partir de `data_geracao`. Compõe a unicidade do
+número do relatório por ano.
+"""
+fonte = ["funcao:set_termos_notificacao_ano_geracao()", "indice:termos_notificacao_tipo_camara_numero_ano_uniq"]
+
+[objeto."coluna:termos_notificacao.arquivo_resposta_url"]
+significado = "Arquivo da resposta recebida, registrado pela equipe no fluxo manual."
+fonte = ["src/pages/GerenciarTermos.jsx:1575"]
+
+[objeto."gatilho:public.termos_notificacao.trg_termos_notificacao_set_ano_geracao"]
+efeito = "Antes de inserir, ou de alterar `data_geracao`, grava o ano em `ano_geracao`."
+fonte = ["funcao:set_termos_notificacao_ano_geracao()"]
+
+[objeto."politica:public.termos_notificacao.Fiscais e Admins: acesso total em termos"]
+descricao = "Admin, coordenador e fiscal ativos têm acesso total a todos os termos, sem olhar a câmara."
+fonte = ["funcao:get_my_role()"]
+
+[objeto."politica:public.termos_notificacao.Prestadores: ler seus termos"]
+descricao = "O prestador ativo lê os termos da própria entidade."
+fonte = ["funcao:get_my_prestador_id()"]
+
+[objeto."politica:public.termos_notificacao.Prestadores: responder seus termos"]
+descricao = """
+O prestador ativo altera os termos da própria entidade, **qualquer coluna e em qualquer status**.
+Isso inclui datas de prazo, status, "recebida no prazo" e arquivos da AGEMS. Por somar-se à
+política seguinte, anula a trava "até respondido". Na prática, o regulado pode alterar pela API os
+dados do próprio processo.
+"""
+fonte = ["funcao:get_my_prestador_id()", "politica:public.termos_notificacao.termos_prestador_update_own_until_respondido"]
+
+[objeto."politica:public.termos_notificacao.termos_prestador_select_own"]
+descricao = "Mesma leitura pelo prestador, com as funções de outro conjunto de políticas; redundante."
+fonte = ["funcao:current_prestador_servico_id()"]
+
+[objeto."politica:public.termos_notificacao.termos_prestador_update_own_until_respondido"]
+descricao = """
+O prestador altera o próprio termo só até o termo ser `respondido`. Hoje sem efeito, porque a
+política anterior libera a alteração em qualquer status.
+"""
+fonte = ["funcao:current_prestador_servico_id()"]
+
+[objeto."politica:public.termos_notificacao.termos_staff_all"]
+descricao = "Acesso total para admin, fiscal e coordenador ativos (`is_staff`); redundante."
+fonte = ["funcao:is_staff()"]

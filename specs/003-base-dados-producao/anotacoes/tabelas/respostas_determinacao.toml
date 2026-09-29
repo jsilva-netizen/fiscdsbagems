@@ -1,0 +1,141 @@
+[objeto."tabela:respostas_determinacao"]
+modulo = "processo_sancionador"
+finalidade = """
+Resposta da entidade a cada determinação do termo de notificação: manifestação escrita e
+evidências anexadas pelo prestador no portal, depois a análise da equipe (atendida ou não
+atendida). As determinações não atendidas viram autos de infração na Análise da Manifestação.
+
+Produção tem 34 respostas: 33 aguardando análise e 1 não atendida. As manifestações têm textos de
+teste ("a", "aa", "aaa"), ou seja, **há dados de teste em produção**.
+"""
+fonte = [
+  "src/pages/ResponderTermo.jsx:255",
+  "src/pages/AnalisarResposta.jsx:181",
+  "src/pages/AnaliseManifestacao.jsx:268",
+  "inventário: dominio_categorico",
+]
+
+[objeto."coluna:respostas_determinacao.id"]
+significado = "Identificador da resposta."
+fonte = ["src/lib/offline/repository.ts:1466"]
+
+[objeto."coluna:respostas_determinacao.determinacao_id"]
+significado = """
+Determinação respondida; o portal mantém uma resposta por determinação (atualiza se já existe).
+Excluir a determinação exclui a resposta.
+"""
+fonte = ["src/pages/ResponderTermo.jsx:256", "restricao:respostas_determinacao.respostas_determinacao_determinacao_id_fkey"]
+
+[objeto."coluna:respostas_determinacao.unidade_fiscalizada_id"]
+significado = """
+Unidade da determinação, copiada pelo portal. A chave estrangeira não tem regra de exclusão, então
+não é possível excluir uma unidade com resposta.
+"""
+fonte = ["src/pages/ResponderTermo.jsx:263", "restricao:respostas_determinacao.respostas_determinacao_unidade_fiscalizada_id_fkey"]
+
+[objeto."coluna:respostas_determinacao.fiscalizacao_id"]
+significado = """
+Fiscalização do termo, copiada pelo portal. É usada por `can_access_fiscalizacao` nas políticas do
+prestador.
+"""
+fonte = ["src/pages/ResponderTermo.jsx:264", "funcao:can_access_fiscalizacao(fiscalizacao uuid)"]
+
+[objeto."coluna:respostas_determinacao.prestador_servico_id"]
+significado = """
+Entidade que respondeu, copiada do termo. Limita o que o prestador vê e altera.
+"""
+fonte = ["src/pages/ResponderTermo.jsx:265"]
+
+[objeto."coluna:respostas_determinacao.resposta"]
+significado = "Sem uso: nenhuma tela grava; a manifestação fica em `manifestacao_prestador`."
+fonte = ["src/pages/ResponderTermo.jsx:255"]
+hipotese = true
+
+[objeto."coluna:respostas_determinacao.status"]
+significado = """
+Situação da resposta:
+
+- `aguardando_analise`: ao responder;
+- `atendida` ou `nao_atendida`: definido pela equipe na análise.
+
+Não é validado pelo banco, e o prestador pode alterá-lo pela API.
+"""
+fonte = ["src/pages/ResponderTermo.jsx:268", "src/pages/AnalisarResposta.jsx:891", "politica:public.respostas_determinacao.Prestadores: atualizar suas próprias respostas determinacoes", "inventário: dominio_categorico"]
+
+[objeto."coluna:respostas_determinacao.manifestacao_prestador"]
+significado = """
+Texto da manifestação da entidade sobre a determinação. Vai para a Análise da Manifestação.
+"""
+fonte = ["src/pages/ResponderTermo.jsx:266", "src/pages/AnaliseManifestacao.jsx:377"]
+
+[objeto."coluna:respostas_determinacao.descricao_atendimento"]
+significado = "Análise da equipe sobre a resposta (por que foi ou não atendida)."
+fonte = ["src/pages/AnalisarResposta.jsx:183", "src/pages/AnaliseManifestacao.jsx:378"]
+
+[objeto."coluna:respostas_determinacao.dentro_prazo"]
+significado = """
+Se a resposta foi dada até a data-limite do termo. É calculado pelo **aparelho do prestador** com
+o relógio dele, e as 34 de produção estão `true`.
+"""
+fonte = ["src/pages/ResponderTermo.jsx:258", "inventário: dominio_categorico"]
+
+[objeto."coluna:respostas_determinacao.tipo_resposta"]
+significado = "Sem uso: nenhuma tela lê ou grava."
+fonte = ["src/pages/ResponderTermo.jsx:255"]
+hipotese = true
+
+[objeto."coluna:respostas_determinacao.data_resposta"]
+significado = """
+Quando a resposta foi dada, pelo relógio do aparelho do prestador. É a base dos tempos médios de
+resposta.
+"""
+fonte = ["src/pages/ResponderTermo.jsx:269", "src/components/determinacoes/AnaliseTemposMedios.jsx:12"]
+
+[objeto."coluna:respostas_determinacao.created_at"]
+significado = "Quando a resposta foi criada."
+fonte = ["src/lib/offline/repository.ts:1466"]
+
+[objeto."coluna:respostas_determinacao.evidencias"]
+significado = """
+Evidências anexadas pela entidade (lista de arquivos no bucket `evidencias-determinacoes`, com
+nome, tipo, tamanho, data, caminho e endereço). O portal remove duplicadas antes de gravar.
+"""
+fonte = ["src/lib/offline/repository.ts:1616", "src/pages/ResponderTermo.jsx:260"]
+
+[objeto."politica:public.respostas_determinacao.Fiscais e Admins: acesso total em respostas determinacoes"]
+descricao = "Admin, coordenador e fiscal ativos têm acesso total, sem olhar a câmara."
+fonte = ["funcao:get_my_role()"]
+
+[objeto."politica:public.respostas_determinacao.Prestadores: atualizar suas próprias respostas determinacoes"]
+descricao = """
+O prestador ativo altera as respostas da própria entidade, em qualquer situação e em qualquer
+coluna, inclusive `status`, `dentro_prazo` e a análise da equipe.
+"""
+fonte = ["funcao:get_my_prestador_id()"]
+
+[objeto."politica:public.respostas_determinacao.Prestadores: cadastrar respostas determinacoes"]
+descricao = "O prestador ativo cria respostas em nome da própria entidade."
+fonte = ["funcao:get_my_prestador_id()"]
+
+[objeto."politica:public.respostas_determinacao.Prestadores: ler suas próprias respostas determinacoes"]
+descricao = "O prestador ativo lê as respostas da própria entidade."
+fonte = ["funcao:get_my_prestador_id()"]
+
+[objeto."politica:public.respostas_determinacao.respostas_det_prestador_insert"]
+descricao = "Mesma inclusão pelo prestador, com as funções de outro conjunto de políticas; redundante."
+fonte = ["funcao:current_prestador_servico_id()"]
+
+[objeto."politica:public.respostas_determinacao.respostas_det_prestador_select"]
+descricao = """
+Leitura pelo prestador exigindo também termo para a fiscalização; sem efeito próprio (a política
+de leitura anterior não exige termo).
+"""
+fonte = ["funcao:can_access_fiscalizacao(fiscalizacao uuid)"]
+
+[objeto."politica:public.respostas_determinacao.respostas_det_prestador_update"]
+descricao = "Alteração pelo prestador exigindo termo; sem efeito próprio (a anterior não exige)."
+fonte = ["funcao:can_access_fiscalizacao(fiscalizacao uuid)"]
+
+[objeto."politica:public.respostas_determinacao.respostas_det_staff_all"]
+descricao = "Acesso total para admin, fiscal e coordenador ativos (`is_staff`); redundante."
+fonte = ["funcao:is_staff()"]

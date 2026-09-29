@@ -1,0 +1,64 @@
+[objeto."tabela:manifestacoes_auto"]
+modulo = "processo_sancionador"
+finalidade = """
+Manifestações (defesas) da entidade sobre um auto de infração, **sem uso**. Está vazia em
+produção, e nenhuma tela grava nela: só a limpeza de arquivos a lê e apaga. A defesa atual fica no
+próprio auto (`defesa_texto`, `defesa_arquivos`, arquivos de defesa) e no ofício de defesa da
+remessa.
+"""
+fonte = [
+  "src/lib/storageCleanup.js:110",
+  "tabela:autos_infracao",
+  "inventário: tabelas",
+]
+
+[objeto."coluna:manifestacoes_auto.id"]
+significado = "Identificador da manifestação (tabela sem uso)."
+fonte = ["inventário: tabelas"]
+
+[objeto."coluna:manifestacoes_auto.auto_infracao_id"]
+significado = "Auto contestado; excluir o auto excluiria a manifestação (tabela sem uso)."
+fonte = ["restricao:manifestacoes_auto.manifestacoes_auto_auto_infracao_id_fkey"]
+
+[objeto."coluna:manifestacoes_auto.descricao"]
+significado = "Texto da manifestação (tabela sem uso)."
+fonte = ["inventário: tabelas"]
+
+[objeto."coluna:manifestacoes_auto.data_manifestacao"]
+significado = "Quando a manifestação foi feita (tabela sem uso)."
+fonte = ["inventário: tabelas"]
+
+[objeto."coluna:manifestacoes_auto.arquivo_url"]
+significado = "Arquivo da manifestação; a limpeza de arquivos o apaga (tabela sem uso)."
+fonte = ["src/lib/storageCleanup.js:110"]
+
+[objeto."coluna:manifestacoes_auto.created_at"]
+significado = "Quando o registro foi criado (tabela sem uso)."
+fonte = ["inventário: tabelas"]
+
+[objeto."politica:public.manifestacoes_auto.Fiscais e Admins: acesso por camara em manifestacoes"]
+descricao = """
+Admin total; coordenador e fiscal ativos, pelas manifestações de autos da sua câmara. Sem efeito
+prático: `manifestacoes_staff_all` libera a equipe toda.
+"""
+fonte = ["funcao:get_my_role()", "funcao:get_my_camara_tecnica()"]
+
+[objeto."politica:public.manifestacoes_auto.Prestadores: atualizar suas próprias manifestações"]
+descricao = "O prestador ativo altera manifestações de autos da própria entidade."
+fonte = ["funcao:get_my_prestador_id()"]
+
+[objeto."politica:public.manifestacoes_auto.Prestadores: cadastrar suas próprias manifestações"]
+descricao = "O prestador ativo cria manifestações para autos da própria entidade."
+fonte = ["funcao:get_my_prestador_id()"]
+
+[objeto."politica:public.manifestacoes_auto.Prestadores: ler suas próprias manifestações"]
+descricao = "O prestador ativo lê manifestações de autos da própria entidade."
+fonte = ["funcao:get_my_prestador_id()"]
+
+[objeto."politica:public.manifestacoes_auto.manifestacoes_prestador_select"]
+descricao = "Mesma leitura pelo prestador, de outro conjunto de políticas; redundante."
+fonte = ["funcao:current_prestador_servico_id()"]
+
+[objeto."politica:public.manifestacoes_auto.manifestacoes_staff_all"]
+descricao = "Acesso total para admin, fiscal e coordenador ativos (`is_staff`), sem olhar a câmara."
+fonte = ["funcao:is_staff()"]

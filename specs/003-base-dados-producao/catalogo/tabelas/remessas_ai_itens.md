@@ -3,22 +3,24 @@
 # remessas_ai_itens
 
 - **Tipo**: tabela
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **processo_sancionador**
 - **Linhas em produção**: 0
 - **RLS ativo**: sim
 
 ## Finalidade
 
-_Sem anotação._
+Autos de infração que compõem cada remessa: um registro por auto, e um auto no máximo uma vez por
+remessa. Criados ao montar a remessa na Gestão de Autos e lidos pelo portal e pelos pareceres.
+**Vazia em produção.** *(fonte: src/pages/GestaoAutos.jsx:437, src/pages/PortalPrestadorHome.jsx:225, src/pages/PareceresTecnicos.jsx:32)*
 
 ## Colunas
 
 | # | Coluna | Tipo | Obrig. | Padrão | Significado | Valores em uso / estrutura |
 |---:|---|---|:---:|---|---|---|
-| 1 | `id` | uuid | sim | `uuid_generate_v4()` |  |  |
-| 2 | `remessa_ai_id` | uuid |  |  |  |  |
-| 3 | `auto_infracao_id` | uuid |  |  |  |  |
-| 4 | `created_at` | timestamp with time zone |  | `now()` |  |  |
+| 1 | `id` | uuid | sim | `uuid_generate_v4()` | Identificador do item. *(fonte: src/lib/offline/repository.ts:1595)* |  |
+| 2 | `remessa_ai_id` | uuid |  |  | Remessa; excluir a remessa exclui os itens. *(fonte: restricao:remessas_ai_itens.remessas_ai_itens_remessa_ai_id_fkey)* |  |
+| 3 | `auto_infracao_id` | uuid |  |  | Auto incluído na remessa; excluir o auto o retira da remessa. *(fonte: restricao:remessas_ai_itens.remessas_ai_itens_auto_infracao_id_fkey, indice:remessas_ai_itens_remessa_ai_id_auto_infracao_id_key)* |  |
+| 4 | `created_at` | timestamp with time zone |  | `now()` | Quando o auto foi incluído na remessa. *(fonte: src/lib/offline/repository.ts:1595)* |  |
 
 ## Restrições e índices
 
@@ -54,7 +56,8 @@ _Nenhum._
 ### Acesso total autenticado (DEV)
 
 - **Papéis**: authenticated · **Operação**: ALL · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: Quem tem perfil ativo, de qualquer papel, lê, cria, altera e exclui qualquer item de remessa.
+Desde a migration 138; antes, qualquer logado. *(fonte: supabase/migrations/138_fix_open_policies.sql)*
 
 <details><summary>Condição original</summary>
 
@@ -71,7 +74,7 @@ WITH CHECK:
 ### Fiscais e Admins: acesso por camara em itens de remessas
 
 - **Papéis**: authenticated · **Operação**: ALL · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: Admin total; coordenador e fiscal ativos, pelos itens de remessas da sua câmara. Sem efeito prático por causa da política "(DEV)". *(fonte: funcao:get_my_role(), funcao:get_my_camara_tecnica())*
 - **Funções auxiliares**: [can_access_camara(row_camara text)](../funcoes/can_access_camara.md), [get_my_role()](../funcoes/get_my_role.md)
 
 <details><summary>Condição original</summary>
@@ -93,7 +96,7 @@ WITH CHECK:
 ### Prestadores: ler itens de suas próprias remessas
 
 - **Papéis**: authenticated · **Operação**: SELECT · **PERMISSIVE**
-- **Em linguagem simples**: _Sem anotação._
+- **Em linguagem simples**: O prestador ativo lê os itens das remessas da própria entidade; contida na política "(DEV)". *(fonte: funcao:get_my_prestador_id())*
 - **Funções auxiliares**: [get_my_prestador_id()](../funcoes/get_my_prestador_id.md), [get_my_role()](../funcoes/get_my_role.md)
 
 <details><summary>Condição original</summary>
