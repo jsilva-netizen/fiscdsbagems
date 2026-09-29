@@ -1,0 +1,36 @@
+[objeto."funcao:obter_resumo_indicadores(p_anos text[], p_servicos text[], p_municipio_ids uuid[], p_prestador_ids uuid[], p_tipo_modulo text[])"]
+modulo = "fiscalizacao"
+finalidade = """
+Indicadores da tela de Relatórios, filtrados por ano, serviços, municípios, prestadores e
+módulos:
+
+- **Fiscalizações:** total e finalizadas.
+- **Das finalizadas:** unidades, fotos, NCs, determinações, recomendações, constatações e
+  conformidades (constatações menos NCs).
+- **Distribuição por serviço.**
+- **Ranking dos 10 municípios com mais determinações.**
+
+É a versão em uso: a tela passa os módulos da diretoria do usuário, ou a câmara escolhida pelo
+admin. Roda com permissão elevada e não filtra por câmara.
+
+Desde a migration 141, exige perfil ativo que não seja prestador (ou a chave de serviço). Antes,
+qualquer pessoa, inclusive sem login, podia executá-la.
+"""
+fonte = [
+  "src/pages/Relatorios.jsx:574",
+  "supabase/migrations/141_fix_funcoes_sem_verificacao.sql",
+]
+chamada_por = ["src/pages/Relatorios.jsx:574 (painel de indicadores)"]
+regra_de_negocio = """
+Definição dos indicadores (o que conta como constatação, conformidade e NC, e o recorte por
+finalizadas). A spec de relatórios e indicadores deve descrevê-la.
+"""
+
+[objeto."funcao:obter_resumo_indicadores(p_anos text[], p_servicos text[], p_municipio_ids uuid[], p_prestador_ids uuid[], p_apenas_finalizadas boolean)"]
+modulo = "fiscalizacao"
+finalidade = """
+Versão antiga dos indicadores, com o filtro "apenas finalizadas" em vez de módulos e sem unidades
+nem fotos. **Sem uso**: a tela chama a versão com `p_tipo_modulo`. Desde a migration 141, também
+exige perfil ativo que não seja prestador.
+"""
+fonte = ["src/pages/Relatorios.jsx:574", "supabase/migrations/141_fix_funcoes_sem_verificacao.sql"]

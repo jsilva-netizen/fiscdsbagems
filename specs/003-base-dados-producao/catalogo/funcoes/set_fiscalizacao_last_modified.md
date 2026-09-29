@@ -6,9 +6,11 @@
 
 - **Retorno**: `trigger` · **Linguagem**: plpgsql · **Volatilidade**: volatile
 - **Permissão elevada** (`SECURITY DEFINER`): **sim**
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **fiscalizacao**
 
-**Finalidade**: _Sem anotação._
+**Finalidade**: Função do gatilho `trg_set_fiscalizacao_last_modified`. Antes de gravar uma fiscalização, registra
+quem alterou: o e-mail do perfil, o do token, ou `sistema` quando não há usuário. Grava também a
+hora da alteração. *(fonte: gatilho:public.fiscalizacoes.trg_set_fiscalizacao_last_modified, coluna:fiscalizacoes.last_modified_by)*
 
 - **Lê**: [profiles](../tabelas/profiles.md), `externo:auth.jwt`, `externo:auth.uid`
 - **Escreve**: —

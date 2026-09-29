@@ -1,0 +1,8 @@
+[objeto."funcao:set_fiscalizacao_last_modified()"]
+modulo = "fiscalizacao"
+finalidade = """
+Função do gatilho `trg_set_fiscalizacao_last_modified`. Antes de gravar uma fiscalização, registra
+quem alterou: o e-mail do perfil, o do token, ou `sistema` quando não há usuário. Grava também a
+hora da alteração.
+"""
+fonte = ["gatilho:public.fiscalizacoes.trg_set_fiscalizacao_last_modified", "coluna:fiscalizacoes.last_modified_by"]

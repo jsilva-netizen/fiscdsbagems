@@ -1,0 +1,9 @@
+[objeto."funcao:determinacoes_fill_origem()"]
+modulo = "fiscalizacao"
+finalidade = """
+Função de gatilho que preencheria a `origem` de uma determinação sem origem: `checklist:<item>`,
+quando a NC veio de resposta do checklist, ou `legacy:<id>`. **Sem uso**: nenhum gatilho de
+produção a chama. Hoje a origem vem de `gerar_ncs_unidade`, do aparelho ou do padrão da coluna
+(`legacy:<uuid novo>`).
+"""
+fonte = ["tabela:determinacoes", "coluna:determinacoes.origem"]

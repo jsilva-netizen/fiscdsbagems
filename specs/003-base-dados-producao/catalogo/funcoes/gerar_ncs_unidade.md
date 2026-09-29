@@ -6,15 +6,39 @@
 
 - **Retorno**: `jsonb` · **Linguagem**: plpgsql · **Volatilidade**: volatile
 - **Permissão elevada** (`SECURITY DEFINER`): **sim**
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **fiscalizacao**
 
-**Finalidade**: _Sem anotação._
+**Finalidade**: Consolida uma unidade vistoriada: recria as não conformidades e ajusta determinações e
+recomendações a partir das respostas do checklist e das constatações manuais. Depois recalcula os
+totais, grava a lista de fotos recebida e, se pedido, finaliza a unidade.
+
+**Regras:**
+
+- **NCs:** apaga e recria todas. Resposta Não em item que gera NC, ou constatação manual marcada
+  como NC, gera uma NC numerada em sequência pela fiscalização, continuando das unidades
+  finalizadas antes.
+- **Determinação:** se o item ou a constatação tem texto de determinação, gera "Sanar NC<n>.
+  <texto>", com o prazo do item ou 30 dias. Se já existe uma com a mesma `origem`, só religa a NC
+  e preserva o texto editado.
+- **Recomendação:** sem texto de determinação, mas com texto de recomendação, gera uma
+  recomendação preservada pela `origem` do mesmo jeito.
+- **Órfãs:** determinações e recomendações que perderam a origem são apagadas.
+- **Totais:** grava os de constatações e NCs; os de determinações e recomendações, não.
+
+**Quem chama:** só `finalizar_fiscalizacao`, para cada unidade. O app não a chama diretamente.
+
+**Quem pode:** admin, coordenador e fiscal ativos e, desde a migration 141, a chave de serviço.
+Os outros recebem uma resposta de "acesso negado", sem erro. *(fonte: funcao:finalizar_fiscalizacao(p_fiscalizacao_id uuid), src/lib/offline/repository.ts:2392, supabase/migrations/141_fix_funcoes_sem_verificacao.sql)*
+
+**Regra de negócio**: Geração de NCs, determinações e recomendações a partir da vistoria, numeração das NCs pela
+fiscalização e preservação de edições da equipe pela origem. É a regra central da spec de
+fiscalização.
 
 - **Lê**: [constatacoes_manuais](../tabelas/constatacoes_manuais.md), [determinacoes](../tabelas/determinacoes.md), [itens_checklist](../tabelas/itens_checklist.md), [nao_conformidades](../tabelas/nao_conformidades.md), [recomendacoes](../tabelas/recomendacoes.md), [respostas_checklist](../tabelas/respostas_checklist.md), [unidades_fiscalizadas](../tabelas/unidades_fiscalizadas.md)
 - **Escreve**: [determinacoes](../tabelas/determinacoes.md), [nao_conformidades](../tabelas/nao_conformidades.md), [recomendacoes](../tabelas/recomendacoes.md), [unidades_fiscalizadas](../tabelas/unidades_fiscalizadas.md)
 - **Chama**: [get_my_role()](../funcoes/get_my_role.md)
 - **Chamada por (banco)**: [finalizar_fiscalizacao(p_fiscalizacao_id uuid)](../funcoes/finalizar_fiscalizacao.md) (chama)
-- **Chamada por (telas e edge functions, anotado)**: _Sem anotação._
+- **Chamada por (telas e edge functions, anotado)**: funcao finalizar_fiscalizacao (uma vez por unidade)
 
 <details><summary>Código completo (produção)</summary>
 

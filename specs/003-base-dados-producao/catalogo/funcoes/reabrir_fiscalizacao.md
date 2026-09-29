@@ -6,15 +6,29 @@
 
 - **Retorno**: `void` · **Linguagem**: plpgsql · **Volatilidade**: volatile
 - **Permissão elevada** (`SECURITY DEFINER`): **sim**
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **fiscalizacao**
 
-**Finalidade**: _Sem anotação._
+**Finalidade**: Reabre uma fiscalização finalizada:
+
+- volta a fiscalização e todas as unidades para `em_andamento`;
+- apaga a data de fim;
+- apaga os trabalhos de relatório, para forçar um relatório novo.
+
+Tenta 3 vezes em caso de deadlock. O app a chama pela fila offline e, antes, retira da fila as
+finalizações pendentes, para não refinalizar.
+
+**Quem pode:** desde a migration 141, só a chave de serviço ou admin, coordenador e fiscal ativos
+com acesso à câmara da fiscalização (`can_access_camara`); os demais recebem erro. Antes,
+qualquer pessoa, inclusive sem login, podia executá-la. *(fonte: src/lib/offline/syncEngine.ts:1008, src/lib/offline/repository.ts:2416, supabase/migrations/141_fix_funcoes_sem_verificacao.sql, .specify/bugs/funcoes-sem-verificacao/assessment.md)*
+
+**Regra de negócio**: Reabrir desfaz a finalização e invalida os relatórios. A spec de fiscalização deve dizer quem
+pode reabrir e o que acontece com NCs e números já emitidos.
 
 - **Lê**: —
 - **Escreve**: [fiscalizacoes](../tabelas/fiscalizacoes.md), [relatorios_jobs](../tabelas/relatorios_jobs.md), [unidades_fiscalizadas](../tabelas/unidades_fiscalizadas.md)
 - **Chama**: —
 - **Chamada por (banco)**: —
-- **Chamada por (telas e edge functions, anotado)**: _Sem anotação._
+- **Chamada por (telas e edge functions, anotado)**: src/lib/offline/syncEngine.ts:1008 (fila offline: reabrir_fiscalizacao)
 
 <details><summary>Código completo (produção)</summary>
 

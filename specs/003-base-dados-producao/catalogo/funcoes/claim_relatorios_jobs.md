@@ -6,15 +6,19 @@
 
 - **Retorno**: `SETOF relatorios_jobs` · **Linguagem**: plpgsql · **Volatilidade**: volatile
 - **Permissão elevada** (`SECURITY DEFINER`): **sim**
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **fiscalizacao**
 
-**Finalidade**: _Sem anotação._
+**Finalidade**: Reivindica trabalhos da fila de relatórios para o worker. Marca como `processing` um trabalho
+específico ou até 10 dos mais antigos em `queued`, e também os `processing` parados há mais que o
+tempo informado. Usa `FOR UPDATE SKIP LOCKED` para que dois workers não peguem o mesmo trabalho.
+
+Desde a migration 141, só a chave de serviço executa; antes, qualquer pessoa podia tomar a fila. *(fonte: supabase/functions/relatorios_worker/index.ts:175, supabase/migrations/141_fix_funcoes_sem_verificacao.sql)*
 
 - **Lê**: [relatorios_jobs](../tabelas/relatorios_jobs.md)
 - **Escreve**: [relatorios_jobs](../tabelas/relatorios_jobs.md)
 - **Chama**: —
 - **Chamada por (banco)**: —
-- **Chamada por (telas e edge functions, anotado)**: _Sem anotação._
+- **Chamada por (telas e edge functions, anotado)**: supabase/functions/relatorios_worker/index.ts:175 (chave de serviço)
 
 <details><summary>Código completo (produção)</summary>
 

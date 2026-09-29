@@ -6,9 +6,10 @@
 
 - **Retorno**: `trigger` · **Linguagem**: plpgsql · **Volatilidade**: volatile
 - **Permissão elevada** (`SECURITY DEFINER`): **sim**
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **fiscalizacao**
 
-**Finalidade**: _Sem anotação._
+**Finalidade**: Função do gatilho `tr_camara_fiscalizacoes`. Se a fiscalização vier sem câmara técnica, deduz a
+câmara pelos serviços (`camara_from_servicos`), na criação e quando os serviços mudam. *(fonte: gatilho:public.fiscalizacoes.tr_camara_fiscalizacoes, funcao:camara_from_servicos(p_servicos text[]))*
 
 - **Lê**: —
 - **Escreve**: —

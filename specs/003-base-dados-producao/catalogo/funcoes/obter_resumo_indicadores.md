@@ -8,9 +8,11 @@
 
 - **Retorno**: `jsonb` · **Linguagem**: plpgsql · **Volatilidade**: volatile
 - **Permissão elevada** (`SECURITY DEFINER`): **sim**
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **fiscalizacao**
 
-**Finalidade**: _Sem anotação._
+**Finalidade**: Versão antiga dos indicadores, com o filtro "apenas finalizadas" em vez de módulos e sem unidades
+nem fotos. **Sem uso**: a tela chama a versão com `p_tipo_modulo`. Desde a migration 141, também
+exige perfil ativo que não seja prestador. *(fonte: src/pages/Relatorios.jsx:574, supabase/migrations/141_fix_funcoes_sem_verificacao.sql)*
 
 - **Lê**: [constatacoes_manuais](../tabelas/constatacoes_manuais.md), [determinacoes](../tabelas/determinacoes.md), [fiscalizacoes](../tabelas/fiscalizacoes.md), [municipios](../tabelas/municipios.md), [nao_conformidades](../tabelas/nao_conformidades.md), [recomendacoes](../tabelas/recomendacoes.md), [respostas_checklist](../tabelas/respostas_checklist.md), [unidades_fiscalizadas](../tabelas/unidades_fiscalizadas.md)
 - **Escreve**: —
@@ -148,15 +150,31 @@ $function$
 
 - **Retorno**: `jsonb` · **Linguagem**: plpgsql · **Volatilidade**: volatile
 - **Permissão elevada** (`SECURITY DEFINER`): **sim**
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **fiscalizacao**
 
-**Finalidade**: _Sem anotação._
+**Finalidade**: Indicadores da tela de Relatórios, filtrados por ano, serviços, municípios, prestadores e
+módulos:
+
+- **Fiscalizações:** total e finalizadas.
+- **Das finalizadas:** unidades, fotos, NCs, determinações, recomendações, constatações e
+  conformidades (constatações menos NCs).
+- **Distribuição por serviço.**
+- **Ranking dos 10 municípios com mais determinações.**
+
+É a versão em uso: a tela passa os módulos da diretoria do usuário, ou a câmara escolhida pelo
+admin. Roda com permissão elevada e não filtra por câmara.
+
+Desde a migration 141, exige perfil ativo que não seja prestador (ou a chave de serviço). Antes,
+qualquer pessoa, inclusive sem login, podia executá-la. *(fonte: src/pages/Relatorios.jsx:574, supabase/migrations/141_fix_funcoes_sem_verificacao.sql)*
+
+**Regra de negócio**: Definição dos indicadores (o que conta como constatação, conformidade e NC, e o recorte por
+finalizadas). A spec de relatórios e indicadores deve descrevê-la.
 
 - **Lê**: [determinacoes](../tabelas/determinacoes.md), [fiscalizacoes](../tabelas/fiscalizacoes.md), [municipios](../tabelas/municipios.md), [nao_conformidades](../tabelas/nao_conformidades.md), [recomendacoes](../tabelas/recomendacoes.md), [unidades_fiscalizadas](../tabelas/unidades_fiscalizadas.md)
 - **Escreve**: —
 - **Chama**: —
 - **Chamada por (banco)**: —
-- **Chamada por (telas e edge functions, anotado)**: _Sem anotação._
+- **Chamada por (telas e edge functions, anotado)**: src/pages/Relatorios.jsx:574 (painel de indicadores)
 
 <details><summary>Código completo (produção)</summary>
 

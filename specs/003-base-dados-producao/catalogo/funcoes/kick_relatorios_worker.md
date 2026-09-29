@@ -6,15 +6,20 @@
 
 - **Retorno**: `void` · **Linguagem**: plpgsql · **Volatilidade**: volatile
 - **Permissão elevada** (`SECURITY DEFINER`): **sim**
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **fiscalizacao**
 
-**Finalidade**: _Sem anotação._
+**Finalidade**: Dispara o worker de relatórios por HTTP (`pg_net`), logo depois de um pedido entrar na fila. Lê
+do cofre (Vault) a chave de invocação e o segredo do worker (`RELATORIOS_INVOKE_APIKEY`,
+`RELATORIOS_WORKER_SECRET`). Sem os dois segredos, não faz nada. O endereço do projeto de produção
+está fixo no código.
+
+Desde a migration 141, só a chave de serviço executa. *(fonte: supabase/functions/relatorios_enqueue/index.ts:137, inventário: vault_nomes, supabase/migrations/141_fix_funcoes_sem_verificacao.sql)*
 
 - **Lê**: —
 - **Escreve**: —
 - **Chama**: —
 - **Chamada por (banco)**: —
-- **Chamada por (telas e edge functions, anotado)**: _Sem anotação._
+- **Chamada por (telas e edge functions, anotado)**: supabase/functions/relatorios_enqueue/index.ts:137 (chave de serviço)
 
 <details><summary>Código completo (produção)</summary>
 

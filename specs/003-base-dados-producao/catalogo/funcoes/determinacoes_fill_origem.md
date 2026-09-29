@@ -6,9 +6,12 @@
 
 - **Retorno**: `trigger` · **Linguagem**: plpgsql · **Volatilidade**: volatile
 - **Permissão elevada** (`SECURITY DEFINER`): **sim**
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **fiscalizacao**
 
-**Finalidade**: _Sem anotação._
+**Finalidade**: Função de gatilho que preencheria a `origem` de uma determinação sem origem: `checklist:<item>`,
+quando a NC veio de resposta do checklist, ou `legacy:<id>`. **Sem uso**: nenhum gatilho de
+produção a chama. Hoje a origem vem de `gerar_ncs_unidade`, do aparelho ou do padrão da coluna
+(`legacy:<uuid novo>`). *(fonte: tabela:determinacoes, coluna:determinacoes.origem)*
 
 - **Lê**: [nao_conformidades](../tabelas/nao_conformidades.md), [respostas_checklist](../tabelas/respostas_checklist.md)
 - **Escreve**: —

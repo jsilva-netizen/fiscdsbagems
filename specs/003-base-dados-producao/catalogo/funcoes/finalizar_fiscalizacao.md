@@ -6,15 +6,38 @@
 
 - **Retorno**: `jsonb` · **Linguagem**: plpgsql · **Volatilidade**: volatile
 - **Permissão elevada** (`SECURITY DEFINER`): **sim**
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **fiscalizacao**
 
-**Finalidade**: _Sem anotação._
+**Finalidade**: Finaliza uma fiscalização no servidor:
+
+1. calcula o número do termo (`NNN/AAAA`, posição da fiscalização no ano, entre todas as
+   câmaras);
+2. roda `gerar_ncs_unidade` em cada unidade;
+3. conta unidades, constatações, NCs, determinações e recomendações;
+4. marca a fiscalização como `finalizada`, com data de fim (a existente é preservada) e número do
+   termo;
+5. devolve os totais.
+
+Também tenta gravar totais em colunas que não existem em `fiscalizacoes`, e por isso não grava.
+
+**Quem chama:**
+
+- a sincronização do app, quando o fiscal finaliza offline e a fila envia;
+- desde a migration 141, também o pedido de relatório (`relatorios_enqueue`), com a chave de
+  serviço, para regenerar NCs e totais antes do PDF.
+
+**Quem pode:** admin, coordenador e fiscal ativos e a chave de serviço. Os demais recebem "acesso
+negado" como resposta, sem erro. O app trata essa resposta como erro. *(fonte: src/lib/offline/syncEngine.ts:991, supabase/functions/relatorios_enqueue/index.ts:99, supabase/migrations/141_fix_funcoes_sem_verificacao.sql, coluna:fiscalizacoes.numero_termo)*
+
+**Regra de negócio**: Finalização da fiscalização e numeração do termo por posição no ano. A spec de fiscalização deve
+descrever as duas regras e corrigir a numeração, que muda se uma fiscalização anterior for
+excluída.
 
 - **Lê**: [constatacoes_manuais](../tabelas/constatacoes_manuais.md), [determinacoes](../tabelas/determinacoes.md), [fiscalizacoes](../tabelas/fiscalizacoes.md), [nao_conformidades](../tabelas/nao_conformidades.md), [recomendacoes](../tabelas/recomendacoes.md), [respostas_checklist](../tabelas/respostas_checklist.md), [unidades_fiscalizadas](../tabelas/unidades_fiscalizadas.md)
 - **Escreve**: [fiscalizacoes](../tabelas/fiscalizacoes.md)
 - **Chama**: [gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)](../funcoes/gerar_ncs_unidade.md), [get_my_role()](../funcoes/get_my_role.md)
 - **Chamada por (banco)**: —
-- **Chamada por (telas e edge functions, anotado)**: _Sem anotação._
+- **Chamada por (telas e edge functions, anotado)**: src/lib/offline/syncEngine.ts:991 (fila offline: finalizacao_fiscalizacao), supabase/functions/relatorios_enqueue/index.ts:99 (antes de gerar o relatório)
 
 <details><summary>Código completo (produção)</summary>
 

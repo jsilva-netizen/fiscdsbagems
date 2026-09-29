@@ -1,0 +1,7 @@
+[objeto."funcao:trg_fiscalizacao_set_camara()"]
+modulo = "fiscalizacao"
+finalidade = """
+Função do gatilho `tr_camara_fiscalizacoes`. Se a fiscalização vier sem câmara técnica, deduz a
+câmara pelos serviços (`camara_from_servicos`), na criação e quando os serviços mudam.
+"""
+fonte = ["gatilho:public.fiscalizacoes.tr_camara_fiscalizacoes", "funcao:camara_from_servicos(p_servicos text[])"]

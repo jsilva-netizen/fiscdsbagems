@@ -6,9 +6,12 @@
 
 - **Retorno**: `trigger` · **Linguagem**: plpgsql · **Volatilidade**: volatile
 - **Permissão elevada** (`SECURITY DEFINER`): **sim**
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **fiscalizacao**
 
-**Finalidade**: _Sem anotação._
+**Finalidade**: Função do gatilho `trg_set_fiscalizacao_cache_fields`. Antes de gravar uma fiscalização, copia os
+nomes do município e do prestador a partir dos ids e, se o nome do fiscal vier vazio, usa o nome
+do perfil de quem grava. O aparelho também preenche esses nomes; os dois concordam hoje (débito 9
+da spec 001). *(fonte: gatilho:public.fiscalizacoes.trg_set_fiscalizacao_cache_fields, specs/001-data-access-abstraction/debitos-tecnicos-e-inconsistencias.md)*
 
 - **Lê**: [municipios](../tabelas/municipios.md), [prestadores_servico](../tabelas/prestadores_servico.md), [profiles](../tabelas/profiles.md), `externo:auth.uid`
 - **Escreve**: —

@@ -1,0 +1,36 @@
+[objeto."funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)"]
+modulo = "fiscalizacao"
+finalidade = """
+Consolida uma unidade vistoriada: recria as não conformidades e ajusta determinações e
+recomendações a partir das respostas do checklist e das constatações manuais. Depois recalcula os
+totais, grava a lista de fotos recebida e, se pedido, finaliza a unidade.
+
+**Regras:**
+
+- **NCs:** apaga e recria todas. Resposta Não em item que gera NC, ou constatação manual marcada
+  como NC, gera uma NC numerada em sequência pela fiscalização, continuando das unidades
+  finalizadas antes.
+- **Determinação:** se o item ou a constatação tem texto de determinação, gera "Sanar NC<n>.
+  <texto>", com o prazo do item ou 30 dias. Se já existe uma com a mesma `origem`, só religa a NC
+  e preserva o texto editado.
+- **Recomendação:** sem texto de determinação, mas com texto de recomendação, gera uma
+  recomendação preservada pela `origem` do mesmo jeito.
+- **Órfãs:** determinações e recomendações que perderam a origem são apagadas.
+- **Totais:** grava os de constatações e NCs; os de determinações e recomendações, não.
+
+**Quem chama:** só `finalizar_fiscalizacao`, para cada unidade. O app não a chama diretamente.
+
+**Quem pode:** admin, coordenador e fiscal ativos e, desde a migration 141, a chave de serviço.
+Os outros recebem uma resposta de "acesso negado", sem erro.
+"""
+fonte = [
+  "funcao:finalizar_fiscalizacao(p_fiscalizacao_id uuid)",
+  "src/lib/offline/repository.ts:2392",
+  "supabase/migrations/141_fix_funcoes_sem_verificacao.sql",
+]
+chamada_por = ["funcao finalizar_fiscalizacao (uma vez por unidade)"]
+regra_de_negocio = """
+Geração de NCs, determinações e recomendações a partir da vistoria, numeração das NCs pela
+fiscalização e preservação de edições da equipe pela origem. É a regra central da spec de
+fiscalização.
+"""

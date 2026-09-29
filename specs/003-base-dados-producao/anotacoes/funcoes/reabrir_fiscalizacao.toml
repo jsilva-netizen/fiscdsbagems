@@ -1,0 +1,27 @@
+[objeto."funcao:reabrir_fiscalizacao(p_fiscalizacao_id uuid)"]
+modulo = "fiscalizacao"
+finalidade = """
+Reabre uma fiscalização finalizada:
+
+- volta a fiscalização e todas as unidades para `em_andamento`;
+- apaga a data de fim;
+- apaga os trabalhos de relatório, para forçar um relatório novo.
+
+Tenta 3 vezes em caso de deadlock. O app a chama pela fila offline e, antes, retira da fila as
+finalizações pendentes, para não refinalizar.
+
+**Quem pode:** desde a migration 141, só a chave de serviço ou admin, coordenador e fiscal ativos
+com acesso à câmara da fiscalização (`can_access_camara`); os demais recebem erro. Antes,
+qualquer pessoa, inclusive sem login, podia executá-la.
+"""
+fonte = [
+  "src/lib/offline/syncEngine.ts:1008",
+  "src/lib/offline/repository.ts:2416",
+  "supabase/migrations/141_fix_funcoes_sem_verificacao.sql",
+  ".specify/bugs/funcoes-sem-verificacao/assessment.md",
+]
+chamada_por = ["src/lib/offline/syncEngine.ts:1008 (fila offline: reabrir_fiscalizacao)"]
+regra_de_negocio = """
+Reabrir desfaz a finalização e invalida os relatórios. A spec de fiscalização deve dizer quem
+pode reabrir e o que acontece com NCs e números já emitidos.
+"""

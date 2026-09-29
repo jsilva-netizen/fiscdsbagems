@@ -13,14 +13,15 @@ Não conformidades (NCs) de cada unidade: uma para cada resposta Não em item qu
 cada constatação manual marcada como NC. Produção tem 478.
 
 São totalmente derivadas: `gerar_ncs_unidade` apaga todas as NCs da unidade e as recria a cada
-execução, na sincronização da vistoria e na finalização. A numeração (NC1, NC2…) continua de uma
-unidade para a outra dentro da fiscalização.
+execução. Ela roda na finalização da fiscalização e, desde a migration 141, também no pedido de
+relatório. Durante a vistoria, o app cria determinações e recomendações, mas não NCs. A numeração
+(NC1, NC2…) continua de uma unidade para a outra dentro da fiscalização.
 
 Nenhuma tela as edita. A única outra gravação é a importação de uma fiscalização exportada
 (Exportar/Importar), que insere as NCs do arquivo.
 
 Ao serem recriadas, as determinações perdem o vínculo com a NC antiga (`ON DELETE SET NULL`) e
-recebem o da nova. *(fonte: funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean), src/pages/ExportarImportar.jsx:363, restricao:determinacoes.determinacoes_nao_conformidade_id_fkey, inventário: dominio_categorico)*
+recebem o da nova. *(fonte: funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean), src/pages/ExportarImportar.jsx:363, src/lib/offline/repository.ts:2392, supabase/migrations/141_fix_funcoes_sem_verificacao.sql, restricao:determinacoes.determinacoes_nao_conformidade_id_fkey, inventário: dominio_categorico)*
 
 ## Colunas
 

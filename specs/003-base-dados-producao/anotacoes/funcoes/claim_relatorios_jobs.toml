@@ -1,0 +1,14 @@
+[objeto."funcao:claim_relatorios_jobs(p_limit integer, p_job_id uuid, p_stale_minutes integer)"]
+modulo = "fiscalizacao"
+finalidade = """
+Reivindica trabalhos da fila de relatórios para o worker. Marca como `processing` um trabalho
+específico ou até 10 dos mais antigos em `queued`, e também os `processing` parados há mais que o
+tempo informado. Usa `FOR UPDATE SKIP LOCKED` para que dois workers não peguem o mesmo trabalho.
+
+Desde a migration 141, só a chave de serviço executa; antes, qualquer pessoa podia tomar a fila.
+"""
+fonte = [
+  "supabase/functions/relatorios_worker/index.ts:175",
+  "supabase/migrations/141_fix_funcoes_sem_verificacao.sql",
+]
+chamada_por = ["supabase/functions/relatorios_worker/index.ts:175 (chave de serviço)"]

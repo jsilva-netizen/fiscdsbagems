@@ -6,9 +6,11 @@
 
 - **Retorno**: `trigger` · **Linguagem**: plpgsql · **Volatilidade**: volatile
 - **Permissão elevada** (`SECURITY DEFINER`): **sim**
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **processo_sancionador**
 
-**Finalidade**: _Sem anotação._
+**Finalidade**: Função do gatilho `tr_camara_autos`. Se o auto de infração vier sem câmara, copia a câmara da
+fiscalização de origem. Pertence ao processo sancionador (a tarefa T027 a listava na
+fiscalização): age sobre `autos_infracao` e só lê a fiscalização. *(fonte: gatilho:public.autos_infracao.tr_camara_autos)*
 
 - **Lê**: [fiscalizacoes](../tabelas/fiscalizacoes.md)
 - **Escreve**: —

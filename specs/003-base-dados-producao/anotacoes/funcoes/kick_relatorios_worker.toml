@@ -1,0 +1,16 @@
+[objeto."funcao:kick_relatorios_worker(p_job_id uuid, p_limit integer)"]
+modulo = "fiscalizacao"
+finalidade = """
+Dispara o worker de relatórios por HTTP (`pg_net`), logo depois de um pedido entrar na fila. Lê
+do cofre (Vault) a chave de invocação e o segredo do worker (`RELATORIOS_INVOKE_APIKEY`,
+`RELATORIOS_WORKER_SECRET`). Sem os dois segredos, não faz nada. O endereço do projeto de produção
+está fixo no código.
+
+Desde a migration 141, só a chave de serviço executa.
+"""
+fonte = [
+  "supabase/functions/relatorios_enqueue/index.ts:137",
+  "inventário: vault_nomes",
+  "supabase/migrations/141_fix_funcoes_sem_verificacao.sql",
+]
+chamada_por = ["supabase/functions/relatorios_enqueue/index.ts:137 (chave de serviço)"]

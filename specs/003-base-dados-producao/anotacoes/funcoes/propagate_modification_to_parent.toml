@@ -1,0 +1,13 @@
+[objeto."funcao:propagate_modification_to_parent()"]
+modulo = "fiscalizacao"
+finalidade = """
+Função de gatilho: quando algo muda numa unidade, resposta, constatação, determinação ou
+recomendação, atualiza `updated_at` da fiscalização a que pertence. Assim, a sincronização
+incremental dos aparelhos baixa de novo a fiscalização inteira. Usada pelos 5 gatilhos
+`trg_propagate_*`.
+"""
+fonte = [
+  "gatilho:public.unidades_fiscalizadas.trg_propagate_unidades",
+  "gatilho:public.respostas_checklist.trg_propagate_respostas",
+  "src/lib/offline/syncEngine.ts:1702",
+]

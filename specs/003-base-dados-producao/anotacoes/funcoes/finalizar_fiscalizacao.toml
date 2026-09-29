@@ -1,0 +1,39 @@
+[objeto."funcao:finalizar_fiscalizacao(p_fiscalizacao_id uuid)"]
+modulo = "fiscalizacao"
+finalidade = """
+Finaliza uma fiscalização no servidor:
+
+1. calcula o número do termo (`NNN/AAAA`, posição da fiscalização no ano, entre todas as
+   câmaras);
+2. roda `gerar_ncs_unidade` em cada unidade;
+3. conta unidades, constatações, NCs, determinações e recomendações;
+4. marca a fiscalização como `finalizada`, com data de fim (a existente é preservada) e número do
+   termo;
+5. devolve os totais.
+
+Também tenta gravar totais em colunas que não existem em `fiscalizacoes`, e por isso não grava.
+
+**Quem chama:**
+
+- a sincronização do app, quando o fiscal finaliza offline e a fila envia;
+- desde a migration 141, também o pedido de relatório (`relatorios_enqueue`), com a chave de
+  serviço, para regenerar NCs e totais antes do PDF.
+
+**Quem pode:** admin, coordenador e fiscal ativos e a chave de serviço. Os demais recebem "acesso
+negado" como resposta, sem erro. O app trata essa resposta como erro.
+"""
+fonte = [
+  "src/lib/offline/syncEngine.ts:991",
+  "supabase/functions/relatorios_enqueue/index.ts:99",
+  "supabase/migrations/141_fix_funcoes_sem_verificacao.sql",
+  "coluna:fiscalizacoes.numero_termo",
+]
+chamada_por = [
+  "src/lib/offline/syncEngine.ts:991 (fila offline: finalizacao_fiscalizacao)",
+  "supabase/functions/relatorios_enqueue/index.ts:99 (antes de gerar o relatório)",
+]
+regra_de_negocio = """
+Finalização da fiscalização e numeração do termo por posição no ano. A spec de fiscalização deve
+descrever as duas regras e corrigir a numeração, que muda se uma fiscalização anterior for
+excluída.
+"""
