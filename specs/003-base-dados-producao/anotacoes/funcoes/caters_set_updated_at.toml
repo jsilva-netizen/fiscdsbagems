@@ -1,0 +1,8 @@
+[objeto."funcao:caters_set_updated_at()"]
+modulo = "caters"
+finalidade = """
+Função genérica de gatilho das tabelas do CATERS: grava a hora atual em `updated_at` antes de
+cada alteração. Usada em processos, recomendações, respostas do município e trabalhos de IA.
+Repete `update_updated_at_column` do core.
+"""
+fonte = ["gatilho:public.caters_processes.trg_caters_processes_updated_at", "funcao:update_updated_at_column()"]

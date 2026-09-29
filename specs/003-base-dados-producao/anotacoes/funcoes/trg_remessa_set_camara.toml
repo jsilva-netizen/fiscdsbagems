@@ -1,0 +1,7 @@
+[objeto."funcao:trg_remessa_set_camara()"]
+modulo = "processo_sancionador"
+finalidade = """
+Função do gatilho `tr_camara_remessas`. Se a remessa de autos vier sem câmara, copia a câmara da
+fiscalização. É idêntica a `trg_auto_set_camara`.
+"""
+fonte = ["gatilho:public.remessas_ai.tr_camara_remessas", "funcao:trg_auto_set_camara()"]

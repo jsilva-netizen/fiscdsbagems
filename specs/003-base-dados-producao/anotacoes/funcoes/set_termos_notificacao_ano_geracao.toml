@@ -1,0 +1,8 @@
+[objeto."funcao:set_termos_notificacao_ano_geracao()"]
+modulo = "processo_sancionador"
+finalidade = """
+Função do gatilho `trg_termos_notificacao_set_ano_geracao`: grava em `ano_geracao` o ano de
+`data_geracao` (ou o atual). O ano entra na unicidade do número do relatório por tipo, câmara e
+ano.
+"""
+fonte = ["gatilho:public.termos_notificacao.trg_termos_notificacao_set_ano_geracao", "indice:termos_notificacao_tipo_camara_numero_ano_uniq"]

@@ -6,9 +6,11 @@
 
 - **Retorno**: `trigger` · **Linguagem**: plpgsql · **Volatilidade**: volatile
 - **Permissão elevada** (`SECURITY DEFINER`): não
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **processo_sancionador**
 
-**Finalidade**: _Sem anotação._
+**Finalidade**: Função do gatilho `trg_termos_notificacao_set_ano_geracao`: grava em `ano_geracao` o ano de
+`data_geracao` (ou o atual). O ano entra na unicidade do número do relatório por tipo, câmara e
+ano. *(fonte: gatilho:public.termos_notificacao.trg_termos_notificacao_set_ano_geracao, indice:termos_notificacao_tipo_camara_numero_ano_uniq)*
 
 - **Lê**: —
 - **Escreve**: —

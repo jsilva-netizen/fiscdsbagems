@@ -1,0 +1,14 @@
+[objeto."funcao:claim_caters_ai_jobs(p_limit integer, p_job_id uuid, p_stale_minutes integer)"]
+modulo = "caters"
+finalidade = """
+Reivindica trabalhos da fila de IA do CATERS para o worker: marca como `processing` um trabalho
+específico ou os mais antigos em `queued`, e também os `processing` parados.
+
+Desde a migration 141, só a chave de serviço executa. Antes, qualquer pessoa podia tomar a fila e
+ler os resultados das análises.
+"""
+fonte = [
+  "supabase/functions/caters_ai_worker/index.ts:30",
+  "supabase/migrations/141_fix_funcoes_sem_verificacao.sql",
+]
+chamada_por = ["supabase/functions/caters_ai_worker/index.ts:30 (chave de serviço)"]

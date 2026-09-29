@@ -1,0 +1,20 @@
+[objeto."funcao:caters_import_from_fiscalizacao(p_fiscalizacao_id uuid, p_caters_process_id uuid, p_prazo_dias integer)"]
+modulo = "caters"
+finalidade = """
+Importa para um processo CATERS as recomendações e as determinações de uma fiscalização:
+
+- **Duplicidade:** não importa duas vezes o mesmo item.
+- **Recomendações:** entram com prazo igual ao fim da fiscalização mais os dias informados (30
+  pela tela) e prioridade média.
+- **Determinações:** entram com o prazo da coluna antiga `prazo`, hoje sempre vazio.
+- **Retorno:** devolve quantos itens importou.
+
+Só usuário da CATERS ou admin (`is_caters_user`); os demais recebem erro. Roda com permissão
+elevada.
+"""
+fonte = ["src/lib/caters/processes.js:117", "funcao:is_caters_user()", "coluna:determinacoes.prazo"]
+chamada_por = ["src/lib/caters/processes.js:117 (ao ligar uma fiscalização ao processo)"]
+regra_de_negocio = """
+O acompanhamento do CATERS parte das recomendações e determinações da fiscalização, com prazo
+contado do fim dela. A spec do CATERS deve descrever essa regra.
+"""

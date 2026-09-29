@@ -6,15 +6,27 @@
 
 - **Retorno**: `integer` · **Linguagem**: plpgsql · **Volatilidade**: volatile
 - **Permissão elevada** (`SECURITY DEFINER`): **sim**
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **caters**
 
-**Finalidade**: _Sem anotação._
+**Finalidade**: Importa para um processo CATERS as recomendações e as determinações de uma fiscalização:
+
+- **Duplicidade:** não importa duas vezes o mesmo item.
+- **Recomendações:** entram com prazo igual ao fim da fiscalização mais os dias informados (30
+  pela tela) e prioridade média.
+- **Determinações:** entram com o prazo da coluna antiga `prazo`, hoje sempre vazio.
+- **Retorno:** devolve quantos itens importou.
+
+Só usuário da CATERS ou admin (`is_caters_user`); os demais recebem erro. Roda com permissão
+elevada. *(fonte: src/lib/caters/processes.js:117, funcao:is_caters_user(), coluna:determinacoes.prazo)*
+
+**Regra de negócio**: O acompanhamento do CATERS parte das recomendações e determinações da fiscalização, com prazo
+contado do fim dela. A spec do CATERS deve descrever essa regra.
 
 - **Lê**: [caters_recommendations](../tabelas/caters_recommendations.md), [determinacoes](../tabelas/determinacoes.md), [fiscalizacoes](../tabelas/fiscalizacoes.md), [recomendacoes](../tabelas/recomendacoes.md), [unidades_fiscalizadas](../tabelas/unidades_fiscalizadas.md), `externo:auth.uid`
 - **Escreve**: [caters_processes](../tabelas/caters_processes.md), [caters_recommendations](../tabelas/caters_recommendations.md)
 - **Chama**: [is_caters_user()](../funcoes/is_caters_user.md)
 - **Chamada por (banco)**: —
-- **Chamada por (telas e edge functions, anotado)**: _Sem anotação._
+- **Chamada por (telas e edge functions, anotado)**: src/lib/caters/processes.js:117 (ao ligar uma fiscalização ao processo)
 
 <details><summary>Código completo (produção)</summary>
 

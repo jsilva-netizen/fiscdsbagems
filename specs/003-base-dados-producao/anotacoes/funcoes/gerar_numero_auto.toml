@@ -1,0 +1,17 @@
+[objeto."funcao:gerar_numero_auto()"]
+modulo = "processo_sancionador"
+finalidade = """
+Gera o número do próximo auto de infração: `AI NNN/AAAA/DSB/AGEMS`. É a quantidade de autos
+criados no ano, mais 1.
+
+Tem os mesmos problemas de `gerar_numero_am`:
+
+- a contagem usa as permissões de quem chama;
+- pode repetir números em pedidos simultâneos ou depois de exclusões;
+- "DSB" é fixo.
+
+É chamada uma vez por auto emitido na Análise da Manifestação.
+"""
+fonte = ["src/lib/offline/repository.ts:1481", "src/pages/AnaliseManifestacao.jsx:271", "coluna:autos_infracao.numero_auto"]
+chamada_por = ["src/pages/AnaliseManifestacao.jsx:271 (um por determinação não atendida)"]
+regra_de_negocio = "Numeração anual dos autos de infração; mesma recomendação da AM."

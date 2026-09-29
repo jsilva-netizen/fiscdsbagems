@@ -6,9 +6,11 @@
 
 - **Retorno**: `trigger` · **Linguagem**: plpgsql · **Volatilidade**: volatile
 - **Permissão elevada** (`SECURITY DEFINER`): não
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **caters**
 
-**Finalidade**: _Sem anotação._
+**Finalidade**: Função genérica de gatilho das tabelas do CATERS: grava a hora atual em `updated_at` antes de
+cada alteração. Usada em processos, recomendações, respostas do município e trabalhos de IA.
+Repete `update_updated_at_column` do core. *(fonte: gatilho:public.caters_processes.trg_caters_processes_updated_at, funcao:update_updated_at_column())*
 
 - **Lê**: —
 - **Escreve**: —

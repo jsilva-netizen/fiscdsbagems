@@ -6,15 +6,26 @@
 
 - **Retorno**: `text` · **Linguagem**: plpgsql · **Volatilidade**: volatile
 - **Permissão elevada** (`SECURITY DEFINER`): não
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **processo_sancionador**
 
-**Finalidade**: _Sem anotação._
+**Finalidade**: Gera o número do próximo auto de infração: `AI NNN/AAAA/DSB/AGEMS`. É a quantidade de autos
+criados no ano, mais 1.
+
+Tem os mesmos problemas de `gerar_numero_am`:
+
+- a contagem usa as permissões de quem chama;
+- pode repetir números em pedidos simultâneos ou depois de exclusões;
+- "DSB" é fixo.
+
+É chamada uma vez por auto emitido na Análise da Manifestação. *(fonte: src/lib/offline/repository.ts:1481, src/pages/AnaliseManifestacao.jsx:271, coluna:autos_infracao.numero_auto)*
+
+**Regra de negócio**: Numeração anual dos autos de infração; mesma recomendação da AM.
 
 - **Lê**: [autos_infracao](../tabelas/autos_infracao.md)
 - **Escreve**: —
 - **Chama**: —
 - **Chamada por (banco)**: —
-- **Chamada por (telas e edge functions, anotado)**: _Sem anotação._
+- **Chamada por (telas e edge functions, anotado)**: src/pages/AnaliseManifestacao.jsx:271 (um por determinação não atendida)
 
 <details><summary>Código completo (produção)</summary>
 

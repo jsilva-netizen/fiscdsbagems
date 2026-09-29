@@ -15,7 +15,7 @@ Páginas gerais: [repositórios de arquivos](arquivos.md) · [controle de acesso
 | Colunas | 446 | 0 |
 | Restrições | 113 | — |
 | Índices | 80 | — |
-| Funções | 38 | 7 |
+| Funções | 38 | 0 |
 | Gatilhos | 30 | 1 |
 | Políticas de acesso | 173 | 40 |
 | Tipos | 5 | 5 |
@@ -29,7 +29,7 @@ Páginas gerais: [repositórios de arquivos](arquivos.md) · [controle de acesso
 
 ## Completude
 
-Completude: 113 objetos sem anotação | 133 sem dono | 0 divergências não classificadas | 0 violações de ordem | 0 achados aguardando decisão
+Completude: 106 objetos sem anotação | 98 sem dono | 0 divergências não classificadas | 0 violações de ordem | 0 achados aguardando decisão
 
 ## Por módulo
 
@@ -57,15 +57,13 @@ Tabelas e views: [tipos_ocorrencia_dtr](tabelas/tipos_ocorrencia_dtr.md)
 
 Tabelas e views: [autos_infracao](tabelas/autos_infracao.md) · [julgamentos](tabelas/julgamentos.md) · [manifestacoes_auto](tabelas/manifestacoes_auto.md) · [pareceres_tecnicos](tabelas/pareceres_tecnicos.md) · [remessas_ai](tabelas/remessas_ai.md) · [remessas_ai_itens](tabelas/remessas_ai_itens.md) · [respostas_determinacao](tabelas/respostas_determinacao.md) · [termos_notificacao](tabelas/termos_notificacao.md)
 
-Funções: [trg_auto_set_camara](funcoes/trg_auto_set_camara.md)
+Funções: [gerar_numero_am](funcoes/gerar_numero_am.md) · [gerar_numero_auto](funcoes/gerar_numero_auto.md) · [set_termos_notificacao_ano_geracao](funcoes/set_termos_notificacao_ano_geracao.md) · [trg_auto_set_camara](funcoes/trg_auto_set_camara.md) · [trg_remessa_set_camara](funcoes/trg_remessa_set_camara.md)
 
 ### caters
 
 Tabelas e views: [caters_ai_jobs](tabelas/caters_ai_jobs.md) · [caters_analysis_history](tabelas/caters_analysis_history.md) · [caters_deadline_extensions](tabelas/caters_deadline_extensions.md) · [caters_extra_documents](tabelas/caters_extra_documents.md) · [caters_fiscalizacoes_disponiveis](tabelas/caters_fiscalizacoes_disponiveis.md) · [caters_municipality_responses](tabelas/caters_municipality_responses.md) · [caters_notification_reads](tabelas/caters_notification_reads.md) · [caters_processes](tabelas/caters_processes.md) · [caters_recommendations](tabelas/caters_recommendations.md)
 
-### sem dono (lacuna)
-
-Funções: [caters_import_from_fiscalizacao](funcoes/caters_import_from_fiscalizacao.md) · [caters_set_updated_at](funcoes/caters_set_updated_at.md) · [claim_caters_ai_jobs](funcoes/claim_caters_ai_jobs.md) · [gerar_numero_am](funcoes/gerar_numero_am.md) · [gerar_numero_auto](funcoes/gerar_numero_auto.md) · [set_termos_notificacao_ano_geracao](funcoes/set_termos_notificacao_ano_geracao.md) · [trg_remessa_set_camara](funcoes/trg_remessa_set_camara.md)
+Funções: [caters_import_from_fiscalizacao](funcoes/caters_import_from_fiscalizacao.md) · [caters_set_updated_at](funcoes/caters_set_updated_at.md) · [claim_caters_ai_jobs](funcoes/claim_caters_ai_jobs.md)
 
 ## Anotações marcadas como hipótese (para revisão)
 

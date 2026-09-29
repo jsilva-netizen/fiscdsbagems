@@ -6,9 +6,10 @@
 
 - **Retorno**: `trigger` · **Linguagem**: plpgsql · **Volatilidade**: volatile
 - **Permissão elevada** (`SECURITY DEFINER`): **sim**
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **processo_sancionador**
 
-**Finalidade**: _Sem anotação._
+**Finalidade**: Função do gatilho `tr_camara_remessas`. Se a remessa de autos vier sem câmara, copia a câmara da
+fiscalização. É idêntica a `trg_auto_set_camara`. *(fonte: gatilho:public.remessas_ai.tr_camara_remessas, funcao:trg_auto_set_camara())*
 
 - **Lê**: [fiscalizacoes](../tabelas/fiscalizacoes.md)
 - **Escreve**: —

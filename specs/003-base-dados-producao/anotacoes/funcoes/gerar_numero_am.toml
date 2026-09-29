@@ -1,0 +1,17 @@
+[objeto."funcao:gerar_numero_am()"]
+modulo = "processo_sancionador"
+finalidade = """
+Gera o número da próxima Análise da Manifestação: `AM NNN/AAAA/DSB/AGEMS`. É a quantidade de
+termos do ano que já têm número de AM, mais 1.
+
+- **Contagem com as permissões de quem chama:** a função não usa permissão elevada, então a
+  contagem só inclui os termos que o usuário vê.
+- **Repetição de números:** dois pedidos ao mesmo tempo, ou uma AM desfeita, podem repetir
+  números.
+- **"DSB" fixo:** a sigla é fixa, qualquer que seja a diretoria.
+"""
+fonte = ["src/lib/offline/repository.ts:1487", "src/pages/AnaliseManifestacao.jsx:261", "coluna:termos_notificacao.numero_am"]
+chamada_por = ["src/pages/AnaliseManifestacao.jsx:261 (ao concluir a Análise da Manifestação)"]
+regra_de_negocio = """
+Numeração anual das AMs. O sistema novo deve usar uma sequência gravada, única e por diretoria.
+"""
