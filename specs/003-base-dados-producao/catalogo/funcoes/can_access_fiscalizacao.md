@@ -6,9 +6,17 @@
 
 - **Retorno**: `boolean` · **Linguagem**: sql · **Volatilidade**: stable
 - **Permissão elevada** (`SECURITY DEFINER`): **sim**
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **core**
 
-**Finalidade**: _Sem anotação._
+**Finalidade**: Diz se o prestador logado pode ver dados de uma fiscalização: só quando existe um termo de
+notificação daquela fiscalização dirigido à entidade dele. Antes do termo, a fiscalização é
+invisível para o prestador.
+
+Usada por 4 políticas, em `unidades_fiscalizadas` e `respostas_determinacao`. Com a migration 137,
+prestador inativo não tem entidade e não passa. *(fonte: funcao:current_prestador_servico_id())*
+
+**Regra de negócio**: O prestador só enxerga uma fiscalização depois de notificado. A spec do portal do prestador e a
+do processo sancionador devem descrever essa regra.
 
 - **Lê**: [termos_notificacao](../tabelas/termos_notificacao.md)
 - **Escreve**: —

@@ -6,9 +6,17 @@
 
 - **Retorno**: `boolean` · **Linguagem**: sql · **Volatilidade**: stable
 - **Permissão elevada** (`SECURITY DEFINER`): **sim**
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **core**
 
-**Finalidade**: _Sem anotação._
+**Finalidade**: Diz se o usuário logado é da equipe da AGEMS que opera o sistema: admin, fiscal ou coordenador,
+ativos. Diretor e prestador ficam de fora.
+
+Usada por 13 políticas (fiscalização, processo sancionador e prestadores), em geral para dar
+acesso total à equipe ao lado de uma política específica para o prestador. Herda de
+`current_role` o filtro de perfil ativo da migration 137. *(fonte: funcao:current_role(), supabase/migrations/137_fix_signup_privilege_escalation.sql)*
+
+**Regra de negócio**: "Equipe" = admin, fiscal e coordenador. O diretor não entra, e o que ele pode fazer precisa ser
+decidido nas specs de módulo, porque nenhuma política o menciona.
 
 - **Lê**: —
 - **Escreve**: —

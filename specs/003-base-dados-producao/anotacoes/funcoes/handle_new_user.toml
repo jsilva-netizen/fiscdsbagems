@@ -1,0 +1,29 @@
+[objeto."funcao:handle_new_user()"]
+modulo = "core"
+finalidade = """
+Cria o perfil (`profiles`) quando uma conta é criada em `auth.users`, pelo gatilho
+`on_auth_user_created`, na mesma transação do cadastro. Os dados vêm dos metadados que a tela de
+cadastro envia:
+
+- **Nome:** o informado; se vier vazio, o e-mail.
+- **Papel:** fiscal, coordenador, diretor ou prestador. Qualquer outro valor vira fiscal, desde a
+  migration 137.
+- **Diretoria:** a escolhida, com `dsb` se vier vazia.
+- **Câmara técnica:** a escolhida.
+- **Prestador:** a entidade escolhida, só para o papel prestador.
+- **Aprovação:** o perfil nasce sempre inativo, aguardando aprovação do admin.
+
+Se já existir perfil com o mesmo id, atualiza só e-mail, nome e data. Antes da migration 137, o
+papel e os vínculos vinham dos metadados sem validação, inclusive `admin`.
+"""
+fonte = [
+  "src/pages/Register.jsx:100",
+  "supabase/migrations/137_fix_signup_privilege_escalation.sql",
+  ".specify/bugs/escalada-privilegio-cadastro/assessment.md",
+]
+chamada_por = ["gatilho on_auth_user_created em auth.users (cadastro: src/pages/Register.jsx:100)"]
+regra_de_negocio = """
+Autocadastro com escolha de papel e vínculo, sempre pendente de aprovação. A spec do core deve
+decidir se o sistema novo mantém a escolha do papel pelo próprio usuário ou se o admin define o
+papel na aprovação.
+"""

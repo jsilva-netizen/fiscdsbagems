@@ -6,9 +6,11 @@
 
 - **Retorno**: `text` · **Linguagem**: sql · **Volatilidade**: stable
 - **Permissão elevada** (`SECURITY DEFINER`): **sim**
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **core**
 
-**Finalidade**: _Sem anotação._
+**Finalidade**: Devolve a diretoria do usuário logado. Nenhuma política, função ou tela a usa hoje: a diretoria só
+tem efeito na interface, que lê o perfil direto. Desde a migration 137, só considera perfil
+ativo. *(fonte: supabase/migrations/137_fix_signup_privilege_escalation.sql, src/hooks/useModulo.js:87)*
 
 - **Lê**: [profiles](../tabelas/profiles.md), `externo:auth.uid`
 - **Escreve**: —

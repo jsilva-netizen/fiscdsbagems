@@ -19,7 +19,7 @@ fonte = [
   "src/hooks/useModulo.js:64",
   "src/lib/camaras.js:5",
   "src/pages/Register.jsx:8",
-  "funcao:can_access_camara(text)",
+  "funcao:can_access_camara(row_camara text)",
 ]
 
 [objeto."coluna:camaras_tecnicas.id"]

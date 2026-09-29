@@ -6,9 +6,15 @@
 
 - **Retorno**: `boolean` · **Linguagem**: sql · **Volatilidade**: stable
 - **Permissão elevada** (`SECURITY DEFINER`): **sim**
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **core**
 
-**Finalidade**: _Sem anotação._
+**Finalidade**: Diz se o usuário logado pode usar o módulo CATERS: admin ou qualquer usuário da câmara `caters`,
+ativo. Usada por 15 políticas nas 7 tabelas do CATERS e por `caters_import_from_fiscalizacao`.
+
+Para quem não é da câmara, devolve nulo em vez de falso, com o mesmo efeito nas políticas. *(fonte: funcao:get_my_camara_tecnica(), funcao:caters_import_from_fiscalizacao(p_fiscalizacao_id uuid, p_caters_process_id uuid, p_prazo_dias integer), supabase/migrations/137_fix_signup_privilege_escalation.sql)*
+
+**Regra de negócio**: O CATERS é acessível só à sua câmara e aos admins, qualquer que seja o papel dentro da câmara. A
+spec do módulo CATERS deve descrever isso.
 
 - **Lê**: —
 - **Escreve**: —

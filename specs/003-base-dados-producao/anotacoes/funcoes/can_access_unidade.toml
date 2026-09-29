@@ -1,0 +1,11 @@
+[objeto."funcao:can_access_unidade(unidade uuid)"]
+modulo = "core"
+finalidade = """
+Mesma regra de `can_access_fiscalizacao`, partindo de uma unidade fiscalizada: o prestador vê a
+unidade se a fiscalização dela tem termo de notificação para a entidade dele.
+
+Usada por 5 políticas: `respostas_checklist`, `nao_conformidades`, `constatacoes_manuais`,
+`determinacoes` e `recomendacoes`.
+"""
+fonte = ["funcao:current_prestador_servico_id()", "funcao:can_access_fiscalizacao(fiscalizacao uuid)"]
+regra_de_negocio = "A mesma de `can_access_fiscalizacao`, aplicada ao que pertence à unidade."

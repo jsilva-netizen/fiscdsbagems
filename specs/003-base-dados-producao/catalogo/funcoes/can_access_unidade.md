@@ -6,9 +6,15 @@
 
 - **Retorno**: `boolean` · **Linguagem**: sql · **Volatilidade**: stable
 - **Permissão elevada** (`SECURITY DEFINER`): **sim**
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **core**
 
-**Finalidade**: _Sem anotação._
+**Finalidade**: Mesma regra de `can_access_fiscalizacao`, partindo de uma unidade fiscalizada: o prestador vê a
+unidade se a fiscalização dela tem termo de notificação para a entidade dele.
+
+Usada por 5 políticas: `respostas_checklist`, `nao_conformidades`, `constatacoes_manuais`,
+`determinacoes` e `recomendacoes`. *(fonte: funcao:current_prestador_servico_id(), funcao:can_access_fiscalizacao(fiscalizacao uuid))*
+
+**Regra de negócio**: A mesma de `can_access_fiscalizacao`, aplicada ao que pertence à unidade.
 
 - **Lê**: [termos_notificacao](../tabelas/termos_notificacao.md), [unidades_fiscalizadas](../tabelas/unidades_fiscalizadas.md)
 - **Escreve**: —

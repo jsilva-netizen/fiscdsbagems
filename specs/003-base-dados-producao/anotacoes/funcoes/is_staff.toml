@@ -1,0 +1,15 @@
+[objeto."funcao:is_staff()"]
+modulo = "core"
+finalidade = """
+Diz se o usuário logado é da equipe da AGEMS que opera o sistema: admin, fiscal ou coordenador,
+ativos. Diretor e prestador ficam de fora.
+
+Usada por 13 políticas (fiscalização, processo sancionador e prestadores), em geral para dar
+acesso total à equipe ao lado de uma política específica para o prestador. Herda de
+`current_role` o filtro de perfil ativo da migration 137.
+"""
+fonte = ["funcao:current_role()", "supabase/migrations/137_fix_signup_privilege_escalation.sql"]
+regra_de_negocio = """
+"Equipe" = admin, fiscal e coordenador. O diretor não entra, e o que ele pode fazer precisa ser
+decidido nas specs de módulo, porque nenhuma política o menciona.
+"""

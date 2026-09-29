@@ -6,9 +6,20 @@
 
 - **Retorno**: `text` · **Linguagem**: sql · **Volatilidade**: stable
 - **Permissão elevada** (`SECURITY DEFINER`): **sim**
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **core**
 
-**Finalidade**: _Sem anotação._
+**Finalidade**: Devolve o papel do usuário logado. É a função de identidade mais usada: 44 políticas em 24
+tabelas a chamam diretamente, e também `can_access_camara`, `is_caters_user`,
+`finalizar_fiscalizacao` e `gerar_ncs_unidade`.
+
+Roda com permissão elevada (SECURITY DEFINER), para ler `profiles` sem passar pelas políticas da
+própria tabela.
+
+Desde a migration 137, só devolve o papel se o perfil estiver ativo; senão, nulo. Antes, devolvia
+o papel mesmo de perfil não aprovado, o que permitia a escalada de privilégio pelo cadastro. *(fonte: supabase/migrations/137_fix_signup_privilege_escalation.sql, .specify/bugs/escalada-privilegio-cadastro/assessment.md)*
+
+**Regra de negócio**: Só usuário aprovado (ativo) tem papel, e portanto acesso, no banco. A spec de módulo do core deve
+descrever essa regra como parte da identidade e da autorização.
 
 - **Lê**: [profiles](../tabelas/profiles.md), `externo:auth.uid`
 - **Escreve**: —

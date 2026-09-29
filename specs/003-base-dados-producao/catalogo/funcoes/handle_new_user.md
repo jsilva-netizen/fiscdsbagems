@@ -6,15 +6,32 @@
 
 - **Retorno**: `trigger` · **Linguagem**: plpgsql · **Volatilidade**: volatile
 - **Permissão elevada** (`SECURITY DEFINER`): **sim**
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **core**
 
-**Finalidade**: _Sem anotação._
+**Finalidade**: Cria o perfil (`profiles`) quando uma conta é criada em `auth.users`, pelo gatilho
+`on_auth_user_created`, na mesma transação do cadastro. Os dados vêm dos metadados que a tela de
+cadastro envia:
+
+- **Nome:** o informado; se vier vazio, o e-mail.
+- **Papel:** fiscal, coordenador, diretor ou prestador. Qualquer outro valor vira fiscal, desde a
+  migration 137.
+- **Diretoria:** a escolhida, com `dsb` se vier vazia.
+- **Câmara técnica:** a escolhida.
+- **Prestador:** a entidade escolhida, só para o papel prestador.
+- **Aprovação:** o perfil nasce sempre inativo, aguardando aprovação do admin.
+
+Se já existir perfil com o mesmo id, atualiza só e-mail, nome e data. Antes da migration 137, o
+papel e os vínculos vinham dos metadados sem validação, inclusive `admin`. *(fonte: src/pages/Register.jsx:100, supabase/migrations/137_fix_signup_privilege_escalation.sql, .specify/bugs/escalada-privilegio-cadastro/assessment.md)*
+
+**Regra de negócio**: Autocadastro com escolha de papel e vínculo, sempre pendente de aprovação. A spec do core deve
+decidir se o sistema novo mantém a escolha do papel pelo próprio usuário ou se o admin define o
+papel na aprovação.
 
 - **Lê**: —
 - **Escreve**: [profiles](../tabelas/profiles.md)
 - **Chama**: —
 - **Chamada por (banco)**: `gatilho:auth.users.on_auth_user_created` (dispara)
-- **Chamada por (telas e edge functions, anotado)**: _Sem anotação._
+- **Chamada por (telas e edge functions, anotado)**: gatilho on_auth_user_created em auth.users (cadastro: src/pages/Register.jsx:100)
 
 <details><summary>Código completo (produção)</summary>
 

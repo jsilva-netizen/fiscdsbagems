@@ -6,9 +6,23 @@
 
 - **Retorno**: `trigger` · **Linguagem**: plpgsql · **Volatilidade**: volatile
 - **Permissão elevada** (`SECURITY DEFINER`): **sim**
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **core**
 
-**Finalidade**: _Sem anotação._
+**Finalidade**: Grava um registro em `audit_logs` para cada inclusão, alteração ou exclusão nas 7 tabelas
+auditadas, pelos gatilhos `trg_audit_*`: fiscalizações, unidades, respostas de checklist,
+constatações, determinações, recomendações e trabalhos de relatório.
+
+O registro guarda a tabela, o id, a operação, quem fez e a linha antes e depois, em JSON.
+
+- **Quem fez:** normalmente, o usuário logado. Nos trabalhos de relatório executados pela chave de
+  serviço, quem pediu o relatório.
+- **E-mail:** vem do perfil; se o perfil não existir, vem do token ou da conta.
+
+Roda com permissão elevada e sem `search_path` fixo, diferente das demais funções do core. *(fonte: tabela:audit_logs, src/components/fiscalizacao/HistoricoFiscalizacao.jsx:412)*
+
+**Regra de negócio**: Tudo o que acontece numa fiscalização fica registrado com autor e antes/depois, e aparece no
+histórico da fiscalização. A spec de fiscalização deve dizer o que é auditado. A do core deve
+decidir se perfis, checklists e processos passam a ser auditados.
 
 - **Lê**: [profiles](../tabelas/profiles.md), [relatorios_jobs](../tabelas/relatorios_jobs.md), `externo:auth.jwt`, `externo:auth.uid`, `externo:auth.users`
 - **Escreve**: [audit_logs](../tabelas/audit_logs.md)

@@ -1,0 +1,15 @@
+[objeto."funcao:can_access_fiscalizacao(fiscalizacao uuid)"]
+modulo = "core"
+finalidade = """
+Diz se o prestador logado pode ver dados de uma fiscalização: só quando existe um termo de
+notificação daquela fiscalização dirigido à entidade dele. Antes do termo, a fiscalização é
+invisível para o prestador.
+
+Usada por 4 políticas, em `unidades_fiscalizadas` e `respostas_determinacao`. Com a migration 137,
+prestador inativo não tem entidade e não passa.
+"""
+fonte = ["funcao:current_prestador_servico_id()"]
+regra_de_negocio = """
+O prestador só enxerga uma fiscalização depois de notificado. A spec do portal do prestador e a
+do processo sancionador devem descrever essa regra.
+"""

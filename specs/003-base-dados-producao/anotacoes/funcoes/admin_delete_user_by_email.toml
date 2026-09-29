@@ -1,0 +1,12 @@
+[objeto."funcao:admin_delete_user_by_email(p_email text)"]
+modulo = "core"
+finalidade = """
+Igual a `admin_delete_user`, mas localiza a conta pelo e-mail. Se não houver conta com o e-mail,
+não faz nada e não dá erro. Existe para apagar contas que não aparecem na lista de usuários, por
+exemplo uma conta criada sem perfil, e liberar o e-mail para novo cadastro.
+
+Tem a mesma limitação de `admin_delete_user`: falha se o usuário já criou registros.
+"""
+fonte = ["src/pages/GerenciarUsuarios.jsx:139", "funcao:admin_delete_user(p_user_id uuid)"]
+chamada_por = ["src/pages/GerenciarUsuarios.jsx:139 (campo \"excluir por e-mail\")"]
+regra_de_negocio = "A mesma de `admin_delete_user`."

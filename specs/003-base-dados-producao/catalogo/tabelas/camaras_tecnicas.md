@@ -20,7 +20,7 @@ mapa de dashboards (`CAMARA_DASHBOARD_PAGE`) e a tela de cadastro têm só as ou
 nenhum usuário consegue escolhê-las.
 
 A câmara organiza o acesso (usuário e registros têm câmara, e `can_access_camara` compara as
-duas) e a navegação (cada câmara tem seu dashboard). *(fonte: inventário: dados_referencia.camaras_tecnicas, src/hooks/useModulo.js:64, src/lib/camaras.js:5, src/pages/Register.jsx:8, funcao:can_access_camara(text))*
+duas) e a navegação (cada câmara tem seu dashboard). *(fonte: inventário: dados_referencia.camaras_tecnicas, src/hooks/useModulo.js:64, src/lib/camaras.js:5, src/pages/Register.jsx:8, funcao:can_access_camara(row_camara text))*
 
 ## Colunas
 

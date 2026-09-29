@@ -1,0 +1,8 @@
+[objeto."funcao:get_my_diretoria()"]
+modulo = "core"
+finalidade = """
+Devolve a diretoria do usuário logado. Nenhuma política, função ou tela a usa hoje: a diretoria só
+tem efeito na interface, que lê o perfil direto. Desde a migration 137, só considera perfil
+ativo.
+"""
+fonte = ["supabase/migrations/137_fix_signup_privilege_escalation.sql", "src/hooks/useModulo.js:87"]

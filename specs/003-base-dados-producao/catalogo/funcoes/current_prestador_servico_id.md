@@ -6,9 +6,13 @@
 
 - **Retorno**: `uuid` · **Linguagem**: sql · **Volatilidade**: stable
 - **Permissão elevada** (`SECURITY DEFINER`): **sim**
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **core**
 
-**Finalidade**: _Sem anotação._
+**Finalidade**: Mesma coisa que `get_my_prestador_id`: duas funções com o mesmo papel, de conjuntos de políticas
+diferentes. Usada por 10 políticas em 7 tabelas e por `can_access_fiscalizacao` e
+`can_access_unidade`. Desde a migration 137, só considera perfil ativo. *(fonte: funcao:can_access_fiscalizacao(fiscalizacao uuid), funcao:can_access_unidade(unidade uuid), supabase/migrations/137_fix_signup_privilege_escalation.sql)*
+
+**Regra de negócio**: A mesma de `get_my_prestador_id`.
 
 - **Lê**: [profiles](../tabelas/profiles.md), `externo:auth.uid`
 - **Escreve**: —

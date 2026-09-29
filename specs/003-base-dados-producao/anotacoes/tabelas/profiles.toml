@@ -43,7 +43,7 @@ alteração na auditoria (`process_audit_log`) e em `fiscalizacoes.last_modified
 """
 fonte = [
   "funcao:handle_new_user()",
-  "funcao:admin_delete_user_by_email(text)",
+  "funcao:admin_delete_user_by_email(p_email text)",
   "funcao:process_audit_log()",
   "funcao:set_fiscalizacao_last_modified()",
 ]
@@ -160,7 +160,7 @@ Escolhida no cadastro por fiscal e coordenador; só um admin ativo altera
 (`enforce_profile_security`).
 """
 fonte = [
-  "funcao:can_access_camara(text)",
+  "funcao:can_access_camara(row_camara text)",
   "funcao:is_caters_user()",
   "src/hooks/useModulo.js:88",
   "src/pages/Register.jsx:108",

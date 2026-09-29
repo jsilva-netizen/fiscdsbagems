@@ -6,9 +6,14 @@
 
 - **Retorno**: `trigger` · **Linguagem**: plpgsql · **Volatilidade**: volatile
 - **Permissão elevada** (`SECURITY DEFINER`): não
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **core**
 
-**Finalidade**: _Sem anotação._
+**Finalidade**: Função genérica de gatilho: antes de cada alteração, grava a hora atual em `updated_at`. Usada em
+6 tabelas: contratos, determinações, fiscalizações, prestadores, tipos de ocorrência da DTR e
+unidades fiscalizadas.
+
+A sincronização offline baixa só o que mudou desde a última vez, comparando esta coluna. Por isso,
+tabela sincronizada sem este gatilho depende de o aparelho gravar `updated_at`. *(fonte: gatilho:public.contratos.update_contratos_updated_at, gatilho:public.prestadores_servico.update_prestadores_updated_at, src/lib/offline/repository.ts:411)*
 
 - **Lê**: —
 - **Escreve**: —

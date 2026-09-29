@@ -6,9 +6,27 @@
 
 - **Retorno**: `boolean` · **Linguagem**: sql · **Volatilidade**: stable
 - **Permissão elevada** (`SECURITY DEFINER`): **sim**
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **core**
 
-**Finalidade**: _Sem anotação._
+**Finalidade**: Decide se o usuário logado pode ver e alterar um registro de determinada câmara técnica:
+
+- **Admin:** sempre.
+- **Coordenador e fiscal:** se não têm câmara no perfil, veem tudo. Esse é o comportamento
+  herdado de antes da divisão por câmaras. Com câmara, veem os registros da sua câmara e os sem
+  câmara.
+- **Diretor e prestador:** nunca por esta regra; o prestador tem regras próprias.
+
+Usada por 6 políticas: `fiscalizacoes`, `autos_infracao`, `manifestacoes_auto`,
+`pareceres_tecnicos`, `remessas_ai` e `remessas_ai_itens`. Com a migration 137, perfil inativo não
+passa em nenhum caso. *(fonte: funcao:get_my_role(), funcao:get_my_camara_tecnica())*
+
+**Regra de negócio**: Isolamento por câmara técnica, com três exceções herdadas:
+
+- usuário sem câmara vê tudo;
+- registro sem câmara é visível a todos;
+- o registro recebe a câmara automaticamente pelos gatilhos `trg_*_set_camara`.
+
+A spec do core deve decidir se essas exceções continuam no sistema novo.
 
 - **Lê**: —
 - **Escreve**: —

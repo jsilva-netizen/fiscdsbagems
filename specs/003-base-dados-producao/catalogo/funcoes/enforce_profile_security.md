@@ -6,9 +6,24 @@
 
 - **Retorno**: `trigger` · **Linguagem**: plpgsql · **Volatilidade**: volatile
 - **Permissão elevada** (`SECURITY DEFINER`): **sim**
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **core**
 
-**Finalidade**: _Sem anotação._
+**Finalidade**: Função do gatilho `trg_enforce_profile_security`, que roda antes de inserir ou alterar um perfil.
+Garante que só um admin ativo aprova usuários e muda papel e vínculos:
+
+- **Na inserção por quem não é admin:** papel fora de fiscal, diretor e prestador vira fiscal, e
+  o perfil fica inativo.
+- **Na alteração por quem não é admin:** papel, `ativo`, prestador, diretoria e câmara voltam ao
+  valor anterior, sem erro. O resto da alteração é gravado.
+- **Sem usuário logado** (gatilho de cadastro, chave de serviço, migrations), não interfere.
+
+Desde a migration 137, o papel de quem executa só conta se o perfil dele estiver ativo, e as
+comparações tratam valor nulo. Antes, um perfil inativo com papel `admin` passava na regra e podia
+se autoaprovar. *(fonte: gatilho:public.profiles.trg_enforce_profile_security, supabase/migrations/137_fix_signup_privilege_escalation.sql)*
+
+**Regra de negócio**: Aprovação de usuários e atribuição de papel e vínculos são exclusivas do admin. As tentativas de
+outros usuários são ignoradas em silêncio, não recusadas. A spec do core deve dizer se o sistema
+novo recusa com erro.
 
 - **Lê**: [profiles](../tabelas/profiles.md), `externo:auth.uid`
 - **Escreve**: —

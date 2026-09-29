@@ -6,9 +6,17 @@
 
 - **Retorno**: `uuid` · **Linguagem**: sql · **Volatilidade**: stable
 - **Permissão elevada** (`SECURITY DEFINER`): **sim**
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **core**
 
-**Finalidade**: _Sem anotação._
+**Finalidade**: Devolve a entidade regulada que o usuário logado representa (só o papel prestador tem uma). É a
+base do portal do prestador no banco: 23 políticas em 16 tabelas a usam para limitar o prestador
+aos dados da própria entidade (fiscalizações, unidades, respostas, determinações, termos, autos,
+julgamentos, remessas…).
+
+Desde a migration 137, só considera perfil ativo. *(fonte: supabase/migrations/137_fix_signup_privilege_escalation.sql)*
+
+**Regra de negócio**: O prestador vê só o que é da sua entidade. A spec do portal do prestador deve descrever, tabela a
+tabela, o que ele vê.
 
 - **Lê**: [profiles](../tabelas/profiles.md), `externo:auth.uid`
 - **Escreve**: —

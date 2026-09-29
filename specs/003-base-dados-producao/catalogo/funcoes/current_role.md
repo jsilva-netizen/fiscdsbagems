@@ -6,9 +6,16 @@
 
 - **Retorno**: `text` · **Linguagem**: sql · **Volatilidade**: stable
 - **Permissão elevada** (`SECURITY DEFINER`): **sim**
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **core**
 
-**Finalidade**: _Sem anotação._
+**Finalidade**: Mesma coisa que `get_my_role`, mas devolve texto vazio em vez de nulo quando não há papel.
+Existem duas funções com o mesmo papel porque vieram de conjuntos de políticas escritos em
+épocas diferentes.
+
+É usada por 17 políticas em 14 tabelas e por `is_staff`. Desde a migration 137, só considera
+perfil ativo. *(fonte: supabase/migrations/137_fix_signup_privilege_escalation.sql, funcao:is_staff())*
+
+**Regra de negócio**: A mesma de `get_my_role`: só usuário ativo tem papel.
 
 - **Lê**: [profiles](../tabelas/profiles.md), `externo:auth.uid`
 - **Escreve**: —

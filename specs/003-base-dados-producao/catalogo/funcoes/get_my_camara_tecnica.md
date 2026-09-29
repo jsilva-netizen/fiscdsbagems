@@ -6,9 +6,10 @@
 
 - **Retorno**: `text` · **Linguagem**: sql · **Volatilidade**: stable
 - **Permissão elevada** (`SECURITY DEFINER`): **sim**
-- **Dono**: **sem dono** (lacuna)
+- **Dono**: módulo **core**
 
-**Finalidade**: _Sem anotação._
+**Finalidade**: Devolve a câmara técnica do usuário logado. Nenhuma política a chama diretamente: é usada por
+`can_access_camara` e `is_caters_user`. Desde a migration 137, só considera perfil ativo. *(fonte: funcao:can_access_camara(row_camara text), funcao:is_caters_user(), supabase/migrations/137_fix_signup_privilege_escalation.sql)*
 
 - **Lê**: [profiles](../tabelas/profiles.md), `externo:auth.uid`
 - **Escreve**: —

@@ -1,0 +1,13 @@
+[objeto."funcao:current_prestador_servico_id()"]
+modulo = "core"
+finalidade = """
+Mesma coisa que `get_my_prestador_id`: duas funções com o mesmo papel, de conjuntos de políticas
+diferentes. Usada por 10 políticas em 7 tabelas e por `can_access_fiscalizacao` e
+`can_access_unidade`. Desde a migration 137, só considera perfil ativo.
+"""
+fonte = [
+  "funcao:can_access_fiscalizacao(fiscalizacao uuid)",
+  "funcao:can_access_unidade(unidade uuid)",
+  "supabase/migrations/137_fix_signup_privilege_escalation.sql",
+]
+regra_de_negocio = "A mesma de `get_my_prestador_id`."
