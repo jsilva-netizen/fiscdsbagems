@@ -30,6 +30,15 @@ SITUACOES_ACHADO = {"aguardando_decisao", "decidido"}
 DATA = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 ID_ACHADO = re.compile(r"^A-\d{3}$")
 BUCKET_NA_CONDICAO = re.compile(r"bucket_id\s*=\s*'([^']+)'")
+BUCKETS_EM_LISTA = re.compile(r"bucket_id\s*=\s*ANY\s*\(\s*ARRAY\s*\[([^\]]*)\]", re.IGNORECASE)
+
+
+def buckets_na_condicao(texto: str) -> list[str]:
+    """Buckets citados numa condição de política: `bucket_id = 'x'` ou `bucket_id = ANY (ARRAY[...])`."""
+    achados = set(BUCKET_NA_CONDICAO.findall(texto))
+    for lista in BUCKETS_EM_LISTA.findall(texto):
+        achados.update(re.findall(r"'([^']+)'", lista))
+    return sorted(achados)
 
 
 class AnotacaoInvalida(Exception):
@@ -58,10 +67,11 @@ class Anotacoes:
         if obj.pai:
             return self.dono(obj.pai, inventario)
         if obj.tipo == "politica" and obj.atributos.get("esquema") == "storage":
-            m = BUCKET_NA_CONDICAO.search(
+            citados = buckets_na_condicao(
                 f"{obj.atributos.get('condicao_using') or ''} {obj.atributos.get('condicao_with_check') or ''}")
-            if m and f"bucket:{m.group(1)}" in inventario.objetos:
-                return self.dono(f"bucket:{m.group(1)}", inventario)
+            # Só herda quando a política cita um único bucket; a que cobre vários declara o dono.
+            if len(citados) == 1 and f"bucket:{citados[0]}" in inventario.objetos:
+                return self.dono(f"bucket:{citados[0]}", inventario)
         if obj.tipo == "privilegio" and "funcao" in obj.atributos:
             nome = obj.atributos["funcao"]
             for outra in inventario.objetos.values():

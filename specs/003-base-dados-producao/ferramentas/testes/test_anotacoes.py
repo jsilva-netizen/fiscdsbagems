@@ -6,7 +6,7 @@ import textwrap
 import unittest
 from pathlib import Path
 
-from ferramentas.anotacoes import AnotacaoInvalida, carregar
+from ferramentas.anotacoes import AnotacaoInvalida, buckets_na_condicao, carregar
 from ferramentas.inventario import carregar as carregar_inventario
 
 FIX = Path(__file__).resolve().parent / "fixtures"
@@ -92,6 +92,12 @@ class TestValidas(Base):
             fonte = ["src/x.js:3"]
         """)
         self.assertEqual(self.carregar().dono("politica:storage.objects.ler fotos", INV), ("base", None))
+
+    def test_buckets_na_condicao_entende_lista(self):
+        self.assertEqual(buckets_na_condicao("(bucket_id = 'fotos'::text)"), ["fotos"])
+        self.assertEqual(
+            buckets_na_condicao("(bucket_id = ANY (ARRAY['b'::text, 'a'::text]))"), ["a", "b"])
+        self.assertEqual(buckets_na_condicao("(auth.uid() IS NOT NULL)"), [])
 
     def test_fora_do_escopo_nao_exige_texto(self):
         self.escrever("plataforma.toml", """

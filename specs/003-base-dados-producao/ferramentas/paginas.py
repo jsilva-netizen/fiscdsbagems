@@ -7,7 +7,7 @@ determinística: toda lista é ordenada e nada depende de data de execução.
 import re
 from collections import defaultdict
 
-from ferramentas.anotacoes import BUCKET_NA_CONDICAO
+from ferramentas.anotacoes import buckets_na_condicao
 
 PAPEIS_API = ("anon", "authenticated", "service_role", "PUBLIC")
 
@@ -254,7 +254,7 @@ def pagina_arquivos(ctx) -> str:
     for o in ctx.inv.objetos.values():
         if o.tipo == "politica" and o.atributos.get("esquema") == "storage":
             texto = f"{o.atributos.get('condicao_using') or ''} {o.atributos.get('condicao_with_check') or ''}"
-            achados = sorted(set(BUCKET_NA_CONDICAO.findall(texto)))
+            achados = buckets_na_condicao(texto)
             for b in achados or ["(sem bucket identificado na condição)"]:
                 politicas[b].append(o)
     funcoes = [o for o in ctx.inv.objetos.values() if o.tipo == "funcao"]
@@ -294,7 +294,9 @@ def pagina_arquivos(ctx) -> str:
     soltas = politicas.get("(sem bucket identificado na condição)", [])
     if soltas:
         linhas += ["## Políticas de arquivos sem bucket identificado", ""]
-        linhas += [f"- **{p.atributos['nome']}** — {p.atributos.get('comando')}" for p in sorted(soltas, key=lambda o: o.chave)]
+        for p in sorted(soltas, key=lambda o: o.chave):
+            descricao = texto_anotado(ctx.anot.objetos.get(p.chave, {}), "descricao") or "_Sem anotação._"
+            linhas.append(f"- **{p.atributos['nome']}** — {p.atributos.get('comando')}: {descricao}")
         linhas.append("")
     return "\n".join(linhas)
 

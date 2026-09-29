@@ -193,7 +193,7 @@ Todas as tarefas abaixo são [P] entre si (arquivos diferentes).
 - [X] T028 [P] [US1] Anotar as funções do **processo sancionador** e do **CATERS** em `S/anotacoes/funcoes/`:
   - `modulo = "processo_sancionador"`: `gerar_numero_am`, `gerar_numero_auto`, `set_termos_notificacao_ano_geracao` e `trg_remessa_set_camara`;
   - `modulo = "caters"`: `caters_import_from_fiscalizacao`, `caters_set_updated_at` e `claim_caters_ai_jobs`.
-- [ ] T029 [P] [US1] Anotar os 8 buckets em `S/anotacoes/arquivos.toml`: `documentos-autos`, `documentos-prestadores`, `documentos-termos`, `evidencias-determinacoes`, `fotos_fiscalizacao`, `kml-rodovias`, `logos-entidades` (público) e `relatorios_fiscalizacao`. Para cada um: `modulo`, `finalidade` e as colunas ou telas que guardam referência (fonte no código).
+- [X] T029 [P] [US1] Anotar os 8 buckets em `S/anotacoes/arquivos.toml`: `documentos-autos`, `documentos-prestadores`, `documentos-termos`, `evidencias-determinacoes`, `fotos_fiscalizacao`, `kml-rodovias`, `logos-entidades` (público) e `relatorios_fiscalizacao`. Para cada um: `modulo`, `finalidade` e as colunas ou telas que guardam referência (fonte no código).
 - [ ] T030 [P] [US1] Anotar `S/anotacoes/acesso.toml` (papéis `anon`, `authenticated` e `service_role`, com o que cada um representa na aplicação; os 2 segredos e quem os usa) e `S/anotacoes/plataforma.toml` (event triggers `issue_*` e `pgrst_*`, papéis `supabase_*`, `authenticator`, `dashboard_user`, `pgbouncer`, `cli_login_postgres`…, com `fora_escopo = { classificacao = "plataforma", motivo = "..." }`).
 - [ ] T031 [US1] Validar a US1:
   - `python -m ferramentas.gerar`: a última linha mostra **0 objetos sem anotação** (SC-001) e, entre as anotações, 0 sem fonte que não estejam marcadas como hipótese;
