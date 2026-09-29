@@ -1,0 +1,184 @@
+# Checklists — itens do checklist de cada tipo de unidade, versionados por inserção. A política
+# "Public Access" não é anotada: foi removida de produção em 2026-09-29 (migration 138).
+
+[objeto."tabela:itens_checklist"]
+modulo = "checklists"
+finalidade = """
+Perguntas do checklist de cada tipo de unidade, com os textos que a vistoria gera conforme a
+resposta: constatação, não conformidade, determinação e recomendação.
+
+**Versionamento só por inserção (append-only).** Nenhuma linha é alterada nem apagada:
+
+- a "chave" de um item é o tipo mais a `ordem` (ou, sem ordem, a pergunta);
+- a linha mais recente de cada chave é a que vale;
+- editar insere uma versão nova, e editar trocando a chave também insere uma versão inativa na
+  chave antiga;
+- excluir insere uma versão inativa.
+
+Na vistoria, o app usa a versão vigente na data em que a unidade foi criada, dando preferência às
+versões já respondidas. Assim, uma vistoria antiga continua com o texto da época.
+
+Consequência: `ativo = true` não diz se a linha vale. Em produção, das 768 linhas, 525 são itens
+vigentes e 243 são versões antigas, todas ainda com `ativo = true`. São 82 chaves com 2 a 5
+versões, em 7 tipos; em 81 delas a pergunta é idêntica, o que indica reimportação da planilha.
+
+- **Manutenção:** tela Checklists (formulário e importação de planilha Excel).
+- **App offline:** baixa todas as linhas, inclusive as versões antigas.
+"""
+fonte = [
+  "src/pages/Checklists.jsx:50",
+  "src/pages/Checklists.jsx:100",
+  "src/pages/Checklists.jsx:146",
+  "src/lib/offline/repository.ts:670",
+  "src/lib/offline/syncEngine.ts:2061",
+  "specs/001-data-access-abstraction/debitos-tecnicos-e-inconsistencias.md",
+  "inventário: dados_referencia.itens_checklist",
+]
+
+[objeto."coluna:itens_checklist.id"]
+significado = """
+Identificador de uma versão do item, gerado pela tela. A resposta da vistoria aponta para a versão
+respondida (`respostas_checklist.item_checklist_id`), e é assim que o texto da época se preserva.
+"""
+fonte = ["src/pages/Checklists.jsx:100", "src/lib/offline/repository.ts:670"]
+
+[objeto."coluna:itens_checklist.tipo_unidade_id"]
+significado = """
+Tipo de unidade a que o item pertence; faz parte da chave de versão. O banco aceita nulo. Apagar
+o tipo apaga os itens em cascata, mas a tela de tipos nunca apaga, só inativa.
+"""
+fonte = ["restricao:itens_checklist.itens_checklist_tipo_unidade_id_fkey", "src/lib/offline/repository.ts:670"]
+
+[objeto."coluna:itens_checklist.ordem"]
+significado = """
+Posição do item no checklist e parte da chave de versão: versões com o mesmo tipo e a mesma
+ordem são o mesmo item. Mudar a ordem numa edição cria um item "novo" e inativa o da ordem
+antiga. Em produção, todos têm ordem maior que zero.
+"""
+fonte = ["src/pages/Checklists.jsx:62", "src/pages/Checklists.jsx:131"]
+
+[objeto."coluna:itens_checklist.pergunta"]
+significado = """
+Pergunta feita ao fiscal na vistoria, com resposta Sim ou Não. É a chave de versão quando o item
+não tem ordem.
+"""
+fonte = ["src/pages/VistoriarUnidade.jsx:1420", "src/pages/Checklists.jsx:62"]
+
+[objeto."coluna:itens_checklist.texto_constatacao_sim"]
+significado = """
+Texto da constatação registrada quando a resposta é Sim, e que vai para o relatório. Preenchido
+em todas as linhas de produção.
+"""
+fonte = ["src/pages/VistoriarUnidade.jsx:373", "src/components/admin/ItemChecklistForm.jsx:64"]
+
+[objeto."coluna:itens_checklist.texto_constatacao_nao"]
+significado = "Texto da constatação registrada quando a resposta é Não."
+fonte = ["src/pages/VistoriarUnidade.jsx:375"]
+
+[objeto."coluna:itens_checklist.gera_nc"]
+significado = """
+Se a resposta Não gera não conformidade (NC), e com ela determinação ou recomendação. Todas as
+768 linhas de produção têm `true`.
+"""
+fonte = ["src/lib/offline/repository.ts:1236", "funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)", "inventário: dominio_categorico"]
+
+[objeto."coluna:itens_checklist.artigo_portaria"]
+significado = """
+Dispositivo normativo descumprido quando a resposta é Não. Compõe a descrição da NC:
+"Constatação C<n>: não cumprimento do <artigo>;". Vazio em 50 linhas; nesse caso a descrição usa
+"artigo aplicável".
+"""
+fonte = ["funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)", "src/pages/VistoriarUnidade.jsx:771"]
+
+[objeto."coluna:itens_checklist.texto_nc"]
+significado = """
+Descrição da NC gravada na resposta (`descricao_nc`). Só 4 textos distintos em produção e vazio
+em 150 linhas. Na prática, a NC usa a descrição montada a partir do artigo.
+"""
+fonte = ["src/pages/VistoriarUnidade.jsx:839", "inventário: dados_referencia.itens_checklist"]
+hipotese = false
+
+[objeto."coluna:itens_checklist.texto_determinacao"]
+significado = """
+Texto da determinação gerada quando a resposta é Não e o item gera NC. Vira "Sanar NC<n>.
+<texto>", com o prazo de `prazo_dias`. Quando existe, a recomendação não é gerada. Vazio em 366
+linhas.
+"""
+fonte = ["src/lib/offline/repository.ts:1219", "funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)"]
+
+[objeto."coluna:itens_checklist.texto_recomendacao"]
+significado = """
+Texto da recomendação gerada quando a resposta é Não, o item gera NC e não tem texto de
+determinação. Vazio em 452 linhas.
+"""
+fonte = ["src/lib/offline/repository.ts:870"]
+
+[objeto."coluna:itens_checklist.prazo_dias"]
+significado = """
+Prazo, em dias, da determinação gerada pelo item. A data-limite é a data da geração mais o prazo.
+Padrão 30, que é o valor de todas as linhas de produção.
+"""
+fonte = ["src/lib/offline/repository.ts:1238", "inventário: dominio_categorico"]
+
+[objeto."coluna:itens_checklist.ativo"]
+significado = """
+`false` marca a exclusão do item (versão inativa). Não indica a versão vigente: versões antigas
+continuam `true`, e vale a mais recente de cada chave. Todas as 768 linhas de produção têm `true`,
+então nenhum item foi excluído.
+"""
+fonte = ["src/pages/Checklists.jsx:162", "src/lib/offline/repository.ts:701"]
+
+[objeto."coluna:itens_checklist.is_sample"]
+significado = """
+Sem uso: nenhuma tela lê ou grava, e todas as linhas têm `false`. Herança do app de origem.
+"""
+fonte = ["inventário: dominio_categorico"]
+hipotese = true
+
+[objeto."coluna:itens_checklist.created_by_id"]
+significado = "Sem uso: vazio em todas as linhas e ignorado pelo código. Herança do app de origem."
+fonte = ["inventário: dados_referencia.itens_checklist"]
+hipotese = true
+
+[objeto."coluna:itens_checklist.created_by"]
+significado = "Sem uso: vazio em todas as linhas e ignorado pelo código. Herança do app de origem."
+fonte = ["inventário: dados_referencia.itens_checklist"]
+hipotese = true
+
+[objeto."coluna:itens_checklist.created_date"]
+significado = """
+Cópia de `created_at` (igual nas 768 linhas), preenchida pelo padrão da coluna. O código não usa.
+Herança do app de origem.
+"""
+fonte = ["inventário: dados_referencia.itens_checklist"]
+hipotese = true
+
+[objeto."coluna:itens_checklist.updated_date"]
+significado = """
+Igual a `created_at` em todas as linhas: a tabela nunca é alterada, só recebe inserções. O
+código não usa.
+"""
+fonte = ["inventário: dados_referencia.itens_checklist"]
+hipotese = true
+
+[objeto."coluna:itens_checklist.created_at"]
+significado = """
+Quando a versão foi inserida. Decide qual versão vale (a mais recente de cada chave) e qual vale
+numa vistoria (a mais recente até a criação da unidade).
+"""
+fonte = ["src/lib/offline/repository.ts:670", "src/pages/Checklists.jsx:77"]
+
+[objeto."politica:public.itens_checklist.Leitura pública de itens de checklist"]
+descricao = """
+Quem tem perfil ativo lê todos os itens, inclusive o prestador. Desde a migration 138; antes,
+qualquer logado lia.
+"""
+fonte = ["supabase/migrations/138_fix_open_policies.sql"]
+
+[objeto."politica:public.itens_checklist.Operadores gerenciam itens de checklist"]
+descricao = """
+Admin, coordenador e fiscal ativos inserem, alteram e excluem itens. A tela só insere, e alterar
+ou excluir quebraria o histórico das vistorias. Até a migration 138, uma política "Public Access"
+dava o mesmo a qualquer um, sem login.
+"""
+fonte = ["funcao:get_my_role()", "supabase/migrations/138_fix_open_policies.sql"]

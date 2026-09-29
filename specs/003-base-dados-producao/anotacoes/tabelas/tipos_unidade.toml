@@ -1,0 +1,81 @@
+# Checklists — tipos de unidade. A política "Public Access" não é anotada: foi removida de produção
+# em 2026-09-29 (migration 138) e some do catálogo quando o inventário for refeito.
+
+[objeto."tabela:tipos_unidade"]
+modulo = "checklists"
+finalidade = """
+Tipos de unidade que a fiscalização vistoria (ex.: Aterro Sanitário, Estação de Tratamento de
+Esgoto, Gestão Administrativa e Financeira). Cada tipo tem seu checklist em `itens_checklist`, e
+cada unidade fiscalizada é de um tipo.
+
+- **Em produção:** 33 tipos, todos ativos, carregados de 2026-02-24 em diante. 3 deles ainda sem
+  itens.
+- **Manutenção:** a tela Tipos de Unidade cria, edita e "exclui". Excluir só marca como inativo,
+  e dá para reativar.
+- **Planilha:** a importação da tela Checklists cria os tipos que ainda não existem.
+- **App offline:** baixa os tipos na sincronização, para vistoriar sem rede.
+"""
+fonte = [
+  "src/pages/TiposUnidade.jsx:37",
+  "src/pages/TiposUnidade.jsx:75",
+  "src/pages/Checklists.jsx:308",
+  "src/lib/offline/syncEngine.ts:2055",
+  "inventário: dados_referencia.tipos_unidade",
+]
+
+[objeto."coluna:tipos_unidade.id"]
+significado = """
+Identificador do tipo. `itens_checklist` e `unidades_fiscalizadas` apontam para ele. Apagar o tipo
+apagaria os itens em cascata, mas a tela nunca apaga.
+"""
+fonte = ["restricao:itens_checklist.itens_checklist_tipo_unidade_id_fkey", "src/pages/TiposUnidade.jsx:75"]
+
+[objeto."coluna:tipos_unidade.nome"]
+significado = """
+Nome do tipo, mostrado ao escolher o tipo da unidade na vistoria. Também é a chave que a
+importação de planilha usa para achar o tipo, sem diferenciar maiúsculas.
+"""
+fonte = ["src/pages/Checklists.jsx:220"]
+
+[objeto."coluna:tipos_unidade.servicos_aplicaveis"]
+significado = """
+Serviços a que o tipo se aplica. Em produção: Abastecimento de Água (14), Esgotamento Sanitário
+(8), Manejo de Resíduos Sólidos (7), Limpeza Urbana (1) e água e esgoto juntos (3).
+
+A fiscalização e a inclusão de unidade só oferecem tipos ativos com algum serviço em comum com a
+fiscalização; tipo sem serviço aparece em todas. É isso que separa os
+checklists de cada câmara.
+"""
+fonte = ["inventário: dominio_categorico", "src/pages/ExecutarFiscalizacao.jsx:183", "src/pages/AdicionarUnidade.jsx:126"]
+
+[objeto."coluna:tipos_unidade.created_at"]
+significado = "Quando o tipo foi criado."
+fonte = ["inventário: dados_referencia.tipos_unidade"]
+
+[objeto."coluna:tipos_unidade.ativo"]
+significado = """
+Se o tipo está disponível. "Excluir" na tela grava `false` e reativar grava `true`. Os 33 de
+produção estão ativos.
+"""
+fonte = ["src/pages/TiposUnidade.jsx:75", "src/pages/TiposUnidade.jsx:90"]
+
+[objeto."coluna:tipos_unidade.codigo"]
+significado = """
+Código curto do tipo (ex.: `AS`, `ADM`, `AMX-ETE`). É a base do código gerado para a unidade ao
+adicioná-la na fiscalização, e a importação de planilha também reconhece o tipo por ele.
+"""
+fonte = ["src/pages/AdicionarUnidade.jsx:134", "src/pages/Checklists.jsx:224"]
+
+[objeto."politica:public.tipos_unidade.Leitura pública de tipos de unidade"]
+descricao = """
+Quem tem perfil ativo lê os tipos, inclusive o prestador. Desde a migration 138; antes, qualquer
+logado lia.
+"""
+fonte = ["supabase/migrations/138_fix_open_policies.sql"]
+
+[objeto."politica:public.tipos_unidade.Operadores gerenciam tipos de unidade"]
+descricao = """
+Admin, coordenador e fiscal ativos criam, alteram e excluem tipos. Até a migration 138, uma
+política "Public Access" dava o mesmo a qualquer um, sem login.
+"""
+fonte = ["funcao:get_my_role()", "supabase/migrations/138_fix_open_policies.sql"]
