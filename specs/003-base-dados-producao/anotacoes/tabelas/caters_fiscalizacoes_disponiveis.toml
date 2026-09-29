@@ -1,0 +1,52 @@
+[objeto."tabela:caters_fiscalizacoes_disponiveis"]
+modulo = "caters"
+finalidade = """
+View com as fiscalizações finalizadas da câmara CATERS, que podem ser ligadas a um processo
+CATERS. A tela a usa na lista "vincular fiscalização".
+
+**Acesso:** a view pertence ao `postgres` e não é "security invoker", então não passa pelas
+políticas de `fiscalizacoes`. `anon` e `authenticated` têm permissão de leitura nela. Resultado:
+**qualquer pessoa, sem login, lista essas fiscalizações** (id, município, prestador, serviços,
+datas, número do termo).
+"""
+fonte = [
+  "src/lib/caters/processes.js:109",
+  "inventário: opcoes_tabelas",
+  "privilegio:caters_fiscalizacoes_disponiveis.anon",
+]
+
+[objeto."coluna:caters_fiscalizacoes_disponiveis.id"]
+significado = "Id da fiscalização."
+fonte = ["tabela:fiscalizacoes"]
+
+[objeto."coluna:caters_fiscalizacoes_disponiveis.municipio_nome"]
+significado = "Nome do município fiscalizado (cópia em `fiscalizacoes`)."
+fonte = ["coluna:fiscalizacoes.municipio_nome"]
+
+[objeto."coluna:caters_fiscalizacoes_disponiveis.prestador_servico_nome"]
+significado = "Nome da entidade fiscalizada (cópia em `fiscalizacoes`)."
+fonte = ["coluna:fiscalizacoes.prestador_servico_nome"]
+
+[objeto."coluna:caters_fiscalizacoes_disponiveis.servicos"]
+significado = "Serviços fiscalizados."
+fonte = ["coluna:fiscalizacoes.servicos"]
+
+[objeto."coluna:caters_fiscalizacoes_disponiveis.status"]
+significado = "Sempre `finalizada` (filtro da view)."
+fonte = ["coluna:fiscalizacoes.status"]
+
+[objeto."coluna:caters_fiscalizacoes_disponiveis.data_inicio"]
+significado = "Início da fiscalização."
+fonte = ["coluna:fiscalizacoes.data_inicio"]
+
+[objeto."coluna:caters_fiscalizacoes_disponiveis.data_fim"]
+significado = "Fim da fiscalização; a lista é ordenada por ela (mais recentes primeiro)."
+fonte = ["src/lib/caters/processes.js:112"]
+
+[objeto."coluna:caters_fiscalizacoes_disponiveis.numero_termo"]
+significado = "Número do termo de fiscalização."
+fonte = ["coluna:fiscalizacoes.numero_termo"]
+
+[objeto."coluna:caters_fiscalizacoes_disponiveis.camara_tecnica_id"]
+significado = "Sempre `caters` (filtro da view)."
+fonte = ["coluna:fiscalizacoes.camara_tecnica_id"]

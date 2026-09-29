@@ -1,0 +1,172 @@
+[objeto."tabela:caters_processes"]
+modulo = "caters"
+finalidade = """
+Processos de acompanhamento da CATERS (resíduos sólidos): cada um acompanha, junto a um
+município titular, o cumprimento das recomendações de uma fiscalização programada de limpeza
+urbana e manejo de resíduos. Guarda o número do processo, o município, o AR (aviso de
+recebimento) do envio, os prazos, os documentos e o status. Produção tem 2 processos.
+
+Fluxo, na tela Processos CATERS e no detalhe do processo:
+
+- **Cadastro:** o processo é cadastrado e pode ser ligado a uma fiscalização finalizada da CATERS.
+  Ao ligar, importa as recomendações e determinações dela (`caters_import_from_fiscalizacao`).
+- **Envio e resposta:** registram-se o envio e o recebimento do AR e a resposta do município.
+- **Prorrogações:** a dilação de prazo registra a prorrogação, mas **não atualiza o processo**. A
+  tela grava o status `dilacao_solicitada`, que não existe no tipo enumerado, e a gravação falha.
+- **IA:** relatório e ofício de resposta podem ser lidos por IA (`caters_ai_jobs`).
+- **Encerramento:** ao final, o processo é encerrado.
+
+O acesso é só da câmara CATERS e dos admins (`is_caters_user`).
+"""
+fonte = [
+  "src/lib/caters/processes.js:83",
+  "src/lib/caters/processes.js:117",
+  "src/pages/CatersProcessoDetalhe.jsx:361",
+  "supabase/migrations/123_caters_deadline_extensions.sql",
+  "funcao:is_caters_user()",
+  "inventário: dominio_categorico",
+]
+
+[objeto."coluna:caters_processes.id"]
+significado = "Identificador do processo; recomendações, histórico, documentos, respostas e trabalhos de IA apontam para ele."
+fonte = ["restricao:caters_recommendations.caters_recommendations_process_id_fkey"]
+
+[objeto."coluna:caters_processes.process_number"]
+significado = "Número do processo administrativo (ex.: 51.001.121-2025); único."
+fonte = ["indice:caters_processes_process_number_unique", "inventário: dominio_categorico"]
+
+[objeto."coluna:caters_processes.municipality"]
+significado = """
+Município titular do serviço, em texto livre (não aponta para `municipios`). Em produção:
+Alcinópolis e Três Lagoas.
+"""
+fonte = ["src/pages/CatersProcessos.jsx:93", "inventário: dominio_categorico"]
+
+[objeto."coluna:caters_processes.object"]
+significado = "Objeto da fiscalização (ex.: \"Fiscalização Programada dos Serviços Públicos de Limpeza Urbana…\")."
+fonte = ["inventário: dominio_categorico"]
+
+[objeto."coluna:caters_processes.ar_sent_at"]
+significado = "Quando o AR (aviso de recebimento dos Correios) com os documentos foi enviado ao município."
+fonte = ["src/pages/CatersProcessos.jsx:97"]
+
+[objeto."coluna:caters_processes.ar_received_at"]
+significado = """
+Quando o município recebeu o AR. Sem prazo de resposta informado, a tela conta 30 dias a partir
+desta data.
+"""
+fonte = ["src/pages/CatersProcessoDetalhe.jsx:442"]
+
+[objeto."coluna:caters_processes.fatal_date"]
+significado = "Data fatal do processo, informada pela equipe; só é mostrada."
+fonte = ["src/pages/CatersProcessoDetalhe.jsx:702", "src/pages/CatersProcessoDetalhe.jsx:730"]
+
+[objeto."coluna:caters_processes.titular_response_due_at"]
+significado = """
+Prazo para o município responder. É informado pela equipe e deveria mudar com a dilação
+aprovada, mas a gravação da dilação falha por causa do status inválido. Sem valor, a tela usa o
+recebimento do AR mais 30 dias. O painel conta os atrasos por ele.
+"""
+fonte = ["src/pages/CatersProcessoDetalhe.jsx:361", "src/pages/CatersProcessoDetalhe.jsx:441", "src/lib/caters/dashboard.js:39"]
+
+[objeto."coluna:caters_processes.status"]
+significado = """
+Situação do processo, pelo tipo `caters_process_status`: `aguardando_analise` (padrão),
+`em_analise`, `respondido`, `no_prazo`, `critico`, `atrasado` e `encerrado`. É escolhida pela
+equipe.
+
+A tela também oferece `dilacao_solicitada`, que o tipo não tem, e a gravação falha. A migration
+123 supôs, por engano, que a coluna era texto livre.
+"""
+fonte = ["src/pages/CatersProcessoDetalhe.jsx:65", "supabase/migrations/123_caters_deadline_extensions.sql"]
+
+[objeto."coluna:caters_processes.relatorio_url"]
+significado = "Relatório de fiscalização anexado; pode ser lido por IA para cadastrar as recomendações (`extract_pdf`)."
+fonte = ["src/pages/CatersProcessoDetalhe.jsx:579"]
+
+[objeto."coluna:caters_processes.termo_notificacao_url"]
+significado = "Termo de notificação anexado."
+fonte = ["src/pages/CatersProcessoDetalhe.jsx:580"]
+
+[objeto."coluna:caters_processes.ar_digitalizado_url"]
+significado = "AR digitalizado anexado."
+fonte = ["src/pages/CatersProcessoDetalhe.jsx:581"]
+
+[objeto."coluna:caters_processes.oficio_resposta_url"]
+significado = "Ofício de resposta do município; pode ser cruzado por IA com as recomendações (`match_response_pdf`)."
+fonte = ["src/pages/CatersProcessoDetalhe.jsx:582"]
+
+[objeto."coluna:caters_processes.cronograma_url"]
+significado = "Cronograma de adequação enviado pelo município."
+fonte = ["src/pages/CatersProcessoDetalhe.jsx:583"]
+
+[objeto."coluna:caters_processes.observations"]
+significado = "Observações livres sobre o processo."
+fonte = ["src/lib/caters/processes.js:93"]
+hipotese = true
+
+[objeto."coluna:caters_processes.ar_tracking_code"]
+significado = "Código de rastreio do AR nos Correios."
+fonte = ["src/pages/CatersProcessos.jsx:99"]
+
+[objeto."coluna:caters_processes.ar_protocol_number"]
+significado = "Número de protocolo do envio do AR."
+fonte = ["src/pages/CatersProcessos.jsx:100"]
+
+[objeto."coluna:caters_processes.report_sent_at"]
+significado = "Quando o relatório foi enviado ao município; usado no painel."
+fonte = ["src/lib/caters/dashboard.js:12"]
+
+[objeto."coluna:caters_processes.technician_name"]
+significado = "Nome do técnico responsável pelo processo (texto livre)."
+fonte = ["src/pages/CatersProcessos.jsx:96"]
+
+[objeto."coluna:caters_processes.created_by"]
+significado = """
+Conta de quem cadastrou. As políticas do usuário de teste e2e usam esta coluna. A chave
+estrangeira sem regra de exclusão impede excluir definitivamente o usuário.
+"""
+fonte = ["restricao:caters_processes.caters_processes_created_by_fkey", "politica:public.caters_processes.e2e_test_user_own_rows_only"]
+
+[objeto."coluna:caters_processes.created_at"]
+significado = "Quando o processo foi cadastrado."
+fonte = ["src/lib/caters/processes.js:83"]
+
+[objeto."coluna:caters_processes.updated_at"]
+significado = "Última alteração, mantida pelo gatilho `trg_caters_processes_updated_at`."
+fonte = ["gatilho:public.caters_processes.trg_caters_processes_updated_at"]
+
+[objeto."coluna:caters_processes.fiscalizacao_id"]
+significado = """
+Fiscalização finalizada da CATERS ligada ao processo, escolhida na view
+`caters_fiscalizacoes_disponiveis`. Fica vazio se a fiscalização for excluída.
+"""
+fonte = ["src/lib/caters/processes.js:109", "restricao:caters_processes.caters_processes_fiscalizacao_id_fkey"]
+
+[objeto."gatilho:public.caters_processes.trg_caters_processes_updated_at"]
+efeito = "Antes de cada alteração, grava a hora atual em `updated_at`."
+fonte = ["funcao:caters_set_updated_at()"]
+
+[objeto."politica:public.caters_processes.CATERS processos: atualizar"]
+descricao = "Usuário ativo da CATERS ou admin altera processos."
+fonte = ["funcao:is_caters_user()"]
+
+[objeto."politica:public.caters_processes.CATERS processos: deletar"]
+descricao = "Só admin ativo exclui processos (e, em cascata, tudo o que pende deles)."
+fonte = ["funcao:get_my_role()"]
+
+[objeto."politica:public.caters_processes.CATERS processos: inserir"]
+descricao = "Usuário ativo da CATERS ou admin cadastra processos."
+fonte = ["funcao:is_caters_user()"]
+
+[objeto."politica:public.caters_processes.CATERS processos: leitura"]
+descricao = "Usuário ativo da CATERS ou admin lê os processos."
+fonte = ["funcao:is_caters_user()"]
+
+[objeto."politica:public.caters_processes.e2e_test_user_own_rows_only"]
+descricao = "Restritiva: o usuário de teste e2e só altera processos que ele criou."
+fonte = ["supabase/migrations/136_e2e_test_user_write_restriction_child_tables.sql"]
+
+[objeto."politica:public.caters_processes.e2e_test_user_own_rows_only_delete"]
+descricao = "Mesma restrição, para exclusão."
+fonte = ["supabase/migrations/136_e2e_test_user_write_restriction_child_tables.sql"]

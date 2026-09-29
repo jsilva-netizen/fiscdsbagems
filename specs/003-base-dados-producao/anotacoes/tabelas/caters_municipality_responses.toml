@@ -1,0 +1,62 @@
+[objeto."tabela:caters_municipality_responses"]
+modulo = "caters"
+finalidade = """
+Resposta do município a um processo CATERS: data de recebimento, protocolo e situação do
+cronograma de adequação. É uma por processo; a tela grava ou substitui. Vazia em produção.
+"""
+fonte = ["src/lib/caters/municipalityResponses.js:15", "indice:caters_municipality_responses_process_id_key"]
+
+[objeto."coluna:caters_municipality_responses.id"]
+significado = "Identificador da resposta."
+fonte = ["src/lib/caters/municipalityResponses.js:15"]
+
+[objeto."coluna:caters_municipality_responses.process_id"]
+significado = "Processo respondido; único, e excluir o processo exclui a resposta."
+fonte = ["restricao:caters_municipality_responses.caters_municipality_responses_process_id_key"]
+
+[objeto."coluna:caters_municipality_responses.received_at"]
+significado = "Quando a resposta do município foi recebida."
+fonte = ["src/pages/CatersProcessoDetalhe.jsx:139"]
+
+[objeto."coluna:caters_municipality_responses.protocol_number"]
+significado = "Protocolo da resposta."
+fonte = ["src/pages/CatersProcessoDetalhe.jsx:139"]
+
+[objeto."coluna:caters_municipality_responses.cronograma_status"]
+significado = """
+Situação do cronograma de adequação: `pendente` (padrão), `aprovado`, `adequacao` (pedida
+adequação) ou `dispensado`; o banco aceita só esses.
+"""
+fonte = ["restricao:caters_municipality_responses.caters_municipality_responses_cronograma_status_check", "src/pages/CatersProcessoDetalhe.jsx:951"]
+
+[objeto."coluna:caters_municipality_responses.notes"]
+significado = "Observações sobre a resposta."
+fonte = ["src/pages/CatersProcessoDetalhe.jsx:139"]
+
+[objeto."coluna:caters_municipality_responses.created_by"]
+significado = "Conta de quem registrou; usada pelas políticas do usuário de teste e2e."
+fonte = ["politica:public.caters_municipality_responses.e2e_test_user_own_rows_only"]
+
+[objeto."coluna:caters_municipality_responses.created_at"]
+significado = "Quando a resposta foi registrada."
+fonte = ["src/lib/caters/municipalityResponses.js:15"]
+
+[objeto."coluna:caters_municipality_responses.updated_at"]
+significado = "Última alteração, mantida pelo gatilho."
+fonte = ["gatilho:public.caters_municipality_responses.trg_caters_municipality_responses_updated_at"]
+
+[objeto."gatilho:public.caters_municipality_responses.trg_caters_municipality_responses_updated_at"]
+efeito = "Antes de cada alteração, grava a hora atual em `updated_at`."
+fonte = ["funcao:caters_set_updated_at()"]
+
+[objeto."politica:public.caters_municipality_responses.CATERS respostas: gestao"]
+descricao = "Usuário ativo da CATERS ou admin lê, grava e exclui respostas."
+fonte = ["funcao:is_caters_user()"]
+
+[objeto."politica:public.caters_municipality_responses.e2e_test_user_own_rows_only"]
+descricao = "Restritiva: o usuário de teste e2e só altera respostas que ele registrou."
+fonte = ["supabase/migrations/136_e2e_test_user_write_restriction_child_tables.sql"]
+
+[objeto."politica:public.caters_municipality_responses.e2e_test_user_own_rows_only_delete"]
+descricao = "Mesma restrição, para exclusão."
+fonte = ["supabase/migrations/136_e2e_test_user_write_restriction_child_tables.sql"]

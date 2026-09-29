@@ -1,0 +1,131 @@
+[objeto."tabela:caters_recommendations"]
+modulo = "caters"
+finalidade = """
+Recomendações e determinações acompanhadas em cada processo da CATERS, com prazo prometido pelo
+município, situação, resposta do titular e evidência. Produção tem 27.
+
+- **Importação:** a partir das recomendações e determinações da fiscalização ligada
+  (`caters_import_from_fiscalizacao`), com prazo de 30 dias contados do fim da fiscalização e
+  prioridade média.
+- **Cadastro manual:** também podem ser cadastradas à mão ou extraídas do relatório por IA.
+- **Situação:** é derivada na tela a partir do prazo e do cumprimento.
+"""
+fonte = [
+  "funcao:caters_import_from_fiscalizacao(p_fiscalizacao_id uuid, p_caters_process_id uuid, p_prazo_dias integer)",
+  "src/lib/caters/recommendations.js:4",
+  "src/lib/caters/recommendations.js:40",
+  "inventário: dominio_categorico",
+]
+
+[objeto."coluna:caters_recommendations.id"]
+significado = "Identificador da recomendação acompanhada."
+fonte = ["src/lib/caters/recommendations.js:40"]
+
+[objeto."coluna:caters_recommendations.process_id"]
+significado = "Processo CATERS; excluir o processo exclui as recomendações."
+fonte = ["restricao:caters_recommendations.caters_recommendations_process_id_fkey"]
+
+[objeto."coluna:caters_recommendations.item_code"]
+significado = "Código do item no relatório (ex.: 3.1.2), informado à mão."
+fonte = ["src/pages/CatersProcessoDetalhe.jsx:1419"]
+
+[objeto."coluna:caters_recommendations.description"]
+significado = "Texto da recomendação ou determinação; na importação, copiado da fiscalização."
+fonte = ["funcao:caters_import_from_fiscalizacao(p_fiscalizacao_id uuid, p_caters_process_id uuid, p_prazo_dias integer)"]
+
+[objeto."coluna:caters_recommendations.category"]
+significado = """
+Categoria livre (ex.: UTR Municipal, Unidade de Transbordo, Coleta de RSD, Coleta Seletiva,
+Limpeza Urbana).
+"""
+fonte = ["src/pages/CatersProcessoDetalhe.jsx:545", "inventário: dominio_categorico"]
+
+[objeto."coluna:caters_recommendations.priority"]
+significado = "Prioridade: `baixa`, `media` (padrão), `alta` ou `critica` (tipo `caters_recommendation_priority`)."
+fonte = ["src/lib/caters/recommendations.js:17"]
+
+[objeto."coluna:caters_recommendations.promised_due_at"]
+significado = """
+Prazo para cumprir: na importação de recomendação, fim da fiscalização mais 30 dias; na de
+determinação, a coluna antiga `determinacoes.prazo`, hoje sempre vazia.
+"""
+fonte = ["funcao:caters_import_from_fiscalizacao(p_fiscalizacao_id uuid, p_caters_process_id uuid, p_prazo_dias integer)", "coluna:determinacoes.prazo"]
+
+[objeto."coluna:caters_recommendations.status"]
+significado = """
+Situação (tipo `caters_recommendation_status`): `pendente` (padrão), `em_andamento`, `vencido` ou
+`cumprido`. É derivada na tela ao gravar, sem rotina que a atualize:
+
+- com data de cumprimento, `cumprido`;
+- com prazo passado, `vencido`;
+- senão, o que estava.
+"""
+fonte = ["src/lib/caters/recommendations.js:4"]
+
+[objeto."coluna:caters_recommendations.fulfilled_at"]
+significado = "Data do cumprimento; \"marcar como cumprida\" grava o dia (data UTC do aparelho)."
+fonte = ["src/pages/CatersProcessoDetalhe.jsx:557"]
+
+[objeto."coluna:caters_recommendations.evidence_url"]
+significado = "Evidência do cumprimento."
+fonte = ["src/lib/caters/recommendations.js:28"]
+hipotese = true
+
+[objeto."coluna:caters_recommendations.notes"]
+significado = "Observações da equipe sobre a recomendação."
+fonte = ["src/pages/CatersProcessoDetalhe.jsx:551"]
+
+[objeto."coluna:caters_recommendations.titular_response"]
+significado = "Resposta do município titular sobre a recomendação; pode ser preenchida pela IA ao cruzar o ofício."
+fonte = ["src/pages/CatersProcessoDetalhe.jsx:550"]
+
+[objeto."coluna:caters_recommendations.created_by"]
+significado = "Conta de quem cadastrou ou importou; na importação, o usuário logado."
+fonte = ["funcao:caters_import_from_fiscalizacao(p_fiscalizacao_id uuid, p_caters_process_id uuid, p_prazo_dias integer)"]
+
+[objeto."coluna:caters_recommendations.created_at"]
+significado = "Quando foi cadastrada ou importada; ordena a lista."
+fonte = ["src/lib/caters/recommendations.js:31"]
+
+[objeto."coluna:caters_recommendations.updated_at"]
+significado = "Última alteração, mantida pelo gatilho `trg_caters_recommendations_updated_at`."
+fonte = ["gatilho:public.caters_recommendations.trg_caters_recommendations_updated_at"]
+
+[objeto."coluna:caters_recommendations.recomendacao_id"]
+significado = """
+Recomendação da fiscalização de origem. Evita importar duas vezes e fica vazio se a recomendação
+for apagada.
+"""
+fonte = ["funcao:caters_import_from_fiscalizacao(p_fiscalizacao_id uuid, p_caters_process_id uuid, p_prazo_dias integer)", "restricao:caters_recommendations.caters_recommendations_recomendacao_id_fkey"]
+
+[objeto."coluna:caters_recommendations.determinacao_id"]
+significado = "Determinação da fiscalização de origem, quando importada dela; fica vazio se ela for apagada."
+fonte = ["restricao:caters_recommendations.caters_recommendations_determinacao_id_fkey"]
+
+[objeto."gatilho:public.caters_recommendations.trg_caters_recommendations_updated_at"]
+efeito = "Antes de cada alteração, grava a hora atual em `updated_at`."
+fonte = ["funcao:caters_set_updated_at()"]
+
+[objeto."politica:public.caters_recommendations.CATERS recomendacoes: atualizar"]
+descricao = "Usuário ativo da CATERS ou admin altera recomendações."
+fonte = ["funcao:is_caters_user()"]
+
+[objeto."politica:public.caters_recommendations.CATERS recomendacoes: deletar"]
+descricao = "Usuário ativo da CATERS ou admin exclui recomendações."
+fonte = ["funcao:is_caters_user()"]
+
+[objeto."politica:public.caters_recommendations.CATERS recomendacoes: inserir"]
+descricao = "Usuário ativo da CATERS ou admin cadastra recomendações."
+fonte = ["funcao:is_caters_user()"]
+
+[objeto."politica:public.caters_recommendations.CATERS recomendacoes: leitura"]
+descricao = "Usuário ativo da CATERS ou admin lê as recomendações."
+fonte = ["funcao:is_caters_user()"]
+
+[objeto."politica:public.caters_recommendations.e2e_test_user_own_rows_only"]
+descricao = "Restritiva: o usuário de teste e2e só altera recomendações que ele criou."
+fonte = ["supabase/migrations/136_e2e_test_user_write_restriction_child_tables.sql"]
+
+[objeto."politica:public.caters_recommendations.e2e_test_user_own_rows_only_delete"]
+descricao = "Mesma restrição, para exclusão."
+fonte = ["supabase/migrations/136_e2e_test_user_write_restriction_child_tables.sql"]

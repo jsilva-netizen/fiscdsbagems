@@ -10,14 +10,14 @@ Páginas gerais: [repositórios de arquivos](arquivos.md) · [controle de acesso
 
 | Tipo | Total | Sem anotação |
 |---|---:|---:|
-| Tabelas | 35 | 8 |
-| Views | 1 | 1 |
-| Colunas | 446 | 104 |
+| Tabelas | 35 | 0 |
+| Views | 1 | 0 |
+| Colunas | 446 | 0 |
 | Restrições | 113 | — |
 | Índices | 80 | — |
 | Funções | 38 | 20 |
-| Gatilhos | 30 | 5 |
-| Políticas de acesso | 173 | 67 |
+| Gatilhos | 30 | 1 |
+| Políticas de acesso | 173 | 40 |
 | Tipos | 5 | 5 |
 | Repositórios de arquivos | 8 | 8 |
 | Papéis | 17 | 17 |
@@ -29,7 +29,7 @@ Páginas gerais: [repositórios de arquivos](arquivos.md) · [controle de acesso
 
 ## Completude
 
-Completude: 270 objetos sem anotação | 409 sem dono | 0 divergências não classificadas | 0 violações de ordem | 0 achados aguardando decisão
+Completude: 126 objetos sem anotação | 189 sem dono | 0 divergências não classificadas | 0 violações de ordem | 0 achados aguardando decisão
 
 ## Por módulo
 
@@ -55,9 +55,11 @@ Tabelas e views: [tipos_ocorrencia_dtr](tabelas/tipos_ocorrencia_dtr.md)
 
 Tabelas e views: [autos_infracao](tabelas/autos_infracao.md) · [julgamentos](tabelas/julgamentos.md) · [manifestacoes_auto](tabelas/manifestacoes_auto.md) · [pareceres_tecnicos](tabelas/pareceres_tecnicos.md) · [remessas_ai](tabelas/remessas_ai.md) · [remessas_ai_itens](tabelas/remessas_ai_itens.md) · [respostas_determinacao](tabelas/respostas_determinacao.md) · [termos_notificacao](tabelas/termos_notificacao.md)
 
-### sem dono (lacuna)
+### caters
 
 Tabelas e views: [caters_ai_jobs](tabelas/caters_ai_jobs.md) · [caters_analysis_history](tabelas/caters_analysis_history.md) · [caters_deadline_extensions](tabelas/caters_deadline_extensions.md) · [caters_extra_documents](tabelas/caters_extra_documents.md) · [caters_fiscalizacoes_disponiveis](tabelas/caters_fiscalizacoes_disponiveis.md) · [caters_municipality_responses](tabelas/caters_municipality_responses.md) · [caters_notification_reads](tabelas/caters_notification_reads.md) · [caters_processes](tabelas/caters_processes.md) · [caters_recommendations](tabelas/caters_recommendations.md)
+
+### sem dono (lacuna)
 
 Funções: [caters_import_from_fiscalizacao](funcoes/caters_import_from_fiscalizacao.md) · [caters_set_updated_at](funcoes/caters_set_updated_at.md) · [claim_caters_ai_jobs](funcoes/claim_caters_ai_jobs.md) · [claim_relatorios_jobs](funcoes/claim_relatorios_jobs.md) · [determinacoes_fill_origem](funcoes/determinacoes_fill_origem.md) · [finalizar_fiscalizacao](funcoes/finalizar_fiscalizacao.md) · [gerar_ncs_unidade](funcoes/gerar_ncs_unidade.md) · [gerar_numero_am](funcoes/gerar_numero_am.md) · [gerar_numero_auto](funcoes/gerar_numero_auto.md) · [kick_relatorios_worker](funcoes/kick_relatorios_worker.md) · [obter_resumo_indicadores](funcoes/obter_resumo_indicadores.md) · [propagate_modification_to_parent](funcoes/propagate_modification_to_parent.md) · [reabrir_fiscalizacao](funcoes/reabrir_fiscalizacao.md) · [set_fiscalizacao_cache_fields](funcoes/set_fiscalizacao_cache_fields.md) · [set_fiscalizacao_last_modified](funcoes/set_fiscalizacao_last_modified.md) · [set_termos_notificacao_ano_geracao](funcoes/set_termos_notificacao_ano_geracao.md) · [trg_auto_set_camara](funcoes/trg_auto_set_camara.md) · [trg_fiscalizacao_set_camara](funcoes/trg_fiscalizacao_set_camara.md) · [trg_remessa_set_camara](funcoes/trg_remessa_set_camara.md)
 
@@ -65,6 +67,11 @@ Funções: [caters_import_from_fiscalizacao](funcoes/caters_import_from_fiscaliz
 
 - `coluna:autos_infracao.resposta_determinacao_id` (tabelas/autos_infracao.toml)
 - `coluna:autos_infracao.valor` (tabelas/autos_infracao.toml)
+- `coluna:caters_ai_jobs.input_text` (tabelas/caters_ai_jobs.toml)
+- `coluna:caters_analysis_history.new_fatal_date` (tabelas/caters_analysis_history.toml)
+- `coluna:caters_analysis_history.related_document_url` (tabelas/caters_analysis_history.toml)
+- `coluna:caters_processes.observations` (tabelas/caters_processes.toml)
+- `coluna:caters_recommendations.evidence_url` (tabelas/caters_recommendations.toml)
 - `coluna:constatacoes_manuais.ordem` (tabelas/constatacoes_manuais.toml)
 - `coluna:determinacoes.prazo` (tabelas/determinacoes.toml)
 - `coluna:itens_checklist.created_by` (tabelas/itens_checklist.toml)

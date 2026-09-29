@@ -1,0 +1,62 @@
+[objeto."tabela:caters_analysis_history"]
+modulo = "caters"
+finalidade = """
+Histórico de cada processo CATERS: criação, mudança de status, resposta recebida, prazo
+estendido, documento anexado, encerramento e observações, com autor e data. Vazio em produção.
+
+Não há política de exclusão, então "excluir" um registro pela tela não tem efeito e não mostra
+erro.
+"""
+fonte = ["src/lib/caters/history.js:27", "src/lib/caters/history.js:36", "inventário: tabelas"]
+
+[objeto."coluna:caters_analysis_history.id"]
+significado = "Identificador do registro de histórico."
+fonte = ["src/lib/caters/history.js:27"]
+
+[objeto."coluna:caters_analysis_history.process_id"]
+significado = "Processo do histórico; excluir o processo exclui o histórico."
+fonte = ["restricao:caters_analysis_history.caters_analysis_history_process_id_fkey"]
+
+[objeto."coluna:caters_analysis_history.action_type"]
+significado = """
+Tipo do evento (tipo `caters_analysis_action_type`):
+
+- `criacao`;
+- `atualizacao_status`;
+- `resposta_recebida`;
+- `prazo_estendido`;
+- `documento_anexado`;
+- `encerramento`;
+- `observacao`.
+"""
+fonte = ["src/lib/caters/history.js:3"]
+
+[objeto."coluna:caters_analysis_history.description"]
+significado = "Texto do evento (ex.: \"Dilação aprovada: +N dias… → novo prazo…\")."
+fonte = ["src/pages/CatersProcessoDetalhe.jsx:364"]
+
+[objeto."coluna:caters_analysis_history.new_fatal_date"]
+significado = "Nova data fatal registrada no evento, quando houver."
+fonte = ["src/lib/caters/history.js:27"]
+hipotese = true
+
+[objeto."coluna:caters_analysis_history.related_document_url"]
+significado = "Documento relacionado ao evento, quando houver."
+fonte = ["src/lib/caters/history.js:27"]
+hipotese = true
+
+[objeto."coluna:caters_analysis_history.performed_by"]
+significado = "Conta de quem fez; a chave estrangeira sem regra de exclusão impede excluir o usuário."
+fonte = ["src/pages/CatersProcessoDetalhe.jsx:366", "restricao:caters_analysis_history.caters_analysis_history_performed_by_fkey"]
+
+[objeto."coluna:caters_analysis_history.created_at"]
+significado = "Quando o evento foi registrado; ordena o histórico (mais recente primeiro)."
+fonte = ["src/lib/caters/history.js:21"]
+
+[objeto."politica:public.caters_analysis_history.CATERS historico: inserir"]
+descricao = "Usuário ativo da CATERS ou admin registra eventos."
+fonte = ["funcao:is_caters_user()"]
+
+[objeto."politica:public.caters_analysis_history.CATERS historico: leitura"]
+descricao = "Usuário ativo da CATERS ou admin lê o histórico. Não há política de alteração nem de exclusão."
+fonte = ["funcao:is_caters_user()"]

@@ -1,0 +1,55 @@
+[objeto."tabela:caters_extra_documents"]
+modulo = "caters"
+finalidade = """
+Documentos avulsos anexados a um processo CATERS, além dos documentos fixos do processo
+(relatório, termo, AR, ofício, cronograma). Vazia em produção.
+"""
+fonte = ["src/lib/caters/documents.js:17", "inventário: tabelas"]
+
+[objeto."coluna:caters_extra_documents.id"]
+significado = "Identificador do documento."
+fonte = ["src/lib/caters/documents.js:17"]
+
+[objeto."coluna:caters_extra_documents.process_id"]
+significado = "Processo do documento; excluir o processo exclui os documentos."
+fonte = ["restricao:caters_extra_documents.caters_extra_documents_process_id_fkey"]
+
+[objeto."coluna:caters_extra_documents.title"]
+significado = "Título do documento."
+fonte = ["src/lib/caters/documents.js:17"]
+
+[objeto."coluna:caters_extra_documents.description"]
+significado = "Descrição do documento."
+fonte = ["src/lib/caters/documents.js:17"]
+
+[objeto."coluna:caters_extra_documents.file_url"]
+significado = "Arquivo do documento no armazenamento."
+fonte = ["src/lib/caters/documents.js:17"]
+
+[objeto."coluna:caters_extra_documents.created_by"]
+significado = "Conta de quem anexou; usada pelas políticas do usuário de teste e2e."
+fonte = ["politica:public.caters_extra_documents.e2e_test_user_own_rows_only"]
+
+[objeto."coluna:caters_extra_documents.created_at"]
+significado = "Quando o documento foi anexado."
+fonte = ["src/lib/caters/documents.js:7"]
+
+[objeto."politica:public.caters_extra_documents.CATERS documentos: deletar"]
+descricao = "Usuário ativo da CATERS ou admin exclui documentos."
+fonte = ["funcao:is_caters_user()"]
+
+[objeto."politica:public.caters_extra_documents.CATERS documentos: inserir"]
+descricao = "Usuário ativo da CATERS ou admin anexa documentos."
+fonte = ["funcao:is_caters_user()"]
+
+[objeto."politica:public.caters_extra_documents.CATERS documentos: leitura"]
+descricao = "Usuário ativo da CATERS ou admin lê os documentos."
+fonte = ["funcao:is_caters_user()"]
+
+[objeto."politica:public.caters_extra_documents.e2e_test_user_own_rows_only"]
+descricao = "Restritiva: o usuário de teste e2e só altera documentos que ele anexou."
+fonte = ["supabase/migrations/136_e2e_test_user_write_restriction_child_tables.sql"]
+
+[objeto."politica:public.caters_extra_documents.e2e_test_user_own_rows_only_delete"]
+descricao = "Mesma restrição, para exclusão."
+fonte = ["supabase/migrations/136_e2e_test_user_write_restriction_child_tables.sql"]

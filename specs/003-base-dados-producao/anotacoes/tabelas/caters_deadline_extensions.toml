@@ -1,0 +1,75 @@
+[objeto."tabela:caters_deadline_extensions"]
+modulo = "caters"
+finalidade = """
+Dilações (prorrogações) do prazo de resposta de um processo CATERS: data de referência, dias
+concedidos, novo prazo calculado, pedido e protocolo do município e decisão (aprovado ou negado).
+Vazia em produção.
+
+**Defeito:** ao aprovar, a tela grava a dilação e depois tenta atualizar o prazo do processo com
+um status inexistente (`dilacao_solicitada`). A segunda gravação falha: a dilação fica registrada,
+mas o prazo do processo e o histórico não mudam.
+"""
+fonte = ["src/pages/CatersProcessoDetalhe.jsx:343", "src/pages/CatersProcessoDetalhe.jsx:361", "src/lib/caters/deadlineExtensions.js:13"]
+
+[objeto."coluna:caters_deadline_extensions.id"]
+significado = "Identificador da dilação."
+fonte = ["src/lib/caters/deadlineExtensions.js:13"]
+
+[objeto."coluna:caters_deadline_extensions.process_id"]
+significado = "Processo prorrogado; excluir o processo exclui as dilações."
+fonte = ["restricao:caters_deadline_extensions.caters_deadline_extensions_process_id_fkey"]
+
+[objeto."coluna:caters_deadline_extensions.reference_date"]
+significado = "Data a partir da qual os dias são contados."
+fonte = ["src/pages/CatersProcessoDetalhe.jsx:345"]
+
+[objeto."coluna:caters_deadline_extensions.extension_days"]
+significado = "Dias concedidos (maior que zero, verificado pela tela)."
+fonte = ["src/pages/CatersProcessoDetalhe.jsx:346"]
+
+[objeto."coluna:caters_deadline_extensions.calculated_date"]
+significado = "Novo prazo: data de referência mais os dias, calculado no navegador."
+fonte = ["src/pages/CatersProcessoDetalhe.jsx:348"]
+
+[objeto."coluna:caters_deadline_extensions.municipality_request_at"]
+significado = "Quando o município pediu a dilação."
+fonte = ["src/pages/CatersProcessoDetalhe.jsx:354"]
+
+[objeto."coluna:caters_deadline_extensions.municipality_protocol"]
+significado = "Protocolo do pedido do município."
+fonte = ["src/pages/CatersProcessoDetalhe.jsx:355"]
+
+[objeto."coluna:caters_deadline_extensions.status"]
+significado = "Decisão: `aprovado` (padrão) ou `negado`; o banco aceita só esses."
+fonte = ["restricao:caters_deadline_extensions.caters_deadline_extensions_status_check", "src/pages/CatersProcessoDetalhe.jsx:357"]
+
+[objeto."coluna:caters_deadline_extensions.notes"]
+significado = "Observações sobre a dilação."
+fonte = ["src/pages/CatersProcessoDetalhe.jsx:356"]
+
+[objeto."coluna:caters_deadline_extensions.created_by"]
+significado = "Conta de quem registrou; usada pelas políticas do usuário de teste e2e."
+fonte = ["src/pages/CatersProcessoDetalhe.jsx:358", "politica:public.caters_deadline_extensions.e2e_test_user_own_rows_only"]
+
+[objeto."coluna:caters_deadline_extensions.created_at"]
+significado = "Quando a dilação foi registrada; ordena a lista."
+fonte = ["src/lib/caters/deadlineExtensions.js:8"]
+
+[objeto."coluna:caters_deadline_extensions.updated_at"]
+significado = "Última alteração; não há gatilho que a mantenha nem tela que altere dilações."
+fonte = ["src/lib/caters/deadlineExtensions.js:13"]
+
+[objeto."politica:public.caters_deadline_extensions.authenticated users can manage deadline extensions"]
+descricao = """
+Quem tem perfil ativo, de qualquer papel e câmara, lê, cria, altera e exclui dilações de qualquer
+processo, sem exigir a CATERS. Desde a migration 138; antes, valia para qualquer logado.
+"""
+fonte = ["supabase/migrations/138_fix_open_policies.sql"]
+
+[objeto."politica:public.caters_deadline_extensions.e2e_test_user_own_rows_only"]
+descricao = "Restritiva: o usuário de teste e2e só altera dilações que ele criou."
+fonte = ["supabase/migrations/136_e2e_test_user_write_restriction_child_tables.sql"]
+
+[objeto."politica:public.caters_deadline_extensions.e2e_test_user_own_rows_only_delete"]
+descricao = "Mesma restrição, para exclusão."
+fonte = ["supabase/migrations/136_e2e_test_user_write_restriction_child_tables.sql"]
