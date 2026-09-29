@@ -302,7 +302,43 @@ Todas as tarefas abaixo são [P] entre si (arquivos diferentes).
   - A-009: `catesa_ai_jobs` e as 4 funções que existem só nas migrations;
   - A-010: as câmaras `caterm` e `catesg`, sem correspondência no código.
 
-  Incluir os achados que surgirem nas fases 3 a 5.
+  Incluir os achados que surgirem nas fases 3 a 5. Já levantados na fase 3 (numerar a partir de
+  A-011; os detalhes estão nas anotações dos objetos citados):
+
+  - **Corrigidos em produção em 2026-09-29** (registrar como decididos, com a migration):
+    escalada de privilégio no cadastro (137); escrita sem login e acesso de conta não aprovada
+    (138); prazos e respostas adulteráveis pelo prestador (139); view do CATERS sem login (140,
+    complementa A-004); funções sem verificação, finalização pela chave de serviço e fila da
+    CATESA ausente (141, complementa A-005, A-006 e A-009).
+  - **Arquivos abertos a todo usuário ativo**: as políticas de `storage.objects` só olham o bucket e
+    o perfil ativo; o prestador lê, troca e apaga qualquer arquivo dos buckets privados (termos,
+    autos, relatórios, fotos, documentos de outras entidades). Decisão do usuário em 2026-09-29:
+    registrar, não corrigir agora.
+  - Portal da entidade monta endereço público para as fotos de `fotos_fiscalizacao`, que é privado.
+  - AI assinado enviado pelo portal fica sem referência (nenhuma coluna candidata existe).
+  - Envio de arquivos de termo tenta vários nomes de bucket até um aceitar.
+  - Exclusão de usuário falha para quem tem registros (chaves estrangeiras sem `ON DELETE`).
+  - "Drenagem" × "Drenagem Urbana" em `camara_from_servicos`.
+  - Coordenador pode excluir perfis e alterar nome e e-mail de qualquer um pela API.
+  - Vínculo do prestador gravado nos dois lados (perfil e entidade) sem transação.
+  - `itens_checklist` versionado por inclusão (525 itens atuais, 243 versões antigas).
+  - `latitude_inicio`, `longitude_inicio` e `tipo_unidade_nome` nunca gravados.
+  - Políticas da equipe ignoram a câmara nas tabelas filhas.
+  - Prestador lê unidades, NCs etc. da fiscalização sem ter termo.
+  - Numeração de TN, AM e AI com condição de corrida e "DSB" fixo.
+  - Defesa do auto não é salva; colunas `data_envio` e `data_limite_manifestacao` de autos não
+    existem; `numero_tn` da remessa sempre vazio.
+  - Tabelas sem uso: `julgamentos`, `manifestacoes_auto`, `fotos_evidencia`.
+  - Dilação do CATERS grava `dilacao_solicitada`, valor que o tipo não tem (migration 123 supôs
+    texto livre).
+  - Excluir evento do histórico do CATERS não tem efeito.
+  - Trabalhos de IA do CATERS nunca processados em produção.
+  - Política "(DEV)" de `remessas_ai` deixa o prestador alterar remessas de outros.
+  - `determinacoes.prazo` nunca preenchido, mas lido pela importação do CATERS e pela IA da CATESA.
+  - `determinacoes_fill_origem` e a sobrecarga antiga de `obter_resumo_indicadores` sem uso.
+  - IA da CATESA: botão aparece em termos de qualquer câmara; workers de IA publicados sem
+    verificação de quem chama (`verify_jwt = false`); aplicar o veredito cria resposta com
+    `dentro_prazo = true`.
 - [ ] T045 [US4] Em `S/ferramentas/gerar.py`, gerar `S/achados.md` e incluir, em cada página de catálogo, os achados que citam o objeto.
 - [ ] T046 [US4] Apresentar os achados ao responsável pelo projeto e registrar em `S/anotacoes/achados.toml` cada decisão tomada (`situacao = "decidido"`, `decisao`, `decidido_por`, `decidido_em`). **Não alterar nada em produção** (FR-018): decisão de limpar produção vira trabalho separado. Regenerar e fazer commit.
 
