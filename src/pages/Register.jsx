@@ -42,11 +42,16 @@ export default function Register() {
     useEffect(() => {
         async function fetchPrestadores() {
             try {
-                const { data, error } = await supabase
-                    .from('prestadores_servico')
-                    .select('id, nome')
-                    .eq('ativo', true)
-                    .order('nome');
+                // Sem login, só a função devolve id e nome dos prestadores ativos (migration 138).
+                // Enquanto a função não existir no banco, usa a leitura direta antiga.
+                let { data, error } = await supabase.rpc('prestadores_para_cadastro');
+                if (error) {
+                    ({ data, error } = await supabase
+                        .from('prestadores_servico')
+                        .select('id, nome')
+                        .eq('ativo', true)
+                        .order('nome'));
+                }
                 if (error) throw error;
                 setPrestadores(data || []);
             } catch (err) {
