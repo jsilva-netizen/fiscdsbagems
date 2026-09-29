@@ -4,15 +4,17 @@ finalidade = """
 View com as fiscalizações finalizadas da câmara CATERS, que podem ser ligadas a um processo
 CATERS. A tela a usa na lista "vincular fiscalização".
 
-**Acesso:** a view pertence ao `postgres` e não é "security invoker", então não passa pelas
-políticas de `fiscalizacoes`. `anon` e `authenticated` têm permissão de leitura nela. Resultado:
-**qualquer pessoa, sem login, lista essas fiscalizações** (id, município, prestador, serviços,
-datas, número do termo).
+**Acesso:** desde a migration 140, a view usa as permissões de quem consulta (`security_invoker`),
+e só `authenticated` tem leitura. Vale, portanto, a política de `fiscalizacoes`: usuário ativo com
+acesso à câmara CATERS, ou admin.
+
+Até a 140, a view rodava com as permissões do dono (`postgres`) e dava leitura a `anon`: qualquer
+pessoa, sem login, listava essas fiscalizações.
 """
 fonte = [
   "src/lib/caters/processes.js:109",
-  "inventário: opcoes_tabelas",
-  "privilegio:caters_fiscalizacoes_disponiveis.anon",
+  "supabase/migrations/140_fix_view_caters_security_invoker.sql",
+  ".specify/bugs/view-caters-sem-login/assessment.md",
 ]
 
 [objeto."coluna:caters_fiscalizacoes_disponiveis.id"]
