@@ -1,0 +1,254 @@
+[objeto."tabela:fiscalizacoes"]
+modulo = "fiscalizacao"
+finalidade = """
+Cada fiscalização de campo: uma visita de um fiscal a uma entidade regulada, num município, para
+um conjunto de serviços. Nela o fiscal vistoria unidades (`unidades_fiscalizadas`) com checklist,
+constatações, fotos, NCs, determinações e recomendações. Produção tem 26: 19 finalizadas e 7 em
+andamento; 24 de saneamento (DSB) e 2 de rodovias (DTR).
+
+- **Criação e edição:** é criada offline no aparelho (`createFiscalizacao`) e sincronizada pela
+  fila.
+- **Finalização:** `finalizar_fiscalizacao` regenera as NCs, determinações e recomendações de cada
+  unidade, conta os totais, grava o número do termo e a data de fim e muda o status.
+- **Reabertura:** `reabrir_fiscalizacao` volta tudo para "em andamento" e apaga os relatórios
+  gerados.
+- **Relatórios:** são pedidos em `relatorios_jobs` e gerados pelas edge functions.
+- **Auditoria:** toda alteração vai para `audit_logs`.
+"""
+fonte = [
+  "src/lib/offline/repository.ts:489",
+  "src/lib/offline/repository.ts:2392",
+  "funcao:finalizar_fiscalizacao(p_fiscalizacao_id uuid)",
+  "funcao:reabrir_fiscalizacao(p_fiscalizacao_id uuid)",
+  "inventário: dominio_categorico",
+]
+
+[objeto."coluna:fiscalizacoes.id"]
+significado = """
+Identificador da fiscalização, gerado no aparelho na criação offline. As unidades, os termos de
+notificação, as remessas e os relatórios apontam para ele.
+"""
+fonte = ["src/lib/offline/repository.ts:495"]
+
+[objeto."coluna:fiscalizacoes.municipio_id"]
+significado = """
+Município fiscalizado. Não há chave estrangeira para `municipios`, diferente de
+`termos_notificacao`.
+"""
+fonte = ["src/lib/offline/repository.ts:496", "tabela:municipios"]
+
+[objeto."coluna:fiscalizacoes.municipio_nome"]
+significado = """
+Nome do município copiado na gravação, para listas e relatórios sem consulta extra. O aparelho
+preenche, e o gatilho `trg_set_fiscalizacao_cache_fields` confirma a partir de `municipio_id`.
+"""
+fonte = ["funcao:set_fiscalizacao_cache_fields()", "src/lib/offline/repository.ts:497"]
+
+[objeto."coluna:fiscalizacoes.prestador_servico_id"]
+significado = """
+Entidade regulada fiscalizada. Não há chave estrangeira. O prestador vê as fiscalizações da
+própria entidade (política de prestador).
+"""
+fonte = ["src/lib/offline/repository.ts:498"]
+
+[objeto."coluna:fiscalizacoes.prestador_servico_nome"]
+significado = """
+Nome da entidade copiado na gravação. O aparelho preenche e o gatilho de cache confirma a partir
+de `prestador_servico_id`.
+"""
+fonte = ["funcao:set_fiscalizacao_cache_fields()", "src/lib/offline/repository.ts:499"]
+
+[objeto."coluna:fiscalizacoes.fiscal_nome"]
+significado = """
+Nome do fiscal responsável. O aparelho envia; se vier vazio, o gatilho de cache usa o nome do
+perfil de quem grava.
+"""
+fonte = ["funcao:set_fiscalizacao_cache_fields()", "src/lib/offline/repository.ts:504"]
+
+[objeto."coluna:fiscalizacoes.fiscal_email"]
+significado = "E-mail do fiscal responsável, enviado pelo aparelho na criação."
+fonte = ["src/lib/offline/repository.ts:503"]
+
+[objeto."coluna:fiscalizacoes.data_inicio"]
+significado = "Quando a fiscalização foi criada no aparelho (início da visita)."
+fonte = ["src/lib/offline/repository.ts:502"]
+
+[objeto."coluna:fiscalizacoes.data_fim"]
+significado = """
+Quando a fiscalização foi finalizada. Gravada pelo aparelho e pela função de finalização, que
+preserva uma data já existente. A reabertura apaga.
+"""
+fonte = ["funcao:finalizar_fiscalizacao(p_fiscalizacao_id uuid)", "funcao:reabrir_fiscalizacao(p_fiscalizacao_id uuid)", "src/lib/offline/repository.ts:2409"]
+
+[objeto."coluna:fiscalizacoes.latitude_inicio"]
+significado = """
+Latitude do início da visita. O app atual não grava: a criação recebe o valor, mas não o põe no
+registro, e a sincronização não envia esta coluna. Só a leitura a traz do banco.
+"""
+fonte = ["src/lib/offline/repository.ts:489", "src/lib/offline/syncEngine.ts:60", "src/lib/offline/syncEngine.ts:1702"]
+
+[objeto."coluna:fiscalizacoes.longitude_inicio"]
+significado = "Longitude do início da visita; mesma situação de `latitude_inicio` (o app não grava)."
+fonte = ["src/lib/offline/repository.ts:489", "src/lib/offline/syncEngine.ts:60"]
+
+[objeto."coluna:fiscalizacoes.status"]
+significado = """
+`em_andamento` (padrão) ou `finalizada`. Finalizar e reabrir mudam também o status das unidades.
+Em produção: 19 finalizadas e 7 em andamento.
+"""
+fonte = ["funcao:finalizar_fiscalizacao(p_fiscalizacao_id uuid)", "funcao:reabrir_fiscalizacao(p_fiscalizacao_id uuid)", "inventário: dominio_categorico"]
+
+[objeto."coluna:fiscalizacoes.servicos"]
+significado = """
+Serviços fiscalizados (lista), escolhidos na criação. Definem:
+
+- os tipos de unidade oferecidos;
+- a câmara técnica, quando ela não é informada: o gatilho `tr_camara_fiscalizacoes` chama
+  `camara_from_servicos`.
+
+No aparelho, os serviços ficam como um texto só, separado por vírgula (`servico`), e a
+sincronização os converte de volta para lista. A DTR sempre usa `Rodovias`. A ordem da lista não
+é normalizada: "água e esgoto" aparece nas duas ordens em produção.
+"""
+fonte = [
+  "funcao:camara_from_servicos(p_servicos text[])",
+  "src/pages/NovaFiscalizacao.jsx:58",
+  "src/pages/NovaFiscalizacaoDTR.jsx:97",
+  "src/lib/offline/repository.ts:500",
+  "src/lib/offline/syncEngine.ts:1201",
+  "src/pages/ExecutarFiscalizacao.jsx:183",
+  "inventário: dominio_categorico",
+]
+
+[objeto."coluna:fiscalizacoes.numero_termo"]
+significado = """
+Número do termo de fiscalização, no formato `NNN/AAAA`. Nasce vazio e é calculado a cada
+finalização: é a posição da fiscalização entre todas as fiscalizações do mesmo ano, de todas as
+câmaras, ordenadas pela criação.
+
+Por ser uma posição, e não uma sequência gravada, pode mudar se uma fiscalização anterior do ano
+for excluída e esta for finalizada de novo.
+"""
+fonte = ["funcao:finalizar_fiscalizacao(p_fiscalizacao_id uuid)", "src/lib/offline/repository.ts:509", "src/pages/AcompanhamentoDeterminacoes.jsx:358"]
+
+[objeto."coluna:fiscalizacoes.created_at"]
+significado = """
+Quando a fiscalização foi criada no aparelho. Define o ano e a ordem usados no número do termo.
+"""
+fonte = ["src/lib/offline/repository.ts:507", "funcao:finalizar_fiscalizacao(p_fiscalizacao_id uuid)"]
+
+[objeto."coluna:fiscalizacoes.updated_at"]
+significado = """
+Última alteração. Gravada pelo aparelho, pelas funções de finalizar e reabrir e pelo gatilho
+`update_fiscalizacoes_updated_at`. A sincronização incremental usa esta coluna.
+"""
+fonte = ["gatilho:public.fiscalizacoes.update_fiscalizacoes_updated_at", "src/lib/offline/syncEngine.ts:1702"]
+
+[objeto."coluna:fiscalizacoes.created_by"]
+significado = """
+Conta de quem criou a fiscalização; o banco preenche com o usuário logado. Tem chave estrangeira
+para `auth.users` sem regra de exclusão, o que impede excluir definitivamente um usuário que já
+criou fiscalização.
+
+As políticas do usuário de teste e2e usam esta coluna para limitá-lo às próprias fiscalizações.
+"""
+fonte = ["restricao:fiscalizacoes.fiscalizacoes_created_by_fkey", "funcao:admin_delete_user(p_user_id uuid)", "politica:public.fiscalizacoes.e2e_test_user_own_rows_only"]
+
+[objeto."coluna:fiscalizacoes.last_modified_by"]
+significado = """
+E-mail de quem fez a última alteração; `sistema` quando foi sem usuário logado. Gravado pelo
+gatilho `trg_set_fiscalizacao_last_modified`.
+"""
+fonte = ["funcao:set_fiscalizacao_last_modified()"]
+
+[objeto."coluna:fiscalizacoes.last_modified_at"]
+significado = "Quando foi a última alteração, gravado pelo mesmo gatilho."
+fonte = ["funcao:set_fiscalizacao_last_modified()"]
+
+[objeto."coluna:fiscalizacoes.tipo_modulo"]
+significado = """
+Módulo de origem da fiscalização:
+
+- DSB: `saneamento_dsb` (padrão), `residuos_dsb`;
+- DTR: `rodovias_dtr`, `transportes_dtr`, `fiscal_dtr`;
+- DGE: `gas_dge`, `energia_dge`.
+
+Vem da câmara ou da diretoria do usuário e filtra listas e indicadores por diretoria. Em produção:
+24 `saneamento_dsb` e 2 `rodovias_dtr`. As fiscalizações do CATERS também estão como
+`saneamento_dsb`, porque o valor segue a diretoria.
+"""
+fonte = ["src/hooks/useModulo.js:57", "src/lib/offline/repository.ts:505", "inventário: dominio_categorico"]
+
+[objeto."coluna:fiscalizacoes.rodovia"]
+modulo = "dtr"
+significado = "Rodovia principal vistoriada numa fiscalização da DTR (ex.: BR-163, MS-306)."
+fonte = ["src/lib/offline/repository.ts:506"]
+
+[objeto."coluna:fiscalizacoes.camara_tecnica_id"]
+significado = """
+Câmara técnica da fiscalização. Controla quem vê e altera a fiscalização (`can_access_camara`).
+
+Se não vier preenchida, o gatilho `tr_camara_fiscalizacoes` a deduz dos serviços, na criação e
+quando os serviços mudam. Serviços de câmaras diferentes, ou de rodovias, deixam a câmara vazia,
+e aí a fiscalização fica visível a todos os fiscais e coordenadores.
+"""
+fonte = ["gatilho:public.fiscalizacoes.tr_camara_fiscalizacoes", "funcao:can_access_camara(row_camara text)"]
+
+[objeto."gatilho:public.fiscalizacoes.tr_camara_fiscalizacoes"]
+efeito = """
+Antes de inserir, ou de alterar os serviços, preenche a câmara técnica a partir dos serviços,
+quando ela vem vazia.
+"""
+fonte = ["funcao:trg_fiscalizacao_set_camara()", "funcao:camara_from_servicos(p_servicos text[])"]
+
+[objeto."gatilho:public.fiscalizacoes.trg_audit_fiscalizacoes"]
+efeito = "Depois de cada inclusão, alteração ou exclusão, grava o registro de auditoria."
+fonte = ["funcao:process_audit_log()"]
+
+[objeto."gatilho:public.fiscalizacoes.trg_set_fiscalizacao_cache_fields"]
+efeito = """
+Antes de gravar, copia os nomes do município e do prestador a partir dos ids. Se o nome do fiscal
+vier vazio, usa o nome do perfil de quem grava.
+"""
+fonte = ["funcao:set_fiscalizacao_cache_fields()"]
+
+[objeto."gatilho:public.fiscalizacoes.trg_set_fiscalizacao_last_modified"]
+efeito = "Antes de gravar, registra quem alterou (e-mail ou `sistema`) e quando."
+fonte = ["funcao:set_fiscalizacao_last_modified()"]
+
+[objeto."gatilho:public.fiscalizacoes.update_fiscalizacoes_updated_at"]
+efeito = "Antes de cada alteração, grava a hora atual em `updated_at`."
+fonte = ["funcao:update_updated_at_column()"]
+
+[objeto."politica:public.fiscalizacoes.Fiscais e Admins: acesso por camara em fiscalizacoes"]
+descricao = """
+Admin ativo tem acesso total. Coordenador e fiscal ativos leem, criam, alteram e excluem as
+fiscalizações da sua câmara e as sem câmara; se não têm câmara, todas (`can_access_camara`).
+"""
+fonte = ["funcao:can_access_camara(row_camara text)"]
+
+[objeto."politica:public.fiscalizacoes.Prestadores: ler apenas suas próprias fiscalizações"]
+descricao = """
+O prestador ativo lê as fiscalizações da própria entidade, mesmo antes de ser notificado. Já para
+as unidades e os itens delas, ele precisa de termo de notificação (`can_access_fiscalizacao`).
+"""
+fonte = ["funcao:get_my_prestador_id()", "funcao:can_access_fiscalizacao(fiscalizacao uuid)"]
+
+[objeto."politica:public.fiscalizacoes.Prestadores: ler apenas suas pr├│prias fiscaliza├º├Áe"]
+descricao = """
+Cópia idêntica da política anterior, com o nome corrompido por erro de codificação na migration
+que a criou. É resíduo; o efeito é o mesmo.
+"""
+fonte = ["politica:public.fiscalizacoes.Prestadores: ler apenas suas próprias fiscalizações"]
+
+[objeto."politica:public.fiscalizacoes.e2e_test_user_own_rows_only"]
+descricao = """
+Política restritiva: o usuário de teste e2e (id fixo) só altera fiscalizações que ele criou. Os
+demais usuários não são afetados. Existe para os testes automatizados poderem escrever em
+produção sem tocar dados reais.
+"""
+fonte = ["supabase/migrations/135_e2e_test_user_write_restriction.sql"]
+
+[objeto."politica:public.fiscalizacoes.e2e_test_user_own_rows_only_delete"]
+descricao = "Mesma restrição, para exclusão: o usuário de teste só exclui o que criou."
+fonte = ["supabase/migrations/135_e2e_test_user_write_restriction.sql"]
