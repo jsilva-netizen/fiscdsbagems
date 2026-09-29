@@ -5,6 +5,15 @@ Resposta da entidade a cada determinação do termo de notificação: manifesta�
 evidências anexadas pelo prestador no portal, depois a análise da equipe (atendida ou não
 atendida). As determinações não atendidas viram autos de infração na Análise da Manifestação.
 
+Desde a migration 139, quando quem grava é o prestador, o gatilho
+`trg_proteger_resposta_determinacao_prestador` controla a gravação:
+
+- só aceita rascunho ou envio;
+- recusa alterar resposta já analisada;
+- preserva a análise da equipe;
+- tira os vínculos da determinação;
+- calcula a data e a pontualidade no servidor.
+
 Produção tem 34 respostas: 33 aguardando análise e 1 não atendida. As manifestações têm textos de
 teste ("a", "aa", "aaa"), ou seja, **há dados de teste em produção**.
 """
@@ -12,6 +21,7 @@ fonte = [
   "src/pages/ResponderTermo.jsx:255",
   "src/pages/AnalisarResposta.jsx:181",
   "src/pages/AnaliseManifestacao.jsx:268",
+  "supabase/migrations/139_fix_prestador_prazos.sql",
   "inventário: dominio_categorico",
 ]
 
@@ -55,12 +65,14 @@ hipotese = true
 significado = """
 Situação da resposta:
 
-- `aguardando_analise`: ao responder;
+- `rascunho`: o prestador salvou sem enviar;
+- `aguardando_analise`: o prestador enviou;
 - `atendida` ou `nao_atendida`: definido pela equipe na análise.
 
-Não é validado pelo banco, e o prestador pode alterá-lo pela API.
+Não é validado pelo banco. Desde a migration 139, o prestador só grava `rascunho` ou
+`aguardando_analise` e não altera resposta analisada.
 """
-fonte = ["src/pages/ResponderTermo.jsx:268", "src/pages/AnalisarResposta.jsx:891", "politica:public.respostas_determinacao.Prestadores: atualizar suas próprias respostas determinacoes", "inventário: dominio_categorico"]
+fonte = ["src/pages/ResponderTermo.jsx:268", "src/pages/AnalisarResposta.jsx:891", "supabase/migrations/139_fix_prestador_prazos.sql", "inventário: dominio_categorico"]
 
 [objeto."coluna:respostas_determinacao.manifestacao_prestador"]
 significado = """
@@ -69,15 +81,19 @@ Texto da manifestação da entidade sobre a determinação. Vai para a Análise 
 fonte = ["src/pages/ResponderTermo.jsx:266", "src/pages/AnaliseManifestacao.jsx:377"]
 
 [objeto."coluna:respostas_determinacao.descricao_atendimento"]
-significado = "Análise da equipe sobre a resposta (por que foi ou não atendida)."
-fonte = ["src/pages/AnalisarResposta.jsx:183", "src/pages/AnaliseManifestacao.jsx:378"]
+significado = """
+Análise da equipe sobre a resposta (por que foi ou não atendida). O prestador não a altera
+(migration 139).
+"""
+fonte = ["src/pages/AnalisarResposta.jsx:183", "src/pages/AnaliseManifestacao.jsx:378", "supabase/migrations/139_fix_prestador_prazos.sql"]
 
 [objeto."coluna:respostas_determinacao.dentro_prazo"]
 significado = """
-Se a resposta foi dada até a data-limite do termo. É calculado pelo **aparelho do prestador** com
-o relógio dele, e as 34 de produção estão `true`.
+Se a resposta foi enviada até a data-limite do termo, inclusive o último dia. Desde a migration
+139, o servidor calcula no envio com a data de MS. Antes, o aparelho do prestador calculava
+comparando com a meia-noite UTC. As 34 de produção estão `true`.
 """
-fonte = ["src/pages/ResponderTermo.jsx:258", "inventário: dominio_categorico"]
+fonte = ["supabase/migrations/139_fix_prestador_prazos.sql", "src/pages/ResponderTermo.jsx:258", "inventário: dominio_categorico"]
 
 [objeto."coluna:respostas_determinacao.tipo_resposta"]
 significado = "Sem uso: nenhuma tela lê ou grava."
@@ -86,10 +102,10 @@ hipotese = true
 
 [objeto."coluna:respostas_determinacao.data_resposta"]
 significado = """
-Quando a resposta foi dada, pelo relógio do aparelho do prestador. É a base dos tempos médios de
-resposta.
+Quando a resposta foi enviada, pela hora do servidor (migration 139). É a base dos tempos médios
+de resposta.
 """
-fonte = ["src/pages/ResponderTermo.jsx:269", "src/components/determinacoes/AnaliseTemposMedios.jsx:12"]
+fonte = ["supabase/migrations/139_fix_prestador_prazos.sql", "src/components/determinacoes/AnaliseTemposMedios.jsx:12"]
 
 [objeto."coluna:respostas_determinacao.created_at"]
 significado = "Quando a resposta foi criada."
@@ -106,35 +122,31 @@ fonte = ["src/lib/offline/repository.ts:1616", "src/pages/ResponderTermo.jsx:260
 descricao = "Admin, coordenador e fiscal ativos têm acesso total, sem olhar a câmara."
 fonte = ["funcao:get_my_role()"]
 
-[objeto."politica:public.respostas_determinacao.Prestadores: atualizar suas próprias respostas determinacoes"]
-descricao = """
-O prestador ativo altera as respostas da própria entidade, em qualquer situação e em qualquer
-coluna, inclusive `status`, `dentro_prazo` e a análise da equipe.
-"""
-fonte = ["funcao:get_my_prestador_id()"]
-
-[objeto."politica:public.respostas_determinacao.Prestadores: cadastrar respostas determinacoes"]
-descricao = "O prestador ativo cria respostas em nome da própria entidade."
-fonte = ["funcao:get_my_prestador_id()"]
-
 [objeto."politica:public.respostas_determinacao.Prestadores: ler suas próprias respostas determinacoes"]
 descricao = "O prestador ativo lê as respostas da própria entidade."
 fonte = ["funcao:get_my_prestador_id()"]
 
 [objeto."politica:public.respostas_determinacao.respostas_det_prestador_insert"]
-descricao = "Mesma inclusão pelo prestador, com as funções de outro conjunto de políticas; redundante."
-fonte = ["funcao:current_prestador_servico_id()"]
+descricao = """
+O prestador ativo cria respostas da própria entidade para fiscalizações com termo dirigido a ele,
+só como rascunho ou envio. Desde a migration 139 é a única política de inclusão do prestador.
+"""
+fonte = ["funcao:can_access_fiscalizacao(fiscalizacao uuid)", "supabase/migrations/139_fix_prestador_prazos.sql"]
 
 [objeto."politica:public.respostas_determinacao.respostas_det_prestador_select"]
 descricao = """
-Leitura pelo prestador exigindo também termo para a fiscalização; sem efeito próprio (a política
-de leitura anterior não exige termo).
+Leitura pelo prestador exigindo também termo para a fiscalização. Sem efeito próprio: a política
+"Prestadores: ler suas próprias respostas determinacoes" não exige termo.
 """
 fonte = ["funcao:can_access_fiscalizacao(fiscalizacao uuid)"]
 
 [objeto."politica:public.respostas_determinacao.respostas_det_prestador_update"]
-descricao = "Alteração pelo prestador exigindo termo; sem efeito próprio (a anterior não exige)."
-fonte = ["funcao:can_access_fiscalizacao(fiscalizacao uuid)"]
+descricao = """
+O prestador ativo altera as respostas da própria entidade com termo, mantendo rascunho ou envio.
+Desde a migration 139 é a única política de alteração do prestador; o gatilho recusa alterar
+resposta já analisada.
+"""
+fonte = ["funcao:can_access_fiscalizacao(fiscalizacao uuid)", "supabase/migrations/139_fix_prestador_prazos.sql"]
 
 [objeto."politica:public.respostas_determinacao.respostas_det_staff_all"]
 descricao = "Acesso total para admin, fiscal e coordenador ativos (`is_staff`); redundante."

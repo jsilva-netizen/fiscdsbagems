@@ -17,7 +17,7 @@ Páginas gerais: [repositórios de arquivos](arquivos.md) · [controle de acesso
 | Índices | 80 | — |
 | Funções | 38 | 20 |
 | Gatilhos | 30 | 5 |
-| Políticas de acesso | 173 | 64 |
+| Políticas de acesso | 173 | 67 |
 | Tipos | 5 | 5 |
 | Repositórios de arquivos | 8 | 8 |
 | Papéis | 17 | 17 |
@@ -29,7 +29,7 @@ Páginas gerais: [repositórios de arquivos](arquivos.md) · [controle de acesso
 
 ## Completude
 
-Completude: 267 objetos sem anotação | 409 sem dono | 0 divergências não classificadas | 0 violações de ordem | 0 achados aguardando decisão
+Completude: 270 objetos sem anotação | 409 sem dono | 0 divergências não classificadas | 0 violações de ordem | 0 achados aguardando decisão
 
 ## Por módulo
 

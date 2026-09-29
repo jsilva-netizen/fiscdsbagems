@@ -13,8 +13,17 @@ Resposta da entidade a cada determinação do termo de notificação: manifesta�
 evidências anexadas pelo prestador no portal, depois a análise da equipe (atendida ou não
 atendida). As determinações não atendidas viram autos de infração na Análise da Manifestação.
 
+Desde a migration 139, quando quem grava é o prestador, o gatilho
+`trg_proteger_resposta_determinacao_prestador` controla a gravação:
+
+- só aceita rascunho ou envio;
+- recusa alterar resposta já analisada;
+- preserva a análise da equipe;
+- tira os vínculos da determinação;
+- calcula a data e a pontualidade no servidor.
+
 Produção tem 34 respostas: 33 aguardando análise e 1 não atendida. As manifestações têm textos de
-teste ("a", "aa", "aaa"), ou seja, **há dados de teste em produção**. *(fonte: src/pages/ResponderTermo.jsx:255, src/pages/AnalisarResposta.jsx:181, src/pages/AnaliseManifestacao.jsx:268, inventário: dominio_categorico)*
+teste ("a", "aa", "aaa"), ou seja, **há dados de teste em produção**. *(fonte: src/pages/ResponderTermo.jsx:255, src/pages/AnalisarResposta.jsx:181, src/pages/AnaliseManifestacao.jsx:268, supabase/migrations/139_fix_prestador_prazos.sql, inventário: dominio_categorico)*
 
 ## Colunas
 
@@ -26,12 +35,12 @@ teste ("a", "aa", "aaa"), ou seja, **há dados de teste em produção**. *(fonte
 | 4 | `fiscalizacao_id` | uuid |  |  | Fiscalização do termo, copiada pelo portal. É usada por `can_access_fiscalizacao` nas políticas do<br>prestador. *(fonte: src/pages/ResponderTermo.jsx:264, funcao:can_access_fiscalizacao(fiscalizacao uuid))* |  |
 | 5 | `prestador_servico_id` | uuid |  |  | Entidade que respondeu, copiada do termo. Limita o que o prestador vê e altera. *(fonte: src/pages/ResponderTermo.jsx:265)* |  |
 | 6 | `resposta` | text |  |  | Sem uso: nenhuma tela grava; a manifestação fica em `manifestacao_prestador`. ⚠️ *hipótese* |  |
-| 7 | `status` | text |  |  | Situação da resposta:<br>- `aguardando_analise`: ao responder;<br>- `atendida` ou `nao_atendida`: definido pela equipe na análise.<br>Não é validado pelo banco, e o prestador pode alterá-lo pela API. *(fonte: src/pages/ResponderTermo.jsx:268, src/pages/AnalisarResposta.jsx:891, politica:public.respostas_determinacao.Prestadores: atualizar suas próprias respostas determinacoes, inventário: dominio_categorico)* | `aguardando_analise` (33), `nao_atendida` (1) |
+| 7 | `status` | text |  |  | Situação da resposta:<br>- `rascunho`: o prestador salvou sem enviar;<br>- `aguardando_analise`: o prestador enviou;<br>- `atendida` ou `nao_atendida`: definido pela equipe na análise.<br>Não é validado pelo banco. Desde a migration 139, o prestador só grava `rascunho` ou<br>`aguardando_analise` e não altera resposta analisada. *(fonte: src/pages/ResponderTermo.jsx:268, src/pages/AnalisarResposta.jsx:891, supabase/migrations/139_fix_prestador_prazos.sql, inventário: dominio_categorico)* | `aguardando_analise` (33), `nao_atendida` (1) |
 | 8 | `manifestacao_prestador` | text |  |  | Texto da manifestação da entidade sobre a determinação. Vai para a Análise da Manifestação. *(fonte: src/pages/ResponderTermo.jsx:266, src/pages/AnaliseManifestacao.jsx:377)* | `a` (14), `aa` (13), `aaa` (6), `aaaaaaaaa` (1) |
-| 9 | `descricao_atendimento` | text |  |  | Análise da equipe sobre a resposta (por que foi ou não atendida). *(fonte: src/pages/AnalisarResposta.jsx:183, src/pages/AnaliseManifestacao.jsx:378)* |  |
-| 10 | `dentro_prazo` | boolean |  |  | Se a resposta foi dada até a data-limite do termo. É calculado pelo **aparelho do prestador** com<br>o relógio dele, e as 34 de produção estão `true`. *(fonte: src/pages/ResponderTermo.jsx:258, inventário: dominio_categorico)* | `true` (34) |
+| 9 | `descricao_atendimento` | text |  |  | Análise da equipe sobre a resposta (por que foi ou não atendida). O prestador não a altera<br>(migration 139). *(fonte: src/pages/AnalisarResposta.jsx:183, src/pages/AnaliseManifestacao.jsx:378, supabase/migrations/139_fix_prestador_prazos.sql)* |  |
+| 10 | `dentro_prazo` | boolean |  |  | Se a resposta foi enviada até a data-limite do termo, inclusive o último dia. Desde a migration<br>139, o servidor calcula no envio com a data de MS. Antes, o aparelho do prestador calculava<br>comparando com a meia-noite UTC. As 34 de produção estão `true`. *(fonte: supabase/migrations/139_fix_prestador_prazos.sql, src/pages/ResponderTermo.jsx:258, inventário: dominio_categorico)* | `true` (34) |
 | 11 | `tipo_resposta` | text |  |  | Sem uso: nenhuma tela lê ou grava. ⚠️ *hipótese* |  |
-| 12 | `data_resposta` | timestamp with time zone |  | `now()` | Quando a resposta foi dada, pelo relógio do aparelho do prestador. É a base dos tempos médios de<br>resposta. *(fonte: src/pages/ResponderTermo.jsx:269, src/components/determinacoes/AnaliseTemposMedios.jsx:12)* |  |
+| 12 | `data_resposta` | timestamp with time zone |  | `now()` | Quando a resposta foi enviada, pela hora do servidor (migration 139). É a base dos tempos médios<br>de resposta. *(fonte: supabase/migrations/139_fix_prestador_prazos.sql, src/components/determinacoes/AnaliseTemposMedios.jsx:12)* |  |
 | 13 | `created_at` | timestamp with time zone |  | `now()` | Quando a resposta foi criada. *(fonte: src/lib/offline/repository.ts:1466)* |  |
 | 14 | `evidencias` | jsonb |  | `'[]'::jsonb` | Evidências anexadas pela entidade (lista de arquivos no bucket `evidencias-determinacoes`, com<br>nome, tipo, tamanho, data, caminho e endereço). O portal remove duplicadas antes de gravar. *(fonte: src/lib/offline/repository.ts:1616, src/pages/ResponderTermo.jsx:260)* | JSON — formas: array (34) |
 
@@ -89,8 +98,7 @@ WITH CHECK:
 ### Prestadores: atualizar suas próprias respostas determinacoes
 
 - **Papéis**: authenticated · **Operação**: UPDATE · **PERMISSIVE**
-- **Em linguagem simples**: O prestador ativo altera as respostas da própria entidade, em qualquer situação e em qualquer
-coluna, inclusive `status`, `dentro_prazo` e a análise da equipe. *(fonte: funcao:get_my_prestador_id())*
+- **Em linguagem simples**: _Sem anotação._
 - **Funções auxiliares**: [get_my_prestador_id()](../funcoes/get_my_prestador_id.md), [get_my_role()](../funcoes/get_my_role.md)
 
 <details><summary>Condição original</summary>
@@ -108,7 +116,7 @@ WITH CHECK:
 ### Prestadores: cadastrar respostas determinacoes
 
 - **Papéis**: authenticated · **Operação**: INSERT · **PERMISSIVE**
-- **Em linguagem simples**: O prestador ativo cria respostas em nome da própria entidade. *(fonte: funcao:get_my_prestador_id())*
+- **Em linguagem simples**: _Sem anotação._
 - **Funções auxiliares**: [get_my_prestador_id()](../funcoes/get_my_prestador_id.md), [get_my_role()](../funcoes/get_my_role.md)
 
 <details><summary>Condição original</summary>
@@ -144,7 +152,8 @@ WITH CHECK:
 ### respostas_det_prestador_insert
 
 - **Papéis**: authenticated · **Operação**: INSERT · **PERMISSIVE**
-- **Em linguagem simples**: Mesma inclusão pelo prestador, com as funções de outro conjunto de políticas; redundante. *(fonte: funcao:current_prestador_servico_id())*
+- **Em linguagem simples**: O prestador ativo cria respostas da própria entidade para fiscalizações com termo dirigido a ele,
+só como rascunho ou envio. Desde a migration 139 é a única política de inclusão do prestador. *(fonte: funcao:can_access_fiscalizacao(fiscalizacao uuid), supabase/migrations/139_fix_prestador_prazos.sql)*
 - **Funções auxiliares**: [can_access_fiscalizacao(fiscalizacao uuid)](../funcoes/can_access_fiscalizacao.md), [current_prestador_servico_id()](../funcoes/current_prestador_servico_id.md)
 
 <details><summary>Condição original</summary>
@@ -162,8 +171,8 @@ WITH CHECK:
 ### respostas_det_prestador_select
 
 - **Papéis**: authenticated · **Operação**: SELECT · **PERMISSIVE**
-- **Em linguagem simples**: Leitura pelo prestador exigindo também termo para a fiscalização; sem efeito próprio (a política
-de leitura anterior não exige termo). *(fonte: funcao:can_access_fiscalizacao(fiscalizacao uuid))*
+- **Em linguagem simples**: Leitura pelo prestador exigindo também termo para a fiscalização. Sem efeito próprio: a política
+"Prestadores: ler suas próprias respostas determinacoes" não exige termo. *(fonte: funcao:can_access_fiscalizacao(fiscalizacao uuid))*
 - **Funções auxiliares**: [can_access_fiscalizacao(fiscalizacao uuid)](../funcoes/can_access_fiscalizacao.md), [current_prestador_servico_id()](../funcoes/current_prestador_servico_id.md)
 
 <details><summary>Condição original</summary>
@@ -181,7 +190,9 @@ WITH CHECK:
 ### respostas_det_prestador_update
 
 - **Papéis**: authenticated · **Operação**: UPDATE · **PERMISSIVE**
-- **Em linguagem simples**: Alteração pelo prestador exigindo termo; sem efeito próprio (a anterior não exige). *(fonte: funcao:can_access_fiscalizacao(fiscalizacao uuid))*
+- **Em linguagem simples**: O prestador ativo altera as respostas da própria entidade com termo, mantendo rascunho ou envio.
+Desde a migration 139 é a única política de alteração do prestador; o gatilho recusa alterar
+resposta já analisada. *(fonte: funcao:can_access_fiscalizacao(fiscalizacao uuid), supabase/migrations/139_fix_prestador_prazos.sql)*
 - **Funções auxiliares**: [can_access_fiscalizacao(fiscalizacao uuid)](../funcoes/can_access_fiscalizacao.md), [current_prestador_servico_id()](../funcoes/current_prestador_servico_id.md)
 
 <details><summary>Condição original</summary>

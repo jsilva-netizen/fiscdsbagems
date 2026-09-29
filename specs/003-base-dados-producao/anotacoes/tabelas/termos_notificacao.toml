@@ -11,10 +11,13 @@ Produção tem 5 (3 da CATESA e 2 do CATERS).
 1. **`pendente_tn`:** a equipe gera o TN na tela Gerenciar Termos, com número, relatório, prazo
    e câmara, e envia o TN e o relatório assinados.
 2. **`aguardando_assinatura_prestador`:** o prestador baixa o TN no portal, assina e devolve.
-   Nesse momento o **aparelho do prestador** grava o início do prazo e a data-limite.
+   Nesse momento o **servidor** (gatilho `trg_proteger_termo_prestador`, migration 139) grava o
+   início do prazo e a data-limite com a data de MS. Até a 139, quem gravava era o aparelho do
+   prestador.
 3. **`aguardando_resposta`:** o prestador responde cada determinação (`respostas_determinacao`)
    e conclui a resposta. O status só aparece como `prazo_vencido` na tela; não é gravado.
-4. **`respondido`:** a conclusão grava a data de recebimento e se chegou no prazo.
+4. **`respondido`:** a conclusão grava a data de recebimento e se chegou no prazo, calculados
+   pelo servidor.
 5. **Análise:** a equipe analisa as respostas; a Análise da Manifestação (AM) gera os autos de
    infração.
 
@@ -28,6 +31,7 @@ fonte = [
   "src/lib/offline/repository.ts:1712",
   "src/pages/AnaliseManifestacao.jsx:261",
   "src/pages/PortalPrestadorHome.jsx:73",
+  "supabase/migrations/139_fix_prestador_prazos.sql",
   "inventário: dominio_categorico",
 ]
 
@@ -83,11 +87,15 @@ fonte = ["src/pages/GerenciarTermos.jsx:96", "src/pages/GerenciarTermos.jsx:510"
 
 [objeto."coluna:termos_notificacao.data_protocolo"]
 significado = """
-Data do protocolo do TN junto à entidade. No fluxo pelo portal, é a data em que o prestador enviou
-o TN assinado, gravada pelo aparelho dele; no fluxo manual, a equipe informa. É a base da
-data-limite.
+Data do protocolo do TN junto à entidade:
+
+- **Fluxo pelo portal:** é o dia do primeiro envio do TN assinado, gravado pelo servidor com a
+  data de MS (migration 139).
+- **Fluxo manual:** a equipe informa.
+
+É a base da data-limite.
 """
-fonte = ["src/pages/ResponderTermo.jsx:676", "src/pages/GerenciarTermos.jsx:427"]
+fonte = ["supabase/migrations/139_fix_prestador_prazos.sql", "src/pages/GerenciarTermos.jsx:427"]
 
 [objeto."coluna:termos_notificacao.prazo_resposta_dias"]
 significado = "Prazo, em dias, para a entidade responder (padrão 30)."
@@ -117,11 +125,14 @@ fonte = ["src/pages/GerenciarTermos.jsx:1401"]
 significado = """
 Data-limite para a entidade responder: início do prazo mais `prazo_resposta_dias`.
 
-- **Fluxo pelo portal:** calculada e gravada pelo **aparelho do prestador** ao enviar o TN
-  assinado. Ela decide se a resposta chegou no prazo, então o regulado pode alterá-la pela API.
-- **Criação e edição pela equipe:** calculada pela tela a partir da data de protocolo.
+- **Fluxo pelo portal:** o servidor calcula no primeiro envio do TN assinado, e reenviar o TN não
+  a altera (migration 139).
+- **Criação e edição pela equipe:** a tela calcula a partir da data de protocolo, e a equipe pode
+  editar.
+
+Até a 139, o aparelho do prestador calculava e podia alterá-la pela API.
 """
-fonte = ["src/pages/ResponderTermo.jsx:678", "src/pages/GerenciarTermos.jsx:440", "politica:public.termos_notificacao.Prestadores: responder seus termos"]
+fonte = ["supabase/migrations/139_fix_prestador_prazos.sql", "src/pages/GerenciarTermos.jsx:440", ".specify/bugs/prazos-calculados-pelo-prestador/assessment.md"]
 
 [objeto."coluna:termos_notificacao.data_geracao"]
 significado = """
@@ -131,18 +142,25 @@ fonte = ["src/pages/GerenciarTermos.jsx:454", "funcao:set_termos_notificacao_ano
 
 [objeto."coluna:termos_notificacao.data_recebimento_resposta"]
 significado = """
-Quando a resposta da entidade foi recebida: gravada ao concluir a resposta no portal, ou informada
-pela equipe no fluxo manual. Com ela o status vira `respondido`.
+Quando a resposta da entidade foi recebida:
+
+- **Fluxo pelo portal:** o servidor grava a data de MS quando o prestador conclui a resposta
+  (migration 139).
+- **Fluxo manual:** a equipe informa.
+
+Com ela, o status vira `respondido`.
 """
-fonte = ["src/lib/offline/repository.ts:1716", "src/pages/GerenciarTermos.jsx:1574"]
+fonte = ["supabase/migrations/139_fix_prestador_prazos.sql", "src/lib/offline/repository.ts:1716", "src/pages/GerenciarTermos.jsx:1574"]
 
 [objeto."coluna:termos_notificacao.recebida_no_prazo"]
 significado = """
-Se a resposta chegou até a data-limite. Calculado no navegador de quem conclui a resposta, a partir
-de `data_maxima_resposta`; vale `true` quando não há data-limite. Em produção: 1 no prazo, 1 fora e
-3 vazios.
+Se a resposta chegou até a data-limite, inclusive o último dia; vale `true` quando não há
+data-limite. O servidor calcula quando o prestador conclui; no fluxo manual, a equipe define.
+
+Até a migration 139, era calculado no navegador, comparando com a meia-noite UTC. Em produção: 1
+no prazo, 1 fora e 3 vazios.
 """
-fonte = ["src/lib/offline/repository.ts:1718", "inventário: dominio_categorico"]
+fonte = ["supabase/migrations/139_fix_prestador_prazos.sql", "src/lib/offline/repository.ts:1718", "inventário: dominio_categorico"]
 
 [objeto."coluna:termos_notificacao.arquivos_resposta"]
 significado = """
@@ -200,21 +218,25 @@ fonte = ["src/pages/ResponderTermo.jsx:673", "src/pages/GerenciarTermos.jsx:1142
 
 [objeto."coluna:termos_notificacao.assinatura_prestador_valida"]
 significado = """
-Se a assinatura do prestador no TN foi aceita. O portal grava `true` automaticamente ao enviar; a
-equipe pode marcar ou desmarcar. Não há verificação da assinatura digital.
+Se a assinatura do prestador no TN foi aceita. O servidor grava `true` a cada envio do TN
+assinado; a equipe pode marcar ou desmarcar. Não há verificação da assinatura digital.
 """
-fonte = ["src/pages/ResponderTermo.jsx:674", "src/pages/GerenciarTermos.jsx:1107"]
+fonte = ["supabase/migrations/139_fix_prestador_prazos.sql", "src/pages/GerenciarTermos.jsx:1107"]
 
 [objeto."coluna:termos_notificacao.data_assinatura_prestador"]
-significado = "Quando o prestador enviou o TN assinado (relógio do aparelho dele)."
-fonte = ["src/pages/ResponderTermo.jsx:675"]
+significado = "Quando o prestador enviou o TN assinado, pela hora do servidor (migration 139)."
+fonte = ["supabase/migrations/139_fix_prestador_prazos.sql"]
 
 [objeto."coluna:termos_notificacao.data_inicio_prazo"]
 significado = """
-Início da contagem do prazo de resposta: o dia do envio do TN assinado, pelo aparelho do
-prestador, ou a data informada pela equipe.
+Início da contagem do prazo de resposta:
+
+- **Fluxo pelo portal:** o dia do primeiro envio do TN assinado (data de MS, servidor).
+- **Equipe:** a data que ela informa.
+
+Uma vez preenchido, o reenvio pelo prestador não o reinicia.
 """
-fonte = ["src/pages/ResponderTermo.jsx:677", "src/pages/GerenciarTermos.jsx:1121"]
+fonte = ["supabase/migrations/139_fix_prestador_prazos.sql", "src/pages/GerenciarTermos.jsx:1121"]
 
 [objeto."coluna:termos_notificacao.fluxo_manual"]
 significado = """
@@ -261,25 +283,18 @@ fonte = ["funcao:get_my_role()"]
 descricao = "O prestador ativo lê os termos da própria entidade."
 fonte = ["funcao:get_my_prestador_id()"]
 
-[objeto."politica:public.termos_notificacao.Prestadores: responder seus termos"]
-descricao = """
-O prestador ativo altera os termos da própria entidade, **qualquer coluna e em qualquer status**.
-Isso inclui datas de prazo, status, "recebida no prazo" e arquivos da AGEMS. Por somar-se à
-política seguinte, anula a trava "até respondido". Na prática, o regulado pode alterar pela API os
-dados do próprio processo.
-"""
-fonte = ["funcao:get_my_prestador_id()", "politica:public.termos_notificacao.termos_prestador_update_own_until_respondido"]
-
 [objeto."politica:public.termos_notificacao.termos_prestador_select_own"]
 descricao = "Mesma leitura pelo prestador, com as funções de outro conjunto de políticas; redundante."
 fonte = ["funcao:current_prestador_servico_id()"]
 
 [objeto."politica:public.termos_notificacao.termos_prestador_update_own_until_respondido"]
 descricao = """
-O prestador altera o próprio termo só até o termo ser `respondido`. Hoje sem efeito, porque a
-política anterior libera a alteração em qualquer status.
+O prestador ativo altera o termo da própria entidade só até ele ser `respondido`. O gatilho
+`trg_proteger_termo_prestador` limita o que ele pode mudar: o TN assinado e os arquivos da
+resposta, com datas e pontualidade calculadas pelo servidor. Desde a migration 139 é a única
+política de alteração do prestador; antes, outra mais ampla a anulava.
 """
-fonte = ["funcao:current_prestador_servico_id()"]
+fonte = ["supabase/migrations/139_fix_prestador_prazos.sql", "funcao:current_prestador_servico_id()"]
 
 [objeto."politica:public.termos_notificacao.termos_staff_all"]
 descricao = "Acesso total para admin, fiscal e coordenador ativos (`is_staff`); redundante."

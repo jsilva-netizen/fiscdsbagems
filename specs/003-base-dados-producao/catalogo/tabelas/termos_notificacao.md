@@ -19,15 +19,18 @@ Produção tem 5 (3 da CATESA e 2 do CATERS).
 1. **`pendente_tn`:** a equipe gera o TN na tela Gerenciar Termos, com número, relatório, prazo
    e câmara, e envia o TN e o relatório assinados.
 2. **`aguardando_assinatura_prestador`:** o prestador baixa o TN no portal, assina e devolve.
-   Nesse momento o **aparelho do prestador** grava o início do prazo e a data-limite.
+   Nesse momento o **servidor** (gatilho `trg_proteger_termo_prestador`, migration 139) grava o
+   início do prazo e a data-limite com a data de MS. Até a 139, quem gravava era o aparelho do
+   prestador.
 3. **`aguardando_resposta`:** o prestador responde cada determinação (`respostas_determinacao`)
    e conclui a resposta. O status só aparece como `prazo_vencido` na tela; não é gravado.
-4. **`respondido`:** a conclusão grava a data de recebimento e se chegou no prazo.
+4. **`respondido`:** a conclusão grava a data de recebimento e se chegou no prazo, calculados
+   pelo servidor.
 5. **Análise:** a equipe analisa as respostas; a Análise da Manifestação (AM) gera os autos de
    infração.
 
 **Fluxo manual:** quando `fluxo_manual`, o termo corre fora do portal. A equipe registra
-protocolo e resposta recebidos em papel, e o termo não aparece para o prestador. *(fonte: src/pages/GerenciarTermos.jsx:318, src/pages/GerenciarTermos.jsx:436, src/pages/ResponderTermo.jsx:667, src/lib/offline/repository.ts:1712, src/pages/AnaliseManifestacao.jsx:261, src/pages/PortalPrestadorHome.jsx:73, inventário: dominio_categorico)*
+protocolo e resposta recebidos em papel, e o termo não aparece para o prestador. *(fonte: src/pages/GerenciarTermos.jsx:318, src/pages/GerenciarTermos.jsx:436, src/pages/ResponderTermo.jsx:667, src/lib/offline/repository.ts:1712, src/pages/AnaliseManifestacao.jsx:261, src/pages/PortalPrestadorHome.jsx:73, supabase/migrations/139_fix_prestador_prazos.sql, inventário: dominio_categorico)*
 
 ## Colunas
 
@@ -41,16 +44,16 @@ protocolo e resposta recebidos em papel, e o termo não aparece para o prestador
 | 6 | `fiscalizacao_id` | uuid |  |  | Fiscalização notificada. A tela impede um segundo termo para a mesma fiscalização. A chave<br>estrangeira não tem regra de exclusão, então não é possível excluir uma fiscalização com termo. *(fonte: src/pages/GerenciarTermos.jsx:436, restricao:termos_notificacao.termos_notificacao_fiscalizacao_id_fkey)* |  |
 | 7 | `numero_processo` | text |  |  | Número do processo administrativo, digitado pela equipe. *(fonte: src/pages/GerenciarTermos.jsx:789)* |  |
 | 8 | `camara_tecnica` | text |  |  | Câmara do termo, em maiúsculas (`CATESA`, `CATERS`); o padrão da tela é CATESA. Diferente do resto<br>do sistema, é texto livre, sem chave estrangeira e sem o padrão `camara_tecnica_id` em minúsculas.<br>Compõe a unicidade do número do relatório. *(fonte: src/pages/GerenciarTermos.jsx:96, src/pages/GerenciarTermos.jsx:510, inventário: dominio_categorico)* | `CATESA` (3), `CATERS` (2) |
-| 9 | `data_protocolo` | date |  |  | Data do protocolo do TN junto à entidade. No fluxo pelo portal, é a data em que o prestador enviou<br>o TN assinado, gravada pelo aparelho dele; no fluxo manual, a equipe informa. É a base da<br>data-limite. *(fonte: src/pages/ResponderTermo.jsx:676, src/pages/GerenciarTermos.jsx:427)* |  |
+| 9 | `data_protocolo` | date |  |  | Data do protocolo do TN junto à entidade:<br>- **Fluxo pelo portal:** é o dia do primeiro envio do TN assinado, gravado pelo servidor com a<br>data de MS (migration 139).<br>- **Fluxo manual:** a equipe informa.<br>É a base da data-limite. *(fonte: supabase/migrations/139_fix_prestador_prazos.sql, src/pages/GerenciarTermos.jsx:427)* |  |
 | 10 | `prazo_resposta_dias` | integer |  | `30` | Prazo, em dias, para a entidade responder (padrão 30). *(fonte: src/pages/GerenciarTermos.jsx:851)* |  |
 | 11 | `observacoes` | text |  |  | Observações livres da equipe sobre o termo. ⚠️ *hipótese* |  |
 | 12 | `arquivo_url` | text |  |  | TN assinado pela AGEMS (`storage://documentos-termos/...`). Junto com o relatório assinado, tira o<br>termo de `pendente_tn`. *(fonte: src/pages/GerenciarTermos.jsx:347, src/pages/GerenciarTermos.jsx:318)* |  |
 | 13 | `arquivo_protocolo_url` | text |  |  | Comprovante de protocolo do TN, no fluxo manual. *(fonte: src/pages/GerenciarTermos.jsx:1401)* |  |
 | 14 | `arquivo_oficio_protocolo` | text |  |  | Ofício de encaminhamento do TN, no fluxo manual. *(fonte: src/pages/GerenciarTermos.jsx:1401)* |  |
-| 15 | `data_maxima_resposta` | date |  |  | Data-limite para a entidade responder: início do prazo mais `prazo_resposta_dias`.<br>- **Fluxo pelo portal:** calculada e gravada pelo **aparelho do prestador** ao enviar o TN<br>assinado. Ela decide se a resposta chegou no prazo, então o regulado pode alterá-la pela API.<br>- **Criação e edição pela equipe:** calculada pela tela a partir da data de protocolo. *(fonte: src/pages/ResponderTermo.jsx:678, src/pages/GerenciarTermos.jsx:440, politica:public.termos_notificacao.Prestadores: responder seus termos)* |  |
+| 15 | `data_maxima_resposta` | date |  |  | Data-limite para a entidade responder: início do prazo mais `prazo_resposta_dias`.<br>- **Fluxo pelo portal:** o servidor calcula no primeiro envio do TN assinado, e reenviar o TN não<br>a altera (migration 139).<br>- **Criação e edição pela equipe:** a tela calcula a partir da data de protocolo, e a equipe pode<br>editar.<br>Até a 139, o aparelho do prestador calculava e podia alterá-la pela API. *(fonte: supabase/migrations/139_fix_prestador_prazos.sql, src/pages/GerenciarTermos.jsx:440, .specify/bugs/prazos-calculados-pelo-prestador/assessment.md)* |  |
 | 16 | `data_geracao` | timestamp with time zone |  | `now()` | Quando o termo foi gerado. Define `ano_geracao` pelo gatilho, e o ano é a base das numerações. *(fonte: src/pages/GerenciarTermos.jsx:454, funcao:set_termos_notificacao_ano_geracao())* |  |
-| 17 | `data_recebimento_resposta` | date |  |  | Quando a resposta da entidade foi recebida: gravada ao concluir a resposta no portal, ou informada<br>pela equipe no fluxo manual. Com ela o status vira `respondido`. *(fonte: src/lib/offline/repository.ts:1716, src/pages/GerenciarTermos.jsx:1574)* |  |
-| 18 | `recebida_no_prazo` | boolean |  |  | Se a resposta chegou até a data-limite. Calculado no navegador de quem conclui a resposta, a partir<br>de `data_maxima_resposta`; vale `true` quando não há data-limite. Em produção: 1 no prazo, 1 fora e<br>3 vazios. *(fonte: src/lib/offline/repository.ts:1718, inventário: dominio_categorico)* | `(nulo)` (3), `false` (1), `true` (1) |
+| 17 | `data_recebimento_resposta` | date |  |  | Quando a resposta da entidade foi recebida:<br>- **Fluxo pelo portal:** o servidor grava a data de MS quando o prestador conclui a resposta<br>(migration 139).<br>- **Fluxo manual:** a equipe informa.<br>Com ela, o status vira `respondido`. *(fonte: supabase/migrations/139_fix_prestador_prazos.sql, src/lib/offline/repository.ts:1716, src/pages/GerenciarTermos.jsx:1574)* |  |
+| 18 | `recebida_no_prazo` | boolean |  |  | Se a resposta chegou até a data-limite, inclusive o último dia; vale `true` quando não há<br>data-limite. O servidor calcula quando o prestador conclui; no fluxo manual, a equipe define.<br>Até a migration 139, era calculado no navegador, comparando com a meia-noite UTC. Em produção: 1<br>no prazo, 1 fora e 3 vazios. *(fonte: supabase/migrations/139_fix_prestador_prazos.sql, src/lib/offline/repository.ts:1718, inventário: dominio_categorico)* | `(nulo)` (3), `false` (1), `true` (1) |
 | 19 | `arquivos_resposta` | jsonb |  | `'[]'::jsonb` | Arquivos da resposta da entidade (lista). Cada um tem `nome`, `tipo`, `categoria`, `tamanho`,<br>`url`, `bucket`, `path`, `data_upload` e `assinatura_digital_valida`. O portal acrescenta um a um<br>(substituindo o de mesmo caminho). *(fonte: src/lib/offline/repository.ts:1700, inventário: estrutura_json)* | JSON — formas: array (5); elementos: object (1); chaves: `assinatura_digital_valida`:boolean (1), `bucket`:string (1), `categoria`:string (1), `data_upload`:string (1), `nome`:string (1), `path`:string (1), `tamanho`:number (1), `tipo`:string (1), `url`:string (1) |
 | 20 | `arquivo_oficio_resposta` | text |  |  | Ofício de resposta da entidade, registrado pela equipe no fluxo manual. *(fonte: src/pages/GerenciarTermos.jsx:1576)* |  |
 | 21 | `numero_am` | text |  |  | Número da Análise da Manifestação (AM): `AM NNN/AAAA/DSB/AGEMS`. É gerado por `gerar_numero_am`<br>como a contagem das AMs do ano mais 1, o que pode repetir números em pedidos simultâneos. Refazer a<br>análise limpa o número. *(fonte: src/pages/AnaliseManifestacao.jsx:261, funcao:gerar_numero_am(), src/pages/AnaliseManifestacao.jsx:240)* |  |
@@ -59,9 +62,9 @@ protocolo e resposta recebidos em papel, e o termo não aparece para o prestador
 | 24 | `updated_at` | timestamp with time zone |  | `now()` | Última alteração, gravada pelas telas (não há gatilho de `updated_at`). *(fonte: src/pages/ResponderTermo.jsx:680)* |  |
 | 25 | `arquivo_rfp_url` | text |  |  | Relatório de fiscalização assinado; necessário, com o TN, para sair de `pendente_tn`. *(fonte: src/pages/GerenciarTermos.jsx:381, src/pages/GerenciarTermos.jsx:318)* |  |
 | 26 | `arquivo_tn_prestador_url` | text |  |  | TN assinado pelo prestador, enviado pelo portal ou pela equipe. Com a assinatura considerada<br>válida, inicia o prazo. *(fonte: src/pages/ResponderTermo.jsx:673, src/pages/GerenciarTermos.jsx:1142)* |  |
-| 27 | `assinatura_prestador_valida` | boolean |  | `false` | Se a assinatura do prestador no TN foi aceita. O portal grava `true` automaticamente ao enviar; a<br>equipe pode marcar ou desmarcar. Não há verificação da assinatura digital. *(fonte: src/pages/ResponderTermo.jsx:674, src/pages/GerenciarTermos.jsx:1107)* |  |
-| 28 | `data_assinatura_prestador` | timestamp with time zone |  |  | Quando o prestador enviou o TN assinado (relógio do aparelho dele). *(fonte: src/pages/ResponderTermo.jsx:675)* |  |
-| 29 | `data_inicio_prazo` | date |  |  | Início da contagem do prazo de resposta: o dia do envio do TN assinado, pelo aparelho do<br>prestador, ou a data informada pela equipe. *(fonte: src/pages/ResponderTermo.jsx:677, src/pages/GerenciarTermos.jsx:1121)* |  |
+| 27 | `assinatura_prestador_valida` | boolean |  | `false` | Se a assinatura do prestador no TN foi aceita. O servidor grava `true` a cada envio do TN<br>assinado; a equipe pode marcar ou desmarcar. Não há verificação da assinatura digital. *(fonte: supabase/migrations/139_fix_prestador_prazos.sql, src/pages/GerenciarTermos.jsx:1107)* |  |
+| 28 | `data_assinatura_prestador` | timestamp with time zone |  |  | Quando o prestador enviou o TN assinado, pela hora do servidor (migration 139). *(fonte: supabase/migrations/139_fix_prestador_prazos.sql)* |  |
+| 29 | `data_inicio_prazo` | date |  |  | Início da contagem do prazo de resposta:<br>- **Fluxo pelo portal:** o dia do primeiro envio do TN assinado (data de MS, servidor).<br>- **Equipe:** a data que ela informa.<br>Uma vez preenchido, o reenvio pelo prestador não o reinicia. *(fonte: supabase/migrations/139_fix_prestador_prazos.sql, src/pages/GerenciarTermos.jsx:1121)* |  |
 | 30 | `fluxo_manual` | boolean |  | `false` | `true` quando o termo corre fora do portal: protocolo e resposta em papel, registrados pela equipe.<br>Esses termos não aparecem para o prestador. Em produção: 3 manuais e 2 pelo portal. *(fonte: src/pages/GerenciarTermos.jsx:928, src/pages/PortalPrestadorHome.jsx:73, inventário: dominio_categorico)* | `true` (3), `false` (2) |
 | 31 | `arquivo_am_assinada_url` | text |  |  | Análise da Manifestação assinada; enviada ao concluir a AM. *(fonte: src/pages/AnaliseManifestacao.jsx:828)* |  |
 | 32 | `am_concluida_em` | timestamp with time zone |  |  | Quando a Análise da Manifestação foi concluída; limpo ao refazer a análise. *(fonte: src/pages/AnaliseManifestacao.jsx:264, src/pages/AnaliseManifestacao.jsx:240)* |  |
@@ -154,10 +157,7 @@ WITH CHECK:
 ### Prestadores: responder seus termos
 
 - **Papéis**: authenticated · **Operação**: UPDATE · **PERMISSIVE**
-- **Em linguagem simples**: O prestador ativo altera os termos da própria entidade, **qualquer coluna e em qualquer status**.
-Isso inclui datas de prazo, status, "recebida no prazo" e arquivos da AGEMS. Por somar-se à
-política seguinte, anula a trava "até respondido". Na prática, o regulado pode alterar pela API os
-dados do próprio processo. *(fonte: funcao:get_my_prestador_id(), politica:public.termos_notificacao.termos_prestador_update_own_until_respondido)*
+- **Em linguagem simples**: _Sem anotação._
 - **Funções auxiliares**: [get_my_prestador_id()](../funcoes/get_my_prestador_id.md), [get_my_role()](../funcoes/get_my_role.md)
 
 <details><summary>Condição original</summary>
@@ -193,8 +193,10 @@ WITH CHECK:
 ### termos_prestador_update_own_until_respondido
 
 - **Papéis**: authenticated · **Operação**: UPDATE · **PERMISSIVE**
-- **Em linguagem simples**: O prestador altera o próprio termo só até o termo ser `respondido`. Hoje sem efeito, porque a
-política anterior libera a alteração em qualquer status. *(fonte: funcao:current_prestador_servico_id())*
+- **Em linguagem simples**: O prestador ativo altera o termo da própria entidade só até ele ser `respondido`. O gatilho
+`trg_proteger_termo_prestador` limita o que ele pode mudar: o TN assinado e os arquivos da
+resposta, com datas e pontualidade calculadas pelo servidor. Desde a migration 139 é a única
+política de alteração do prestador; antes, outra mais ampla a anulava. *(fonte: supabase/migrations/139_fix_prestador_prazos.sql, funcao:current_prestador_servico_id())*
 - **Funções auxiliares**: [current_prestador_servico_id()](../funcoes/current_prestador_servico_id.md)
 
 <details><summary>Condição original</summary>
