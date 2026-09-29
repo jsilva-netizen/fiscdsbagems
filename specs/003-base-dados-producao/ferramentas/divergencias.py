@@ -18,6 +18,8 @@ VOLATEIS = {
 }
 # Atributos que são código: comparados sem diferença de espaço em branco, com diff.
 CODIGO = {"funcao": "definicao", "view": "definicao"}
+# Texto livre também comparado sem diferença de espaço em branco (produção devolve \r\n em alguns).
+TEXTO = {"comentario"}
 
 
 @dataclass
@@ -55,7 +57,7 @@ def _comparar_objeto(chave, tipo, a_prod: dict, a_mig: dict) -> Divergencia | No
     diferentes = []
     for k in sorted(set(a_prod) | set(a_mig)):
         vp, vm = a_prod.get(k), a_mig.get(k)
-        if k == campo_codigo:
+        if k == campo_codigo or k in TEXTO:
             if _normalizar_codigo(vp) != _normalizar_codigo(vm):
                 diferentes.append(k)
         elif vp != vm:

@@ -76,4 +76,4 @@ $function$
 
 ## Divergências e achados
 
-- Divergência `funcao:claim_relatorios_jobs(p_limit integer, p_job_id uuid, p_stale_minutes integer)`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `funcao:claim_relatorios_jobs(p_limit integer, p_job_id uuid, p_stale_minutes integer)`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).

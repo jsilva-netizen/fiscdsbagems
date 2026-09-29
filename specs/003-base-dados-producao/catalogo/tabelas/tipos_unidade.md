@@ -99,4 +99,4 @@ WITH CHECK:
 
 ## Divergências e achados
 
-- Divergência `coluna:tipos_unidade.codigo`: **estrutura_diferente**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `coluna:tipos_unidade.codigo`: **estrutura_diferente**, classificação **producao_vale** ([detalhes](../../divergencias.md)).

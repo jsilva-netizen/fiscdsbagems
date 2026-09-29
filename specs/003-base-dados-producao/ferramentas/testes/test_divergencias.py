@@ -31,6 +31,7 @@ class TestComparar(unittest.TestCase):
             _funcao("espacos", CODIGO),
             _funcao("mudou", CODIGO),
             _coluna("igual", "valor", "numeric", posicao=5),
+            _coluna("igual", "nota", "text", comentario="Linha um.\r\n  Linha dois."),
         )
         migrations = _inv(
             Objeto("tabela:so_mig", "tabela", {"nome": "so_mig", "linhas_exatas": 0}),
@@ -38,6 +39,7 @@ class TestComparar(unittest.TestCase):
             _funcao("espacos", "CREATE FUNCTION f() RETURNS int LANGUAGE sql AS $$ SELECT 1; $$"),
             _funcao("mudou", CODIGO.replace("SELECT 1", "SELECT 2")),
             _coluna("igual", "valor", "integer", posicao=3),
+            _coluna("igual", "nota", "text", comentario="Linha um.\n  Linha dois."),
         )
         cls.divs = {d.chave: d for d in comparar(producao, migrations)}
 
@@ -63,6 +65,9 @@ class TestComparar(unittest.TestCase):
         self.assertEqual(d.tipo, "estrutura_diferente")
         self.assertIn("tipo", d.detalhe)
         self.assertNotIn("posicao", d.detalhe)  # a ordem física das colunas não muda comportamento
+
+    def test_comentario_diferente_so_no_fim_de_linha_nao_diverge(self):
+        self.assertNotIn("coluna:igual.nota", self.divs)
 
     def test_ordem_estavel(self):
         self.assertEqual(list(self.divs), sorted(self.divs))

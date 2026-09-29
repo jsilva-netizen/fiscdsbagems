@@ -200,7 +200,7 @@ WITH CHECK:
 
 ## Divergências e achados
 
-- Divergência `coluna:constatacoes_manuais.descricao`: **estrutura_diferente**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
-- Divergência `coluna:constatacoes_manuais.ordem`: **estrutura_diferente**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
-- Divergência `politica:public.constatacoes_manuais.constatacoes_prestador_select`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
-- Divergência `politica:public.constatacoes_manuais.constatacoes_staff_all`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `coluna:constatacoes_manuais.descricao`: **estrutura_diferente**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
+- Divergência `coluna:constatacoes_manuais.ordem`: **estrutura_diferente**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.constatacoes_manuais.constatacoes_prestador_select`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.constatacoes_manuais.constatacoes_staff_all`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).

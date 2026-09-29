@@ -34,8 +34,9 @@ finalidade = """
 Todo usuário com sessão: equipe da AGEMS (admin, coordenador, fiscal, diretor) e prestador. O
 banco não distingue os papéis da aplicação por papel do Postgres: as regras de acesso leem o
 papel, a câmara, a diretoria e a entidade do perfil com `get_my_role` e funções irmãs, que desde a
-migration 137 só respondem para perfil ativo. Conta sem perfil ativo tem sessão, mas só lê o
-próprio perfil. Limite de 8 segundos por comando.
+migration 137 só respondem para perfil ativo. Conta sem perfil ativo tem sessão e não passa nas
+regras que dependem do papel; em produção ainda lê todos os perfis, porque a restrição da leitura
+de perfis da 137 não chegou lá. Limite de 8 segundos por comando.
 """
 fonte = [
   "funcao:get_my_role()",

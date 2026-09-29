@@ -198,8 +198,10 @@ WITH CHECK:
 ### Leitura pública de perfis
 
 - **Papéis**: authenticated · **Operação**: SELECT · **PERMISSIVE**
-- **Em linguagem simples**: Logado lê o próprio perfil. Quem tem perfil ativo lê todos (lista de usuários, nomes de fiscais).
-Desde a migration 137; antes, qualquer logado lia todos, inclusive contas não aprovadas. *(fonte: supabase/migrations/137_fix_signup_privilege_escalation.sql, src/pages/GerenciarUsuarios.jsx:27)*
+- **Em linguagem simples**: Em produção, qualquer logado lê todos os perfis (`USING (true)`), inclusive contas ainda não
+aprovadas. A migration 137 muda para: logado lê o próprio perfil, e quem tem perfil ativo lê
+todos (lista de usuários, nomes de fiscais). Essa parte da 137 não chegou a produção (inventário
+de 2026-09-29; ver a divergência). A tela de usuários precisa da leitura de todos. *(fonte: supabase/migrations/137_fix_signup_privilege_escalation.sql:198, src/pages/GerenciarUsuarios.jsx:27, inventário: politicas)*
 
 <details><summary>Condição original</summary>
 
@@ -285,14 +287,14 @@ WITH CHECK:
 
 ## Divergências e achados
 
-- Divergência `coluna:profiles.ativo`: **estrutura_diferente**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
-- Divergência `coluna:profiles.role`: **estrutura_diferente**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
-- Divergência `indice:ux_profiles_prestador_servico_id`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
-- Divergência `politica:public.profiles.Edição Própria`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
-- Divergência `politica:public.profiles.Inserção Própria`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
-- Divergência `politica:public.profiles.Leitura pública de perfis`: **estrutura_diferente**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
-- Divergência `politica:public.profiles.profiles_admin_all`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
-- Divergência `politica:public.profiles.profiles_self_select`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
-- Divergência `politica:public.profiles.profiles_self_update`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
-- Divergência `restricao:profiles.profiles_non_prestador_must_not_have_prestador_id`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
-- Divergência `restricao:profiles.profiles_prestador_must_have_prestador_id`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `coluna:profiles.ativo`: **estrutura_diferente**, classificação **defeito_corrigir** ([detalhes](../../divergencias.md)).
+- Divergência `coluna:profiles.role`: **estrutura_diferente**, classificação **defeito_corrigir** ([detalhes](../../divergencias.md)).
+- Divergência `indice:ux_profiles_prestador_servico_id`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.profiles.Edição Própria`: **so_producao**, classificação **residuo_descartar** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.profiles.Inserção Própria`: **so_producao**, classificação **residuo_descartar** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.profiles.Leitura pública de perfis`: **estrutura_diferente**, classificação **defeito_corrigir** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.profiles.profiles_admin_all`: **so_producao**, classificação **residuo_descartar** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.profiles.profiles_self_select`: **so_producao**, classificação **residuo_descartar** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.profiles.profiles_self_update`: **so_producao**, classificação **residuo_descartar** ([detalhes](../../divergencias.md)).
+- Divergência `restricao:profiles.profiles_non_prestador_must_not_have_prestador_id`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
+- Divergência `restricao:profiles.profiles_prestador_must_have_prestador_id`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).

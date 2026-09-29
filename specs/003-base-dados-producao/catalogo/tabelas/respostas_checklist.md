@@ -210,7 +210,7 @@ is_staff()
 
 ## Divergências e achados
 
-- Divergência `coluna:respostas_checklist.comentario`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
-- Divergência `coluna:respostas_checklist.pergunta`: **estrutura_diferente**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
-- Divergência `politica:public.respostas_checklist.respostas_checklist_prestador_select`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
-- Divergência `politica:public.respostas_checklist.respostas_checklist_staff_all`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `coluna:respostas_checklist.comentario`: **so_producao**, classificação **residuo_descartar** ([detalhes](../../divergencias.md)).
+- Divergência `coluna:respostas_checklist.pergunta`: **estrutura_diferente**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.respostas_checklist.respostas_checklist_prestador_select`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.respostas_checklist.respostas_checklist_staff_all`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).

@@ -222,10 +222,12 @@ fonte = ["gatilho:public.profiles.trg_enforce_profile_security", "funcao:handle_
 
 [objeto."politica:public.profiles.Leitura pública de perfis"]
 descricao = """
-Logado lê o próprio perfil. Quem tem perfil ativo lê todos (lista de usuários, nomes de fiscais).
-Desde a migration 137; antes, qualquer logado lia todos, inclusive contas não aprovadas.
+Em produção, qualquer logado lê todos os perfis (`USING (true)`), inclusive contas ainda não
+aprovadas. A migration 137 muda para: logado lê o próprio perfil, e quem tem perfil ativo lê
+todos (lista de usuários, nomes de fiscais). Essa parte da 137 não chegou a produção (inventário
+de 2026-09-29; ver a divergência). A tela de usuários precisa da leitura de todos.
 """
-fonte = ["supabase/migrations/137_fix_signup_privilege_escalation.sql", "src/pages/GerenciarUsuarios.jsx:27"]
+fonte = ["supabase/migrations/137_fix_signup_privilege_escalation.sql:198", "src/pages/GerenciarUsuarios.jsx:27", "inventário: politicas"]
 
 [objeto."politica:public.profiles.Usuários comuns atualizam apenas dados de contato próprios"]
 descricao = """

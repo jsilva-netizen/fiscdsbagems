@@ -177,5 +177,5 @@ is_staff()
 
 ## Divergências e achados
 
-- Divergência `politica:public.manifestacoes_auto.manifestacoes_prestador_select`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
-- Divergência `politica:public.manifestacoes_auto.manifestacoes_staff_all`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.manifestacoes_auto.manifestacoes_prestador_select`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.manifestacoes_auto.manifestacoes_staff_all`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).

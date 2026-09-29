@@ -59,4 +59,4 @@ $function$
 
 ## Divergências e achados
 
-- Divergência `funcao:determinacoes_fill_origem()`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `funcao:determinacoes_fill_origem()`: **so_producao**, classificação **residuo_descartar** ([detalhes](../../divergencias.md)).

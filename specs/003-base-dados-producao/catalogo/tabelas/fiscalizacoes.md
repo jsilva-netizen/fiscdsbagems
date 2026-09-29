@@ -237,5 +237,4 @@ WITH CHECK:
 
 ## Divergências e achados
 
-- Divergência `coluna:fiscalizacoes.tipo_modulo`: **estrutura_diferente**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
-- Divergência `politica:public.fiscalizacoes.Prestadores: ler apenas suas pr├│prias fiscaliza├º├Áe`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.fiscalizacoes.Prestadores: ler apenas suas pr├│prias fiscaliza├º├Áe`: **so_producao**, classificação **residuo_descartar** ([detalhes](../../divergencias.md)).

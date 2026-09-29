@@ -46,4 +46,4 @@ $function$
 
 ## Divergências e achados
 
-- Divergência `funcao:can_access_fiscalizacao(fiscalizacao uuid)`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `funcao:can_access_fiscalizacao(fiscalizacao uuid)`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).

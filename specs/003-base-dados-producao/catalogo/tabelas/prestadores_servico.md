@@ -173,8 +173,8 @@ is_staff()
 
 ## Divergências e achados
 
-- Divergência `coluna:prestadores_servico.user_id`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
-- Divergência `indice:ux_prestadores_user_id`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
-- Divergência `politica:public.prestadores_servico.prestadores_prestador_select_own`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
-- Divergência `politica:public.prestadores_servico.prestadores_staff_all`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
-- Divergência `restricao:prestadores_servico.prestadores_servico_user_id_fkey`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `coluna:prestadores_servico.user_id`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
+- Divergência `indice:ux_prestadores_user_id`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.prestadores_servico.prestadores_prestador_select_own`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.prestadores_servico.prestadores_staff_all`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
+- Divergência `restricao:prestadores_servico.prestadores_servico_user_id_fkey`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).

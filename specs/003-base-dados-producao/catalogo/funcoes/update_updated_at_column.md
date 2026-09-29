@@ -39,4 +39,4 @@ $function$
 
 ## Divergências e achados
 
-- Divergência `funcao:update_updated_at_column()`: **codigo_diferente**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `funcao:update_updated_at_column()`: **codigo_diferente**, classificação **producao_vale** ([detalhes](../../divergencias.md)).

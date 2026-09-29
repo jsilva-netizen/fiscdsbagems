@@ -1,0 +1,1085 @@
+# Classificação das divergências entre produção e o banco das migrations (T037; contracts/anotacoes.md).
+# Gerado por regras e revisado; cada entrada vale por si. Ver divergencias.md para o detalhe e o diff.
+
+[divergencia."bucket:documentos-autos"]
+classificacao = "producao_vale"
+justificativa = """
+Só o campo `versioning_status`, que o Storage local não preenche; o comportamento é o mesmo.
+"""
+
+[divergencia."bucket:documentos-prestadores"]
+classificacao = "producao_vale"
+justificativa = """
+Criado pelo painel, sem migration; o cadastro da entidade e o CATERS gravam nele.
+"""
+
+[divergencia."bucket:documentos-termos"]
+classificacao = "producao_vale"
+justificativa = """
+Criado pelo painel, sem migration; os termos de notificação gravam nele.
+"""
+
+[divergencia."bucket:evidencias-determinacoes"]
+classificacao = "producao_vale"
+justificativa = """
+Em produção o bucket é privado; a migration 054 o cria público. Privado é o correto.
+"""
+
+[divergencia."bucket:fotos_fiscalizacao"]
+classificacao = "producao_vale"
+justificativa = """
+Em produção o bucket é privado; a migration 044 o cria público. Privado é o correto; o portal da entidade ainda monta endereço público para as fotos (achado registrado na T044).
+"""
+
+[divergencia."bucket:kml-rodovias"]
+classificacao = "producao_vale"
+justificativa = """
+Só o campo `versioning_status`, que o Storage local não preenche; o comportamento é o mesmo.
+"""
+
+[divergencia."bucket:logos-entidades"]
+classificacao = "producao_vale"
+justificativa = """
+Só o campo `versioning_status`, que o Storage local não preenche; o comportamento é o mesmo.
+"""
+
+[divergencia."bucket:relatorios_fiscalizacao"]
+classificacao = "producao_vale"
+justificativa = """
+Só o campo `versioning_status`, que o Storage local não preenche; o comportamento é o mesmo.
+"""
+
+[divergencia."coluna:autos_infracao.arquivo_defesa"]
+classificacao = "producao_vale"
+justificativa = """
+Usada pelo envio de documentos do auto (FluxoUploadDocumentos e Gestão de autos); criada direto em produção.
+"""
+
+[divergencia."coluna:autos_infracao.arquivo_defesa_oficio"]
+classificacao = "producao_vale"
+justificativa = """
+Usada pelo envio de documentos do auto (FluxoUploadDocumentos e Gestão de autos); criada direto em produção.
+"""
+
+[divergencia."coluna:autos_infracao.arquivo_protocolo_ai_recebido"]
+classificacao = "producao_vale"
+justificativa = """
+Usada pelo envio de documentos do auto (FluxoUploadDocumentos e Gestão de autos); criada direto em produção.
+"""
+
+[divergencia."coluna:autos_infracao.arquivo_protocolo_oficio"]
+classificacao = "producao_vale"
+justificativa = """
+Usada pelo envio de documentos do auto (FluxoUploadDocumentos e Gestão de autos); criada direto em produção.
+"""
+
+[divergencia."coluna:autos_infracao.arquivo_url"]
+classificacao = "producao_vale"
+justificativa = """
+Usada pelo envio de documentos do auto (FluxoUploadDocumentos e Gestão de autos); criada direto em produção.
+"""
+
+[divergencia."coluna:autos_infracao.pena_base_rs"]
+classificacao = "producao_vale"
+justificativa = """
+Usada na Gestão de autos; criada direto em produção.
+"""
+
+[divergencia."coluna:autos_infracao.pena_base_uferms"]
+classificacao = "producao_vale"
+justificativa = """
+Usada na Gestão de autos; criada direto em produção.
+"""
+
+[divergencia."coluna:constatacoes_manuais.descricao"]
+classificacao = "producao_vale"
+justificativa = """
+Obrigatória em produção e opcional nas migrations; a constatação sem texto não faz sentido.
+"""
+
+[divergencia."coluna:constatacoes_manuais.ordem"]
+classificacao = "producao_vale"
+justificativa = """
+Produção tem padrão 0; as migrations, nenhum. Sem efeito na numeração.
+"""
+
+[divergencia."coluna:determinacoes.origem"]
+classificacao = "producao_vale"
+justificativa = """
+Produção preenche `legacy:<uuid>` como padrão, o que garante a unicidade da origem por unidade para linhas sem origem conhecida; as migrations não têm padrão.
+"""
+
+[divergencia."coluna:prestadores_servico.user_id"]
+classificacao = "producao_vale"
+justificativa = """
+Vínculo da entidade com a conta do prestador, gravado pela tela de usuários e lido pelas políticas; criada direto em produção. O vínculo gravado nos dois lados é achado registrado na T044.
+"""
+
+[divergencia."coluna:profiles.ativo"]
+classificacao = "defeito_corrigir"
+justificativa = """
+Em produção o padrão é aprovado (`true`); o cadastro grava `false`, mas um perfil criado por outro caminho nasceria aprovado. As migrations têm `false`, que é o seguro.
+"""
+
+[divergencia."coluna:profiles.role"]
+classificacao = "defeito_corrigir"
+justificativa = """
+Produção tem padrão `user`, que não é papel válido; as migrations, `fiscal`. O gatilho de cadastro sempre define o papel. No sistema novo o papel é obrigatório, sem padrão.
+"""
+
+[divergencia."coluna:respostas_checklist.comentario"]
+classificacao = "residuo_descartar"
+justificativa = """
+Campo antigo, criado direto em produção; a tela grava em `observacao` e a sincronização não envia este campo.
+"""
+
+[divergencia."coluna:respostas_checklist.pergunta"]
+classificacao = "producao_vale"
+justificativa = """
+Obrigatória em produção; os relatórios e as contagens dependem da pergunta copiada.
+"""
+
+[divergencia."coluna:tipos_unidade.codigo"]
+classificacao = "producao_vale"
+justificativa = """
+Só o comentário da coluna, que existe apenas em produção.
+"""
+
+[divergencia."coluna:unidades_fiscalizadas.total_determinacoes"]
+classificacao = "defeito_corrigir"
+justificativa = """
+Criada direto em produção, mas nenhuma função atual a grava: fica em 0 ou no valor de uma versão antiga. No sistema novo, o total é calculado.
+"""
+
+[divergencia."coluna:unidades_fiscalizadas.total_recomendacoes"]
+classificacao = "defeito_corrigir"
+justificativa = """
+Mesma situação de `total_determinacoes`.
+"""
+
+[divergencia."funcao:can_access_fiscalizacao(fiscalizacao uuid)"]
+classificacao = "producao_vale"
+justificativa = """
+Criada direto em produção; é usada pelas políticas do prestador que exigem termo de notificação. Faz parte do conjunto de políticas criado direto em produção, com `is_staff`, `current_role` e `can_access_*`, que as migrations não têm.
+"""
+
+[divergencia."funcao:can_access_unidade(unidade uuid)"]
+classificacao = "producao_vale"
+justificativa = """
+Criada direto em produção; é usada pelas políticas do prestador que exigem termo de notificação. Faz parte do conjunto de políticas criado direto em produção, com `is_staff`, `current_role` e `can_access_*`, que as migrations não têm.
+"""
+
+[divergencia."funcao:claim_relatorios_jobs(p_limit integer, p_job_id uuid, p_stale_minutes integer)"]
+classificacao = "producao_vale"
+justificativa = """
+O worker de relatórios depende dela, e nenhuma migration a cria: um banco montado só pelas migrations não gera relatórios. Foi criada direto em produção.
+"""
+
+[divergencia."funcao:confirm_email_on_approval()"]
+classificacao = "aguardando_decisao"
+justificativa = """
+Nas migrations (027), aprovar o perfil confirma o e-mail da conta; produção não tem a função nem o gatilho. As 8 contas de produção têm e-mail confirmado. Decidir junto com a configuração de autenticação (confirmação de e-mail exigida ou não, externos.toml).
+"""
+
+[divergencia."funcao:determinacoes_fill_origem()"]
+classificacao = "residuo_descartar"
+justificativa = """
+Sem uso: nenhum gatilho de produção a chama; a origem das determinações vem de `gerar_ncs_unidade`.
+"""
+
+[divergencia."funcao:is_staff()"]
+classificacao = "producao_vale"
+justificativa = """
+Criada direto em produção; é usada pelas políticas de acesso total da equipe. Faz parte do conjunto de políticas criado direto em produção, com `is_staff`, `current_role` e `can_access_*`, que as migrations não têm.
+"""
+
+[divergencia."funcao:sync_dates_columns()"]
+classificacao = "residuo_descartar"
+justificativa = """
+Mantinha `created_date` e `updated_date` de `itens_checklist`, colunas herdadas da plataforma antiga (migration 004). Produção não tem a função nem o gatilho, e o código atual não usa essas colunas.
+"""
+
+[divergencia."funcao:update_updated_at_column()"]
+classificacao = "producao_vale"
+justificativa = """
+Mesma função nos dois lados, com diferença só de forma.
+"""
+resumo_codigo = """
+Mesma lógica: grava a hora atual em `updated_at`. Muda só `NOW()` para `now()` e o recuo das linhas.
+"""
+
+[divergencia."gatilho:public.itens_checklist.sync_dates_itens_checklist"]
+classificacao = "residuo_descartar"
+justificativa = """
+Gatilho de `sync_dates_columns`, só nas migrations; mesmo motivo.
+"""
+
+[divergencia."gatilho:public.profiles.on_profile_approved"]
+classificacao = "aguardando_decisao"
+justificativa = """
+Gatilho de `confirm_email_on_approval`, só nas migrations; mesma decisão da função.
+"""
+
+[divergencia."indice:idx_determinacoes_nc"]
+classificacao = "producao_vale"
+justificativa = """
+Índice de consulta criado direto em produção, que as migrations não têm.
+"""
+
+[divergencia."indice:idx_determinacoes_numero"]
+classificacao = "producao_vale"
+justificativa = """
+Índice de consulta criado direto em produção, que as migrations não têm.
+"""
+
+[divergencia."indice:idx_determinacoes_unidade"]
+classificacao = "producao_vale"
+justificativa = """
+Índice de consulta criado direto em produção, que as migrations não têm.
+"""
+
+[divergencia."indice:idx_nc_resposta"]
+classificacao = "residuo_descartar"
+justificativa = """
+Idêntico a `idx_nc_resposta_checklist` (A-003).
+"""
+
+[divergencia."indice:idx_nc_resposta_checklist"]
+classificacao = "producao_vale"
+justificativa = """
+Índice de consulta criado direto em produção, que as migrations não têm.
+"""
+
+[divergencia."indice:idx_nc_unidade"]
+classificacao = "producao_vale"
+justificativa = """
+Índice de consulta criado direto em produção, que as migrations não têm.
+"""
+
+[divergencia."indice:idx_respostas_determinacao_determinacao_id"]
+classificacao = "defeito_corrigir"
+justificativa = """
+Índice da chave estrangeira criado pela migration 053 e ausente em produção.
+"""
+
+[divergencia."indice:idx_respostas_determinacao_prestador_id"]
+classificacao = "defeito_corrigir"
+justificativa = """
+Índice criado pela migration 053 e ausente em produção.
+"""
+
+[divergencia."indice:idx_unidades_codigo"]
+classificacao = "producao_vale"
+justificativa = """
+Índice de consulta criado direto em produção, que as migrations não têm.
+"""
+
+[divergencia."indice:idx_unidades_fiscalizacao"]
+classificacao = "producao_vale"
+justificativa = """
+Índice de consulta criado direto em produção, que as migrations não têm.
+"""
+
+[divergencia."indice:idx_unidades_fotos_gin"]
+classificacao = "producao_vale"
+justificativa = """
+Índice de consulta criado direto em produção, que as migrations não têm.
+"""
+
+[divergencia."indice:idx_unidades_nome"]
+classificacao = "producao_vale"
+justificativa = """
+Índice de consulta criado direto em produção, que as migrations não têm.
+"""
+
+[divergencia."indice:idx_unidades_status"]
+classificacao = "producao_vale"
+justificativa = """
+Índice de consulta criado direto em produção, que as migrations não têm.
+"""
+
+[divergencia."indice:idx_unidades_tipo"]
+classificacao = "producao_vale"
+justificativa = """
+Índice de consulta criado direto em produção, que as migrations não têm.
+"""
+
+[divergencia."indice:ux_prestadores_user_id"]
+classificacao = "producao_vale"
+justificativa = """
+Garante no máximo uma conta por entidade; criado direto em produção.
+"""
+
+[divergencia."indice:ux_profiles_prestador_servico_id"]
+classificacao = "producao_vale"
+justificativa = """
+Garante no máximo um perfil por entidade; criado direto em produção.
+"""
+
+[divergencia."indice:ux_recomendacoes_unidade_numero"]
+classificacao = "producao_vale"
+justificativa = """
+Garante número de recomendação único por unidade; criado direto em produção.
+"""
+
+[divergencia."papel:cli_login_postgres"]
+classificacao = "producao_vale"
+justificativa = """
+Configuração da plataforma Supabase, diferente entre o banco hospedado e o local; fora do escopo do sistema novo (plataforma.toml).
+"""
+
+[divergencia."papel:postgres"]
+classificacao = "producao_vale"
+justificativa = """
+Configuração da plataforma Supabase, diferente entre o banco hospedado e o local; fora do escopo do sistema novo (plataforma.toml).
+"""
+
+[divergencia."papel:supabase_admin"]
+classificacao = "producao_vale"
+justificativa = """
+Configuração da plataforma Supabase, diferente entre o banco hospedado e o local; fora do escopo do sistema novo (plataforma.toml).
+"""
+
+[divergencia."papel:supabase_functions_admin"]
+classificacao = "producao_vale"
+justificativa = """
+Configuração da plataforma Supabase, diferente entre o banco hospedado e o local; fora do escopo do sistema novo (plataforma.toml).
+"""
+
+[divergencia."politica:public.autos_infracao.Acesso genérico autenticado (DEV)"]
+classificacao = "residuo_descartar"
+justificativa = """
+Política de desenvolvimento das migrations (061) que libera todos os autos a qualquer logado. Não existe em produção e não vai para o sistema novo.
+"""
+
+[divergencia."politica:public.autos_infracao.autos_prestador_select"]
+classificacao = "producao_vale"
+justificativa = """
+Faz parte do conjunto de políticas criado direto em produção, com `is_staff`, `current_role` e `can_access_*`, que as migrations não têm. É o que vale hoje; parte dessas políticas repete outras da mesma tabela (A-003), e as da equipe não olham a câmara (achado registrado na T044).
+"""
+
+[divergencia."politica:public.autos_infracao.autos_staff_all"]
+classificacao = "producao_vale"
+justificativa = """
+Faz parte do conjunto de políticas criado direto em produção, com `is_staff`, `current_role` e `can_access_*`, que as migrations não têm. É o que vale hoje; parte dessas políticas repete outras da mesma tabela (A-003), e as da equipe não olham a câmara (achado registrado na T044).
+"""
+
+[divergencia."politica:public.constatacoes_manuais.constatacoes_prestador_select"]
+classificacao = "producao_vale"
+justificativa = """
+Faz parte do conjunto de políticas criado direto em produção, com `is_staff`, `current_role` e `can_access_*`, que as migrations não têm. É o que vale hoje; parte dessas políticas repete outras da mesma tabela (A-003), e as da equipe não olham a câmara (achado registrado na T044).
+"""
+
+[divergencia."politica:public.constatacoes_manuais.constatacoes_staff_all"]
+classificacao = "producao_vale"
+justificativa = """
+Faz parte do conjunto de políticas criado direto em produção, com `is_staff`, `current_role` e `can_access_*`, que as migrations não têm. É o que vale hoje; parte dessas políticas repete outras da mesma tabela (A-003), e as da equipe não olham a câmara (achado registrado na T044).
+"""
+
+[divergencia."politica:public.determinacoes.determinacoes_prestador_select"]
+classificacao = "producao_vale"
+justificativa = """
+Faz parte do conjunto de políticas criado direto em produção, com `is_staff`, `current_role` e `can_access_*`, que as migrations não têm. É o que vale hoje; parte dessas políticas repete outras da mesma tabela (A-003), e as da equipe não olham a câmara (achado registrado na T044).
+"""
+
+[divergencia."politica:public.determinacoes.determinacoes_staff_all"]
+classificacao = "producao_vale"
+justificativa = """
+Faz parte do conjunto de políticas criado direto em produção, com `is_staff`, `current_role` e `can_access_*`, que as migrations não têm. É o que vale hoje; parte dessas políticas repete outras da mesma tabela (A-003), e as da equipe não olham a câmara (achado registrado na T044).
+"""
+
+[divergencia."politica:public.fiscalizacoes.Prestadores: ler apenas suas pr├│prias fiscaliza├º├Áe"]
+classificacao = "residuo_descartar"
+justificativa = """
+Cópia idêntica de outra política da tabela, com o nome corrompido por erro de codificação (A-003).
+"""
+
+[divergencia."politica:public.julgamentos.julgamentos_prestador_select"]
+classificacao = "producao_vale"
+justificativa = """
+Faz parte do conjunto de políticas criado direto em produção, com `is_staff`, `current_role` e `can_access_*`, que as migrations não têm. É o que vale hoje; parte dessas políticas repete outras da mesma tabela (A-003), e as da equipe não olham a câmara (achado registrado na T044).
+"""
+
+[divergencia."politica:public.julgamentos.julgamentos_staff_all"]
+classificacao = "producao_vale"
+justificativa = """
+Faz parte do conjunto de políticas criado direto em produção, com `is_staff`, `current_role` e `can_access_*`, que as migrations não têm. É o que vale hoje; parte dessas políticas repete outras da mesma tabela (A-003), e as da equipe não olham a câmara (achado registrado na T044).
+"""
+
+[divergencia."politica:public.manifestacoes_auto.manifestacoes_prestador_select"]
+classificacao = "producao_vale"
+justificativa = """
+Faz parte do conjunto de políticas criado direto em produção, com `is_staff`, `current_role` e `can_access_*`, que as migrations não têm. É o que vale hoje; parte dessas políticas repete outras da mesma tabela (A-003), e as da equipe não olham a câmara (achado registrado na T044).
+"""
+
+[divergencia."politica:public.manifestacoes_auto.manifestacoes_staff_all"]
+classificacao = "producao_vale"
+justificativa = """
+Faz parte do conjunto de políticas criado direto em produção, com `is_staff`, `current_role` e `can_access_*`, que as migrations não têm. É o que vale hoje; parte dessas políticas repete outras da mesma tabela (A-003), e as da equipe não olham a câmara (achado registrado na T044).
+"""
+
+[divergencia."politica:public.nao_conformidades.ncs_prestador_select"]
+classificacao = "producao_vale"
+justificativa = """
+Faz parte do conjunto de políticas criado direto em produção, com `is_staff`, `current_role` e `can_access_*`, que as migrations não têm. É o que vale hoje; parte dessas políticas repete outras da mesma tabela (A-003), e as da equipe não olham a câmara (achado registrado na T044).
+"""
+
+[divergencia."politica:public.nao_conformidades.ncs_staff_all"]
+classificacao = "producao_vale"
+justificativa = """
+Faz parte do conjunto de políticas criado direto em produção, com `is_staff`, `current_role` e `can_access_*`, que as migrations não têm. É o que vale hoje; parte dessas políticas repete outras da mesma tabela (A-003), e as da equipe não olham a câmara (achado registrado na T044).
+"""
+
+[divergencia."politica:public.pareceres_tecnicos.pareceres_prestador_select"]
+classificacao = "producao_vale"
+justificativa = """
+Faz parte do conjunto de políticas criado direto em produção, com `is_staff`, `current_role` e `can_access_*`, que as migrations não têm. É o que vale hoje; parte dessas políticas repete outras da mesma tabela (A-003), e as da equipe não olham a câmara (achado registrado na T044).
+"""
+
+[divergencia."politica:public.pareceres_tecnicos.pareceres_staff_all"]
+classificacao = "producao_vale"
+justificativa = """
+Faz parte do conjunto de políticas criado direto em produção, com `is_staff`, `current_role` e `can_access_*`, que as migrations não têm. É o que vale hoje; parte dessas políticas repete outras da mesma tabela (A-003), e as da equipe não olham a câmara (achado registrado na T044).
+"""
+
+[divergencia."politica:public.prestadores_servico.prestadores_prestador_select_own"]
+classificacao = "producao_vale"
+justificativa = """
+Faz parte do conjunto de políticas criado direto em produção, com `is_staff`, `current_role` e `can_access_*`, que as migrations não têm. É o que vale hoje; parte dessas políticas repete outras da mesma tabela (A-003), e as da equipe não olham a câmara (achado registrado na T044).
+"""
+
+[divergencia."politica:public.prestadores_servico.prestadores_staff_all"]
+classificacao = "producao_vale"
+justificativa = """
+Faz parte do conjunto de políticas criado direto em produção, com `is_staff`, `current_role` e `can_access_*`, que as migrations não têm. É o que vale hoje; parte dessas políticas repete outras da mesma tabela (A-003), e as da equipe não olham a câmara (achado registrado na T044).
+"""
+
+[divergencia."politica:public.profiles.Edição Própria"]
+classificacao = "residuo_descartar"
+justificativa = """
+Repete `Usuários comuns atualizam apenas dados de contato próprios` e `profiles_self_update` (A-003); os campos protegidos são limitados pelo gatilho `enforce_profile_security`.
+"""
+
+[divergencia."politica:public.profiles.Inserção Própria"]
+classificacao = "residuo_descartar"
+justificativa = """
+Caminho de reserva para criar o próprio perfil; sem uso desde que a tela de cadastro deixou de inserir o perfil (migration 137): o perfil nasce pelo gatilho de cadastro.
+"""
+
+[divergencia."politica:public.profiles.Leitura pública de perfis"]
+classificacao = "defeito_corrigir"
+justificativa = """
+Produção ainda tem `USING (true)`: qualquer conta logada, mesmo sem aprovação, lê todos os perfis (nome, e-mail, papel). A migration 137 restringe ao próprio perfil ou a quem tem perfil ativo, mas essa parte (commit 7df89f0) não chegou a produção. Corrigir em produção com o trecho da 137.
+"""
+
+[divergencia."politica:public.profiles.profiles_admin_all"]
+classificacao = "residuo_descartar"
+justificativa = """
+Contida em `Admins e coordenadores gerenciam perfis` (A-003).
+"""
+
+[divergencia."politica:public.profiles.profiles_self_select"]
+classificacao = "residuo_descartar"
+justificativa = """
+Contida em `Leitura pública de perfis`, que já libera o próprio perfil (A-003).
+"""
+
+[divergencia."politica:public.profiles.profiles_self_update"]
+classificacao = "residuo_descartar"
+justificativa = """
+Terceira política com o mesmo efeito de `Usuários comuns atualizam apenas dados de contato próprios` (A-003).
+"""
+
+[divergencia."politica:public.recomendacoes.recomendacoes_prestador_select"]
+classificacao = "producao_vale"
+justificativa = """
+Faz parte do conjunto de políticas criado direto em produção, com `is_staff`, `current_role` e `can_access_*`, que as migrations não têm. É o que vale hoje; parte dessas políticas repete outras da mesma tabela (A-003), e as da equipe não olham a câmara (achado registrado na T044).
+"""
+
+[divergencia."politica:public.recomendacoes.recomendacoes_staff_all"]
+classificacao = "producao_vale"
+justificativa = """
+Faz parte do conjunto de políticas criado direto em produção, com `is_staff`, `current_role` e `can_access_*`, que as migrations não têm. É o que vale hoje; parte dessas políticas repete outras da mesma tabela (A-003), e as da equipe não olham a câmara (achado registrado na T044).
+"""
+
+[divergencia."politica:public.respostas_checklist.respostas_checklist_prestador_select"]
+classificacao = "producao_vale"
+justificativa = """
+Faz parte do conjunto de políticas criado direto em produção, com `is_staff`, `current_role` e `can_access_*`, que as migrations não têm. É o que vale hoje; parte dessas políticas repete outras da mesma tabela (A-003), e as da equipe não olham a câmara (achado registrado na T044).
+"""
+
+[divergencia."politica:public.respostas_checklist.respostas_checklist_staff_all"]
+classificacao = "producao_vale"
+justificativa = """
+Faz parte do conjunto de políticas criado direto em produção, com `is_staff`, `current_role` e `can_access_*`, que as migrations não têm. É o que vale hoje; parte dessas políticas repete outras da mesma tabela (A-003), e as da equipe não olham a câmara (achado registrado na T044).
+"""
+
+[divergencia."politica:public.respostas_determinacao.respostas_det_prestador_insert"]
+classificacao = "producao_vale"
+justificativa = """
+Faz parte do conjunto de políticas criado direto em produção, com `is_staff`, `current_role` e `can_access_*`, que as migrations não têm. É o que vale hoje; parte dessas políticas repete outras da mesma tabela (A-003), e as da equipe não olham a câmara (achado registrado na T044).
+"""
+
+[divergencia."politica:public.respostas_determinacao.respostas_det_prestador_select"]
+classificacao = "producao_vale"
+justificativa = """
+Faz parte do conjunto de políticas criado direto em produção, com `is_staff`, `current_role` e `can_access_*`, que as migrations não têm. É o que vale hoje; parte dessas políticas repete outras da mesma tabela (A-003), e as da equipe não olham a câmara (achado registrado na T044).
+"""
+
+[divergencia."politica:public.respostas_determinacao.respostas_det_prestador_update"]
+classificacao = "producao_vale"
+justificativa = """
+Faz parte do conjunto de políticas criado direto em produção, com `is_staff`, `current_role` e `can_access_*`, que as migrations não têm. É o que vale hoje; parte dessas políticas repete outras da mesma tabela (A-003), e as da equipe não olham a câmara (achado registrado na T044).
+"""
+
+[divergencia."politica:public.respostas_determinacao.respostas_det_staff_all"]
+classificacao = "producao_vale"
+justificativa = """
+Faz parte do conjunto de políticas criado direto em produção, com `is_staff`, `current_role` e `can_access_*`, que as migrations não têm. É o que vale hoje; parte dessas políticas repete outras da mesma tabela (A-003), e as da equipe não olham a câmara (achado registrado na T044).
+"""
+
+[divergencia."politica:public.termos_notificacao.termos_prestador_select_own"]
+classificacao = "producao_vale"
+justificativa = """
+Faz parte do conjunto de políticas criado direto em produção, com `is_staff`, `current_role` e `can_access_*`, que as migrations não têm. É o que vale hoje; parte dessas políticas repete outras da mesma tabela (A-003), e as da equipe não olham a câmara (achado registrado na T044).
+"""
+
+[divergencia."politica:public.termos_notificacao.termos_prestador_update_own_until_respondido"]
+classificacao = "producao_vale"
+justificativa = """
+Faz parte do conjunto de políticas criado direto em produção, com `is_staff`, `current_role` e `can_access_*`, que as migrations não têm. É o que vale hoje; parte dessas políticas repete outras da mesma tabela (A-003), e as da equipe não olham a câmara (achado registrado na T044).
+"""
+
+[divergencia."politica:public.termos_notificacao.termos_staff_all"]
+classificacao = "producao_vale"
+justificativa = """
+Faz parte do conjunto de políticas criado direto em produção, com `is_staff`, `current_role` e `can_access_*`, que as migrations não têm. É o que vale hoje; parte dessas políticas repete outras da mesma tabela (A-003), e as da equipe não olham a câmara (achado registrado na T044).
+"""
+
+[divergencia."politica:public.unidades_fiscalizadas.Prestadores: ler suas pr├│prias unidades"]
+classificacao = "residuo_descartar"
+justificativa = """
+Cópia idêntica de outra política da tabela, com o nome corrompido por erro de codificação (A-003).
+"""
+
+[divergencia."politica:public.unidades_fiscalizadas.unidades_prestador_select"]
+classificacao = "producao_vale"
+justificativa = """
+Faz parte do conjunto de políticas criado direto em produção, com `is_staff`, `current_role` e `can_access_*`, que as migrations não têm. É o que vale hoje; parte dessas políticas repete outras da mesma tabela (A-003), e as da equipe não olham a câmara (achado registrado na T044).
+"""
+
+[divergencia."politica:public.unidades_fiscalizadas.unidades_staff_all"]
+classificacao = "producao_vale"
+justificativa = """
+Faz parte do conjunto de políticas criado direto em produção, com `is_staff`, `current_role` e `can_access_*`, que as migrations não têm. É o que vale hoje; parte dessas políticas repete outras da mesma tabela (A-003), e as da equipe não olham a câmara (achado registrado na T044).
+"""
+
+[divergencia."politica:storage.objects.Authenticated Delete"]
+classificacao = "residuo_descartar"
+justificativa = """
+Versão das migrations da regra de acesso ao bucket; produção usa as políticas criadas pelo painel, com o mesmo efeito depois da migration 138.
+"""
+
+[divergencia."politica:storage.objects.Authenticated Delete evidencias"]
+classificacao = "residuo_descartar"
+justificativa = """
+Versão das migrations da regra de acesso ao bucket; produção usa as políticas criadas pelo painel, com o mesmo efeito depois da migration 138.
+"""
+
+[divergencia."politica:storage.objects.Authenticated Delete relatorios_fiscalizacao"]
+classificacao = "residuo_descartar"
+justificativa = """
+Versão das migrations da regra de acesso ao bucket; produção usa as políticas criadas pelo painel, com o mesmo efeito depois da migration 138.
+"""
+
+[divergencia."politica:storage.objects.Authenticated Insert"]
+classificacao = "residuo_descartar"
+justificativa = """
+Versão das migrations da regra de acesso ao bucket; produção usa as políticas criadas pelo painel, com o mesmo efeito depois da migration 138.
+"""
+
+[divergencia."politica:storage.objects.Authenticated Insert evidencias"]
+classificacao = "residuo_descartar"
+justificativa = """
+Versão das migrations da regra de acesso ao bucket; produção usa as políticas criadas pelo painel, com o mesmo efeito depois da migration 138.
+"""
+
+[divergencia."politica:storage.objects.Authenticated Insert relatorios_fiscalizacao"]
+classificacao = "residuo_descartar"
+justificativa = """
+Versão das migrations da regra de acesso ao bucket; produção usa as políticas criadas pelo painel, com o mesmo efeito depois da migration 138.
+"""
+
+[divergencia."politica:storage.objects.Authenticated Select relatorios_fiscalizacao"]
+classificacao = "residuo_descartar"
+justificativa = """
+Versão das migrations da regra de acesso ao bucket; produção usa as políticas criadas pelo painel, com o mesmo efeito depois da migration 138.
+"""
+
+[divergencia."politica:storage.objects.Authenticated Update"]
+classificacao = "residuo_descartar"
+justificativa = """
+Versão das migrations da regra de acesso ao bucket; produção usa as políticas criadas pelo painel, com o mesmo efeito depois da migration 138.
+"""
+
+[divergencia."politica:storage.objects.Authenticated Update evidencias"]
+classificacao = "residuo_descartar"
+justificativa = """
+Versão das migrations da regra de acesso ao bucket; produção usa as políticas criadas pelo painel, com o mesmo efeito depois da migration 138.
+"""
+
+[divergencia."politica:storage.objects.Authenticated Update relatorios_fiscalizacao"]
+classificacao = "residuo_descartar"
+justificativa = """
+Versão das migrations da regra de acesso ao bucket; produção usa as políticas criadas pelo painel, com o mesmo efeito depois da migration 138.
+"""
+
+[divergencia."politica:storage.objects.Documentos Autos Delete"]
+classificacao = "residuo_descartar"
+justificativa = """
+Versão das migrations da regra de acesso ao bucket; produção usa as políticas criadas pelo painel, com o mesmo efeito depois da migration 138.
+"""
+
+[divergencia."politica:storage.objects.Documentos Autos Insert"]
+classificacao = "residuo_descartar"
+justificativa = """
+Versão das migrations da regra de acesso ao bucket; produção usa as políticas criadas pelo painel, com o mesmo efeito depois da migration 138.
+"""
+
+[divergencia."politica:storage.objects.Documentos Autos Select"]
+classificacao = "residuo_descartar"
+justificativa = """
+Versão das migrations da regra de acesso ao bucket; produção usa as políticas criadas pelo painel, com o mesmo efeito depois da migration 138.
+"""
+
+[divergencia."politica:storage.objects.Documentos Autos Update"]
+classificacao = "residuo_descartar"
+justificativa = """
+Versão das migrations da regra de acesso ao bucket; produção usa as políticas criadas pelo painel, com o mesmo efeito depois da migration 138.
+"""
+
+[divergencia."politica:storage.objects.Public Access"]
+classificacao = "residuo_descartar"
+justificativa = """
+Leitura sem login do bucket, criada pelas migrations; em produção o bucket é privado e essa política não existe.
+"""
+
+[divergencia."politica:storage.objects.Public Access evidencias"]
+classificacao = "residuo_descartar"
+justificativa = """
+Leitura sem login do bucket, criada pelas migrations; em produção o bucket é privado e essa política não existe.
+"""
+
+[divergencia."politica:storage.objects.Storage delete authenticated"]
+classificacao = "producao_vale"
+justificativa = """
+Criada pelo painel, cobre vários buckets de uma vez e é a única regra de acesso a `fotos_fiscalizacao` em produção; nos outros buckets repete as políticas por bucket (A-003). Cita o bucket `termos-notificacao`, que não existe. A abertura de todos os arquivos a qualquer usuário ativo é achado registrado na T044.
+"""
+
+[divergencia."politica:storage.objects.Storage insert authenticated"]
+classificacao = "producao_vale"
+justificativa = """
+Criada pelo painel, cobre vários buckets de uma vez e é a única regra de acesso a `fotos_fiscalizacao` em produção; nos outros buckets repete as políticas por bucket (A-003). Cita o bucket `termos-notificacao`, que não existe. A abertura de todos os arquivos a qualquer usuário ativo é achado registrado na T044.
+"""
+
+[divergencia."politica:storage.objects.Storage read authenticated"]
+classificacao = "producao_vale"
+justificativa = """
+Criada pelo painel, cobre vários buckets de uma vez e é a única regra de acesso a `fotos_fiscalizacao` em produção; nos outros buckets repete as políticas por bucket (A-003). Cita o bucket `termos-notificacao`, que não existe. A abertura de todos os arquivos a qualquer usuário ativo é achado registrado na T044.
+"""
+
+[divergencia."politica:storage.objects.Storage update authenticated"]
+classificacao = "producao_vale"
+justificativa = """
+Criada pelo painel, cobre vários buckets de uma vez e é a única regra de acesso a `fotos_fiscalizacao` em produção; nos outros buckets repete as políticas por bucket (A-003). Cita o bucket `termos-notificacao`, que não existe. A abertura de todos os arquivos a qualquer usuário ativo é achado registrado na T044.
+"""
+
+[divergencia."politica:storage.objects.documentos-autos authenticated all 1fhxxna_0"]
+classificacao = "producao_vale"
+justificativa = """
+Criada pelo painel, sem migration; é a regra de acesso ao bucket em produção. As migrations têm um conjunto com outros nomes e, depois da migration 138, o mesmo efeito. A abertura de todos os arquivos a qualquer usuário ativo é achado registrado na T044.
+"""
+
+[divergencia."politica:storage.objects.documentos-autos authenticated all 1fhxxna_1"]
+classificacao = "producao_vale"
+justificativa = """
+Criada pelo painel, sem migration; é a regra de acesso ao bucket em produção. As migrations têm um conjunto com outros nomes e, depois da migration 138, o mesmo efeito. A abertura de todos os arquivos a qualquer usuário ativo é achado registrado na T044.
+"""
+
+[divergencia."politica:storage.objects.documentos-autos authenticated all 1fhxxna_2"]
+classificacao = "producao_vale"
+justificativa = """
+Criada pelo painel, sem migration; é a regra de acesso ao bucket em produção. As migrations têm um conjunto com outros nomes e, depois da migration 138, o mesmo efeito. A abertura de todos os arquivos a qualquer usuário ativo é achado registrado na T044.
+"""
+
+[divergencia."politica:storage.objects.documentos-autos authenticated all 1fhxxna_3"]
+classificacao = "producao_vale"
+justificativa = """
+Criada pelo painel, sem migration; é a regra de acesso ao bucket em produção. As migrations têm um conjunto com outros nomes e, depois da migration 138, o mesmo efeito. A abertura de todos os arquivos a qualquer usuário ativo é achado registrado na T044.
+"""
+
+[divergencia."politica:storage.objects.documentos-prestadores authenticated all 1rt2ofe_0"]
+classificacao = "producao_vale"
+justificativa = """
+Criada pelo painel, sem migration; é a regra de acesso ao bucket, que também só existe em produção. A abertura de todos os arquivos a qualquer usuário ativo é achado registrado na T044.
+"""
+
+[divergencia."politica:storage.objects.documentos-prestadores authenticated all 1rt2ofe_1"]
+classificacao = "producao_vale"
+justificativa = """
+Criada pelo painel, sem migration; é a regra de acesso ao bucket, que também só existe em produção. A abertura de todos os arquivos a qualquer usuário ativo é achado registrado na T044.
+"""
+
+[divergencia."politica:storage.objects.documentos-prestadores authenticated all 1rt2ofe_2"]
+classificacao = "producao_vale"
+justificativa = """
+Criada pelo painel, sem migration; é a regra de acesso ao bucket, que também só existe em produção. A abertura de todos os arquivos a qualquer usuário ativo é achado registrado na T044.
+"""
+
+[divergencia."politica:storage.objects.documentos-prestadores authenticated all 1rt2ofe_3"]
+classificacao = "producao_vale"
+justificativa = """
+Criada pelo painel, sem migration; é a regra de acesso ao bucket, que também só existe em produção. A abertura de todos os arquivos a qualquer usuário ativo é achado registrado na T044.
+"""
+
+[divergencia."politica:storage.objects.documentos-termos authenticated all 16irk4e_0"]
+classificacao = "producao_vale"
+justificativa = """
+Criada pelo painel, sem migration; é a regra de acesso ao bucket, que também só existe em produção. A abertura de todos os arquivos a qualquer usuário ativo é achado registrado na T044.
+"""
+
+[divergencia."politica:storage.objects.documentos-termos authenticated all 16irk4e_1"]
+classificacao = "producao_vale"
+justificativa = """
+Criada pelo painel, sem migration; é a regra de acesso ao bucket, que também só existe em produção. A abertura de todos os arquivos a qualquer usuário ativo é achado registrado na T044.
+"""
+
+[divergencia."politica:storage.objects.documentos-termos authenticated all 16irk4e_2"]
+classificacao = "producao_vale"
+justificativa = """
+Criada pelo painel, sem migration; é a regra de acesso ao bucket, que também só existe em produção. A abertura de todos os arquivos a qualquer usuário ativo é achado registrado na T044.
+"""
+
+[divergencia."politica:storage.objects.documentos-termos authenticated all 16irk4e_3"]
+classificacao = "producao_vale"
+justificativa = """
+Criada pelo painel, sem migration; é a regra de acesso ao bucket, que também só existe em produção. A abertura de todos os arquivos a qualquer usuário ativo é achado registrado na T044.
+"""
+
+[divergencia."politica:storage.objects.p_evid_write"]
+classificacao = "producao_vale"
+justificativa = """
+Criada pelo painel, sem migration; é a regra de acesso ao bucket em produção. As migrations têm um conjunto com outros nomes e, depois da migration 138, o mesmo efeito. A abertura de todos os arquivos a qualquer usuário ativo é achado registrado na T044.
+"""
+
+[divergencia."politica:storage.objects.relatorios_fiscalizacao authenticated all 1760aao_0"]
+classificacao = "producao_vale"
+justificativa = """
+Criada pelo painel, sem migration; é a regra de acesso ao bucket em produção. As migrations têm um conjunto com outros nomes e, depois da migration 138, o mesmo efeito. A abertura de todos os arquivos a qualquer usuário ativo é achado registrado na T044.
+"""
+
+[divergencia."politica:storage.objects.relatorios_fiscalizacao authenticated all 1760aao_1"]
+classificacao = "producao_vale"
+justificativa = """
+Criada pelo painel, sem migration; é a regra de acesso ao bucket em produção. As migrations têm um conjunto com outros nomes e, depois da migration 138, o mesmo efeito. A abertura de todos os arquivos a qualquer usuário ativo é achado registrado na T044.
+"""
+
+[divergencia."politica:storage.objects.relatorios_fiscalizacao authenticated all 1760aao_2"]
+classificacao = "producao_vale"
+justificativa = """
+Criada pelo painel, sem migration; é a regra de acesso ao bucket em produção. As migrations têm um conjunto com outros nomes e, depois da migration 138, o mesmo efeito. A abertura de todos os arquivos a qualquer usuário ativo é achado registrado na T044.
+"""
+
+[divergencia."politica:storage.objects.relatorios_fiscalizacao authenticated all 1760aao_3"]
+classificacao = "producao_vale"
+justificativa = """
+Criada pelo painel, sem migration; é a regra de acesso ao bucket em produção. As migrations têm um conjunto com outros nomes e, depois da migration 138, o mesmo efeito. A abertura de todos os arquivos a qualquer usuário ativo é achado registrado na T044.
+"""
+
+[divergencia."politica:storage.objects.tn_delete_authenticated"]
+classificacao = "residuo_descartar"
+justificativa = """
+Repete uma das políticas `documentos-termos authenticated all 16irk4e_*`, com o mesmo efeito (A-003).
+"""
+
+[divergencia."politica:storage.objects.tn_update_authenticated"]
+classificacao = "residuo_descartar"
+justificativa = """
+Repete uma das políticas `documentos-termos authenticated all 16irk4e_*`, com o mesmo efeito (A-003).
+"""
+
+[divergencia."politica:storage.objects.tn_upload_authenticated"]
+classificacao = "residuo_descartar"
+justificativa = """
+Repete uma das políticas `documentos-termos authenticated all 16irk4e_*`, com o mesmo efeito (A-003).
+"""
+
+[divergencia."privilegio:can_access_fiscalizacao.PUBLIC"]
+classificacao = "producao_vale"
+justificativa = """
+Privilégio de `can_access_fiscalizacao(fiscalizacao uuid)`, que só existe de um lado; segue a classificação dela. Execução por `anon`/`PUBLIC` faz parte do A-006.
+"""
+
+[divergencia."privilegio:can_access_fiscalizacao.anon"]
+classificacao = "producao_vale"
+justificativa = """
+Privilégio de `can_access_fiscalizacao(fiscalizacao uuid)`, que só existe de um lado; segue a classificação dela. Execução por `anon`/`PUBLIC` faz parte do A-006.
+"""
+
+[divergencia."privilegio:can_access_fiscalizacao.authenticated"]
+classificacao = "producao_vale"
+justificativa = """
+Privilégio de `can_access_fiscalizacao(fiscalizacao uuid)`, que só existe de um lado; segue a classificação dela.
+"""
+
+[divergencia."privilegio:can_access_fiscalizacao.service_role"]
+classificacao = "producao_vale"
+justificativa = """
+Privilégio de `can_access_fiscalizacao(fiscalizacao uuid)`, que só existe de um lado; segue a classificação dela.
+"""
+
+[divergencia."privilegio:can_access_unidade.PUBLIC"]
+classificacao = "producao_vale"
+justificativa = """
+Privilégio de `can_access_unidade(unidade uuid)`, que só existe de um lado; segue a classificação dela. Execução por `anon`/`PUBLIC` faz parte do A-006.
+"""
+
+[divergencia."privilegio:can_access_unidade.anon"]
+classificacao = "producao_vale"
+justificativa = """
+Privilégio de `can_access_unidade(unidade uuid)`, que só existe de um lado; segue a classificação dela. Execução por `anon`/`PUBLIC` faz parte do A-006.
+"""
+
+[divergencia."privilegio:can_access_unidade.authenticated"]
+classificacao = "producao_vale"
+justificativa = """
+Privilégio de `can_access_unidade(unidade uuid)`, que só existe de um lado; segue a classificação dela.
+"""
+
+[divergencia."privilegio:can_access_unidade.service_role"]
+classificacao = "producao_vale"
+justificativa = """
+Privilégio de `can_access_unidade(unidade uuid)`, que só existe de um lado; segue a classificação dela.
+"""
+
+[divergencia."privilegio:claim_relatorios_jobs.service_role"]
+classificacao = "producao_vale"
+justificativa = """
+Privilégio de `claim_relatorios_jobs(p_limit integer, p_job_id uuid, p_stale_minutes integer)`, que só existe de um lado; segue a classificação dela.
+"""
+
+[divergencia."privilegio:confirm_email_on_approval.PUBLIC"]
+classificacao = "aguardando_decisao"
+justificativa = """
+Privilégio de `confirm_email_on_approval()`, que só existe de um lado; segue a classificação dela. Execução por `anon`/`PUBLIC` faz parte do A-006.
+"""
+
+[divergencia."privilegio:confirm_email_on_approval.anon"]
+classificacao = "aguardando_decisao"
+justificativa = """
+Privilégio de `confirm_email_on_approval()`, que só existe de um lado; segue a classificação dela. Execução por `anon`/`PUBLIC` faz parte do A-006.
+"""
+
+[divergencia."privilegio:confirm_email_on_approval.authenticated"]
+classificacao = "aguardando_decisao"
+justificativa = """
+Privilégio de `confirm_email_on_approval()`, que só existe de um lado; segue a classificação dela.
+"""
+
+[divergencia."privilegio:confirm_email_on_approval.service_role"]
+classificacao = "aguardando_decisao"
+justificativa = """
+Privilégio de `confirm_email_on_approval()`, que só existe de um lado; segue a classificação dela.
+"""
+
+[divergencia."privilegio:determinacoes_fill_origem.PUBLIC"]
+classificacao = "residuo_descartar"
+justificativa = """
+Privilégio de `determinacoes_fill_origem()`, que só existe de um lado; segue a classificação dela. Execução por `anon`/`PUBLIC` faz parte do A-006.
+"""
+
+[divergencia."privilegio:determinacoes_fill_origem.anon"]
+classificacao = "residuo_descartar"
+justificativa = """
+Privilégio de `determinacoes_fill_origem()`, que só existe de um lado; segue a classificação dela. Execução por `anon`/`PUBLIC` faz parte do A-006.
+"""
+
+[divergencia."privilegio:determinacoes_fill_origem.authenticated"]
+classificacao = "residuo_descartar"
+justificativa = """
+Privilégio de `determinacoes_fill_origem()`, que só existe de um lado; segue a classificação dela.
+"""
+
+[divergencia."privilegio:determinacoes_fill_origem.service_role"]
+classificacao = "residuo_descartar"
+justificativa = """
+Privilégio de `determinacoes_fill_origem()`, que só existe de um lado; segue a classificação dela.
+"""
+
+[divergencia."privilegio:is_staff.PUBLIC"]
+classificacao = "producao_vale"
+justificativa = """
+Privilégio de `is_staff()`, que só existe de um lado; segue a classificação dela. Execução por `anon`/`PUBLIC` faz parte do A-006.
+"""
+
+[divergencia."privilegio:is_staff.anon"]
+classificacao = "producao_vale"
+justificativa = """
+Privilégio de `is_staff()`, que só existe de um lado; segue a classificação dela. Execução por `anon`/`PUBLIC` faz parte do A-006.
+"""
+
+[divergencia."privilegio:is_staff.authenticated"]
+classificacao = "producao_vale"
+justificativa = """
+Privilégio de `is_staff()`, que só existe de um lado; segue a classificação dela.
+"""
+
+[divergencia."privilegio:is_staff.service_role"]
+classificacao = "producao_vale"
+justificativa = """
+Privilégio de `is_staff()`, que só existe de um lado; segue a classificação dela.
+"""
+
+[divergencia."privilegio:sync_dates_columns.PUBLIC"]
+classificacao = "residuo_descartar"
+justificativa = """
+Privilégio de `sync_dates_columns()`, que só existe de um lado; segue a classificação dela. Execução por `anon`/`PUBLIC` faz parte do A-006.
+"""
+
+[divergencia."privilegio:sync_dates_columns.anon"]
+classificacao = "residuo_descartar"
+justificativa = """
+Privilégio de `sync_dates_columns()`, que só existe de um lado; segue a classificação dela. Execução por `anon`/`PUBLIC` faz parte do A-006.
+"""
+
+[divergencia."privilegio:sync_dates_columns.authenticated"]
+classificacao = "residuo_descartar"
+justificativa = """
+Privilégio de `sync_dates_columns()`, que só existe de um lado; segue a classificação dela.
+"""
+
+[divergencia."privilegio:sync_dates_columns.service_role"]
+classificacao = "residuo_descartar"
+justificativa = """
+Privilégio de `sync_dates_columns()`, que só existe de um lado; segue a classificação dela.
+"""
+
+[divergencia."privilegio_padrao:supabase_admin.public.funcao"]
+classificacao = "producao_vale"
+justificativa = """
+Configuração da plataforma Supabase, diferente entre o banco hospedado e o local; fora do escopo do sistema novo (plataforma.toml).
+"""
+
+[divergencia."privilegio_padrao:supabase_admin.public.sequencia"]
+classificacao = "producao_vale"
+justificativa = """
+Configuração da plataforma Supabase, diferente entre o banco hospedado e o local; fora do escopo do sistema novo (plataforma.toml).
+"""
+
+[divergencia."privilegio_padrao:supabase_admin.public.tabela"]
+classificacao = "producao_vale"
+justificativa = """
+Configuração da plataforma Supabase, diferente entre o banco hospedado e o local; fora do escopo do sistema novo (plataforma.toml).
+"""
+
+[divergencia."privilegio_padrao:supabase_admin.realtime.tabela"]
+classificacao = "producao_vale"
+justificativa = """
+Configuração da plataforma Supabase, diferente entre o banco hospedado e o local; fora do escopo do sistema novo (plataforma.toml).
+"""
+
+[divergencia."privilegio_padrao:supabase_admin.supabase_functions.funcao"]
+classificacao = "producao_vale"
+justificativa = """
+Configuração da plataforma Supabase, diferente entre o banco hospedado e o local; fora do escopo do sistema novo (plataforma.toml).
+"""
+
+[divergencia."privilegio_padrao:supabase_admin.supabase_functions.sequencia"]
+classificacao = "producao_vale"
+justificativa = """
+Configuração da plataforma Supabase, diferente entre o banco hospedado e o local; fora do escopo do sistema novo (plataforma.toml).
+"""
+
+[divergencia."privilegio_padrao:supabase_admin.supabase_functions.tabela"]
+classificacao = "producao_vale"
+justificativa = """
+Configuração da plataforma Supabase, diferente entre o banco hospedado e o local; fora do escopo do sistema novo (plataforma.toml).
+"""
+
+[divergencia."restricao:autos_infracao.autos_infracao_determinacao_id_fkey"]
+classificacao = "producao_vale"
+justificativa = """
+Em produção, excluir a determinação deixa a referência do auto vazia (`ON DELETE SET NULL`); pelas migrations, a exclusão seria recusada.
+"""
+
+[divergencia."restricao:autos_infracao.autos_infracao_pena_base_rs_nonneg"]
+classificacao = "producao_vale"
+justificativa = """
+Pena base não negativa; criada direto em produção.
+"""
+
+[divergencia."restricao:determinacoes.determinacoes_status_check"]
+classificacao = "producao_vale"
+justificativa = """
+Limita a situação a `pendente`, `cumprida`, `nao_cumprida` e `prorrogada`; criada direto em produção.
+"""
+
+[divergencia."restricao:fiscalizacoes.fiscalizacoes_municipio_id_fkey"]
+classificacao = "defeito_corrigir"
+justificativa = """
+Produção não tem a chave estrangeira: nada impede fiscalização com município inexistente. No sistema novo, a chave é obrigatória.
+"""
+
+[divergencia."restricao:fiscalizacoes.fiscalizacoes_prestador_servico_id_fkey"]
+classificacao = "defeito_corrigir"
+justificativa = """
+Produção não tem a chave estrangeira: nada impede fiscalização de entidade inexistente.
+"""
+
+[divergencia."restricao:nao_conformidades.nao_conformidades_resposta_checklist_id_fkey"]
+classificacao = "producao_vale"
+justificativa = """
+Em produção, excluir a resposta do checklist deixa a referência da NC vazia (`ON DELETE SET NULL`); pelas migrations, a exclusão seria recusada. A regeneração de NCs depende disso.
+"""
+
+[divergencia."restricao:prestadores_servico.prestadores_servico_user_id_fkey"]
+classificacao = "producao_vale"
+justificativa = """
+Chave da coluna `user_id`, que só existe em produção.
+"""
+
+[divergencia."restricao:profiles.profiles_non_prestador_must_not_have_prestador_id"]
+classificacao = "producao_vale"
+justificativa = """
+Só prestador tem entidade vinculada; criada direto em produção como `NOT VALID` (não conferida nas linhas antigas).
+"""
+
+[divergencia."restricao:profiles.profiles_prestador_must_have_prestador_id"]
+classificacao = "producao_vale"
+justificativa = """
+Prestador precisa de entidade vinculada; criada direto em produção como `NOT VALID`.
+"""
+
+[divergencia."restricao:unidades_fiscalizadas.unidades_fiscalizadas_fotos_is_array_check"]
+classificacao = "producao_vale"
+justificativa = """
+Garante que as fotos da unidade são uma lista; criada direto em produção.
+"""
+
+[divergencia."restricao:unidades_fiscalizadas.unidades_fiscalizadas_tipo_unidade_id_fkey"]
+classificacao = "defeito_corrigir"
+justificativa = """
+Produção não tem a chave estrangeira: nada impede unidade com tipo inexistente.
+"""
+
+[divergencia."segredo:RELATORIOS_INVOKE_APIKEY"]
+classificacao = "producao_vale"
+justificativa = """
+Criado à mão no cofre de produção, como a migration 132 orienta; o cofre não é copiado entre bancos.
+"""
+
+[divergencia."segredo:RELATORIOS_WORKER_SECRET"]
+classificacao = "producao_vale"
+justificativa = """
+Criado à mão no cofre de produção, como a migration 132 orienta; o cofre não é copiado entre bancos.
+"""

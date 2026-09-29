@@ -246,8 +246,14 @@ Todas as tarefas abaixo são [P] entre si (arquivos diferentes).
 
   Se não baterem, registrar o motivo em `S/research.md`, D5.
 - [X] T036 [US2] Em `S/ferramentas/gerar.py`, gerar `S/divergencias.md` (contracts/artefatos-gerados.md) e incluir, em cada página de catálogo, as divergências do objeto.
-- [ ] T037 [US2] Classificar **todas** as divergências em `S/anotacoes/divergencias.toml`, com `classificacao` (`producao_vale | residuo_descartar | defeito_corrigir | aguardando_decisao`) e `justificativa`. Para cada uma das 27 funções com código diferente, preencher `resumo_codigo`, dizendo o que muda de comportamento entre as versões (FR-011). Políticas `e2e_test_*` que existem só em produção levam `residuo_descartar` e referência ao achado correspondente da US4.
-- [ ] T038 [US2] Validar: `python -m ferramentas.gerar` com **0 divergências não classificadas** (SC-003). Fazer commit.
+- [X] T037 [US2] Classificar **todas** as divergências em `S/anotacoes/divergencias.toml`, com `classificacao` (`producao_vale | residuo_descartar | defeito_corrigir | aguardando_decisao`) e `justificativa`. Para cada uma das 27 funções com código diferente, preencher `resumo_codigo`, dizendo o que muda de comportamento entre as versões (FR-011). Políticas `e2e_test_*` que existem só em produção levam `residuo_descartar` e referência ao achado correspondente da US4.
+- [X] T038 [US2] Validar: `python -m ferramentas.gerar` com **0 divergências não classificadas** (SC-003). Fazer commit.
+  - **Resultado (2026-09-29)**: 180 divergências, todas classificadas — 124 `producao_vale`, 40
+    `residuo_descartar`, 10 `defeito_corrigir` e 6 `aguardando_decisao` (confirmação de e-mail na
+    aprovação, que depende da configuração de autenticação). Só 1 função ficou com código
+    diferente, e só na forma (research D5). As políticas `e2e_test_*` existem nos dois lados, então
+    não são divergência; seguem para o A-001. Destaque: em produção, `Leitura pública de perfis`
+    ainda é `USING (true)`, porque essa parte da migration 137 não foi aplicada lá.
 
 **Checkpoint**: ninguém mais precisa consultar as migrations do repositório para saber como é o banco.
 

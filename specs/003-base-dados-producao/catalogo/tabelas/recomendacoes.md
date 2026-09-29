@@ -200,6 +200,6 @@ is_staff()
 
 ## Divergências e achados
 
-- Divergência `indice:ux_recomendacoes_unidade_numero`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
-- Divergência `politica:public.recomendacoes.recomendacoes_prestador_select`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
-- Divergência `politica:public.recomendacoes.recomendacoes_staff_all`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `indice:ux_recomendacoes_unidade_numero`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.recomendacoes.recomendacoes_prestador_select`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.recomendacoes.recomendacoes_staff_all`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).

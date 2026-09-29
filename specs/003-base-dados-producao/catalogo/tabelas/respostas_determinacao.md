@@ -201,7 +201,7 @@ is_staff()
 
 ## Divergências e achados
 
-- Divergência `politica:public.respostas_determinacao.respostas_det_prestador_insert`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
-- Divergência `politica:public.respostas_determinacao.respostas_det_prestador_select`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
-- Divergência `politica:public.respostas_determinacao.respostas_det_prestador_update`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
-- Divergência `politica:public.respostas_determinacao.respostas_det_staff_all`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.respostas_determinacao.respostas_det_prestador_insert`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.respostas_determinacao.respostas_det_prestador_select`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.respostas_determinacao.respostas_det_prestador_update`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
+- Divergência `politica:public.respostas_determinacao.respostas_det_staff_all`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).

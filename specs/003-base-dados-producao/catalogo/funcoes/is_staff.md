@@ -41,4 +41,4 @@ $function$
 
 ## Divergências e achados
 
-- Divergência `funcao:is_staff()`: **so_producao**, classificação **nao_classificada** ([detalhes](../../divergencias.md)).
+- Divergência `funcao:is_staff()`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).

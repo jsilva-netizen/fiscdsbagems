@@ -29,7 +29,7 @@ Páginas gerais: [repositórios de arquivos](arquivos.md) · [controle de acesso
 
 ## Completude
 
-Completude: 0 objetos sem anotação | 0 sem dono | 181 divergências não classificadas | 0 violações de ordem | 0 achados aguardando decisão
+Completude: 0 objetos sem anotação | 0 sem dono | 0 divergências não classificadas | 0 violações de ordem | 0 achados aguardando decisão
 
 ## Por módulo
 
