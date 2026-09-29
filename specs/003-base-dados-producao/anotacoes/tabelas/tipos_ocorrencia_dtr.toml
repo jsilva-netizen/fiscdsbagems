@@ -1,0 +1,135 @@
+[objeto."tabela:tipos_ocorrencia_dtr"]
+modulo = "dtr"
+finalidade = """
+Catálogo de tipos de ocorrência que o fiscal da DTR registra na rodovia, derivado do PER
+(Programa de Exploração da Rodovia) do contrato de concessão. É o equivalente, na DTR, ao
+checklist do saneamento. Cada tipo diz:
+
+- a frente e o item do PER;
+- se gera NC, com o não atendimento e o prazo;
+- o texto do relatório;
+- as etapas, quando é obra.
+
+Produção tem 79 tipos ativos, todos das rodovias "112/306".
+
+- **Manutenção:** aba de tipos das Definições da DTR, só por planilha. Baixa-se o modelo XLSX e
+  importa-se a planilha preenchida.
+- **Importação:** casa cada linha com o tipo existente pela combinação frente + item do PER +
+  descrição + rodovia; altera no próprio registro ou insere.
+- **"Limpar base":** apaga todos os tipos.
+- **App offline:** baixa os tipos para escolher offline.
+
+Diferente dos checklists, **não há versionamento**. A ocorrência já registrada preserva o texto
+porque copia frente, PER, não atendimento e prazo para a unidade.
+"""
+fonte = [
+  "src/lib/offline/repository.ts:320",
+  "src/lib/offline/repository.ts:295",
+  "src/pages/DefinicoesDTR.jsx:136",
+  "src/pages/DefinicoesDTR.jsx:248",
+  "tabela:unidades_fiscalizadas",
+  "inventário: dados_referencia.tipos_ocorrencia_dtr",
+]
+
+[objeto."coluna:tipos_ocorrencia_dtr.id"]
+significado = "Identificador do tipo, gerado na importação."
+fonte = ["src/lib/offline/repository.ts:356"]
+
+[objeto."coluna:tipos_ocorrencia_dtr.nome"]
+significado = """
+Nome do tipo mostrado ao fiscal. A importação usa a descrição; se vazia, o item do PER ou a
+frente.
+"""
+fonte = ["src/lib/offline/repository.ts:335"]
+
+[objeto."coluna:tipos_ocorrencia_dtr.gera_nc"]
+significado = """
+Se a ocorrência deste tipo é uma não conformidade (51 tipos) ou só uma constatação (28). Define
+`tipo_ocorrencia` da unidade e em que tabela do relatório ela aparece.
+"""
+fonte = ["src/lib/offline/repository.ts:341", "inventário: dominio_categorico"]
+
+[objeto."coluna:tipos_ocorrencia_dtr.item_contrato"]
+significado = """
+Seção do PER (ex.: "3.1.2 Sinalização e Elementos de Proteção e Segurança"). É copiada para
+`unidades_fiscalizadas.per` e faz parte da chave da importação.
+"""
+fonte = ["src/lib/offline/repository.ts:325", "inventário: dominio_categorico"]
+
+[objeto."coluna:tipos_ocorrencia_dtr.descricao"]
+significado = """
+Texto da coluna DESCRIÇÃO do relatório de constatações, quando o tipo não gera NC. Faz parte da
+chave da importação.
+"""
+fonte = ["src/lib/offline/repository.ts:325"]
+
+[objeto."coluna:tipos_ocorrencia_dtr.ativo"]
+significado = "Se o tipo está disponível; a importação grava sempre `true` (os 79 estão ativos)."
+fonte = ["src/lib/offline/repository.ts:349", "inventário: dominio_categorico"]
+
+[objeto."coluna:tipos_ocorrencia_dtr.created_at"]
+significado = "Quando o tipo foi importado."
+fonte = ["src/lib/offline/repository.ts:356"]
+
+[objeto."coluna:tipos_ocorrencia_dtr.updated_at"]
+significado = """
+Última alteração: gravada pela importação e pelo gatilho `update_tipos_ocorrencia_dtr_updated_at`.
+"""
+fonte = ["gatilho:public.tipos_ocorrencia_dtr.update_tipos_ocorrencia_dtr_updated_at"]
+
+[objeto."coluna:tipos_ocorrencia_dtr.nao_atendimento"]
+significado = """
+Cláusula ou parâmetro do PER que não está sendo cumprido; vai para a coluna NÃO ATENDIMENTO do
+relatório. É copiado para a ocorrência.
+"""
+fonte = ["src/lib/offline/repository.ts:343", "tabela:unidades_fiscalizadas"]
+
+[objeto."coluna:tipos_ocorrencia_dtr.prazo_dias_padrao"]
+significado = """
+Prazo padrão, em dias, para sanar a NC (em produção: 1, 5, 15 ou 30; vazio em 32 tipos). É
+copiado para `unidades_fiscalizadas.prazo_dias_nc`.
+"""
+fonte = ["src/lib/offline/repository.ts:344", "inventário: dominio_categorico"]
+
+[objeto."coluna:tipos_ocorrencia_dtr.observacoes"]
+significado = "Observação-padrão que pode sair nas tabelas de constatações e de não conformidades."
+fonte = ["src/lib/offline/repository.ts:346"]
+
+[objeto."coluna:tipos_ocorrencia_dtr.frente"]
+significado = """
+Frente da concessão: CONSERVAÇÃO (35), RECUPERAÇÃO E MANUTENÇÃO (31), SERVIÇOS OPERACIONAIS (7) ou
+MELHORIAS OPERACIONAIS… (6). É copiada para a ocorrência e faz parte da chave da importação.
+"""
+fonte = ["src/lib/offline/repository.ts:325", "inventário: dominio_categorico"]
+
+[objeto."coluna:tipos_ocorrencia_dtr.rodovia"]
+significado = """
+Rodovias a que o tipo se aplica; vazio vale para todas as da concessão. Em produção, todos têm
+"112/306". Faz parte da chave da importação.
+"""
+fonte = ["src/lib/offline/repository.ts:325", "inventário: dados_referencia.tipos_ocorrencia_dtr"]
+
+[objeto."coluna:tipos_ocorrencia_dtr.etapas_obra"]
+significado = """
+Etapas de obra, uma por linha, oferecidas no assistente de registro quando o tipo é de obra (ex.:
+Limpeza, Terraplenagem, Pavimentação). Vazio quando não é obra, o que vale para 73 dos 79 tipos.
+"""
+fonte = ["src/pages/DefinicoesDTR.jsx:206", "inventário: dominio_categorico"]
+
+[objeto."gatilho:public.tipos_ocorrencia_dtr.update_tipos_ocorrencia_dtr_updated_at"]
+efeito = "Antes de cada alteração, grava a hora atual em `updated_at`."
+fonte = ["funcao:update_updated_at_column()"]
+
+[objeto."politica:public.tipos_ocorrencia_dtr.Escrita admin tipos_ocorrencia_dtr"]
+descricao = """
+Apesar do nome, não é só para admin: quem tem perfil ativo, de qualquer papel, cria, altera e
+apaga tipos, inclusive o "Limpar base". Desde a migration 138; antes, valia para qualquer logado.
+"""
+fonte = ["supabase/migrations/138_fix_open_policies.sql"]
+
+[objeto."politica:public.tipos_ocorrencia_dtr.Leitura autenticada tipos_ocorrencia_dtr"]
+descricao = """
+Quem tem perfil ativo lê os tipos. Desde a migration 138; antes, qualquer logado. O worker de
+relatórios lê com a chave de serviço.
+"""
+fonte = ["supabase/migrations/138_fix_open_policies.sql", "supabase/functions/relatorios_worker/index.ts:294"]
