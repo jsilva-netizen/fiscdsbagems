@@ -3,6 +3,7 @@
 Cada módulo que já tem mapa de migração tem um arquivo `anotacoes/migracao/<modulo>.toml`:
 
     modulo = "core"
+    app = "core"                                         # opcional; prefixo dos destinos (padrão: o id do módulo)
     data_model = "specs/004-modulo-core/data-model.md"   # opcional; se houver, os destinos são conferidos
     notas = ["Fontes fora do catálogo: ..."]             # opcional
 
@@ -32,7 +33,7 @@ from pathlib import Path
 
 PARA = re.compile(r"^[a-z_]+\.[A-Z][A-Za-z0-9]*\.[a-z_][a-z0-9_]*(\.[a-z0-9_]+)?$")
 TITULO = re.compile(r"^#{2,3}\s+(.+?)\s*$")
-CAMPOS_DO_ARQUIVO = {"modulo", "data_model", "notas", "destino"}
+CAMPOS_DO_ARQUIVO = {"modulo", "app", "data_model", "notas", "destino"}
 CAMPOS_DO_DESTINO = {"para", "transformacao", "descarte"}
 
 
@@ -125,7 +126,8 @@ def _ler_mapas(pasta: Path, ids_modulos: set, erros: list) -> dict:
         if modulo in mapas:
             erros.append(f"{nome}: módulo '{modulo}' já tem mapa em {mapas[modulo]['arquivo']}.")
             continue
-        mapas[modulo] = {"arquivo": nome, "data_model": dados.get("data_model") or "",
+        mapas[modulo] = {"arquivo": nome, "app": dados.get("app") or modulo,
+                         "data_model": dados.get("data_model") or "",
                          "notas": dados.get("notas") or [], "destino": dados.get("destino") or {}}
     return mapas
 
@@ -146,7 +148,7 @@ def analisar(inv, anot, pasta_anotacoes, resolver=Path) -> AnaliseMigracao:
             if not Path(caminho).exists():
                 r.erros.append(f"{mapa['arquivo']}: data_model '{mapa['data_model']}' não existe.")
                 continue
-            modelos[modulo] = modelos_do_data_model(Path(caminho).read_text(encoding="utf-8"))
+            modelos[mapa["app"]] = modelos_do_data_model(Path(caminho).read_text(encoding="utf-8"))
 
     for modulo, mapa in mapas.items():
         for chave, d in mapa["destino"].items():

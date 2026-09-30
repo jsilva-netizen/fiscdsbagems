@@ -183,6 +183,13 @@ class TestMigracao(unittest.TestCase):
         self.assertEqual(r.erros, [])
         self.assertEqual(r.nao_verificados, [("bucket:fotos", "outro.Arquivo.chave")])
 
+    def test_app_diferente_do_modulo(self):
+        self.mapa(COMPLETO.replace('modulo = "base"', 'modulo = "base"\napp = "camara"')
+                  .replace('"base.', '"camara.'))
+        r = self.analisar()
+        self.assertEqual(r.erros, [])
+        self.assertEqual(r.nao_verificados, [])
+
     def test_modulo_invalido_ou_repetido(self):
         self.mapa(COMPLETO)
         self.mapa(COMPLETO, "copia.toml")

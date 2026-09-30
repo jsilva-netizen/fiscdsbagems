@@ -4,14 +4,14 @@
 
 Destino, no sistema novo, de cada coluna de tabela e de cada repositório de arquivos do banco de produção: o campo que recebe o dado (com a transformação, quando há) ou o motivo do descarte. Os mapas ficam em `anotacoes/migracao/<modulo>.toml`; destinos de apps com data-model são conferidos contra ele. Num módulo com mapa, o que não tem destino é **pendente**. Colunas de views não entram (não guardam dado).
 
-Pendentes: 0 · módulos sem mapa: 3 · destinos não verificados: 33.
+Pendentes: 0 · módulos sem mapa: 2 · destinos não verificados: 37.
 
 | Módulo | Mapa | Colunas e repositórios | Com destino | Descartados | Pendentes |
 |---|---|---:|---:|---:|---:|
 | Core | sim | 60 | 59 | 1 | 0 |
 | Checklists | sim | 35 | 29 | 6 | 0 |
 | Fiscalização | sim | 115 | 87 | 28 | 0 |
-| DTR | **sem mapa** | 20 | — | — | — |
+| DTR | sim | 20 | 20 | 0 | 0 |
 | Processo sancionador | **sem mapa** | 120 | — | — | — |
 | CATERS | **sem mapa** | 81 | — | — | — |
 | fora do escopo | — | 25 | 0 | 25 | 0 |
@@ -262,11 +262,40 @@ Mapa: `anotacoes/migracao/fiscalizacao.toml` · data-model: `specs/007-modulo-fi
 | `coluna:unidades_fiscalizadas.total_recomendacoes` | 402 linhas | descartado | Nunca gravado pelo app atual (A-025, divergência defeito_corrigir). |
 | `coluna:unidades_fiscalizadas.updated_at` | 402 linhas | `fiscalizacao.RegistroCampo.atualizado_em` |  |
 
+## DTR
+
+Mapa: `anotacoes/migracao/dtr.toml` · data-model: `specs/008-modulo-dtr-caterf/data-model.md`
+
+- Ordem de carga: core → checklists → caterf (contratos, traçados, pontos) → fiscalização (fiscalizações e registros) → caterf (extensões das fiscalizações e das ocorrências) (research C11).
+- Os campos da DTR nos tipos de ocorrência vão para os valores do modelo 'Ocorrências do PER' no motor de checklists; ficam 'não verificados' até o data-model da spec 005.
+
+| Objeto | Volume em produção | Destino | Transformação ou motivo do descarte |
+|---|---|---|---|
+| `bucket:kml-rodovias` | 2 arquivos | `caterf.Tracado.arquivo`<br>`caterf.Tracado.checksum` | Os 2 arquivos viram a versão 1 do traçado de cada contrato, conferidos por checksum. |
+| `coluna:contratos.km_points` | 2 linhas | `caterf.PontoKm.km`<br>`caterf.PontoKm.latitude`<br>`caterf.PontoKm.longitude`<br>`caterf.PontoKm.rodovia` | Os pontos são os relidos do KML migrado; a lista gravada no contrato (cerca de 15 mil pontos) serve para conferir, ponto a ponto, e a divergência vai para o relatório (MIG-2). |
+| `coluna:contratos.kml_url` | 2 linhas | `caterf.Tracado.arquivo`<br>`caterf.Tracado.versao` | O KML referenciado vira a versão 1 do traçado, relido no servidor (C3). |
+| `coluna:contratos.rodovia` | 2 linhas | `caterf.ContratoRodoviario.rodovias` | A rodovia do contrato vira a lista de rodovias ("112/306" é separado em MS-112 e MS-306, conferido com as rodovias dos pontos do KML). |
+| `coluna:fiscalizacoes.rodovia` | 26 linhas | `caterf.FiscalizacaoRodoviaria.rodovia`<br>`caterf.FiscalizacaoRodoviaria.contrato_rodoviario` | Cria a extensão das fiscalizações da DTR, com o contrato da rodovia; vazia nas fiscalizações da DSB, que não recebem extensão. |
+| `coluna:tipos_ocorrencia_dtr.etapas_obra` | 79 linhas | `checklists.VersaoItem.valores.etapas_obra` | Uma etapa por linha vira a lista de linhas do campo. |
+| `coluna:tipos_ocorrencia_dtr.frente` | 79 linhas | `checklists.VersaoItem.valores.frente` |  |
+| `coluna:tipos_ocorrencia_dtr.item_contrato` | 79 linhas | `checklists.VersaoItem.valores.item_per` |  |
+| `coluna:tipos_ocorrencia_dtr.rodovia` | 79 linhas | `checklists.VersaoItem.valores.rodovias` | "112/306" vira a lista das rodovias; vazio vale para todas. |
+| `coluna:unidades_fiscalizadas.frente` | 402 linhas | `caterf.Ocorrencia.frente_epoca` | Texto da época guardado; usado, com o item do PER e a descrição, para ligar a ocorrência à versão do tipo (sem diferenciar maiúsculas e espaços); sem correspondência, a ocorrência fica sem versão e é listada. |
+| `coluna:unidades_fiscalizadas.gravidade` | 402 linhas | `caterf.Ocorrencia.gravidade` | Quando houver (o assistente atual não tem o passo): leve, média, grave, gravíssima. |
+| `coluna:unidades_fiscalizadas.km` | 402 linhas | `caterf.Ocorrencia.km`<br>`caterf.Ocorrencia.km_valor`<br>`caterf.Ocorrencia.km_origem` | Texto como está e o valor numérico quando converte; a origem migrada é 'ponto' (a mais comum hoje) salvo quando o KM impreciso indica digitado, com a marca de legado. |
+| `coluna:unidades_fiscalizadas.km_impreciso` | 402 linhas | `caterf.Ocorrencia.km_impreciso` |  |
+| `coluna:unidades_fiscalizadas.nao_atendimento` | 402 linhas | `caterf.Ocorrencia.clausula_epoca` | Texto da época guardado; é o que foi notificado. |
+| `coluna:unidades_fiscalizadas.per` | 402 linhas | `caterf.Ocorrencia.item_per_epoca` | Texto da época guardado (a grafia varia em produção); usado na ligação ao tipo. |
+| `coluna:unidades_fiscalizadas.prazo_dias_nc` | 402 linhas | `caterf.Ocorrencia.prazo_epoca` | Prazo da época (1, 15 ou 30 em produção); o prazo da determinação migrada vem da fiscalização. |
+| `coluna:unidades_fiscalizadas.rodovia` | 402 linhas | `caterf.Ocorrencia.rodovia` | Cria a extensão só nas unidades de fiscalizações da DTR; vazia nas de saneamento. |
+| `coluna:unidades_fiscalizadas.sentido` | 402 linhas | `caterf.Ocorrencia.sentido` |  |
+| `coluna:unidades_fiscalizadas.tipo_ocorrencia` | 402 linhas | `fiscalizacao.RegistroCampo.resposta` | `constatacao` (72) e `nc` (6) viram as respostas do modelo 'Ocorrências do PER'. |
+| `coluna:unidades_fiscalizadas.trecho` | 402 linhas | `caterf.Ocorrencia.trecho` |  |
+
 ## Módulos sem mapa
 
 Ainda sem `anotacoes/migracao/<modulo>.toml`; o mapa entra com a spec do módulo.
 
-- **DTR**: 20 colunas e repositórios
 - **Processo sancionador**: 120 colunas e repositórios
 - **CATERS**: 81 colunas e repositórios
 
@@ -339,3 +368,7 @@ Destinos em app que ainda não tem data-model; são conferidos quando ele existi
 - `coluna:tipos_ocorrencia_dtr.created_at` → `checklists.Item.criado_em`
 - `coluna:tipos_ocorrencia_dtr.updated_at` → `checklists.VersaoItem.vigente_desde`
 - `bucket:documentos-prestadores` → `caters.DocumentoProcesso.arquivo`
+- `coluna:tipos_ocorrencia_dtr.frente` → `checklists.VersaoItem.valores.frente`
+- `coluna:tipos_ocorrencia_dtr.item_contrato` → `checklists.VersaoItem.valores.item_per`
+- `coluna:tipos_ocorrencia_dtr.rodovia` → `checklists.VersaoItem.valores.rodovias`
+- `coluna:tipos_ocorrencia_dtr.etapas_obra` → `checklists.VersaoItem.valores.etapas_obra`

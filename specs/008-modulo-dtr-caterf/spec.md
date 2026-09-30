@@ -661,8 +661,9 @@ Ações das telas atuais que pertencem ao módulo, no molde `formatos/spec-modul
 
 ## Migração
 
-O mapa `specs/003-base-dados-producao/anotacoes/migracao/dtr.toml` é criado com o data-model do plano
-desta spec (passo 7 do molde).
+Mapa: `specs/003-base-dados-producao/anotacoes/migracao/dtr.toml` (app `caterf`; 20 colunas e
+repositórios com destino, 0 pendentes; destinos conferidos contra os data-models da CATERF e da
+fiscalização, e os do motor de checklists a conferir com o data-model da spec 005).
 
 ### Volumes de produção
 

@@ -120,6 +120,7 @@ usado_por = ["..."]               # módulos ou specs que dependem desta informa
 
 ```toml
 modulo = "core"                                   # id de modulos.toml; um arquivo por módulo
+app = "core"                                      # opcional: prefixo dos destinos, quando o app tem outro nome (ex.: dtr → caterf)
 data_model = "specs/004-modulo-core/data-model.md"  # opcional; com ele, os destinos são conferidos
 notas = ["..."]                                   # opcional: fontes fora do catálogo, tabela de ajustes...
 

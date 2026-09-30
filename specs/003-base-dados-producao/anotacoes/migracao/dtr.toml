@@ -1,0 +1,93 @@
+# Mapa de migração do módulo dtr (spec 008). O app do sistema novo é o `caterf`.
+modulo = "dtr"
+app = "caterf"
+data_model = "specs/008-modulo-dtr-caterf/data-model.md"
+notas = [
+  "Ordem de carga: core → checklists → caterf (contratos, traçados, pontos) → fiscalização (fiscalizações e registros) → caterf (extensões das fiscalizações e das ocorrências) (research C11).",
+  "Os campos da DTR nos tipos de ocorrência vão para os valores do modelo 'Ocorrências do PER' no motor de checklists; ficam 'não verificados' até o data-model da spec 005.",
+]
+
+# --- contratos (2) -----------------------------------------------------------------------
+
+[destino."coluna:contratos.rodovia"]
+para = "caterf.ContratoRodoviario.rodovias"
+transformacao = "A rodovia do contrato vira a lista de rodovias (\"112/306\" é separado em MS-112 e MS-306, conferido com as rodovias dos pontos do KML)."
+
+[destino."coluna:contratos.kml_url"]
+para = ["caterf.Tracado.arquivo", "caterf.Tracado.versao"]
+transformacao = "O KML referenciado vira a versão 1 do traçado, relido no servidor (C3)."
+
+[destino."coluna:contratos.km_points"]
+para = ["caterf.PontoKm.km", "caterf.PontoKm.latitude", "caterf.PontoKm.longitude", "caterf.PontoKm.rodovia"]
+transformacao = "Os pontos são os relidos do KML migrado; a lista gravada no contrato (cerca de 15 mil pontos) serve para conferir, ponto a ponto, e a divergência vai para o relatório (MIG-2)."
+
+# --- fiscalizações (2 da DTR) ------------------------------------------------------------
+
+[destino."coluna:fiscalizacoes.rodovia"]
+para = ["caterf.FiscalizacaoRodoviaria.rodovia", "caterf.FiscalizacaoRodoviaria.contrato_rodoviario"]
+transformacao = "Cria a extensão das fiscalizações da DTR, com o contrato da rodovia; vazia nas fiscalizações da DSB, que não recebem extensão."
+
+# --- tipos de ocorrência (79): campos do modelo no motor --------------------------------
+
+[destino."coluna:tipos_ocorrencia_dtr.frente"]
+para = "checklists.VersaoItem.valores.frente"
+
+[destino."coluna:tipos_ocorrencia_dtr.item_contrato"]
+para = "checklists.VersaoItem.valores.item_per"
+
+[destino."coluna:tipos_ocorrencia_dtr.rodovia"]
+para = "checklists.VersaoItem.valores.rodovias"
+transformacao = "\"112/306\" vira a lista das rodovias; vazio vale para todas."
+
+[destino."coluna:tipos_ocorrencia_dtr.etapas_obra"]
+para = "checklists.VersaoItem.valores.etapas_obra"
+transformacao = "Uma etapa por linha vira a lista de linhas do campo."
+
+# --- ocorrências (78 unidades da DTR) ----------------------------------------------------
+
+[destino."coluna:unidades_fiscalizadas.rodovia"]
+para = "caterf.Ocorrencia.rodovia"
+transformacao = "Cria a extensão só nas unidades de fiscalizações da DTR; vazia nas de saneamento."
+
+[destino."coluna:unidades_fiscalizadas.trecho"]
+para = "caterf.Ocorrencia.trecho"
+
+[destino."coluna:unidades_fiscalizadas.km"]
+para = ["caterf.Ocorrencia.km", "caterf.Ocorrencia.km_valor", "caterf.Ocorrencia.km_origem"]
+transformacao = "Texto como está e o valor numérico quando converte; a origem migrada é 'ponto' (a mais comum hoje) salvo quando o KM impreciso indica digitado, com a marca de legado."
+
+[destino."coluna:unidades_fiscalizadas.km_impreciso"]
+para = "caterf.Ocorrencia.km_impreciso"
+
+[destino."coluna:unidades_fiscalizadas.sentido"]
+para = "caterf.Ocorrencia.sentido"
+
+[destino."coluna:unidades_fiscalizadas.gravidade"]
+para = "caterf.Ocorrencia.gravidade"
+transformacao = "Quando houver (o assistente atual não tem o passo): leve, média, grave, gravíssima."
+
+[destino."coluna:unidades_fiscalizadas.tipo_ocorrencia"]
+para = "fiscalizacao.RegistroCampo.resposta"
+transformacao = "`constatacao` (72) e `nc` (6) viram as respostas do modelo 'Ocorrências do PER'."
+
+[destino."coluna:unidades_fiscalizadas.frente"]
+para = "caterf.Ocorrencia.frente_epoca"
+transformacao = "Texto da época guardado; usado, com o item do PER e a descrição, para ligar a ocorrência à versão do tipo (sem diferenciar maiúsculas e espaços); sem correspondência, a ocorrência fica sem versão e é listada."
+
+[destino."coluna:unidades_fiscalizadas.per"]
+para = "caterf.Ocorrencia.item_per_epoca"
+transformacao = "Texto da época guardado (a grafia varia em produção); usado na ligação ao tipo."
+
+[destino."coluna:unidades_fiscalizadas.nao_atendimento"]
+para = "caterf.Ocorrencia.clausula_epoca"
+transformacao = "Texto da época guardado; é o que foi notificado."
+
+[destino."coluna:unidades_fiscalizadas.prazo_dias_nc"]
+para = "caterf.Ocorrencia.prazo_epoca"
+transformacao = "Prazo da época (1, 15 ou 30 em produção); o prazo da determinação migrada vem da fiscalização."
+
+# --- repositório de KML ------------------------------------------------------------------
+
+[destino."bucket:kml-rodovias"]
+para = ["caterf.Tracado.arquivo", "caterf.Tracado.checksum"]
+transformacao = "Os 2 arquivos viram a versão 1 do traçado de cada contrato, conferidos por checksum."

@@ -46,5 +46,5 @@
 - **Premissas**:
   - limite de 500 m de distância ao traçado para calcular o KM;
   - gravidade mantida como campo opcional, sem passo no assistente.
-- **Mapa de migração**: criado com o data-model do plano (passo 7 do molde).
+- **Mapa de migração (plano, 2026-09-30)**: 20 destinos, 0 pendentes, com `app = "caterf"` (o ferramental da spec 003 passou a aceitar app diferente do id do módulo).
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`.
