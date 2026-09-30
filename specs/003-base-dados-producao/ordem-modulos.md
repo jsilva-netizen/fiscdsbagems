@@ -30,7 +30,7 @@ Violações: 0 · sem justificativa: 0.
 ## 4. Fiscalização
 
 - **Id**: `fiscalizacao` · **App**: fiscalização · **Spec**: LACUNA
-- **Observação**: Fiscalização de campo comum às câmaras, incluindo a operação offline e a geração de relatórios.
+- **Observação**: Fiscalização de campo comum às câmaras, incluindo a operação offline, a geração de relatórios e a localização dos registros de campo (ponto GPS com precisão e origem, sem travar a captura, e mapa-base); o que depende do traçado da rodovia (KML, KM, sentido, KM impreciso, marca d'água) é do app da CATERF. Na spec da fiscalização, `coluna:unidades_fiscalizadas.gps_accuracy_m` passa da DTR para este módulo (decisão do responsável, 2026-09-30).
 - **Objetos** (318): Tabelas: 9 · Colunas: 112 · Restrições: 27 · Índices: 33 · Funções: 12 · Gatilhos: 18 · Políticas de acesso: 42 · Repositórios de arquivos: 2 · Privilégios: 59 · Segredos (nomes): 2 · Extensões: 2
 - **Depende de**: `core`, `checklists`
 
