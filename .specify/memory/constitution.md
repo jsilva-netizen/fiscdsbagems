@@ -137,9 +137,12 @@ de uma câmara MUST NOT vazar para os apps comuns.
   regra de uma câmara específica. Ele oferece peças genéricas (ex.: no motor de checklists,
   catálogo, item versionado, campo, resposta, saída, importação por planilha) e pontos de extensão
   (ex.: no `core`, as abas, painéis e entradas de Definições que cada app registra).
-- O app da câmara monta o seu uso registrando configuração no app comum (ex.: o modelo de catálogo
-  com os campos, respostas, saídas e planilha da câmara) e acrescentando as próprias telas pelos
-  pontos de extensão. O app comum lê a configuração registrada; não importa código do app da câmara.
+- A câmara monta o seu uso por configuração no app comum (ex.: os modelos de catálogo com os
+  campos, respostas, saídas e planilha da câmara), entregue pelo app dela ou montada na tela pelos
+  usuários autorizados, e pode ter várias configurações lado a lado. Copiar a configuração de outra
+  câmara gera uma cópia independente da câmara de destino. O app da câmara acrescenta as próprias
+  telas pelos pontos de extensão e oferece ao app comum as peças que só ele sabe executar. O app
+  comum lê a configuração; não importa código do app da câmara.
 - Quando uma câmara precisar de algo que as peças não oferecem, a peça nova entra no app comum de
   forma genérica, disponível a todas as câmaras, ou fica no app da câmara. Um ramo "se for a câmara
   X" num app comum é violação.
@@ -273,4 +276,4 @@ constituição. Complexidade que viole o Princípio V MUST ser justificada por e
 removida. Violação de princípio marcado NÃO NEGOCIÁVEL bloqueia a entrega, sem exceção
 por prazo.
 
-**Version**: 2.6.0 | **Ratified**: 2026-09-18 | **Last Amended**: 2026-09-30
+**Version**: 2.6.1 | **Ratified**: 2026-09-18 | **Last Amended**: 2026-09-30
