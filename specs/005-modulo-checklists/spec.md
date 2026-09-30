@@ -35,14 +35,26 @@ feito de peças**:
 - **Peças do motor** (este módulo): catálogo, item, versões com vigência, campos de item, respostas,
   saídas por resposta, papéis de campo na aplicação, importação por planilha com prévia, cópia
   offline, acesso por câmara, auditoria.
-- **Montagem** (o app de fiscalização de cada câmara): um **modelo de catálogo** que diz quais campos
-  o item tem, quais respostas existem, o que cada resposta gera, como os campos organizam a escolha
-  do item e qual é o formato da planilha. A DSB e a DTR de hoje são dois modelos; uma câmara nova
-  registra o seu sem mudar o motor.
+- **Montagem** (a câmara, pela tela): um **modelo de catálogo** que diz quais campos o item tem,
+  quais respostas existem, o que cada resposta gera, como os campos organizam a escolha do item e
+  qual é o formato da planilha. O coordenador da câmara monta o modelo na tela do motor, escolhendo
+  as peças, ou copia o modelo de outra câmara e o ajusta (a CATERS pode partir do modelo da CATESA).
+  A DSB e a DTR de hoje são dois modelos; uma câmara nova monta o seu sem mudar o motor.
+- **Peças trazidas pelos apps**: o que o motor não sabe fazer sozinho vem dos apps que aplicam os
+  catálogos, e aparece na tela de montagem como peça disponível: as saídas (constatação, NC,
+  determinação, recomendação, registradas pela fiscalização), os valores de contexto usados para
+  filtrar itens (a rodovia da fiscalização, registrada pelo app da CATERF) e os modos de aplicação.
 
 O módulo **não tem tabela, coluna, tela, formato de planilha, texto nem regra de nenhuma câmara**.
-Os modelos de hoje estão descritos na seção "Modelos de hoje", como a configuração que os apps das
-câmaras registram para preservar o que o sistema atual faz.
+Os modelos de hoje estão descritos na seção "Modelos de hoje", como a configuração inicial das
+câmaras, carregada na implantação para preservar o que o sistema atual faz.
+
+**O que fica no app de cada câmara**: tudo o que não é catálogo. O app da CATERF, por exemplo, faz o
+registro de ocorrência na rodovia (GPS, KM pelo traçado KML, sentido, fotos com marca d'água, mapa e
+relatório no layout da câmara) e, para escolher o tipo de ocorrência, pede ao motor os itens vigentes
+filtrados pela rodovia e organizados por frente e item do PER, e guarda a versão escolhida. Câmaras
+que trabalham quase igual (CATESA e CATERS) podem ter apps pequenos: o fluxo de vistoria por unidade
+é do app de fiscalização comum, e o app da câmara acrescenta só o que for dela.
 
 A característica central do motor é o **versionamento**: um item nunca é alterado nem apagado,
 porque as vistorias já feitas precisam continuar mostrando o texto da época. Na DSB isso é feito hoje
@@ -55,30 +67,38 @@ câmaras), que usam as peças definidas aqui.
 
 ## User Scenarios & Testing *(mandatory)*
 
-### User Story 1 - O app de uma câmara monta o seu catálogo com as peças do motor (Priority: P1)
+### User Story 1 - A câmara monta o seu modelo com as peças do motor (Priority: P1)
 
-O app de fiscalização de uma câmara registra o modelo de catálogo dela: campos do item, respostas,
-saídas de cada resposta, papéis dos campos na escolha do item e formato da planilha. O motor passa a
-oferecer, para os catálogos desse modelo, cadastro, versionamento, importação, cópia offline e
-controle de acesso, sem nenhuma alteração no motor.
+O coordenador da câmara monta na tela o modelo de catálogo dela, escolhendo as peças: campos do
+item, respostas, saídas de cada resposta, papéis dos campos na escolha do item e formato da
+planilha. Pode também copiar o modelo de outra câmara e ajustá-lo. O motor passa a oferecer, para os
+catálogos desse modelo, cadastro, versionamento, importação, cópia offline e controle de acesso, sem
+nenhuma alteração de código.
 
 **Why this priority**: é o que torna o motor comum a todas as câmaras; sem isso, cada câmara
 exigiria mudar o módulo (constituição v2.6.0, "Apps comuns como motores genéricos").
 
-**Independent Test**: um app de teste registra um modelo com resposta Sim / Não / Não se aplica, um
-campo de agrupamento e um formato de planilha próprio; a equipe cadastra e importa itens, e uma
-fiscalização de teste os aplica. Nenhum arquivo do motor muda, e os catálogos dos modelos DSB e DTR
-continuam se comportando igual.
+**Independent Test**: o coordenador da CATERS copia o modelo da CATESA, acrescenta um campo e troca
+uma resposta para Sim / Não / Não se aplica; a equipe cadastra e importa itens, e uma fiscalização de
+teste os aplica. Nenhum código muda, e o modelo da CATESA continua igual.
 
 **Acceptance Scenarios**:
 
-1. **Given** um app que registra um modelo válido, **When** a equipe da câmara abre o cadastro,
-   **Then** vê o formulário de item com os campos do modelo.
+1. **Given** um modelo montado na tela, **When** a equipe da câmara abre o cadastro, **Then** vê o
+   formulário de item com os campos do modelo.
 2. **Given** um modelo com um campo obrigatório, **When** alguém grava um item sem ele, **Then** o
    motor recusa, pela regra declarada no modelo.
 3. **Given** um modelo inválido (saída que cita campo inexistente, papel de campo incompatível com o
-   tipo), **When** o app o registra, **Then** o registro é recusado com o motivo.
-4. **Given** o código do motor, **When** é inspecionado, **Then** não contém identificador, campo,
+   tipo), **When** o coordenador tenta salvá-lo, **Then** o motor recusa e mostra o motivo.
+4. **Given** o modelo da CATESA, **When** o coordenador da CATERS o copia e altera a cópia, **Then** o
+   modelo da CATESA não muda, e a cópia registra de onde veio.
+5. **Given** a tela de montagem, **When** o coordenador escolhe uma saída ou um valor de contexto,
+   **Then** só vê as peças que os apps instalados oferecem.
+6. **Given** a CATESA com o modelo "Checklist por tipo de unidade" (Sim/Não), **When** o coordenador
+   monta um segundo modelo com outra forma de resposta (ex.: Sim / Não / Não se aplica, ou uma nota
+   de 1 a 5), **Then** os dois modelos convivem na câmara, cada catálogo usa um deles, e uma mesma
+   fiscalização pode ter unidades de catálogos de modelos diferentes.
+7. **Given** o código do motor, **When** é inspecionado, **Then** não contém identificador, campo,
    formato ou texto de nenhuma câmara.
 
 ---
@@ -183,10 +203,16 @@ prestador não alcança nenhum catálogo.
   recente, e as duas ficam no histórico.
 - Item editado enquanto um fiscal está sem rede: o registro feito no aparelho fica com a versão que o
   aparelho tinha; a versão nova chega na próxima sincronização.
-- O app muda o modelo (campo novo, resposta nova): as versões existentes não mudam; o que o modelo
-  novo exige vale a partir da próxima versão de cada item (R-checklists-017).
-- O app de uma câmara é retirado: os catálogos e versões continuam consultáveis pelos registros que
-  os usam; não são oferecidos para registros novos.
+- O coordenador muda o modelo (campo novo, resposta nova): as versões existentes não mudam; o que o
+  modelo novo exige vale a partir da próxima versão de cada item (R-checklists-017).
+- Um app que oferecia uma peça usada num modelo é retirado (ex.: o contexto "rodovia"): o modelo fica
+  marcado como incompleto, os catálogos dele não são oferecidos para registros novos até o ajuste, e
+  os registros já feitos continuam legíveis (R-checklists-019).
+- Modelo copiado de outra câmara que depois muda na origem: a cópia não muda; as duas seguem
+  independentes (R-checklists-018).
+- Catálogo que precisa passar para outro modelo: o modelo de um catálogo não muda depois que ele tem
+  itens, porque as versões dependem dos campos do modelo; cria-se um catálogo novo com o outro modelo
+  (a importação ou a cópia de itens ajuda), e o antigo é desativado (R-checklists-015).
 - Catálogo desativado com fiscalização em andamento: os registros já feitos continuam válidos.
 - Catálogo sem itens (produção tem 3 tipos de unidade assim): existe, mas não é oferecido para
   registro novo até ter um item vigente.
@@ -197,10 +223,11 @@ prestador não alcança nenhum catálogo.
 ### Functional Requirements
 
 - **FR-001**: O motor MUST NOT conter tabela, coluna, tela, formato de planilha, texto ou regra de
-  nenhuma câmara; tudo o que é de uma câmara MUST vir do modelo registrado pelo app dela
-  (R-checklists-015, R-checklists-016).
-- **FR-002**: O motor MUST aceitar modelos de catálogo registrados por apps, validá-los no registro e
-  recusar os inválidos (R-checklists-015).
+  nenhuma câmara; tudo o que é de uma câmara MUST vir do modelo dela (R-checklists-015,
+  R-checklists-016).
+- **FR-002**: O coordenador da câmara e o administrador MUST poder montar e alterar na tela os modelos
+  de catálogo da câmara, com validação ao salvar; uma câmara MUST poder ter quantos modelos quiser,
+  cada um com a sua forma de resposta (R-checklists-015).
 - **FR-003**: O motor MUST manter catálogos com nome e código únicos, modelo, serviços aplicáveis e
   situação; todo catálogo MUST pertencer à câmara dos seus serviços (R-checklists-001,
   R-checklists-002).
@@ -230,13 +257,20 @@ prestador não alcança nenhum catálogo.
 - **FR-015**: Mudanças de modelo MUST valer só para versões novas (R-checklists-017).
 - **FR-016**: Toda regra de acesso deste módulo MUST ter teste automatizado que falhe quando a regra
   for violada (constituição, Princípio III).
+- **FR-017**: O coordenador MUST poder copiar para a sua câmara o modelo de outra câmara, gerando uma
+  cópia independente; o administrador MUST poder copiar também os catálogos com os itens vigentes
+  (R-checklists-018).
+- **FR-018**: As saídas, os valores de contexto e os modos de aplicação oferecidos na montagem MUST
+  ser os registrados pelos apps instalados (R-checklists-019).
 
 ### Key Entities
 
-- **Modelo de catálogo**: a montagem registrada pelo app de uma câmara: app dono, modo de aplicação,
-  campos do item, respostas, saídas por resposta, papéis dos campos e formato da planilha. Tem
-  versões (R-checklists-017). Um modelo serve a vários catálogos (os 33 tipos de unidade da DSB usam
-  o mesmo modelo).
+- **Modelo de catálogo**: a montagem de uma câmara: câmara dona, modo de aplicação, campos do item,
+  respostas, saídas por resposta, papéis dos campos, formato da planilha e, se veio de cópia, o
+  modelo e a versão de origem. Tem versões (R-checklists-017). Um modelo serve a vários catálogos
+  (os tipos de unidade da CATESA usam o mesmo modelo).
+- **Peça registrada por app**: saída, valor de contexto ou modo de aplicação que um app instalado
+  oferece para a montagem, com o app que a oferece.
 - **Campo do item**: peça declarada no modelo: nome, rótulo, tipo de valor (texto curto, texto longo,
   número inteiro, sim/não, lista de valores, lista de linhas), obrigatoriedade, valor padrão e papel
   opcional.
@@ -402,7 +436,9 @@ da spec 003. As regras descrevem só peças genéricas; o que cada câmara faz h
 - **Comportamento desejado**: coordenador e fiscal da câmara criam e alteram catálogos e itens, só da
   própria câmara; o administrador, de todas (decisão do responsável, 2026-09-30); o diretor lê os da
   sua diretoria; o prestador não acessa os catálogos (vê só os textos que chegam a ele nos documentos
-  da fiscalização). Registrar ou mudar um modelo é ato do app da câmara (implantação), não de usuário.
+  da fiscalização). Montar e alterar o modelo de catálogo da câmara e copiar modelo de outra câmara
+  cabem ao coordenador da câmara e ao administrador; o fiscal usa o modelo, mas não o altera
+  (R-checklists-015, R-checklists-018).
 - **Comportamento atual**: na DSB, administrador, coordenador e fiscal ativos criam, alteram e
   excluem tipos e itens de qualquer câmara, e qualquer usuário ativo, inclusive o prestador, lê
   todos. Na DTR, qualquer usuário com perfil ativo, inclusive o prestador, lê, cria, altera e apaga
@@ -544,31 +580,40 @@ da spec 003. As regras descrevem só peças genéricas; o que cada câmara faz h
   `indice:idx_tipos_ocorrencia_dtr_rodovia`
 - **Origem**: decisão do responsável, 2026-09-30; constituição v2.5.0.
 
-### R-checklists-015 — Modelo de catálogo registrado pelo app da câmara
+### R-checklists-015 — Modelo de catálogo montado pela câmara na tela
 
-- **Comportamento desejado**: o app de fiscalização de uma câmara registra no motor um ou mais
-  modelos de catálogo, cada um com: identificador, app dono, modo de aplicação (R-checklists-012),
-  campos do item (R-checklists-003), respostas e saídas (R-checklists-013), papéis de campo
-  (R-checklists-014) e formato de planilha (R-checklists-006). O motor valida o modelo no registro
-  (campos citados existem, papéis compatíveis com o tipo do campo, chave de importação feita de campos
-  obrigatórios) e recusa o inválido. Um modelo serve a vários catálogos, e câmaras que trabalham da
-  mesma forma podem usar o mesmo modelo. O registro é dado de configuração entregue pelo app na
-  implantação; o motor não importa código do app.
+- **Comportamento desejado**: cada câmara tem um ou mais modelos de catálogo, cada um com: nome,
+  câmara dona, modo de aplicação (R-checklists-012), campos do item (R-checklists-003), respostas e
+  saídas (R-checklists-013), papéis de campo (R-checklists-014) e formato de planilha
+  (R-checklists-006). O coordenador da câmara e o administrador montam e alteram o modelo numa tela
+  do motor, escolhendo as peças: acrescentar, ordenar e configurar campos; definir respostas; ligar
+  cada resposta às saídas, com condição e campos; dar papéis aos campos; mapear as colunas da
+  planilha. A tela mostra uma prévia do formulário de item e da planilha modelo. O motor valida ao
+  salvar (campos citados existem, papéis compatíveis com o tipo do campo, chave de importação feita de
+  campos obrigatórios, só peças registradas pelos apps, R-checklists-019) e recusa o inválido,
+  mostrando o motivo. Uma câmara tem quantos modelos quiser, lado a lado, cada um com os seus campos
+  e a sua forma de resposta (ex.: na CATESA, um checklist Sim/Não e outro com Sim / Não / Não se
+  aplica ou com nota); cada catálogo escolhe o seu modelo ao ser criado, e o modelo de um catálogo não
+  muda depois que ele tem itens. Um modelo serve a vários catálogos da mesma câmara; modelo de uma
+  câmara não é usado por outra, que copia (R-checklists-018). O app de uma câmara pode entregar o modelo inicial
+  dela como configuração na implantação, e a partir daí ele é mantido na tela; o motor não importa
+  código do app.
 - **Comportamento atual**: não há modelo; cada lista é uma tabela e uma tela próprias.
 - **Motivo da diferença**: é a peça que permite a cada câmara adaptar o motor às suas necessidades
-  sem mudá-lo (decisão do responsável, 2026-09-30; constituição v2.6.0, "Apps comuns como motores
-  genéricos").
+  sem mudá-lo, e sem depender de desenvolvimento para ajustar o próprio checklist (decisão do
+  responsável, 2026-09-30; constituição v2.6.0, "Apps comuns como motores genéricos").
 - **Objetos do catálogo**: — (conceito novo; não há objeto no banco)
 - **Origem**: decisão do responsável, 2026-09-30.
 
 ### R-checklists-016 — Nada de câmara dentro do motor
 
 - **Comportamento desejado**: o motor não tem tabela, coluna, tela, formato de planilha, texto,
-  identificador ou regra de nenhuma câmara. Suas telas (cadastro de catálogos, formulário de item,
-  importação, histórico) são geradas a partir do modelo. O app de uma câmara que precise de tela
+  identificador ou regra de nenhuma câmara. Suas telas (montagem de modelo, cadastro de catálogos,
+  formulário de item, importação, histórico) são genéricas e, fora a montagem, geradas a partir do
+  modelo. O app de uma câmara que precise de tela
   própria sobre os catálogos dela a acrescenta pelo registro de telas do core (R-core-025), no app
-  dela. Um teste automatizado falha se o motor citar uma câmara, e outro prova que um app de teste
-  registra um modelo novo e o usa sem mudança no motor.
+  dela. Um teste automatizado falha se o motor citar uma câmara, e outro prova que um modelo novo,
+  montado pela tela com uma peça de um app de teste, é usado sem mudança no motor.
 - **Comportamento atual**: cada câmara tem tabela, tela e regras próprias no código: tipos de unidade
   e itens da DSB, tipos de ocorrência da DTR, aba de tipos nas Definições da DTR.
 - **Motivo da diferença**: constituição v2.6.0, "Apps comuns como motores genéricos" (app comum não
@@ -590,13 +635,52 @@ da spec 003. As regras descrevem só peças genéricas; o que cada câmara faz h
 - **Objetos do catálogo**: — (conceito novo)
 - **Origem**: decisão do responsável, 2026-09-30.
 
+### R-checklists-018 — Copiar o modelo de outra câmara
+
+- **Comportamento desejado**: o coordenador de uma câmara vê a lista dos modelos de todas as câmaras
+  (só a estrutura: campos, respostas, saídas, papéis e planilha; sem itens) e copia um deles para a
+  sua câmara. A cópia é um modelo novo da câmara de destino, na versão 1, que registra o modelo e a
+  versão de origem; depois disso, as duas seguem independentes, e nenhuma mudança numa chega à
+  outra. O administrador pode copiar também os catálogos do modelo com os itens vigentes, que entram
+  na câmara de destino como itens novos (versão 1, com a origem registrada), sujeitos às regras de
+  serviço e câmara (R-checklists-002). Copiar entra na auditoria (R-checklists-010).
+- **Comportamento atual**: não há cópia; a CATESA e a CATERS usam a mesma tabela e o mesmo
+  formulário, separadas só pelo serviço dos tipos.
+- **Motivo da diferença**: câmaras que trabalham de forma parecida (CATESA e CATERS) partem do mesmo
+  modelo sem ficar presas uma à outra (decisão do responsável, 2026-09-30; um app por câmara,
+  constituição v2.6.0). A estrutura de um modelo não tem dado de fiscalização; os itens, sim, e por
+  isso só o administrador os copia entre câmaras (isolamento, A-026).
+- **Objetos do catálogo**: — (conceito novo)
+- **Origem**: decisão do responsável, 2026-09-30.
+
+### R-checklists-019 — Peças registradas pelos apps
+
+- **Comportamento desejado**: a tela de montagem oferece as peças do próprio motor (tipos de campo,
+  papéis, tipos de resposta, recursos de planilha) e as que os apps instalados registram:
+  - **saídas**: o que uma resposta pode gerar e quais dados cada saída recebe (a fiscalização
+    registra constatação, NC, determinação e recomendação);
+  - **valores de contexto**: o que o app que aplica o catálogo informa para filtrar itens pela
+    aplicabilidade (o app da CATERF registra "rodovia da fiscalização");
+  - **modos de aplicação**: qual app executa cada modo (a fiscalização executa "lista por unidade";
+    o app da CATERF, o registro avulso de ocorrência na rodovia).
+
+  Um modelo só usa peças registradas. Se o app que oferece uma peça usada for retirado, o modelo fica
+  marcado como incompleto, os catálogos dele não são oferecidos para registros novos até o ajuste, e
+  os registros já feitos continuam legíveis. Registrar peças não altera o motor.
+- **Comportamento atual**: não há peças; as saídas, o filtro por rodovia e os dois fluxos estão
+  fixos no código das telas.
+- **Motivo da diferença**: é o que deixa a câmara montar na tela o que os apps sabem executar, sem o
+  motor conhecer os apps (constituição v2.6.0).
+- **Objetos do catálogo**: — (conceito novo)
+- **Origem**: decisão do responsável, 2026-09-30.
+
 ## Modelos de hoje
 
-Configuração que preserva o que o sistema atual faz, a ser registrada pelos apps das câmaras
-(R-checklists-015). Não é parte do motor; a spec de cada câmara a confirma. Enquanto uma câmara não
-tiver app próprio, o modelo dela entra como dado de configuração na implantação.
+Configuração inicial que preserva o que o sistema atual faz, carregada na implantação para cada
+câmara (R-checklists-015). Não é parte do motor; a spec de cada câmara a confirma. Depois da
+implantação, cada câmara a mantém na tela de montagem.
 
-### Modelo "Checklist por tipo de unidade" (apps da CATESA e da CATERS)
+### Modelo "Checklist por tipo de unidade" (CATESA e CATERS, um modelo para cada)
 
 - **Modo**: lista por unidade. Cada tipo de unidade é um catálogo deste modelo (33 em produção).
 - **Campos do item**:
@@ -623,7 +707,7 @@ tiver app próprio, o modelo dela entra como dado de configuração na implanta�
   não existem (nome ou código, sem diferenciar maiúsculas, com os serviços da planilha). Chave: catálogo
   + ordem.
 
-### Modelo "Ocorrências do PER" (app da câmara das rodovias, na DTR)
+### Modelo "Ocorrências do PER" (CATERF)
 
 - **Modo**: registro avulso. Um catálogo em produção (79 tipos).
 - **Campos do item**:
@@ -711,6 +795,14 @@ modelo (R-checklists-016).
 | Adicionar unidade (`src/pages/AdicionarUnidade.jsx`) | Oferecer tipos ativos por serviço em comum com a fiscalização | R-checklists-002; fora: fiscalizacao |
 | Vistoriar unidade (`src/pages/VistoriarUnidade.jsx`) | Responder Sim ou Não a cada item, com a versão da criação da unidade | R-checklists-005, R-checklists-013; fora: fiscalizacao |
 
+### Ações novas, sem tela hoje
+
+| Ação | Regra |
+|---|---|
+| Montar e alterar o modelo de catálogo da câmara, com prévia do formulário e da planilha | R-checklists-015, R-checklists-017 |
+| Copiar o modelo de outra câmara; o administrador, também os catálogos com itens | R-checklists-018 |
+| Ver as peças disponíveis (saídas, valores de contexto, modos) e os modelos incompletos | R-checklists-019 |
+
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
@@ -726,19 +818,22 @@ modelo (R-checklists-016).
 - **SC-006**: Os 33 tipos e as 768 versões da DSB e os 79 tipos da DTR chegam ao sistema novo com os
   mesmos identificadores, conferidos registro a registro, nos catálogos dos modelos de hoje.
 - **SC-007**: 100% das regras de acesso deste módulo têm teste automatizado.
-- **SC-008**: Um app de teste registra um modelo com respostas, campos, papéis e planilha próprios e o
-  usa com 0 alterações no motor e 0 mudanças no comportamento dos modelos DSB e DTR.
+- **SC-008**: Um coordenador monta pela tela um modelo com respostas, campos, papéis e planilha
+  próprios e o usa com 0 alterações de código e 0 mudanças nos modelos das outras câmaras.
+- **SC-011**: Copiar o modelo da CATESA para a CATERS e ajustá-lo leva menos de 10 minutos, e 0
+  mudanças na cópia chegam à origem.
 - **SC-009**: O código do motor cita 0 câmaras, campos ou formatos de câmara (verificado por teste).
 - **SC-010**: Toda ação das telas atuais do módulo tem regra ou destino em outro módulo (0 `LACUNA`).
 
 ## Assumptions
 
-- **Quem registra os modelos de hoje**: cada câmara tem o seu app (constituição v2.6.0). Os apps
-  da CATESA e da CATERS registram, cada um, o seu modelo "Checklist por tipo de unidade", hoje
-  iguais, que podem divergir depois sem afetar a outra câmara. O modelo "Ocorrências do PER" é
-  registrado pelo app da câmara da DTR responsável pelas rodovias, a que o responsável definir no
-  vínculo serviço → câmara (R-core-014). Nenhum modelo fica no motor nem no app de fiscalização
-  comum.
+- **Modelos iniciais**: a implantação carrega o modelo "Checklist por tipo de unidade" duas vezes,
+  um da CATESA e um da CATERS (hoje iguais; cada câmara ajusta o seu na tela), e o modelo
+  "Ocorrências do PER" da CATERF, que fiscaliza as rodovias (decisão do responsável, 2026-09-30).
+  Nenhum modelo fica no código do motor nem no app de fiscalização comum.
+- **Quem monta modelos**: coordenador da câmara e administrador. O fiscal mantém os itens
+  (R-checklists-007), mas não altera o modelo, porque uma mudança no modelo muda o formulário e a
+  vistoria de toda a câmara.
 - **Migração da DSB**: cada uma das 768 linhas vira uma versão de item de um catálogo do modelo DSB,
   com o mesmo identificador (as respostas apontam para ele). As linhas são agrupadas em itens estáveis
   pela chave atual (tipo mais ordem, ou pergunta), ordenadas por data; a vigência vai da data da
@@ -750,7 +845,7 @@ modelo (R-checklists-016).
   valendo como registro da época.
 - **Serviços dos catálogos**: os valores de hoje (textos) são convertidos para os serviços do core; os
   3 tipos com água e esgoto continuam válidos (ambos da CATESA). O catálogo da DTR recebe o serviço de
-  rodovias, e a câmara dele é a que o responsável definir para esse serviço (R-core-014).
+  rodovias, que pertence à CATERF (R-core-014).
 - **Tipos sem itens**: os 3 tipos de produção sem itens são migrados e ficam indisponíveis para
   unidade nova até terem itens.
 - **DGE**: não tem catálogo hoje; o app de cada câmara da DGE registra o seu modelo quando vier.

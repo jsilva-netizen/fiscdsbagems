@@ -36,7 +36,7 @@ Violações: 0 · sem justificativa: 0.
 
 ## 5. DTR
 
-- **Id**: `dtr` · **App**: app da câmara da DTR que fiscaliza as rodovias (câmara a definir) · **Spec**: LACUNA
+- **Id**: `dtr` · **App**: app da CATERF (câmara da DTR que fiscaliza as rodovias; decisão do responsável, 2026-09-30) · **Spec**: LACUNA
 - **Observação**: Especificidades da DTR (campos da rodovia no catálogo de ocorrências e nas ocorrências, mapa e KML); o catálogo de tipos é do motor de verificação (checklists) e o fluxo usa as tabelas do módulo fiscalização.
 - **Objetos** (26): Colunas: 20 · Índices: 1 · Políticas de acesso: 4 · Repositórios de arquivos: 1
 - **Depende de**: `core`

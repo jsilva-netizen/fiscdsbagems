@@ -146,7 +146,7 @@ tem acesso à entidade; uma entidade com processos não pode ser excluída, só 
 ### User Story 5 - Equipe mantém os contratos das entidades (Priority: P2)
 
 A equipe registra os contratos (instrumentos) firmados com as entidades reguladas: número, entidade
-e vigência. Os apps das câmaras acrescentam o que é deles (a câmara das rodovias, a rodovia e o
+e vigência. Os apps das câmaras acrescentam o que é deles (a CATERF, a rodovia e o
 traçado).
 
 **Why this priority**: os contratos são a fonte única de instrumentos (constituição, "Fronteiras de
@@ -535,7 +535,8 @@ da spec 003 (`specs/003-base-dados-producao/catalogo/`).
   (DSB); CATRANSP, CATERF, CATEFIS e CRET (DTR); CATEGAS, CATENE e CREG (DGE). Todo usuário ativo lê
   essa estrutura; só o administrador a mantém. A lista vem do servidor, e não fica repetida no
   aplicativo. Cada serviço regulado pertence a uma diretoria e, quando houver, a uma câmara técnica
-  (na DSB: água, esgoto e drenagem urbana na CATESA; limpeza urbana e resíduos sólidos na CATERS);
+  (na DSB: água, esgoto e drenagem urbana na CATESA; limpeza urbana e resíduos sólidos na CATERS; na
+  DTR: rodovias na CATERF, decisão do responsável em 2026-09-30);
   é por esse vínculo que checklists e fiscalizações sabem de que câmara são.
 - **Comportamento atual**: produção tem 12 câmaras; CATERM e CATESG existem só no banco e nenhum
   usuário consegue escolhê-las. A lista também está fixa no código da interface. Qualquer conta
@@ -648,7 +649,7 @@ da spec 003 (`specs/003-base-dados-producao/catalogo/`).
 
 - **Comportamento desejado**: a equipe registra contratos de uma entidade, inclusive sem rede: número
   (obrigatório), entidade e vigência (vigente ou encerrado). Os apps das câmaras acrescentam dados
-  próprios ao contrato (o da câmara das rodovias, a rodovia, o traçado KML e os pontos de KM). O prestador não alcança
+  próprios ao contrato (o da CATERF, a rodovia, o traçado KML e os pontos de KM). O prestador não alcança
   contratos por este módulo. Desativar a entidade não apaga os contratos. Contrato sem nenhum
   registro que o referencie (de qualquer app) pode ser excluído, com a confirmação em dois passos de
   hoje; com registros, só passa a encerrado.

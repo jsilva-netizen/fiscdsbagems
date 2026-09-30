@@ -38,7 +38,7 @@ observacao = "Fiscalização de campo comum às câmaras, incluindo a operação
 id = "dtr"
 nome = "DTR"
 ordem = 5
-app = "app da câmara da DTR que fiscaliza as rodovias (câmara a definir)"
+app = "app da CATERF (câmara da DTR que fiscaliza as rodovias; decisão do responsável, 2026-09-30)"
 spec = ""
 observacao = "Especificidades da DTR (campos da rodovia no catálogo de ocorrências e nas ocorrências, mapa e KML); o catálogo de tipos é do motor de verificação (checklists) e o fluxo usa as tabelas do módulo fiscalização."
 

@@ -32,7 +32,7 @@ porque copia frente, PER, não atendimento e prazo para a unidade.
 
 No sistema novo, o catálogo é do motor de verificação (módulo `checklists`, spec 005), que atende
 DSB e DTR; os campos próprios da rodovia (frente, item do PER, rodovias, etapas de obra) são
-campos do modelo de catálogo registrado pelo app da câmara das rodovias e ficam no módulo `dtr`. *(fonte: src/lib/offline/repository.ts:320, src/lib/offline/repository.ts:295, src/pages/DefinicoesDTR.jsx:136, src/pages/DefinicoesDTR.jsx:248, tabela:unidades_fiscalizadas, inventário: dados_referencia.tipos_ocorrencia_dtr)*
+campos do modelo de catálogo da CATERF, a câmara que fiscaliza as rodovias, e ficam no módulo `dtr`. *(fonte: src/lib/offline/repository.ts:320, src/lib/offline/repository.ts:295, src/pages/DefinicoesDTR.jsx:136, src/pages/DefinicoesDTR.jsx:248, tabela:unidades_fiscalizadas, inventário: dados_referencia.tipos_ocorrencia_dtr)*
 
 Comentário no banco: Catálogo configurável de tipos de ocorrência para fiscalização de rodovias (DTR).
 
