@@ -1,4 +1,4 @@
-# Feature Specification: Módulo checklists — motor de verificação comum às câmaras
+# Feature Specification: Módulo checklists — motor genérico de verificação
 
 **Feature Branch**: `migracao-sisreg` (levantamento do sistema novo; constituição, "Levantamento em specs")
 
@@ -10,115 +10,140 @@
 003 (`specs/003-base-dados-producao/ordem-modulos.md`), escrita no molde
 `specs/003-base-dados-producao/formatos/spec-modulo.md`. Fontes: o catálogo do banco de produção
 (objetos do módulo `checklists` no `mapa-rastreabilidade.md`), os achados decididos e as
-divergências classificadas da spec 003, a spec do core (004) e as telas do sistema atual. Revisão de
-2026-09-30: o módulo passa a ser o motor de verificação de qualquer câmara, cobrindo os checklists da
-DSB e o catálogo de ocorrências da DTR (decisão do responsável).
+divergências classificadas da spec 003, a spec do core (004) e as telas do sistema atual. Revisões de
+2026-09-30 (decisões do responsável): o módulo é o motor de verificação de qualquer câmara, e é
+genérico como um "lego": não tem nada de nenhuma câmara; o app de fiscalização de cada câmara monta
+o seu uso com as peças do motor.
 
 ## Contexto
 
 Toda fiscalização compara o que o fiscal encontra com uma lista de verificação definida pela câmara.
-Hoje há duas listas, feitas de formas diferentes:
+Hoje há duas listas, feitas de formas diferentes e cada uma com tabela, tela e regras próprias:
 
-- **DSB (saneamento)**: um **checklist por tipo de unidade** (aterro sanitário, estação de
-  tratamento de esgoto, gestão administrativa...). Para cada unidade vistoriada, o fiscal responde
-  Sim ou Não a todas as perguntas do tipo, e cada resposta gera textos: a constatação, a não
-  conformidade (NC), a determinação com prazo ou a recomendação. Produção tem 33 tipos e 768 linhas
-  de itens, das quais 525 são itens vigentes e 243 versões antigas.
-- **DTR (rodovias)**: um **catálogo de tipos de ocorrência** derivado do Programa de Exploração da
-  Rodovia (PER) do contrato de concessão. Percorrendo a rodovia, o fiscal registra ocorrências em
-  pontos (KM, sentido, fotos), escolhe o tipo no catálogo e diz se é constatação ou NC; o tipo traz
-  o item do PER, a cláusula não atendida e o prazo. Produção tem 79 tipos, todos das rodovias
-  "112/306".
+- **DSB (saneamento)**: um checklist por tipo de unidade (aterro sanitário, estação de tratamento de
+  esgoto...). Para cada unidade vistoriada, o fiscal responde Sim ou Não a todas as perguntas, e
+  cada resposta gera a constatação, a não conformidade (NC), a determinação com prazo ou a
+  recomendação. Produção tem 33 tipos e 768 linhas de itens (525 vigentes e 243 versões antigas).
+- **DTR (rodovias)**: um catálogo de tipos de ocorrência derivado do Programa de Exploração da
+  Rodovia (PER). Percorrendo a rodovia, o fiscal registra ocorrências em pontos, escolhe o tipo
+  navegando por frente e item do PER e diz se é constatação ou NC; o tipo traz a cláusula não
+  atendida e o prazo. Produção tem 79 tipos.
 
-As duas são a mesma coisa: um catálogo versionável de itens, mantido pela câmara, que a fiscalização
-aplica e que gera constatações, NCs, determinações e recomendações. Este módulo é esse **motor de
-verificação**, comum a todas as câmaras: DSB e DTR hoje, DGE e outras câmaras quando vierem, sem mudar
-o módulo. O que é próprio de uma câmara (na DTR: frente, item do PER, rodovias, etapas de obra) é
-declarado pelo app dela como campo de extensão.
+As duas são o mesmo mecanismo. Este módulo é esse mecanismo, construído como um **motor genérico
+feito de peças**:
 
-A característica central é o **versionamento**: um item nunca é alterado nem apagado, porque as
-vistorias já feitas precisam continuar mostrando o texto da época. Na DSB isso é feito hoje de forma
-implícita (a linha mais recente de cada "chave" vale), o que gerou versões duplicadas por
-reimportação da planilha; na DTR não há versionamento, e a ocorrência copia os textos do tipo. O
-achado A-024 decidiu tornar o versionamento explícito; esta revisão o estende à DTR.
+- **Peças do motor** (este módulo): catálogo, item, versões com vigência, campos de item, respostas,
+  saídas por resposta, papéis de campo na aplicação, importação por planilha com prévia, cópia
+  offline, acesso por câmara, auditoria.
+- **Montagem** (o app de fiscalização de cada câmara): um **modelo de catálogo** que diz quais campos
+  o item tem, quais respostas existem, o que cada resposta gera, como os campos organizam a escolha
+  do item e qual é o formato da planilha. A DSB e a DTR de hoje são dois modelos; uma câmara nova
+  registra o seu sem mudar o motor.
+
+O módulo **não tem tabela, coluna, tela, formato de planilha, texto nem regra de nenhuma câmara**.
+Os modelos de hoje estão descritos na seção "Modelos de hoje", como a configuração que os apps das
+câmaras registram para preservar o que o sistema atual faz.
+
+A característica central do motor é o **versionamento**: um item nunca é alterado nem apagado,
+porque as vistorias já feitas precisam continuar mostrando o texto da época. Na DSB isso é feito hoje
+de forma implícita, o que gerou versões duplicadas por reimportação; na DTR não há versionamento. O
+achado A-024 decidiu o versionamento explícito, que o motor aplica a qualquer catálogo.
 
 Fica fora desta spec: a execução da vistoria e do registro de ocorrências (unidades, pontos, fotos,
-KM, respostas) e a geração dos registros a partir das respostas (módulo fiscalização, e módulo DTR
-para o que é próprio da rodovia), que usam o que é definido aqui.
+KM, respostas) e a geração dos registros a partir das saídas (módulo fiscalização e apps das
+câmaras), que usam as peças definidas aqui.
 
 ## User Scenarios & Testing *(mandatory)*
 
-### User Story 1 - Manter os catálogos da câmara (Priority: P1)
+### User Story 1 - O app de uma câmara monta o seu catálogo com as peças do motor (Priority: P1)
 
-A equipe da câmara mantém os catálogos de verificação dela: na DSB, os tipos de unidade e o
-checklist de cada um; na DTR, o catálogo de tipos de ocorrência. Cada item tem o conteúdo que a
-fiscalização aplica e, quando a câmara declara, os campos próprios dela. Editar ou retirar um item
+O app de fiscalização de uma câmara registra o modelo de catálogo dela: campos do item, respostas,
+saídas de cada resposta, papéis dos campos na escolha do item e formato da planilha. O motor passa a
+oferecer, para os catálogos desse modelo, cadastro, versionamento, importação, cópia offline e
+controle de acesso, sem nenhuma alteração no motor.
+
+**Why this priority**: é o que torna o motor comum a todas as câmaras; sem isso, cada câmara
+exigiria mudar o módulo (constituição v2.5.0, "Independência entre apps").
+
+**Independent Test**: um app de teste registra um modelo com resposta Sim / Não / Não se aplica, um
+campo de agrupamento e um formato de planilha próprio; a equipe cadastra e importa itens, e uma
+fiscalização de teste os aplica. Nenhum arquivo do motor muda, e os catálogos dos modelos DSB e DTR
+continuam se comportando igual.
+
+**Acceptance Scenarios**:
+
+1. **Given** um app que registra um modelo válido, **When** a equipe da câmara abre o cadastro,
+   **Then** vê o formulário de item com os campos do modelo.
+2. **Given** um modelo com um campo obrigatório, **When** alguém grava um item sem ele, **Then** o
+   motor recusa, pela regra declarada no modelo.
+3. **Given** um modelo inválido (saída que cita campo inexistente, papel de campo incompatível com o
+   tipo), **When** o app o registra, **Then** o registro é recusado com o motivo.
+4. **Given** o código do motor, **When** é inspecionado, **Then** não contém identificador, campo,
+   formato ou texto de nenhuma câmara.
+
+---
+
+### User Story 2 - A equipe mantém os catálogos da câmara (Priority: P1)
+
+A equipe da câmara cria catálogos de um modelo (na DSB, um por tipo de unidade; na DTR, o catálogo de
+ocorrências) e mantém os itens pelo formulário gerado a partir do modelo. Editar ou retirar um item
 nunca muda o que vistorias passadas registraram.
 
 **Why this priority**: sem catálogo não há vistoria; é o conteúdo que a fiscalização executa.
 
 **Independent Test**: um responsável da CATESA cria o tipo "Estação de Tratamento de Água" com três
-itens, edita o texto de um e retira outro: a lista atual mostra dois itens, o editado com o texto
-novo, e o histórico mostra as versões. Um responsável da câmara da DTR edita o prazo de um tipo de
-ocorrência: a lista atual mostra o prazo novo, e o histórico, o anterior.
+itens, edita um e retira outro: a lista atual mostra dois itens, o editado com o texto novo, e o
+histórico mostra as versões. Um responsável da câmara da DTR edita o prazo de um tipo de ocorrência:
+a lista atual mostra o prazo novo, e o histórico, o anterior.
 
 **Acceptance Scenarios**:
 
-1. **Given** um catálogo com itens, **When** o responsável edita o conteúdo de um item, **Then**
-   passa a valer uma nova versão do item, e a versão anterior continua existindo, ligada às vistorias
-   e ocorrências que a usaram.
-2. **Given** um item, **When** o responsável muda só a ordem dele, **Then** o item continua o mesmo
-   (não vira item novo) e os registros que o usaram continuam ligados a ele.
-3. **Given** um item, **When** o responsável o retira, **Then** ele some da lista de itens atuais e
-   continua existindo para os registros que o usaram.
+1. **Given** um catálogo com itens, **When** o responsável edita um item, **Then** passa a valer uma
+   nova versão, e a anterior continua ligada aos registros que a usaram.
+2. **Given** um item, **When** o responsável muda só a ordem dele, **Then** o item continua o mesmo e
+   nenhuma versão é criada.
+3. **Given** um item, **When** o responsável o retira, **Then** ele some da lista atual e continua
+   existindo para os registros que o usaram.
 4. **Given** um catálogo usado em alguma fiscalização, **When** alguém tenta apagá-lo, **Then** o
-   sistema recusa e oferece desativar.
-5. **Given** o catálogo da DTR, **When** o responsável abre um item, **Then** vê e edita também os
-   campos declarados pela DTR (frente, item do PER, rodovias, etapas de obra).
+   motor recusa e oferece desativar.
 
 ---
 
-### User Story 2 - A fiscalização usa a versão certa do catálogo (Priority: P1)
+### User Story 3 - A fiscalização usa a versão certa (Priority: P1)
 
-Na DSB, quando o fiscal abre uma unidade, o checklist mostrado é o que valia quando a unidade foi
-criada. Na DTR, a ocorrência registrada fica ligada à versão do tipo escolhida. O resultado fica
-registrado com a versão usada, e relatórios antigos continuam mostrando o texto da época.
+O app que aplica o catálogo pede ao motor os itens vigentes numa data e guarda, em cada resposta ou
+ocorrência, a versão usada. Relatórios antigos continuam mostrando o texto da época.
 
 **Why this priority**: é a garantia jurídica de que o relatório e a notificação refletem o texto em
 vigor na vistoria (Princípio I).
 
-**Independent Test**: uma unidade é criada; o item 3 do checklist é editado depois; a unidade
-continua mostrando o texto antigo do item 3, e uma unidade criada depois mostra o novo. Uma
-ocorrência da DTR é registrada; o prazo do tipo muda; a ocorrência e o relatório dela continuam com
-o prazo da época.
+**Independent Test**: uma unidade é criada; um item é editado depois; a unidade continua mostrando o
+texto antigo, e uma unidade criada depois mostra o novo. Uma ocorrência da DTR é registrada; o prazo
+do tipo muda; a ocorrência continua com o prazo da época.
 
 **Acceptance Scenarios**:
 
 1. **Given** uma unidade criada em 10/03 e um item editado em 15/03, **When** o fiscal abre a
-   unidade, **Then** vê a versão do item vigente em 10/03.
-2. **Given** uma unidade que já tem respostas, **When** o checklist muda, **Then** as respostas
-   continuam ligadas às versões respondidas e nada muda no que já foi registrado.
-3. **Given** uma ocorrência registrada com um tipo, **When** o tipo é editado, **Then** a ocorrência
-   continua ligada à versão usada no registro.
-4. **Given** o fiscal sem rede, **When** abre uma unidade ou registra uma ocorrência da sua câmara,
-   **Then** o catálogo certo está disponível no aparelho.
+   unidade, **Then** vê a versão vigente em 10/03.
+2. **Given** um registro ligado a uma versão, **When** o item muda, **Then** o registro continua
+   ligado à versão usada.
+3. **Given** o fiscal sem rede, **When** abre uma unidade ou registra uma ocorrência da sua câmara,
+   **Then** o catálogo certo está no aparelho.
 
 ---
 
-### User Story 3 - Importar um catálogo de planilha (Priority: P2)
+### User Story 4 - Importar um catálogo de planilha (Priority: P2)
 
 O responsável baixa o modelo de planilha do catálogo, preenche e importa. Antes de gravar, vê o que
-será criado, alterado, mantido, retirado ou recusado, com o motivo de cada erro. Reimportar a mesma
-planilha não cria nada novo. Os formatos de hoje continuam aceitos: a planilha de checklists da DSB e
-o modelo de tipos de ocorrência da DTR.
+será criado, alterado, mantido, retirado ou recusado. Reimportar a mesma planilha não cria nada. O
+formato de cada planilha vem do modelo do catálogo; os formatos de hoje (DSB e DTR) continuam aceitos.
 
-**Why this priority**: é como os catálogos foram carregados e são revisados em lote; a reimportação
-atual duplicou versões na DSB, e na DTR a revisão completa hoje passa por apagar a base inteira.
+**Why this priority**: é como os catálogos foram carregados e são revisados em lote.
 
-**Independent Test**: importar uma planilha da DSB com 10 itens (2 tipos novos) mostra a prévia e
-grava; reimportá-la informa "nada a alterar"; alterar o texto de uma linha e reimportar cria só a
-versão nova daquele item. Importar o modelo da DTR com um tipo a menos mostra esse tipo como
-"ausente da planilha" e só o retira se o responsável confirmar.
+**Independent Test**: importar uma planilha da DSB com 10 itens mostra a prévia e grava; reimportá-la
+informa "nada a alterar"; alterar uma linha e reimportar cria só a versão nova daquele item. Importar
+a planilha da DTR com um tipo a menos mostra o tipo como ausente e só o retira se o responsável
+marcar.
 
 **Acceptance Scenarios**:
 
@@ -126,56 +151,29 @@ versão nova daquele item. Importar o modelo da DTR com um tipo a menos mostra e
    (criar, nova versão, sem mudança, erro) antes de confirmar.
 2. **Given** a mesma planilha já importada, **When** é importada de novo, **Then** nenhuma versão é
    criada.
-3. **Given** uma linha sem os campos obrigatórios, **When** a planilha é importada, **Then** a linha
+3. **Given** uma linha que não cumpre o modelo, **When** a planilha é importada, **Then** a linha
    aparece como erro com o motivo, e as demais seguem.
-4. **Given** uma planilha com item de catálogo de outra câmara, **When** o responsável importa,
-   **Then** as linhas desse catálogo são recusadas.
-5. **Given** itens vigentes que não estão na planilha, **When** o responsável importa, **Then** a
-   prévia os mostra como ausentes, e eles só são retirados se o responsável marcar essa opção.
+4. **Given** itens vigentes ausentes da planilha, **When** o responsável importa, **Then** a prévia os
+   mostra, e eles só são retirados se o responsável marcar.
 
 ---
 
-### User Story 4 - Cada câmara vê e usa só os seus catálogos (Priority: P2)
+### User Story 5 - Cada câmara vê e usa só os seus catálogos (Priority: P2)
 
 Os catálogos pertencem à câmara dos serviços a que se aplicam; a fiscalização só oferece catálogos da
 câmara e dos serviços da fiscalização.
 
-**Why this priority**: o isolamento por câmara é requisito (A-026); hoje o separador entre os
-checklists das câmaras é só o filtro por serviço, tipo sem serviço aparece para todas, e o catálogo
-da DTR é alterável por qualquer usuário ativo, inclusive o prestador.
+**Why this priority**: o isolamento por câmara é requisito (A-026); hoje tipo sem serviço aparece para
+todas as câmaras, e o catálogo da DTR é alterável por qualquer usuário ativo, inclusive o prestador.
 
-**Independent Test**: um fiscal da CATERS não vê nem altera tipos da CATESA nem o catálogo da DTR;
-uma fiscalização de Abastecimento de Água só oferece tipos com esse serviço.
+**Independent Test**: um fiscal da CATERS não vê nem altera catálogos da CATESA nem da DTR; um
+prestador não alcança nenhum catálogo.
 
 **Acceptance Scenarios**:
 
 1. **Given** um fiscal da CATERS, **When** lista os catálogos, **Then** vê só os da CATERS.
-2. **Given** um catálogo sem serviço aplicável, **When** alguém tenta salvá-lo, **Then** o sistema
+2. **Given** um catálogo sem serviço aplicável, **When** alguém tenta salvá-lo, **Then** o motor
    recusa.
-3. **Given** um usuário prestador, **When** tenta ler ou alterar qualquer catálogo, **Then** é
-   recusado.
-
----
-
-### User Story 5 - Uma câmara nova usa o motor sem mudar o módulo (Priority: P3)
-
-Uma câmara que ainda não fiscaliza com catálogo (ex.: da DGE) passa a usar o motor: o app dela
-declara o modo de aplicação, o tipo de resposta, o que cada resposta gera e os campos próprios, e a
-equipe cadastra ou importa os itens.
-
-**Why this priority**: o sistema nasce para receber outras câmaras e áreas sem mexer no que existe
-(constituição v2.5.0, "Independência entre apps").
-
-**Independent Test**: um app de teste declara um catálogo com resposta Sim / Não / Não se aplica e
-dois campos próprios; a equipe cadastra itens e uma fiscalização de teste os aplica, sem nenhuma
-alteração neste módulo e sem mudança no comportamento da DSB e da DTR.
-
-**Acceptance Scenarios**:
-
-1. **Given** um app de câmara que declara campos próprios, **When** a equipe abre o formulário de
-   item, **Then** os campos aparecem e são versionados com o item.
-2. **Given** um tipo de resposta diferente dos atuais, **When** a fiscalização aplica o catálogo,
-   **Then** cada resposta gera o que a declaração do catálogo diz.
 
 ---
 
@@ -183,96 +181,97 @@ alteração neste módulo e sem mudança no comportamento da DSB e da DTR.
 
 - Dois responsáveis editam o mesmo item ao mesmo tempo: cada gravação cria uma versão; vale a mais
   recente, e as duas ficam no histórico.
-- Item editado enquanto um fiscal está em campo sem rede: a vistoria em andamento continua com a
-  versão da criação da unidade; a ocorrência registrada sem rede fica com a versão que o aparelho
-  tinha; o aparelho recebe a versão nova na próxima sincronização.
-- Catálogo desativado com fiscalização em andamento: as unidades e ocorrências já registradas
-  continuam válidas; o catálogo só deixa de ser oferecido para registros novos.
-- Tipo de unidade sem itens (produção tem 3): pode existir, mas não pode ser escolhido para unidade
-  nova até ter pelo menos um item vigente.
-- Planilha com o mesmo tipo escrito com maiúsculas diferentes ou pelo código: reconhecido como o
-  mesmo tipo.
-- Planilha da DTR com células mescladas (frente, PER, descrição) e uma linha por etapa de obra: as
-  células vazias herdam o valor de cima e as etapas do mesmo item são juntadas, como hoje.
-- Mesma descrição de ocorrência para rodovias diferentes: são itens distintos; na fiscalização de
-  uma rodovia, vale o item específico dela, e o genérico (sem rodovia) só quando não houver
-  específico.
+- Item editado enquanto um fiscal está sem rede: o registro feito no aparelho fica com a versão que o
+  aparelho tinha; a versão nova chega na próxima sincronização.
+- O app muda o modelo (campo novo, resposta nova): as versões existentes não mudam; o que o modelo
+  novo exige vale a partir da próxima versão de cada item (R-checklists-017).
+- O app de uma câmara é retirado: os catálogos e versões continuam consultáveis pelos registros que
+  os usam; não são oferecidos para registros novos.
+- Catálogo desativado com fiscalização em andamento: os registros já feitos continuam válidos.
+- Catálogo sem itens (produção tem 3 tipos de unidade assim): existe, mas não é oferecido para
+  registro novo até ter um item vigente.
 - Aparelho sem catálogo baixado: o app avisa e pede sincronização; nunca usa lista fixa no código.
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
-- **FR-001**: O sistema MUST manter catálogos de verificação com nome e código únicos, modo de
-  aplicação, serviços aplicáveis e situação (ativo ou desativado); os tipos de unidade da DSB e o
-  catálogo de ocorrências da DTR são catálogos (R-checklists-001, R-checklists-012).
-- **FR-002**: Todo catálogo MUST pertencer à câmara técnica dos seus serviços (R-checklists-002).
-- **FR-003**: O sistema MUST manter os itens de cada catálogo com versões explícitas, nunca alterando
-  nem apagando uma versão já criada, para todas as câmaras (R-checklists-003, R-checklists-004).
-- **FR-004**: Mudar a ordem de um item MUST NOT criar outro item (R-checklists-004).
-- **FR-005**: O módulo MUST informar a versão de cada item vigente numa data e MUST permitir que a
-  fiscalização guarde, em cada resposta e ocorrência, a versão usada (R-checklists-005).
-- **FR-006**: A importação por planilha MUST oferecer o modelo para baixar, mostrar a prévia por
-  linha, criar versão só quando o conteúdo mudou e ser repetível sem efeito (R-checklists-006).
-- **FR-007**: Coordenador e fiscal MUST poder criar e alterar catálogos e itens só da própria câmara;
-  o administrador, de todas; o prestador MUST NOT alcançá-los (R-checklists-007).
-- **FR-008**: Catálogos e itens MUST estar disponíveis no aparelho para uso sem rede, no escopo da
-  câmara do usuário (R-checklists-008).
-- **FR-009**: Catálogo usado em fiscalização MUST NOT ser apagado; MUST poder ser desativado; não há
-  operação de apagar todos os itens (R-checklists-009).
-- **FR-010**: Cada versão MUST registrar quem a criou e quando; as alterações de catálogos MUST ser
-  auditadas (R-checklists-010).
-- **FR-011**: Toda regra de acesso deste módulo MUST ter teste automatizado que falhe quando a regra
+- **FR-001**: O motor MUST NOT conter tabela, coluna, tela, formato de planilha, texto ou regra de
+  nenhuma câmara; tudo o que é de uma câmara MUST vir do modelo registrado pelo app dela
+  (R-checklists-015, R-checklists-016).
+- **FR-002**: O motor MUST aceitar modelos de catálogo registrados por apps, validá-los no registro e
+  recusar os inválidos (R-checklists-015).
+- **FR-003**: O motor MUST manter catálogos com nome e código únicos, modelo, serviços aplicáveis e
+  situação; todo catálogo MUST pertencer à câmara dos seus serviços (R-checklists-001,
+  R-checklists-002).
+- **FR-004**: O conteúdo de cada item MUST ser os valores dos campos do modelo, validados pelo modelo
+  (R-checklists-003).
+- **FR-005**: O motor MUST manter os itens com versões explícitas, nunca alterando nem apagando uma
+  versão; mudar a ordem MUST NOT criar item nem versão (R-checklists-004).
+- **FR-006**: O motor MUST informar as versões vigentes numa data e a versão por identificador
+  (R-checklists-005).
+- **FR-007**: A importação MUST seguir o formato do modelo, oferecer o modelo para baixar, mostrar a
+  prévia, criar versão só quando o conteúdo mudou e ser repetível sem efeito (R-checklists-006).
+- **FR-008**: Coordenador e fiscal MUST poder manter catálogos só da própria câmara; o administrador,
+  de todas; o prestador MUST NOT alcançá-los (R-checklists-007).
+- **FR-009**: Catálogos e itens MUST estar no aparelho para uso sem rede, no escopo da câmara do
+  usuário (R-checklists-008).
+- **FR-010**: Catálogo usado MUST NOT ser apagado; MUST poder ser desativado; não há operação de
+  apagar todos os itens (R-checklists-009).
+- **FR-011**: Cada versão MUST registrar autor e data; as alterações de catálogos e as importações
+  MUST ser auditadas (R-checklists-010).
+- **FR-012**: O motor MUST oferecer os modos de aplicação "lista por unidade" e "registro avulso"
+  (R-checklists-012).
+- **FR-013**: O modelo MUST poder declarar as respostas e as saídas de cada resposta, com condições
+  sobre os campos do item; o motor MUST guardar essas declarações sem interpretar as saídas
+  (R-checklists-013).
+- **FR-014**: O modelo MUST poder atribuir a campos os papéis de agrupamento, aplicabilidade e escolha
+  complementar (R-checklists-014).
+- **FR-015**: Mudanças de modelo MUST valer só para versões novas (R-checklists-017).
+- **FR-016**: Toda regra de acesso deste módulo MUST ter teste automatizado que falhe quando a regra
   for violada (constituição, Princípio III).
-- **FR-012**: O motor MUST oferecer os modos de aplicação "lista por unidade" e "registro de
-  ocorrências" (R-checklists-012).
-- **FR-013**: Cada catálogo MUST declarar o tipo de resposta e o que cada resposta gera; o motor MUST
-  aceitar pelo menos Sim/Não, Sim/Não/Não se aplica, Constatação/Não conformidade, escolha numa
-  lista, número e texto (R-checklists-013).
-- **FR-014**: O app de uma câmara MUST poder declarar campos próprios dos itens do catálogo dela,
-  versionados com o item, sem alterar este módulo (R-checklists-014).
-- **FR-015**: A equipe MUST poder manter os itens de qualquer catálogo tanto pelo formulário quanto
-  pela planilha (R-checklists-003, R-checklists-006).
 
 ### Key Entities
 
-- **Catálogo de verificação**: o que a câmara usa para verificar. Nome, código curto, modo de
-  aplicação, serviços aplicáveis, câmara (derivada dos serviços), tipo de resposta, situação. Na DSB,
-  cada tipo de unidade é um catálogo; na DTR, o catálogo de tipos de ocorrência.
-- **Item**: uma pergunta (DSB) ou um tipo de ocorrência (DTR), com identidade estável ao longo das
-  versões e a ordem dentro do catálogo.
-- **Versão do item**: o conteúdo do item num período: o texto do item, os textos e dados que cada
-  resposta gera (constatação, NC, dispositivo normativo ou cláusula não atendida, determinação,
-  prazo, recomendação, observação-padrão), os valores dos campos próprios da câmara; início e fim de
-  vigência e autor.
-- **Tipo de resposta**: as respostas possíveis de um catálogo e o que cada uma gera.
-- **Campo próprio da câmara**: campo que o app de uma câmara declara para os itens dos catálogos dela
-  (nome, tipo de valor, obrigatoriedade, se agrupa a navegação, se filtra pelo contexto da
-  fiscalização).
-- **Importação de planilha**: o lote importado, com o formato, a prévia por linha e o resultado.
+- **Modelo de catálogo**: a montagem registrada pelo app de uma câmara: app dono, modo de aplicação,
+  campos do item, respostas, saídas por resposta, papéis dos campos e formato da planilha. Tem
+  versões (R-checklists-017). Um modelo serve a vários catálogos (os 33 tipos de unidade da DSB usam
+  o mesmo modelo).
+- **Campo do item**: peça declarada no modelo: nome, rótulo, tipo de valor (texto curto, texto longo,
+  número inteiro, sim/não, lista de valores, lista de linhas), obrigatoriedade, valor padrão e papel
+  opcional.
+- **Resposta e saída**: as respostas possíveis de um modelo e, para cada uma, as saídas (identificador
+  definido pelo app que aplica o catálogo), a condição sobre campos do item e os campos que alimentam
+  cada saída.
+- **Formato de planilha**: colunas → campos, herança de células vazias, junção de linhas, chave de
+  importação e o arquivo modelo.
+- **Catálogo**: instância de um modelo mantida por uma câmara: nome, código, modelo, serviços, câmara
+  (derivada), situação.
+- **Item** e **versão do item**: identidade estável e ordem; a versão guarda os valores dos campos,
+  a versão do modelo em que foi criada, vigência e autor.
+- **Importação de planilha**: o lote importado, com a prévia por linha e o resultado.
 
 ## Regras do módulo
 
 Cada regra segue o molde `formatos/spec-modulo.md` da spec 003. As chaves citadas estão no catálogo
-da spec 003.
+da spec 003. As regras descrevem só peças genéricas; o que cada câmara faz hoje aparece em
+"comportamento atual" e na seção "Modelos de hoje".
 
-### R-checklists-001 — Catálogos de verificação
+### R-checklists-001 — Catálogos
 
-- **Comportamento desejado**: o catálogo tem nome (obrigatório, único sem diferenciar maiúsculas),
-  código curto (obrigatório, único sem diferenciar maiúsculas; na DSB é a base do código que a
-  fiscalização gera para a unidade), modo de aplicação (R-checklists-012), serviços aplicáveis (pelo
-  menos um, da lista de serviços do core) e situação (ativo ou desativado). "Excluir" na tela
-  desativa; reativar é possível. Na DSB, cada tipo de unidade é um catálogo no modo "lista por
-  unidade"; na DTR, o catálogo de tipos de ocorrência é um catálogo no modo "registro de ocorrências".
-- **Comportamento atual**: são dois cadastros sem relação. Tipos de unidade: nome obrigatório; código
-  obrigatório na tela, mas opcional e não único no banco; serviços aplicáveis como texto livre, e
-  tipo sem serviço aparece para todas as câmaras; a importação acha o tipo pelo nome ou pelo código
-  sem diferenciar maiúsculas; produção tem 33 tipos, todos ativos. DTR: não há cadastro de catálogo;
-  a tabela de tipos de ocorrência é a lista única da diretoria, sem serviço nem câmara.
-- **Motivo da diferença**: um motor comum atende qualquer câmara sem cadastro novo por diretoria
-  (decisão do responsável, 2026-09-30); nome ou código repetido faz a importação escolher o tipo
-  errado; serviço como texto livre diverge da lista do core; tipo sem serviço fura o isolamento por
+- **Comportamento desejado**: o catálogo é uma instância de um modelo mantida por uma câmara. Tem
+  nome (obrigatório, único sem diferenciar maiúsculas), código curto (obrigatório, único sem
+  diferenciar maiúsculas; o app que aplica pode usá-lo, como a DSB usa para o código da unidade),
+  modelo, serviços aplicáveis (pelo menos um, da lista de serviços do core) e situação (ativo ou
+  desativado). "Excluir" na tela desativa; reativar é possível.
+- **Comportamento atual**: são dois cadastros sem relação. Tipos de unidade (DSB): nome obrigatório;
+  código obrigatório na tela, mas opcional e não único no banco; serviços como texto livre, e tipo
+  sem serviço aparece para todas as câmaras; produção tem 33 tipos, todos ativos. DTR: não há
+  cadastro de catálogo; a tabela de tipos de ocorrência é a lista única da diretoria, sem serviço nem
   câmara.
+- **Motivo da diferença**: um só cadastro de catálogos para qualquer câmara (decisão do responsável,
+  2026-09-30); nome ou código repetido faz a importação escolher o catálogo errado; serviço como texto
+  livre diverge da lista do core; catálogo sem serviço fura o isolamento por câmara.
 - **Objetos do catálogo**: `tabela:tipos_unidade`, `coluna:tipos_unidade.nome`,
   `coluna:tipos_unidade.codigo`, `coluna:tipos_unidade.servicos_aplicaveis`,
   `coluna:tipos_unidade.ativo`, `coluna:tipos_unidade.created_at`, `coluna:tipos_unidade.id`,
@@ -285,47 +284,38 @@ da spec 003.
 
 - **Comportamento desejado**: a câmara de um catálogo é a câmara dos serviços aplicáveis dele, pelo
   vínculo serviço → câmara do core (R-core-014). Todos os serviços de um catálogo são da mesma câmara;
-  catálogo com serviços de câmaras diferentes é recusado. A fiscalização oferece para registro novo só
-  catálogos ativos, com pelo menos um item vigente, da câmara da fiscalização e com algum serviço em
-  comum com ela.
+  catálogo com serviços de câmaras diferentes é recusado. O motor oferece para registro novo só
+  catálogos ativos, com pelo menos um item vigente, da câmara pedida e com algum serviço em comum com
+  os informados pelo app que aplica.
 - **Comportamento atual**: não há câmara no tipo de unidade; a fiscalização filtra os tipos ativos
-  por serviço em comum e mostra os sem serviço para todas. Em produção, os serviços dos tipos são
-  todos da DSB (água, esgoto, resíduos, limpeza urbana), e três tipos juntam água e esgoto (ambos da
-  CATESA). O catálogo da DTR não tem serviço nem câmara; é usado por toda fiscalização da DTR.
+  por serviço em comum e mostra os sem serviço para todas. Três tipos juntam água e esgoto (ambos da
+  CATESA). O catálogo da DTR não tem serviço nem câmara.
 - **Motivo da diferença**: isolamento por câmara (A-026) e fim do catálogo "para todas".
 - **Objetos do catálogo**: `coluna:tipos_unidade.servicos_aplicaveis`,
   `funcao:camara_from_servicos(p_servicos text[])`
 - **Origem**: A-026 (decidido), A-021 (decidido).
 
-### R-checklists-003 — Conteúdo de um item
+### R-checklists-003 — Conteúdo de um item: os campos do modelo
 
-- **Comportamento desejado**: cada versão de item tem o texto do item (obrigatório: a pergunta na
-  DSB, a descrição da ocorrência na DTR), a ordem no catálogo e os textos e dados que as respostas
-  geram, conforme o tipo de resposta do catálogo (R-checklists-013):
-  - texto da constatação (na DSB, um para Sim e um para Não; na DTR, a descrição);
-  - se gera NC, e o dispositivo normativo ou a cláusula não atendida que descreve a NC;
-  - texto da NC;
-  - texto da determinação e prazo em dias (inteiro positivo; na DSB, padrão 30);
-  - texto da recomendação;
-  - observação-padrão.
-
-  Todos os campos são editáveis no formulário e na planilha, com os mesmos padrões.
-- **Comportamento atual**:
-  - DSB: em produção todos os itens geram NC e têm prazo de 30 dias; o texto da NC tem só 4 valores
-    distintos e, na prática, a NC usa a descrição montada a partir do dispositivo. O formulário começa
-    com "gera NC" desligado, enquanto a importação marca todo item como gerador de NC. Excluir item ou
-    tipo pede confirmação em dois passos, digitando "EXCLUIR".
+- **Comportamento desejado**: o conteúdo de cada versão de item são os valores dos campos declarados
+  no modelo do catálogo, mais a ordem do item. O motor valida tipo, obrigatoriedade e valores
+  permitidos e aplica os padrões do modelo, tanto no formulário quanto na importação. O formulário de
+  item é gerado a partir do modelo: todo campo do modelo é editável nele. O motor não tem campo fixo
+  de conteúdo, nem mesmo "pergunta", "prazo" ou "gera NC": esses são campos dos modelos de hoje.
+- **Comportamento atual**: os campos são colunas fixas, diferentes em cada tabela:
+  - DSB: pergunta, constatação Sim e Não, gera NC, dispositivo normativo, texto da NC, determinação,
+    prazo (30 dias em todos os itens de produção) e recomendação. O formulário começa com "gera NC"
+    desligado, enquanto a importação marca todo item como gerador de NC.
   - DSB, prazo e texto da NC no formulário: **a confirmar**. O responsável informa que o formulário
     permite editar os dois; o formulário deste repositório
     (`src/components/admin/ItemChecklistForm.jsx`) não tem esses campos e, na edição, mantém os
     valores anteriores sem mostrá-los. Pode ser diferença entre o código implantado e o deste
-    repositório; conferir na tela de produção antes do plano. O comportamento desejado não muda.
-  - DTR: não há formulário; os tipos só entram pela planilha. A cláusula não atendida, o prazo
-    padrão (1, 5, 15 ou 30 dias; vazio em 32 tipos) e a observação-padrão ficam no tipo; "gera NC"
-    é marcado quando a planilha traz a cláusula (51 tipos) e só aparece como etiqueta. A planilha
-    modelo não tem coluna para a observação-padrão.
-- **Motivo da diferença**: um só conteúdo de item para todas as câmaras; manutenção de um item só,
-  sem reimportar a planilha, também na DTR.
+    repositório; conferir na tela de produção. O comportamento desejado não muda.
+  - DTR: nome, descrição, gera NC (marcado quando a planilha traz a cláusula; 51 tipos), cláusula não
+    atendida, prazo padrão (1, 5, 15 ou 30 dias; vazio em 32 tipos), observação-padrão (sem coluna na
+    planilha modelo) e os campos da rodovia (R-checklists-014). Não há formulário; só planilha.
+- **Motivo da diferença**: campo fixo de uma câmara no motor obrigaria a mudar o motor para cada
+  câmara (decisão do responsável, 2026-09-30: motor como "lego").
 - **Objetos do catálogo**: `coluna:itens_checklist.pergunta`, `coluna:itens_checklist.texto_constatacao_sim`,
   `coluna:itens_checklist.texto_constatacao_nao`, `coluna:itens_checklist.gera_nc`,
   `coluna:itens_checklist.artigo_portaria`, `coluna:itens_checklist.texto_nc`,
@@ -334,29 +324,25 @@ da spec 003.
   `coluna:tipos_ocorrencia_dtr.descricao`, `coluna:tipos_ocorrencia_dtr.gera_nc`,
   `coluna:tipos_ocorrencia_dtr.nao_atendimento`, `coluna:tipos_ocorrencia_dtr.prazo_dias_padrao`,
   `coluna:tipos_ocorrencia_dtr.observacoes`
-- **Origem**: decisão do responsável, 2026-09-30 (motor comum; campos editáveis no formulário).
+- **Origem**: decisão do responsável, 2026-09-30.
 
 ### R-checklists-004 — Versionamento explícito
 
-- **Comportamento desejado**: em qualquer catálogo, o item tem identidade estável (o mesmo item ao
-  longo do tempo) e versões numeradas. Criar um item cria a versão 1. Editar cria a versão seguinte,
-  com início de vigência na data da gravação, e encerra a anterior. Retirar encerra a vigência da
-  versão atual sem criar outra. A ordem do item no catálogo é um atributo do item: mudá-la não cria
-  item nem versão e não mexe nos registros. Nenhuma versão é alterada nem apagada depois de criada. A
-  lista de itens atuais mostra, em ordem, a versão vigente de cada item não retirado; o histórico
-  mostra todas as versões com autor e data.
+- **Comportamento desejado**: em qualquer catálogo, o item tem identidade estável e versões
+  numeradas. Criar um item cria a versão 1. Editar cria a versão seguinte, com início de vigência na
+  data da gravação, e encerra a anterior. Retirar encerra a vigência da versão atual sem criar outra.
+  A ordem é um atributo do item: mudá-la não cria item nem versão. Nenhuma versão é alterada nem
+  apagada depois de criada. A lista atual mostra, em ordem, a versão vigente de cada item não
+  retirado; o histórico mostra todas as versões com autor e data.
 - **Comportamento atual**:
-  - DSB: não há item estável; a "chave" é o tipo mais a ordem (ou a pergunta, sem ordem), a linha
-    mais recente de cada chave vale, e `ativo = false` marca exclusão. Mudar a ordem numa edição cria
-    um item "novo" e inativa o da ordem antiga. `ativo` não diz se a linha vale: as 768 linhas estão
-    com `true`, sendo 243 versões antigas. São 82 chaves com 2 a 5 versões, 81 delas com a pergunta
-    idêntica (reimportação).
-  - DTR: sem versionamento. A importação altera o tipo no próprio registro, e a ocorrência preserva o
-    texto porque copia frente, item do PER, cláusula e prazo; a data de alteração é gravada por um
-    gatilho.
-- **Motivo da diferença**: a regra implícita da DSB é difícil de manter, confunde "ativo" com
-  "vigente" e quebra o item quando a ordem muda; na DTR, a cópia de campos preserva só parte do
-  conteúdo e não diz qual versão do tipo foi usada.
+  - DSB: não há item estável; a "chave" é o tipo mais a ordem (ou a pergunta), a linha mais recente
+    de cada chave vale, e `ativo = false` marca exclusão. Mudar a ordem cria um item "novo". As 768
+    linhas estão com `ativo = true`, sendo 243 versões antigas; 82 chaves têm 2 a 5 versões, 81 delas
+    com a pergunta idêntica (reimportação).
+  - DTR: sem versionamento; a importação altera o tipo no próprio registro, e a ocorrência preserva o
+    texto copiando campos do tipo.
+- **Motivo da diferença**: a regra implícita da DSB é difícil de manter e quebra o item quando a
+  ordem muda; na DTR, a cópia preserva só parte do conteúdo e não diz qual versão foi usada.
 - **Objetos do catálogo**: `tabela:itens_checklist`, `coluna:itens_checklist.id`,
   `coluna:itens_checklist.ordem`, `coluna:itens_checklist.ativo`, `coluna:itens_checklist.created_at`,
   `coluna:itens_checklist.tipo_unidade_id`, `restricao:itens_checklist.itens_checklist_pkey`,
@@ -365,53 +351,49 @@ da spec 003.
   `coluna:tipos_ocorrencia_dtr.created_at`, `coluna:tipos_ocorrencia_dtr.updated_at`,
   `gatilho:public.tipos_ocorrencia_dtr.update_tipos_ocorrencia_dtr_updated_at`,
   `restricao:tipos_ocorrencia_dtr.tipos_ocorrencia_dtr_pkey`, `indice:tipos_ocorrencia_dtr_pkey`
-- **Origem**: A-024 (decidido), estendido à DTR por decisão do responsável (2026-09-30).
+- **Origem**: A-024 (decidido), estendido a qualquer catálogo (decisão do responsável, 2026-09-30).
 
-### R-checklists-005 — Versão usada numa fiscalização
+### R-checklists-005 — Versão usada num registro
 
-- **Comportamento desejado**: o módulo responde, para um catálogo e uma data, quais versões estavam
-  vigentes nela, e responde uma versão pelo identificador, para relatórios e documentos antigos. No
-  modo "lista por unidade", a fiscalização usa a data de criação da unidade, e a vistoria reaberta
-  mostra as versões já respondidas. No modo "registro de ocorrências", a ocorrência guarda a versão
-  do item escolhida no registro.
+- **Comportamento desejado**: o motor responde, para um catálogo e uma data, as versões vigentes
+  nela, e responde uma versão pelo identificador. Quem aplica o catálogo escolhe a data de referência
+  e guarda, em cada registro, a versão usada (nos modelos de hoje: a DSB usa a data de criação da
+  unidade, e a vistoria reaberta mostra as versões já respondidas; a DTR guarda a versão escolhida no
+  registro da ocorrência).
 - **Comportamento atual**: na DSB, o aplicativo escolhe, para cada chave, a versão mais recente até a
-  criação da unidade, dando preferência às versões já respondidas; a resposta aponta para a linha
-  (versão) respondida. Na DTR, a ocorrência não aponta para o tipo; guarda cópias de campos dele.
-- **Motivo da diferença**: com versões explícitas, a escolha deixa de depender da regra de chave, e a
-  ocorrência da DTR passa a dizer de que tipo e versão veio; o efeito para o fiscal é o mesmo.
+  criação da unidade, preferindo as já respondidas; a resposta aponta para a linha respondida. Na
+  DTR, a ocorrência não aponta para o tipo; guarda cópias de campos dele.
+- **Motivo da diferença**: com versões explícitas, a escolha não depende da regra de chave, e todo
+  registro diz de que versão veio; o efeito para o fiscal é o mesmo.
 - **Objetos do catálogo**: `coluna:itens_checklist.id`, `coluna:itens_checklist.created_at`,
   `coluna:unidades_fiscalizadas.tipo_unidade_id`, `coluna:respostas_checklist.item_checklist_id`
 - **Origem**: A-024 (decidido).
 
 ### R-checklists-006 — Importação por planilha
 
-- **Comportamento desejado**: cada catálogo tem um formato de planilha, com um modelo para baixar. Os
-  dois formatos de hoje são mantidos:
-  - **DSB**: serviço, código do tipo, nome do tipo, ordem, pergunta, constatação Sim, constatação
-    Não, dispositivo normativo, determinação, recomendação, texto da NC, prazo em dias. O tipo é
-    identificado pelo nome ou pelo código, sem diferenciar maiúsculas, e os tipos que não existem são
-    criados com os serviços da planilha; o item, pelo tipo e pela ordem.
-  - **DTR**: rodovia, frente, item do PER, descrição, cláusula não atendida, prazo em dias, etapa de
-    obra. Células vazias herdam o valor da linha de cima (células mescladas); linhas com a mesma
-    rodovia, frente, item do PER e descrição são o mesmo item, e as etapas delas são juntadas. O item
-    é identificado por essa combinação.
+- **Comportamento desejado**: o motor importa qualquer catálogo pelo formato de planilha do modelo
+  dele (R-checklists-015), com as peças:
+  - colunas → campos do modelo (e, quando o modelo cria catálogos pela planilha, colunas → dados do
+    catálogo, como nome, código e serviços);
+  - herança de células vazias da linha de cima (células mescladas), por coluna;
+  - junção de linhas com a mesma chave, acumulando os valores num campo "lista de linhas";
+  - chave de importação (campos que identificam o item) e arquivo modelo para baixar.
 
-  Em qualquer formato, o sistema mostra a prévia por linha — item novo, nova versão (conteúdo mudou),
+  Em qualquer formato, o motor mostra a prévia por linha — item novo, nova versão (conteúdo mudou),
   sem mudança, erro com motivo — e os itens vigentes ausentes da planilha, que só são retirados se o
-  responsável marcar essa opção; grava só depois da confirmação; cria versão só quando o conteúdo
-  mudou, então reimportar a mesma planilha não cria nada; recusa linhas de catálogos fora da câmara
-  de quem importa; funciona só com rede. O app de uma câmara nova declara o formato dela.
+  responsável marcar; grava só depois da confirmação; cria versão só quando o conteúdo mudou;
+  recusa linhas de catálogos fora da câmara de quem importa; funciona só com rede.
 - **Comportamento atual**:
   - DSB: grava direto, sem prévia; cria uma versão nova para toda linha, mesmo igual à vigente (origem
     das 81 chaves duplicadas); marca todo item como gerador de NC; ignora linhas sem pergunta ou
-    tipo; importa só com rede; não há modelo para baixar.
+    tipo; não há modelo para baixar.
   - DTR: há modelo para baixar e prévia com confirmação; altera no próprio registro o tipo que casa
-    com a chave, ou insere; marca "gera NC" quando a linha traz a cláusula; conta inseridos,
-    atualizados e sem alteração. Tipos ausentes da planilha continuam; para tirá-los, o caminho é
-    "Limpar base" e reimportar.
-- **Motivo da diferença**: reimportar duplicava o checklist da DSB; sem prévia, um erro na planilha só
-  aparecia depois de gravado; apagar a base da DTR para reimportar perde o vínculo das ocorrências
-  (R-checklists-009).
+    com a chave, ou insere; tipos ausentes continuam, e para tirá-los o caminho é "Limpar base" e
+    reimportar.
+  - Os dois formatos estão fixos no código das telas.
+- **Motivo da diferença**: formato fixo no motor o prenderia às câmaras de hoje; reimportar duplicava
+  o checklist da DSB; sem prévia, um erro só aparecia depois de gravado; apagar a base da DTR para
+  reimportar perde o vínculo das ocorrências.
 - **Objetos do catálogo**: `tabela:itens_checklist`, `tabela:tipos_unidade`, `tabela:tipos_ocorrencia_dtr`
 - **Origem**: A-024 (decidido).
 
@@ -420,14 +402,13 @@ da spec 003.
 - **Comportamento desejado**: coordenador e fiscal da câmara criam e alteram catálogos e itens, só da
   própria câmara; o administrador, de todas (decisão do responsável, 2026-09-30); o diretor lê os da
   sua diretoria; o prestador não acessa os catálogos (vê só os textos que chegam a ele nos documentos
-  da fiscalização).
+  da fiscalização). Registrar ou mudar um modelo é ato do app da câmara (implantação), não de usuário.
 - **Comportamento atual**: na DSB, administrador, coordenador e fiscal ativos criam, alteram e
   excluem tipos e itens de qualquer câmara, e qualquer usuário ativo, inclusive o prestador, lê
-  todos. Na DTR, qualquer usuário com perfil ativo, de qualquer papel, inclusive o prestador, lê,
-  cria, altera e apaga tipos, inclusive pelo "Limpar base" (a regra chama-se "Escrita admin", mas não
-  verifica o papel).
-- **Motivo da diferença**: isolamento por câmara (A-026); o prestador não precisa do cadastro e não
-  pode alterar o que é usado para fiscalizá-lo.
+  todos. Na DTR, qualquer usuário com perfil ativo, inclusive o prestador, lê, cria, altera e apaga
+  tipos, inclusive pelo "Limpar base" (a regra chama-se "Escrita admin", mas não verifica o papel).
+- **Motivo da diferença**: isolamento por câmara (A-026); o prestador não pode alterar o que é usado
+  para fiscalizá-lo.
 - **Objetos do catálogo**: `politica:public.itens_checklist.Operadores gerenciam itens de checklist`,
   `politica:public.itens_checklist.Leitura pública de itens de checklist`,
   `politica:public.tipos_unidade.Operadores gerenciam tipos de unidade`,
@@ -443,30 +424,28 @@ da spec 003.
 
 ### R-checklists-008 — Catálogo disponível sem rede
 
-- **Comportamento desejado**: o aplicativo baixa os catálogos da câmara do usuário e as versões dos
-  itens deles (as vigentes e as que registros do seu alcance já usam) e recebe só o que mudou nas
-  sincronizações seguintes, pelo protocolo do core (R-core-021); o usuário pode pedir a atualização a
-  qualquer momento. Sem catálogo no aparelho, o app avisa e pede sincronização. A manutenção de
-  catálogos não é feita offline.
+- **Comportamento desejado**: o aplicativo baixa os modelos, os catálogos da câmara do usuário e as
+  versões dos itens deles (as vigentes e as que registros do seu alcance já usam) e recebe só o que
+  mudou nas sincronizações seguintes, pelo protocolo do core (R-core-021); o usuário pode pedir a
+  atualização a qualquer momento. Sem catálogo no aparelho, o app avisa e pede sincronização. A
+  manutenção de catálogos não é feita offline.
 - **Comportamento atual**: na DSB, o aplicativo baixa todos os tipos e todas as linhas de itens, de
-  todas as câmaras, inclusive as versões antigas. Na DTR, baixa todos os tipos, e o botão
-  "Sincronizar" das Definições da DTR substitui a cópia do aparelho; se o aparelho não tem tipos, o
-  registro de ocorrência usa uma lista de 16 tipos fixa no código.
-- **Motivo da diferença**: escopo por câmara (A-026), menos dados no aparelho, e a lista fixa no
-  código diverge do catálogo mantido pela câmara.
+  todas as câmaras, inclusive versões antigas. Na DTR, o botão "Sincronizar" substitui a cópia do
+  aparelho; sem tipos no aparelho, o registro de ocorrência usa uma lista de 16 tipos fixa no código.
+- **Motivo da diferença**: escopo por câmara (A-026), menos dados no aparelho, e nada de lista fixa
+  no código.
 - **Objetos do catálogo**: `tabela:tipos_unidade`, `tabela:itens_checklist`, `tabela:tipos_ocorrencia_dtr`
 - **Origem**: A-026 (decidido).
 
 ### R-checklists-009 — Catálogos e itens não são apagados
 
 - **Comportamento desejado**: catálogo não é apagado; só desativado. Catálogo desativado não é
-  oferecido para registro novo, e os registros existentes continuam com ele. Versões de item nunca
-  são apagadas (R-checklists-004). Não há operação de apagar todos os itens de um catálogo; a revisão
-  completa é feita pela importação, que retira os itens ausentes quando o responsável marca
-  (R-checklists-006).
+  oferecido para registro novo, e os registros existentes continuam com ele. Versões nunca são
+  apagadas (R-checklists-004). Não há operação de apagar todos os itens; a revisão completa é feita
+  pela importação, retirando os ausentes quando o responsável marca (R-checklists-006).
 - **Comportamento atual**: na DSB, a tela só desativa, mas a regra de acesso permite apagar tipos e
-  itens, e apagar um tipo apagaria todos os itens dele em cascata. Na DTR, "Limpar base" apaga todos
-  os tipos, depois de uma confirmação ("Apagar todos os N tipos?").
+  itens, e apagar um tipo apagaria os itens em cascata. Na DTR, "Limpar base" apaga todos os tipos,
+  depois de uma confirmação.
 - **Motivo da diferença**: apagar perderia o texto das vistorias e o vínculo das ocorrências
   (Princípio I).
 - **Objetos do catálogo**: `restricao:itens_checklist.itens_checklist_tipo_unidade_id_fkey`,
@@ -477,10 +456,10 @@ da spec 003.
 ### R-checklists-010 — Autoria das versões e auditoria
 
 - **Comportamento desejado**: cada versão registra quem a criou e quando (é o próprio histórico do
-  item). Criação, alteração e desativação de catálogos e cada importação entram na auditoria do core
-  (R-core-022).
+  item). Criação, alteração e desativação de catálogos, cada importação e cada registro ou mudança de
+  modelo entram na auditoria do core (R-core-022).
 - **Comportamento atual**: as versões não registram autor; os campos de autoria herdados do app de
-  origem estão vazios em todas as linhas; catálogos não são auditados (nem os da DSB, nem o da DTR).
+  origem estão vazios; catálogos não são auditados.
 - **Motivo da diferença**: rastrear quem mudou o texto que vai para os relatórios.
 - **Objetos do catálogo**: `coluna:itens_checklist.created_by`, `coluna:itens_checklist.created_by_id`
 - **Origem**: —
@@ -500,82 +479,179 @@ da spec 003.
 
 ### R-checklists-012 — Modos de aplicação
 
-- **Comportamento desejado**: cada catálogo tem um modo de aplicação, que diz à fiscalização como
-  usá-lo:
-  - **lista por unidade** (DSB): a fiscalização cria unidades de um tipo, e cada unidade recebe todos
-    os itens vigentes do catálogo, na ordem, para o fiscal responder um a um;
-  - **registro de ocorrências** (DTR): a fiscalização registra ocorrências avulsas, e em cada uma o
-    fiscal escolhe um item do catálogo e a resposta.
+- **Comportamento desejado**: o modelo escolhe um dos modos de aplicação que o motor oferece:
+  - **lista por unidade**: cada registro (ex.: a unidade vistoriada) recebe todos os itens vigentes
+    do catálogo, na ordem, para serem respondidos um a um;
+  - **registro avulso**: cada registro (ex.: a ocorrência num ponto da rodovia) escolhe um item do
+    catálogo e a resposta.
 
-  O motor não conhece unidade, ponto, KM nem foto; ele fornece os itens e a versão, e a fiscalização
-  (e o app da câmara, para o que é próprio dela) faz o registro.
-- **Comportamento atual**: os dois modos existem em telas e tabelas separadas: checklist por tipo de
-  unidade na vistoria da DSB e catálogo de tipos no registro de ocorrência da DTR; a ocorrência da DTR
-  é gravada como unidade sem tipo.
-- **Motivo da diferença**: um motor comum com dois modos atende as duas diretorias e as câmaras que
-  vierem sem cadastros paralelos (decisão do responsável, 2026-09-30).
+  O motor fornece os itens e a versão; não conhece unidade, ponto, KM nem foto, que são do app que
+  aplica.
+- **Comportamento atual**: os dois modos existem em telas e tabelas separadas (vistoria da DSB e
+  registro de ocorrência da DTR); a ocorrência da DTR é gravada como unidade sem tipo.
+- **Motivo da diferença**: dois modos genéricos atendem as câmaras de hoje e as que vierem sem
+  cadastros paralelos.
 - **Objetos do catálogo**: `tabela:tipos_unidade`, `tabela:tipos_ocorrencia_dtr`,
   `coluna:unidades_fiscalizadas.tipo_unidade_id`, `coluna:unidades_fiscalizadas.tipo_ocorrencia`
 - **Origem**: decisão do responsável, 2026-09-30.
 
-### R-checklists-013 — Tipos de resposta e o que cada resposta gera
+### R-checklists-013 — Respostas e saídas declaradas no modelo
 
-- **Comportamento desejado**: cada catálogo declara as respostas possíveis e o que cada uma gera,
-  usando os textos do item (R-checklists-003). O motor aceita Sim/Não, Sim/Não/Não se aplica,
-  Constatação/Não conformidade, escolha numa lista, número e texto. Os dois catálogos de hoje ficam
-  assim:
-  - **DSB (Sim/Não)**: Sim registra a constatação do Sim; Não registra a constatação do Não e, se o
-    item gera NC, uma NC descrita pelo dispositivo normativo (ou "artigo aplicável" se vazio); com
-    texto de determinação, gera a determinação com o prazo do item; sem ele, gera a recomendação.
-  - **DTR (Constatação/Não conformidade)**: o fiscal escolhe; Constatação registra a descrição do
-    item; Não conformidade registra a NC com a cláusula não atendida e o prazo padrão do item, que
-    aparecem ao fiscal no momento da escolha. As duas respostas valem para qualquer item.
+- **Comportamento desejado**: o modelo declara:
+  - as **respostas** possíveis: opções fixas (ex.: Sim/Não, Sim/Não/Não se aplica,
+    Constatação/Não conformidade), número ou texto;
+  - para cada resposta, as **saídas**: um identificador de saída, uma condição opcional sobre
+    campos do item (campo sim/não verdadeiro, campo preenchido, campo vazio) e os campos que
+    alimentam a saída.
 
-  A fiscalização aplica a declaração ao gerar os registros; mudar a declaração de um catálogo vale
-  para registros novos.
-- **Comportamento atual**: as duas regras estão fixas no código de telas diferentes. Na DSB, as
-  respostas gravadas são `SIM` e `NAO` (o servidor aceita também `NÃO`). Na DTR, a ocorrência grava
-  `constatacao` ou `nc`, e a cláusula e o prazo só são copiados quando é NC; "gera NC" do tipo não é
-  consultado no registro.
-- **Motivo da diferença**: câmaras novas terão outras respostas (ex.: "Não se aplica"); com as regras
-  fixas no código, cada câmara exigiria mudar o motor.
+  Os identificadores de saída (constatação, NC, determinação, recomendação...) são definidos pelo app
+  que aplica o catálogo; o motor os guarda e entrega sem interpretar. Assim, o motor não sabe o que é
+  uma NC: quem gera os registros é a fiscalização, a partir do que o modelo declarou.
+- **Comportamento atual**: as regras estão fixas no código de telas diferentes. Na DSB, as respostas
+  são `SIM` e `NAO` (o servidor aceita também `NÃO`), e a regra "Não gera NC se o item gera NC;
+  determinação se houver texto, senão recomendação" está no código. Na DTR, a ocorrência grava
+  `constatacao` ou `nc`, escolhidos pelo fiscal, e a cláusula e o prazo só são copiados quando é NC;
+  "gera NC" do tipo não é consultado.
+- **Motivo da diferença**: com as regras no código, cada câmara nova exigiria mudar o motor.
 - **Objetos do catálogo**: `coluna:respostas_checklist.resposta`,
   `coluna:unidades_fiscalizadas.tipo_ocorrencia`, `coluna:itens_checklist.gera_nc`,
   `coluna:tipos_ocorrencia_dtr.gera_nc`
 - **Origem**: decisão do responsável, 2026-09-30.
 
-### R-checklists-014 — Campos próprios da câmara
+### R-checklists-014 — Papéis de campo na aplicação
 
-- **Comportamento desejado**: o app de uma câmara declara campos próprios para os itens dos catálogos
-  dela: nome, tipo de valor (texto, lista de valores, lista de linhas), obrigatoriedade e papel na
-  aplicação:
-  - **agrupamento**: o campo organiza a escolha do item em níveis, com ordem própria (DTR: frente,
-    em ordem fixa, e depois item do PER);
-  - **aplicabilidade**: o item só é oferecido quando o valor combina com o contexto da fiscalização,
-    e vazio vale para todos (DTR: rodovias do item × rodovia da fiscalização; havendo item específico
-    da rodovia e genérico com a mesma descrição, vale o específico);
-  - **escolha complementar**: o fiscal escolhe um dos valores ao usar o item (DTR: etapa de obra,
-    oferecida só quando o item tem etapas).
+- **Comportamento desejado**: o modelo pode dar a um campo um papel na aplicação, e o motor entrega
+  os itens de acordo:
+  - **agrupamento**: o campo organiza a escolha do item em níveis, com ordem própria (fixa, declarada
+    no modelo, ou natural);
+  - **aplicabilidade**: o item só é oferecido quando o valor do campo combina com um valor informado
+    pelo app que aplica; vazio vale para todos; havendo item específico e genérico com o mesmo título,
+    vale o específico;
+  - **escolha complementar**: ao usar o item, o fiscal escolhe um dos valores de um campo "lista de
+    linhas"; o campo só é perguntado quando o item tem valores;
+  - **título**: o campo que identifica o item nas listas e relatórios.
 
-  Os valores dos campos próprios fazem parte da versão do item, aparecem no formulário e na planilha
-  e são versionados com ele. O módulo guarda e entrega os valores; o significado deles é do app da
-  câmara. Declarar ou mudar campos de uma câmara não altera este módulo nem os catálogos das outras.
-- **Comportamento atual**: os campos da DTR são colunas fixas da tabela de tipos (frente, item do
-  PER, rodovia, etapas de obra); a navegação por frente e PER, o filtro por rodovia e a etapa de obra
-  estão fixos no código do registro de ocorrência. Em produção, 35 tipos são de CONSERVAÇÃO, 31 de
-  RECUPERAÇÃO E MANUTENÇÃO, 7 de SERVIÇOS OPERACIONAIS e 6 de MELHORIAS OPERACIONAIS; todos com
-  rodovias "112/306"; 6 têm etapas de obra.
-- **Motivo da diferença**: constituição v2.5.0, "Independência entre apps": o motor comum não pode
-  depender dos apps de câmara, e mudar a DTR não pode exigir mudar o motor.
+  Os valores fazem parte da versão do item. O motor não sabe o que o campo significa.
+- **Comportamento atual**: na DTR, frente, item do PER, rodovia e etapas de obra são colunas fixas da
+  tabela de tipos, e a navegação por frente (em ordem fixa no código) e PER, o filtro por rodovia e a
+  etapa de obra estão fixos no código do registro de ocorrência. Em produção: 35 tipos de
+  CONSERVAÇÃO, 31 de RECUPERAÇÃO E MANUTENÇÃO, 7 de SERVIÇOS OPERACIONAIS e 6 de MELHORIAS
+  OPERACIONAIS; todos com rodovias "112/306"; 6 com etapas de obra.
+- **Motivo da diferença**: constituição v2.5.0, "Independência entre apps": o motor não depende dos
+  apps de câmara.
 - **Objetos do catálogo**: `coluna:tipos_ocorrencia_dtr.frente`, `coluna:tipos_ocorrencia_dtr.item_contrato`,
   `coluna:tipos_ocorrencia_dtr.rodovia`, `coluna:tipos_ocorrencia_dtr.etapas_obra`,
   `indice:idx_tipos_ocorrencia_dtr_rodovia`
 - **Origem**: decisão do responsável, 2026-09-30; constituição v2.5.0.
 
+### R-checklists-015 — Modelo de catálogo registrado pelo app da câmara
+
+- **Comportamento desejado**: o app de fiscalização de uma câmara registra no motor um ou mais
+  modelos de catálogo, cada um com: identificador, app dono, modo de aplicação (R-checklists-012),
+  campos do item (R-checklists-003), respostas e saídas (R-checklists-013), papéis de campo
+  (R-checklists-014) e formato de planilha (R-checklists-006). O motor valida o modelo no registro
+  (campos citados existem, papéis compatíveis com o tipo do campo, chave de importação feita de campos
+  obrigatórios) e recusa o inválido. Um modelo serve a vários catálogos, e câmaras que trabalham da
+  mesma forma podem usar o mesmo modelo. O registro é dado de configuração entregue pelo app na
+  implantação; o motor não importa código do app.
+- **Comportamento atual**: não há modelo; cada lista é uma tabela e uma tela próprias.
+- **Motivo da diferença**: é a peça que permite a cada câmara adaptar o motor às suas necessidades
+  sem mudá-lo (decisão do responsável, 2026-09-30).
+- **Objetos do catálogo**: — (conceito novo; não há objeto no banco)
+- **Origem**: decisão do responsável, 2026-09-30.
+
+### R-checklists-016 — Nada de câmara dentro do motor
+
+- **Comportamento desejado**: o motor não tem tabela, coluna, tela, formato de planilha, texto,
+  identificador ou regra de nenhuma câmara. Suas telas (cadastro de catálogos, formulário de item,
+  importação, histórico) são geradas a partir do modelo. O app de uma câmara que precise de tela
+  própria sobre os catálogos dela a acrescenta pelo registro de telas do core (R-core-025), no app
+  dela. Um teste automatizado falha se o motor citar uma câmara, e outro prova que um app de teste
+  registra um modelo novo e o usa sem mudança no motor.
+- **Comportamento atual**: cada câmara tem tabela, tela e regras próprias no código: tipos de unidade
+  e itens da DSB, tipos de ocorrência da DTR, aba de tipos nas Definições da DTR.
+- **Motivo da diferença**: constituição v2.5.0 (o módulo comum não depende de apps de área, e mudar
+  uma área não exige mudar o comum); decisão do responsável: o motor é um "lego".
+- **Objetos do catálogo**: `tabela:tipos_unidade`, `tabela:itens_checklist`, `tabela:tipos_ocorrencia_dtr`
+- **Origem**: decisão do responsável, 2026-09-30; constituição v2.5.0.
+
+### R-checklists-017 — Mudança de modelo
+
+- **Comportamento desejado**: o modelo tem versões. Mudar o modelo (campo novo, campo retirado,
+  resposta nova, saída mudada, formato de planilha) cria uma versão do modelo e vale só para versões
+  de item criadas depois; cada versão de item guarda a versão do modelo em que foi criada, e as
+  existentes continuam válidas e legíveis como eram. Campo novo obrigatório é exigido na próxima
+  edição de cada item, não de uma vez. Mudar respostas ou saídas vale para registros novos.
+- **Comportamento atual**: não há modelo; mudar um campo exige migração de banco e mudança de tela.
+- **Motivo da diferença**: a câmara ajusta o seu modelo sem invalidar vistorias passadas
+  (Princípio I).
+- **Objetos do catálogo**: — (conceito novo)
+- **Origem**: decisão do responsável, 2026-09-30.
+
+## Modelos de hoje
+
+Configuração que preserva o que o sistema atual faz, a ser registrada pelos apps das câmaras
+(R-checklists-015). Não é parte do motor; a spec de cada câmara a confirma. Enquanto uma câmara não
+tiver app próprio, o modelo dela entra como dado de configuração na implantação.
+
+### Modelo "Checklist por tipo de unidade" (DSB: CATESA e CATERS)
+
+- **Modo**: lista por unidade. Cada tipo de unidade é um catálogo deste modelo (33 em produção).
+- **Campos do item**:
+
+| Campo | Tipo | Regras | Papel | Hoje |
+|---|---|---|---|---|
+| pergunta | texto longo | obrigatório | título | `coluna:itens_checklist.pergunta` |
+| constatação Sim | texto longo | — | — | `coluna:itens_checklist.texto_constatacao_sim` |
+| constatação Não | texto longo | — | — | `coluna:itens_checklist.texto_constatacao_nao` |
+| gera NC | sim/não | padrão sim (como a importação; hoje o formulário começa com não) | — | `coluna:itens_checklist.gera_nc` |
+| dispositivo normativo | texto longo | — | — | `coluna:itens_checklist.artigo_portaria` |
+| texto da NC | texto longo | — | — | `coluna:itens_checklist.texto_nc` |
+| determinação | texto longo | — | — | `coluna:itens_checklist.texto_determinacao` |
+| prazo (dias) | número inteiro | positivo; padrão 30 | — | `coluna:itens_checklist.prazo_dias` |
+| recomendação | texto longo | — | — | `coluna:itens_checklist.texto_recomendacao` |
+
+- **Respostas e saídas**:
+  - Sim → constatação, com "constatação Sim".
+  - Não → constatação, com "constatação Não"; NC, se "gera NC", descrita por "dispositivo normativo"
+    (ou "artigo aplicável" se vazio); determinação com "determinação" e "prazo", se "determinação"
+    preenchida; recomendação com "recomendação", se "determinação" vazia.
+- **Planilha**: serviço, código do tipo, nome do tipo, ordem, pergunta, constatação Sim, constatação
+  Não, dispositivo normativo, determinação, recomendação, texto da NC, prazo. Cria os catálogos que
+  não existem (nome ou código, sem diferenciar maiúsculas, com os serviços da planilha). Chave: catálogo
+  + ordem.
+
+### Modelo "Ocorrências do PER" (DTR)
+
+- **Modo**: registro avulso. Um catálogo em produção (79 tipos).
+- **Campos do item**:
+
+| Campo | Tipo | Regras | Papel | Hoje |
+|---|---|---|---|---|
+| frente | lista de valores | obrigatório | agrupamento, nível 1, ordem fixa | `coluna:tipos_ocorrencia_dtr.frente` |
+| item do PER | texto curto | obrigatório | agrupamento, nível 2, ordem natural | `coluna:tipos_ocorrencia_dtr.item_contrato` |
+| descrição | texto longo | obrigatório | título | `coluna:tipos_ocorrencia_dtr.descricao`, `coluna:tipos_ocorrencia_dtr.nome` |
+| rodovias | texto curto | vazio vale para todas | aplicabilidade (rodovia da fiscalização) | `coluna:tipos_ocorrencia_dtr.rodovia` |
+| cláusula não atendida | texto longo | — | — | `coluna:tipos_ocorrencia_dtr.nao_atendimento` |
+| prazo padrão (dias) | número inteiro | positivo | — | `coluna:tipos_ocorrencia_dtr.prazo_dias_padrao` |
+| observação-padrão | texto longo | — | — | `coluna:tipos_ocorrencia_dtr.observacoes` |
+| etapas de obra | lista de linhas | — | escolha complementar | `coluna:tipos_ocorrencia_dtr.etapas_obra` |
+
+  "Gera NC" (`coluna:tipos_ocorrencia_dtr.gera_nc`) não vira campo: hoje é derivado da cláusula e só
+  aparece como etiqueta; a lista mostra a etiqueta quando a cláusula está preenchida.
+- **Respostas e saídas**: Constatação → constatação, com "descrição" e "observação-padrão"; Não
+  conformidade → NC, com "cláusula não atendida", "prazo padrão" e "observação-padrão". As duas
+  respostas valem para qualquer item; a cláusula e o prazo aparecem ao fiscal na escolha.
+- **Planilha**: rodovia, frente, item do PER, descrição, cláusula não atendida, prazo, etapa de obra.
+  Herança de células vazias em rodovia, frente, item do PER e descrição; junção de linhas com a mesma
+  chave em "etapas de obra". Chave: rodovias + frente + item do PER + descrição. Arquivo modelo com as
+  linhas de exemplo de hoje.
+
 ## Telas do sistema atual
 
 Ações das telas atuais que pertencem a este módulo, no molde `formatos/spec-modulo.md` da spec 003.
-Fonte: `src/pages/` e `src/components/admin/` do sistema atual.
+No sistema novo, as telas de cadastro, formulário, importação e histórico são uma só, gerada pelo
+modelo (R-checklists-016).
 
 ### Tipos de unidade (`src/pages/TiposUnidade.jsx`)
 
@@ -594,7 +670,7 @@ Fonte: `src/pages/` e `src/components/admin/` do sistema atual.
 |---|---|
 | Escolher o tipo (também pelo endereço, vindo de Tipos de unidade) | R-checklists-001 |
 | Listar os itens atuais do tipo, em ordem | R-checklists-004 |
-| Criar e editar item: ordem, pergunta, constatação Sim e Não, "gera NC" (desligado ao criar) e, com NC, dispositivo normativo, determinação e recomendação | R-checklists-003 |
+| Criar e editar item com os campos fixos da DSB | R-checklists-003 (campos do modelo DSB) |
 | Prazo e texto da NC no formulário | R-checklists-003 (a confirmar: o responsável informa que o formulário os edita; o código deste repositório não tem os campos) |
 | Editar mudando a ordem (cria item "novo" e inativa o antigo) | R-checklists-004 |
 | Excluir item digitando "EXCLUIR" (grava versão inativa) | R-checklists-004, R-checklists-009 |
@@ -610,16 +686,17 @@ Fonte: `src/pages/` e `src/components/admin/` do sistema atual.
 | Importar planilha com prévia e confirmação | R-checklists-006 |
 | "Sincronizar" (substitui a cópia do aparelho) | R-checklists-008 |
 | "Limpar base" (apaga todos os tipos, com confirmação) | R-checklists-009 (retirada: revisão completa pela importação com retirada dos ausentes) |
-| Editar ou criar um tipo avulso | R-checklists-003 (nova: não há formulário hoje) |
+| Editar ou criar um tipo avulso | R-checklists-003 (nova: formulário gerado pelo modelo) |
+| Aba separada nas Definições da DTR | R-checklists-016 (as telas do motor servem a qualquer catálogo; a entrada nas Definições é registrada pelo R-core-025) |
 | Aba KML por rodovia | fora: dtr |
 
 ### Registro de ocorrência da DTR (`src/pages/VistoriarOcorrenciaDTR.jsx`), só o que usa o catálogo
 
 | Ação | Regra |
 |---|---|
-| Escolher frente, depois item do PER, depois descrição | R-checklists-014; fora: dtr (o registro) |
-| Tipos filtrados pela rodovia da fiscalização; específico da rodovia vence o genérico | R-checklists-014 |
-| Escolher a etapa de obra, quando o tipo tem etapas | R-checklists-014 |
+| Escolher frente, depois item do PER, depois descrição | R-checklists-014 (agrupamento); fora: dtr (o registro) |
+| Tipos filtrados pela rodovia da fiscalização; específico da rodovia vence o genérico | R-checklists-014 (aplicabilidade) |
+| Escolher a etapa de obra, quando o tipo tem etapas | R-checklists-014 (escolha complementar) |
 | Escolher Constatação ou Não conformidade; ver a cláusula e o prazo | R-checklists-013 |
 | Cópia de frente, item do PER, cláusula e prazo para a ocorrência | R-checklists-005 |
 | Lista de 16 tipos fixa no código quando o aparelho não tem tipos | R-checklists-008 (retirada) |
@@ -636,8 +713,8 @@ Fonte: `src/pages/` e `src/components/admin/` do sistema atual.
 
 ### Measurable Outcomes
 
-- **SC-001**: 100% das vistorias migradas mostram exatamente o texto do checklist que foi respondido
-  na época (conferência de 100% das respostas migradas contra a versão ligada).
+- **SC-001**: 100% das vistorias migradas mostram exatamente o texto que foi respondido na época
+  (conferência de 100% das respostas migradas contra a versão ligada).
 - **SC-002**: Reimportar uma planilha já importada, em qualquer formato, cria 0 versões.
 - **SC-003**: Mudar a ordem de itens cria 0 itens e 0 versões novos.
 - **SC-004**: Em teste com usuários de duas câmaras e um prestador, 0 catálogos ou itens de outra
@@ -645,37 +722,36 @@ Fonte: `src/pages/` e `src/components/admin/` do sistema atual.
 - **SC-005**: O fiscal abre o checklist de qualquer unidade e registra ocorrência com o catálogo da
   sua câmara sem rede, em 100% dos casos.
 - **SC-006**: Os 33 tipos e as 768 versões da DSB e os 79 tipos da DTR chegam ao sistema novo com os
-  mesmos identificadores, conferidos registro a registro, e agrupados nos itens estáveis a que
-  pertencem.
+  mesmos identificadores, conferidos registro a registro, nos catálogos dos modelos de hoje.
 - **SC-007**: 100% das regras de acesso deste módulo têm teste automatizado.
-- **SC-008**: Um catálogo de teste com tipo de resposta e campos próprios novos funciona com 0
-  alterações neste módulo e 0 mudanças no comportamento da DSB e da DTR.
-- **SC-009**: Toda ação das telas atuais do módulo tem regra ou destino em outro módulo (0 `LACUNA`).
+- **SC-008**: Um app de teste registra um modelo com respostas, campos, papéis e planilha próprios e o
+  usa com 0 alterações no motor e 0 mudanças no comportamento dos modelos DSB e DTR.
+- **SC-009**: O código do motor cita 0 câmaras, campos ou formatos de câmara (verificado por teste).
+- **SC-010**: Toda ação das telas atuais do módulo tem regra ou destino em outro módulo (0 `LACUNA`).
 
 ## Assumptions
 
-- **Migração das versões da DSB**: cada uma das 768 linhas vira uma versão, com o mesmo
-  identificador (as respostas das vistorias apontam para ele). As linhas são agrupadas em itens
-  estáveis pela chave atual (tipo mais ordem, ou pergunta), ordenadas por data; a vigência de cada
-  versão vai da data dela até a da seguinte. Versões idênticas à anterior (reimportação) são
-  mantidas, porque podem ter respostas ligadas, e marcadas como repetição no histórico.
-- **Migração da DTR**: os 79 tipos viram os itens do catálogo de ocorrências da DTR, cada um com uma
-  versão, com o mesmo identificador e vigência desde a data de importação. As ocorrências já
-  registradas são ligadas ao item pela frente, item do PER e descrição (a spec da DTR define o que
-  fazer quando não casar); os textos copiados nelas continuam valendo como registro da época.
-- **Serviços dos catálogos**: os valores de hoje (textos) são convertidos para os serviços do core;
-  "Abastecimento de Água" e "Esgotamento Sanitário" juntos são ambos da CATESA, então os 3 tipos com
-  os dois continuam válidos. O catálogo da DTR recebe o serviço de rodovias, e a câmara dele é a que o
-  responsável definir para esse serviço na carga da referência (R-core-014).
-- **Um catálogo de ocorrências por câmara**: a DTR tem hoje um catálogo; concessões diferentes se
-  distinguem pelas rodovias dos itens (R-checklists-014). Se a DTR precisar de um catálogo por
-  contrato, é um catálogo a mais, sem mudar o motor.
+- **Quem registra os modelos de hoje**: o modelo "Ocorrências do PER" é do app da DTR; o modelo
+  "Checklist por tipo de unidade" é usado pela CATESA e pela CATERS e é registrado pelo app da câmara
+  que primeiro for construído (ou como dado de configuração, se a fiscalização da DSB entrar antes de
+  um app de câmara). Em nenhum caso ele fica no motor nem no app de fiscalização comum.
+- **Migração da DSB**: cada uma das 768 linhas vira uma versão de item de um catálogo do modelo DSB,
+  com o mesmo identificador (as respostas apontam para ele). As linhas são agrupadas em itens estáveis
+  pela chave atual (tipo mais ordem, ou pergunta), ordenadas por data; a vigência vai da data da
+  linha até a da seguinte. Versões idênticas à anterior são mantidas, porque podem ter respostas
+  ligadas, e marcadas como repetição no histórico.
+- **Migração da DTR**: os 79 tipos viram itens do catálogo do modelo DTR, cada um com uma versão, com
+  o mesmo identificador. As ocorrências já registradas são ligadas ao item pela frente, item do PER e
+  descrição (a spec da DTR define o que fazer quando não casar); os textos copiados nelas continuam
+  valendo como registro da época.
+- **Serviços dos catálogos**: os valores de hoje (textos) são convertidos para os serviços do core; os
+  3 tipos com água e esgoto continuam válidos (ambos da CATESA). O catálogo da DTR recebe o serviço de
+  rodovias, e a câmara dele é a que o responsável definir para esse serviço (R-core-014).
 - **Tipos sem itens**: os 3 tipos de produção sem itens são migrados e ficam indisponíveis para
   unidade nova até terem itens.
-- **DGE**: não tem catálogo hoje; o motor a atende quando o app dela declarar os catálogos
-  (User Story 5).
-- **Planilhas**: os formatos de colunas de hoje (DSB e DTR) são mantidos para a equipe não refazer as
-  planilhas; a DSB ganha o modelo para baixar.
+- **DGE**: não tem catálogo hoje; o app dela registra o modelo quando vier.
+- **Planilhas**: os formatos de hoje (DSB e DTR) são mantidos nos modelos, para a equipe não refazer
+  as planilhas; a DSB ganha o arquivo modelo para baixar.
 - **Prazo e texto da NC no formulário da DSB**: a divergência entre o relato do responsável e o
-  código deste repositório (R-checklists-003) é conferida na tela de produção antes do plano; não
-  muda o comportamento desejado.
+  código deste repositório (R-checklists-003) é conferida na tela de produção; não muda o
+  comportamento desejado, porque o formulário gerado pelo modelo mostra todos os campos.

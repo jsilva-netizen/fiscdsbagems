@@ -1,4 +1,4 @@
-# Specification Quality Checklist: Módulo checklists — motor de verificação comum às câmaras
+# Specification Quality Checklist: Módulo checklists — motor genérico de verificação
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-09-30
@@ -53,4 +53,10 @@
   confirmar** sem bloquear o plano: o responsável informa que o formulário de item da DSB edita prazo
   e texto da NC, e o código deste repositório não tem esses campos (R-checklists-003). O comportamento
   desejado (todos os campos editáveis) não depende da conferência.
+- **Iteração 3 (2026-09-30), motor como "lego"**: o responsável pediu que o módulo não tenha nada
+  chumbado de nenhuma câmara. As regras passaram a descrever só peças genéricas; os campos, respostas,
+  saídas e planilhas da DSB e da DTR saíram das regras para a seção "Modelos de hoje", como
+  configuração registrada pelos apps das câmaras. Regras novas: R-checklists-015 (modelo registrado
+  pelo app), 016 (nada de câmara no motor, com teste) e 017 (mudança de modelo). Chaves: as mesmas 72,
+  com os 61 objetos do módulo citados.
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`.

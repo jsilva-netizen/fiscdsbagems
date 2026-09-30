@@ -16,7 +16,7 @@ Violações: 0 · sem justificativa: 0.
 ## 2. Checklists
 
 - **Id**: `checklists` · **App**: checklists · **Spec**: LACUNA
-- **Observação**: Motor de verificação comum a todas as câmaras: checklists por tipo de unidade (DSB) e catálogo de tipos de ocorrência (DTR), versionados; campos próprios de cada câmara são extensões do app dela (spec 005).
+- **Observação**: Motor genérico de verificação ("lego"): catálogos, itens versionados, campos, respostas, saídas, importação e cópia offline, sem nada de nenhuma câmara; cada app de câmara registra o seu modelo de catálogo (DSB: checklist por tipo de unidade; DTR: ocorrências do PER). Spec 005.
 - **Objetos** (61): Tabelas: 3 · Colunas: 35 · Restrições: 4 · Índices: 3 · Gatilhos: 1 · Políticas de acesso: 6 · Privilégios: 9
 - **Depende de**: `core`
 

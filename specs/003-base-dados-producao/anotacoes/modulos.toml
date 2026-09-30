@@ -16,7 +16,7 @@ nome = "Checklists"
 ordem = 2
 app = "checklists"
 spec = ""
-observacao = "Motor de verificação comum a todas as câmaras: checklists por tipo de unidade (DSB) e catálogo de tipos de ocorrência (DTR), versionados; campos próprios de cada câmara são extensões do app dela (spec 005)."
+observacao = "Motor genérico de verificação (\"lego\"): catálogos, itens versionados, campos, respostas, saídas, importação e cópia offline, sem nada de nenhuma câmara; cada app de câmara registra o seu modelo de catálogo (DSB: checklist por tipo de unidade; DTR: ocorrências do PER). Spec 005."
 
 [[modulo]]
 id = "planejamento"
