@@ -693,16 +693,18 @@ da spec 003 (`specs/003-base-dados-producao/catalogo/`).
   deles e os papéis dessas áreas (ex.: servidor do RH que consulta o planejamento aprovado para lançar
   a folha de ponto; servidor do financeiro que lança as diárias; servidor de frotas que reserva os
   veículos). O administrador cadastra esses usuários como os demais (R-core-001), com a verificação
-  por código (R-core-005). Cada app define o que os papéis dele alcançam; acrescentar uma área ou um
-  papel não muda o que os papéis existentes alcançam, e o isolamento por câmara (R-core-011) continua
-  valendo para os dados de fiscalização.
+  por código (R-core-005). Os apps são do mesmo sistema e consultam os mesmos dados: cada área, na sua
+  tela, vê o que o papel dela permite (o RH, o financeiro e frotas veem o planejamento aprovado). Cada
+  dado tem um app dono, que define quem cria e altera; os outros apps leem e só alteram pelas regras do
+  dono. Acrescentar uma área ou um papel não muda o que os papéis existentes alcançam, e o isolamento
+  por câmara (R-core-011) continua valendo para os dados de fiscalização.
 - **Comportamento atual**: os papéis são fixos (cinco), e só diretorias e câmaras técnicas organizam
   os usuários.
 - **Motivo da diferença**: decisão do responsável (2026-09-30): o sistema nasce preparado para receber
   apps de outras áreas, interligados; o planejamento de fiscalizações, aprovado pelo diretor, segue
   para RH, financeiro e frotas.
 - **Objetos do catálogo**: `coluna:profiles.role`, `tabela:diretorias`, `tabela:camaras_tecnicas`
-- **Origem**: decisão do responsável em 2026-09-30.
+- **Origem**: decisão do responsável em 2026-09-30; constituição v2.3.0, "Extensão para outras áreas".
 
 ### R-core-024 — Credenciais de sistema para integrações
 

@@ -111,6 +111,9 @@ O sistema é modularizado ao máximo, em apps Django:
   fiscalizadas, respostas de checklist, não conformidades, constatações, determinações,
   recomendações e evidências fotográficas —, incluindo a operação offline.
 - **checklists**: o motor de checklists, comum a todas as câmaras.
+- **planejamento**: o planejamento anual de fiscalizações — municípios, concessões ou rodovias a
+  fiscalizar, equipe, datas, veículos e diárias —, elaborado pelo coordenador, aprovado pelo
+  diretor, consultado pelos fiscais e usado pelas áreas pertinentes.
 - **um app por diretoria/câmara técnica**: as especificidades de cada uma (ex.: DTR com mapa e
   KML) e o layout próprio de relatórios.
 - **processo sancionador**: autos de infração, termos de notificação, análise da manifestação
@@ -125,6 +128,22 @@ de uma câmara MUST NOT vazar para os apps comuns.
 CATESA) não é migrada nem refeita no sistema novo (decisão do responsável em 2026-09-30,
 achado A-039 da spec 003). Funcionalidade de IA só entra no sistema novo por nova decisão,
 tomada pelo fluxo de assessment e registrada em emenda a esta constituição.
+
+**Extensão para outras áreas**
+
+O sistema é um só, com um banco único, e MUST nascer preparado para receber apps de outras
+áreas da agência (ex.: RH, financeiro, frotas):
+
+- Cada área ganha um app no mesmo sistema, com telas próprias, e consulta os mesmos dados dos
+  demais apps, conforme as permissões do papel de quem acessa. Ex.: o coordenador lança o
+  planejamento, o diretor aprova, e RH, financeiro e frotas veem o planejamento aprovado, cada
+  um na sua tela, para lançar a folha de ponto, as diárias e a reserva de veículos.
+- Todo dado tem um app dono, que define as regras de criação e alteração. Os outros apps leem o
+  dado e só o alteram pelas regras do app dono; nenhum app mantém cópia própria de dado de
+  outro.
+- Áreas e papéis novos entram no `core` sem alterar o que os papéis existentes alcançam, e o
+  isolamento entre câmaras técnicas continua valendo para os dados de fiscalização.
+- Sistemas externos integram por API, com credencial própria de sistema, limitada e auditada.
 
 **Fronteiras de domínio**
 
@@ -205,4 +224,4 @@ constituição. Complexidade que viole o Princípio V MUST ser justificada por e
 removida. Violação de princípio marcado NÃO NEGOCIÁVEL bloqueia a entrega, sem exceção
 por prazo.
 
-**Version**: 2.2.0 | **Ratified**: 2026-09-18 | **Last Amended**: 2026-09-30
+**Version**: 2.3.0 | **Ratified**: 2026-09-18 | **Last Amended**: 2026-09-30
