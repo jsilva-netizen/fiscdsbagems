@@ -45,6 +45,15 @@ Tabela única: chave, tipo, módulo dono ou classificação fora do escopo, spec
 `LACUNA`). Ordenada por módulo e tipo. No topo, contagens: total, com dono, fora do escopo, sem
 atribuição (meta 0 — SC-002), em lacuna.
 
+## `migracao.md`
+
+Mapa de migração: no topo, as contagens de pendentes (meta 0), módulos sem mapa e destinos não
+verificados, e uma tabela por módulo (colunas e repositórios, com destino, descartados, pendentes).
+Depois, uma seção por módulo com mapa, com cada coluna ou repositório, o volume em produção
+(linhas da tabela ou arquivos), o destino e a transformação ou o motivo do descarte. Em seguida, a
+lista dos módulos sem mapa, os objetos fora do escopo (descartados, com o volume) e os destinos não
+verificados.
+
 ## `ordem-modulos.md`
 
 Módulos na ordem, cada um com: app da constituição, objetos que possui (contagem por tipo),

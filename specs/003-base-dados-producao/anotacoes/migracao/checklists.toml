@@ -1,0 +1,129 @@
+# Mapa de migração do módulo checklists (spec 005). A spec ainda não tem data-model: os destinos
+# usam os nomes das entidades da spec (Catalogo, Item, VersaoItem, com os valores dos campos do
+# modelo em VersaoItem.valores) e ficam "não verificados" até o plano da spec 005.
+modulo = "checklists"
+notas = [
+  "Cada tipo de unidade vira um catálogo do modelo 'Checklist por tipo de unidade' da câmara dos seus serviços (CATESA ou CATERS); os tipos de ocorrência da DTR viram os itens de um catálogo criado na migração, do modelo 'Ocorrências do PER' da CATERF (spec 005, 'Modelos de hoje').",
+  "As 768 linhas de `itens_checklist` viram versões com o mesmo identificador (as respostas das vistorias apontam para ele), agrupadas em itens estáveis pela chave atual (tipo + ordem, ou pergunta), com vigência da data da linha até a da seguinte; versões idênticas à anterior são mantidas e marcadas como repetição (spec 005, premissa 'Migração da DSB').",
+  "Os 79 tipos de ocorrência viram itens com uma versão cada, com o mesmo identificador no item e na versão (spec 005, premissa 'Migração da DTR'). As colunas frente, item do PER, rodovia e etapas de obra são da DTR e entram no mapa dela.",
+]
+
+# --- tipos de unidade → catálogos ---------------------------------------------------------
+
+[destino."coluna:tipos_unidade.id"]
+para = "checklists.Catalogo.id"
+
+[destino."coluna:tipos_unidade.nome"]
+para = "checklists.Catalogo.nome"
+transformacao = "Nome repetido sem diferenciar maiúsculas é resolvido na tabela de ajustes antes da carga."
+
+[destino."coluna:tipos_unidade.codigo"]
+para = "checklists.Catalogo.codigo"
+transformacao = "Código vazio ou repetido (hoje é opcional e não único) é completado ou ajustado na tabela de ajustes antes da carga (R-checklists-001)."
+
+[destino."coluna:tipos_unidade.servicos_aplicaveis"]
+para = ["checklists.Catalogo.servicos", "checklists.Catalogo.modelo"]
+transformacao = "Cada texto vira o serviço do core ('Drenagem' da tela = drenagem urbana). Os serviços definem a câmara e, com ela, o modelo da câmara."
+
+[destino."coluna:tipos_unidade.ativo"]
+para = "checklists.Catalogo.ativo"
+
+[destino."coluna:tipos_unidade.created_at"]
+para = "checklists.Catalogo.criado_em"
+
+# --- itens do checklist → itens e versões ------------------------------------------------
+
+[destino."coluna:itens_checklist.id"]
+para = "checklists.VersaoItem.id"
+transformacao = "Mesmo identificador; o item estável ganha identificador novo, e o agrupamento vai para o relatório de conferência."
+
+[destino."coluna:itens_checklist.tipo_unidade_id"]
+para = "checklists.Item.catalogo"
+
+[destino."coluna:itens_checklist.ordem"]
+para = "checklists.Item.ordem"
+transformacao = "A ordem da versão mais recente vira a ordem do item; é também parte da chave de agrupamento."
+
+[destino."coluna:itens_checklist.pergunta"]
+para = "checklists.VersaoItem.valores.pergunta"
+
+[destino."coluna:itens_checklist.texto_constatacao_sim"]
+para = "checklists.VersaoItem.valores.constatacao_sim"
+
+[destino."coluna:itens_checklist.texto_constatacao_nao"]
+para = "checklists.VersaoItem.valores.constatacao_nao"
+
+[destino."coluna:itens_checklist.gera_nc"]
+para = "checklists.VersaoItem.valores.gera_nc"
+
+[destino."coluna:itens_checklist.artigo_portaria"]
+para = "checklists.VersaoItem.valores.dispositivo_normativo"
+
+[destino."coluna:itens_checklist.texto_nc"]
+para = "checklists.VersaoItem.valores.texto_nc"
+
+[destino."coluna:itens_checklist.texto_determinacao"]
+para = "checklists.VersaoItem.valores.determinacao"
+
+[destino."coluna:itens_checklist.prazo_dias"]
+para = "checklists.VersaoItem.valores.prazo_dias"
+
+[destino."coluna:itens_checklist.texto_recomendacao"]
+para = "checklists.VersaoItem.valores.recomendacao"
+
+[destino."coluna:itens_checklist.ativo"]
+para = "checklists.VersaoItem.vigente_ate"
+transformacao = "`false` marca exclusão: encerra a vigência do item. Em produção as 768 linhas estão com `true`; a vigência de cada versão vem do agrupamento (R-checklists-004)."
+
+[destino."coluna:itens_checklist.created_at"]
+para = ["checklists.VersaoItem.vigente_desde", "checklists.VersaoItem.criado_em"]
+
+[destino."coluna:itens_checklist.created_by"]
+descarte = "Campo herdado do app de origem, vazio em todas as linhas (R-checklists-011); a autoria das versões migradas fica em branco, e as novas registram o autor (R-checklists-010)."
+
+[destino."coluna:itens_checklist.created_by_id"]
+descarte = "Campo herdado do app de origem, vazio em todas as linhas (R-checklists-011)."
+
+[destino."coluna:itens_checklist.created_date"]
+descarte = "Cópia de `created_at` (R-checklists-011); conferida contra ele antes do descarte."
+
+[destino."coluna:itens_checklist.updated_date"]
+descarte = "Campo herdado sem uso (R-checklists-011)."
+
+[destino."coluna:itens_checklist.is_sample"]
+descarte = "Marcador de exemplo, `false` nas 768 linhas (R-checklists-011)."
+
+# --- tipos de ocorrência da DTR (parte genérica) → itens e versões ------------------------
+
+[destino."coluna:tipos_ocorrencia_dtr.id"]
+para = ["checklists.Item.id", "checklists.VersaoItem.id"]
+
+[destino."coluna:tipos_ocorrencia_dtr.descricao"]
+para = "checklists.VersaoItem.valores.descricao"
+
+[destino."coluna:tipos_ocorrencia_dtr.nome"]
+para = "checklists.VersaoItem.valores.descricao"
+transformacao = "A importação grava a descrição como nome; o nome só é usado quando a descrição está vazia (nesse caso ele é o item do PER ou a frente)."
+
+[destino."coluna:tipos_ocorrencia_dtr.nao_atendimento"]
+para = "checklists.VersaoItem.valores.clausula_nao_atendida"
+
+[destino."coluna:tipos_ocorrencia_dtr.prazo_dias_padrao"]
+para = "checklists.VersaoItem.valores.prazo_padrao"
+
+[destino."coluna:tipos_ocorrencia_dtr.observacoes"]
+para = "checklists.VersaoItem.valores.observacao_padrao"
+
+[destino."coluna:tipos_ocorrencia_dtr.gera_nc"]
+descarte = "Derivado: verdadeiro quando o tipo tem cláusula não atendida (51 de 79), e não vira campo do modelo DTR (spec 005, 'Modelos de hoje'). A migração confere que a regra vale para as 79 linhas antes do descarte."
+
+[destino."coluna:tipos_ocorrencia_dtr.ativo"]
+para = "checklists.VersaoItem.vigente_ate"
+transformacao = "Os 79 estão ativos: versões sem fim de vigência."
+
+[destino."coluna:tipos_ocorrencia_dtr.created_at"]
+para = "checklists.Item.criado_em"
+
+[destino."coluna:tipos_ocorrencia_dtr.updated_at"]
+para = "checklists.VersaoItem.vigente_desde"
+transformacao = "A versão 1 vale desde a última alteração registrada."

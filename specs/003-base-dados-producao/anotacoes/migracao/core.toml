@@ -1,0 +1,224 @@
+# Mapa de migração do módulo core (spec 004). Destinos conferidos contra o data-model.
+modulo = "core"
+data_model = "specs/004-modulo-core/data-model.md"
+notas = [
+  "Contas de autenticação (fora do catálogo; inventário, seção `autenticacao`): produção tem 8 contas e 7 perfis. O e-mail vem do perfil; a conta sem perfil é decidida na tabela de ajustes antes da carga (tarefa T086). Senhas não são migradas: cada usuário faz o primeiro acesso com código (R-core-005).",
+  "Tabela de ajustes preenchida pelo responsável antes da carga (T086): câmara dos coordenadores e fiscais sem câmara, conta sem perfil e registros de teste do A-002.",
+  "Serviços (`core.Servico`) e papéis (`core.Papel`) são carregados como referência, não migrados de uma coluna; os textos de `tipo_servico` e `role` são convertidos para eles.",
+  "CATERM e CATESG (2 das 12 câmaras) não são migradas (A-010); nenhum registro as referencia.",
+]
+
+# --- diretorias e câmaras ---------------------------------------------------------------
+
+[destino."coluna:diretorias.id"]
+para = "core.Diretoria.id"
+
+[destino."coluna:diretorias.nome"]
+para = "core.Diretoria.nome"
+
+[destino."coluna:camaras_tecnicas.id"]
+para = "core.CamaraTecnica.id"
+transformacao = "Só as 10 câmaras em uso; `caterm` e `catesg` ficam de fora (A-010)."
+
+[destino."coluna:camaras_tecnicas.nome"]
+para = "core.CamaraTecnica.nome"
+
+[destino."coluna:camaras_tecnicas.diretoria_id"]
+para = "core.CamaraTecnica.diretoria"
+
+# --- municípios --------------------------------------------------------------------------
+
+[destino."coluna:municipios.id"]
+para = "core.Municipio.id"
+
+[destino."coluna:municipios.nome"]
+para = "core.Municipio.nome"
+
+[destino."coluna:municipios.codigo_ibge"]
+para = "core.Municipio.codigo_ibge"
+
+[destino."coluna:municipios.created_at"]
+para = ["core.Municipio.criado_em", "core.Municipio.atualizado_em"]
+
+# --- usuários ----------------------------------------------------------------------------
+
+[destino."coluna:profiles.id"]
+para = "core.Usuario.id"
+
+[destino."coluna:profiles.email"]
+para = "core.Usuario.email"
+transformacao = "Minúsculas; se divergir do e-mail da conta de autenticação, vale o da conta, e a divergência vai para o relatório de conferência."
+
+[destino."coluna:profiles.full_name"]
+para = "core.Usuario.nome"
+
+[destino."coluna:profiles.role"]
+para = "core.Usuario.papel"
+transformacao = "Texto convertido para o papel do core (admin, coordenador, fiscal, diretor, prestador). Valor fora dessa lista (ex.: o padrão 'user') é decidido na tabela de ajustes; produção tem só admin, fiscal e prestador."
+
+[destino."coluna:profiles.diretoria_id"]
+para = "core.Usuario.diretoria"
+transformacao = "Prestador fica sem diretoria (R-core-003)."
+
+[destino."coluna:profiles.camara_tecnica_id"]
+para = "core.Usuario.camara"
+transformacao = "Coordenador e fiscal sem câmara recebem a câmara da tabela de ajustes. Em produção, os 4 fiscais têm câmara (2 CATESA, 2 CATERF); os 3 perfis sem câmara são os 2 administradores e o prestador, que não levam câmara (R-core-003)."
+
+[destino."coluna:profiles.prestador_servico_id"]
+para = "core.Usuario.entidade"
+transformacao = "Único lugar do vínculo (R-core-004); conferido contra `prestadores_servico.user_id`."
+
+[destino."coluna:profiles.ativo"]
+para = "core.Usuario.ativo"
+
+[destino."coluna:profiles.created_at"]
+para = "core.Usuario.criado_em"
+
+[destino."coluna:profiles.updated_at"]
+para = "core.Usuario.atualizado_em"
+
+# --- entidades reguladas -----------------------------------------------------------------
+
+[destino."coluna:prestadores_servico.id"]
+para = "core.Entidade.id"
+
+[destino."coluna:prestadores_servico.nome"]
+para = "core.Entidade.nome"
+
+[destino."coluna:prestadores_servico.razao_social"]
+para = "core.Entidade.razao_social"
+
+[destino."coluna:prestadores_servico.cnpj"]
+para = "core.Entidade.cnpj"
+transformacao = "Só dígitos. CNPJ repetido ou com dígito verificador inválido é carregado e marcado como legado no relatório de conferência, para a equipe corrigir (não é recusado)."
+
+[destino."coluna:prestadores_servico.tipo_entidade"]
+para = "core.Entidade.natureza"
+transformacao = "'Concessionária' e 'Órgão ou Entidade Pública' viram os dois valores de natureza."
+
+[destino."coluna:prestadores_servico.tipo_servico"]
+para = "core.Entidade.servicos"
+transformacao = "Cada texto vira o serviço do core ('Drenagem Urbana' incluída, A-021)."
+
+[destino."coluna:prestadores_servico.endereco"]
+para = "core.Entidade.endereco"
+
+[destino."coluna:prestadores_servico.cidade"]
+para = "core.Entidade.cidade"
+
+[destino."coluna:prestadores_servico.estado"]
+para = "core.Entidade.estado"
+
+[destino."coluna:prestadores_servico.cep"]
+para = "core.Entidade.cep"
+
+[destino."coluna:prestadores_servico.responsavel"]
+para = "core.Entidade.responsavel"
+
+[destino."coluna:prestadores_servico.cargo"]
+para = "core.Entidade.cargo"
+
+[destino."coluna:prestadores_servico.email_contato"]
+para = "core.Entidade.email_contato"
+
+[destino."coluna:prestadores_servico.telefone"]
+para = "core.Entidade.telefone"
+
+[destino."coluna:prestadores_servico.website"]
+para = "core.Entidade.website"
+transformacao = "Texto vazio vira nulo (5 entidades)."
+
+[destino."coluna:prestadores_servico.observacoes"]
+para = "core.Entidade.observacoes"
+
+[destino."coluna:prestadores_servico.logo_url"]
+para = "core.Entidade.logotipo"
+transformacao = "Endereço do repositório `logos-entidades` vira a chave do arquivo copiado para o repositório público; imagem gravada como base64 é convertida em arquivo (A-008)."
+
+[destino."coluna:prestadores_servico.ativo"]
+para = "core.Entidade.ativa"
+transformacao = "Situação única: ativa se `ativo` for verdadeiro e `status` for 'ativa' (produção: as 9 nos dois); divergência vai para o relatório."
+
+[destino."coluna:prestadores_servico.status"]
+para = "core.Entidade.ativa"
+transformacao = "Ver `ativo`: os dois campos viram um só (R-core-016)."
+
+[destino."coluna:prestadores_servico.tipo"]
+descarte = "Classificação que nenhuma tela usa (R-core-016, A-003). Valores em produção: 'prestador_servico' em 3 entidades, 'titular' em 1, vazio em 5; o relatório de migração lista os valores descartados."
+
+[destino."coluna:prestadores_servico.user_id"]
+para = "core.Usuario.entidade"
+transformacao = "Não é carregado à parte: serve para conferir o vínculo de `profiles.prestador_servico_id` (R-core-004); divergência vai para o relatório."
+
+[destino."coluna:prestadores_servico.documentos"]
+para = ["core.DocumentoEntidade.nome", "core.DocumentoEntidade.arquivo", "core.DocumentoEntidade.enviado_em"]
+transformacao = "Cada item da lista vira um documento (R-core-018). Em produção as listas não têm documento de entidade."
+
+[destino."coluna:prestadores_servico.created_at"]
+para = "core.Entidade.criado_em"
+
+[destino."coluna:prestadores_servico.updated_at"]
+para = "core.Entidade.atualizado_em"
+
+# --- contratos (parte do core; rodovia e traçado são da DTR) -----------------------------
+
+[destino."coluna:contratos.id"]
+para = "core.Contrato.id"
+
+[destino."coluna:contratos.numero_contrato"]
+para = "core.Contrato.numero"
+
+[destino."coluna:contratos.prestador_servico_id"]
+para = "core.Contrato.entidade"
+
+[destino."coluna:contratos.ativo"]
+para = "core.Contrato.vigente"
+
+[destino."coluna:contratos.created_at"]
+para = "core.Contrato.criado_em"
+
+[destino."coluna:contratos.updated_at"]
+para = "core.Contrato.atualizado_em"
+
+# --- auditoria ---------------------------------------------------------------------------
+
+[destino."coluna:audit_logs.id"]
+para = "core.RegistroAuditoria.id"
+
+[destino."coluna:audit_logs.table_name"]
+para = "core.RegistroAuditoria.tabela"
+transformacao = "Nome da tabela atual, mantido como está (data-model)."
+
+[destino."coluna:audit_logs.record_id"]
+para = "core.RegistroAuditoria.registro_id"
+
+[destino."coluna:audit_logs.action"]
+para = "core.RegistroAuditoria.operacao"
+transformacao = "INSERT, UPDATE e DELETE viram inclusão, alteração e exclusão."
+
+[destino."coluna:audit_logs.user_id"]
+para = ["core.RegistroAuditoria.autor", "core.RegistroAuditoria.autor_nome"]
+transformacao = "Autor pelo id; o nome é o do perfil no momento da migração, porque o registro atual não o guarda."
+
+[destino."coluna:audit_logs.user_email"]
+para = "core.RegistroAuditoria.autor_email"
+
+[destino."coluna:audit_logs.old_data"]
+para = "core.RegistroAuditoria.dados_antes"
+
+[destino."coluna:audit_logs.new_data"]
+para = "core.RegistroAuditoria.dados_depois"
+transformacao = "Com `old_data`, também dá a câmara do registro auditado (campo `camara`), quando a tabela tem câmara."
+
+[destino."coluna:audit_logs.created_at"]
+para = "core.RegistroAuditoria.criado_em"
+
+# --- repositórios de arquivos ------------------------------------------------------------
+
+[destino."bucket:logos-entidades"]
+para = "core.Entidade.logotipo"
+transformacao = "Os 7 arquivos são copiados para o repositório público com chave nova (UUID), conferidos por checksum."
+
+[destino."bucket:documentos-prestadores"]
+para = ["core.DocumentoEntidade.arquivo", "caters.DocumentoProcesso.arquivo"]
+transformacao = "Arquivos em `<entidade>/...` viram documentos de entidade (nenhum em produção); os 4 em `caters/<processo>/...` vão para o app da CATERS, conferidos por checksum."

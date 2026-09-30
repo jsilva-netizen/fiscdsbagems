@@ -21,6 +21,11 @@ que confere se toda ação que o usuário faz hoje nas telas do módulo tem regr
    O catálogo cobre o banco; as telas cobrem o que o banco não mostra (botões, filtros,
    confirmações, campos que a tela oferece ou esconde).
 6. As jornadas ([molde](./jornada.md)) citam as regras pelo identificador.
+7. Com o data-model do plano, crie ou complete `anotacoes/migracao/<módulo>.toml`: o destino de
+   cada coluna e repositório de arquivos do módulo, ou o motivo do descarte (formato em
+   [contracts/anotacoes.md](../contracts/anotacoes.md)). O gerador confere os destinos contra o
+   data-model, e a meta é 0 pendentes em [migracao.md](../migracao.md). A seção "Migração" da spec
+   diz o critério de sucesso: mesmos identificadores, valores conferidos e arquivos por checksum.
 
 ## Bloco de regra
 

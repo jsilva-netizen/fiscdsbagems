@@ -52,8 +52,12 @@ Esperado: retorno 0 e, na última linha, o resumo de completude. Ao final do tra
 | divergências não classificadas | 0 | SC-003 |
 | violações de ordem sem justificativa | 0 | SC-008 |
 | achados aguardando decisão | 0 antes da 1ª spec de módulo | SC-006 |
+| colunas e repositórios sem destino de migração | 0 em todo módulo com mapa | Princípio I (constituição) |
+| módulos sem mapa de migração | 0 antes da virada | Princípio I (constituição) |
 
-Durante o trabalho, esses números mostram o progresso.
+Durante o trabalho, esses números mostram o progresso. O mapa de migração ([migracao.md](./migracao.md))
+é acrescentado depois da conclusão da spec 003 (2026-09-30): cada spec de módulo cria o mapa do
+seu módulo ([formatos/spec-modulo.md](./formatos/spec-modulo.md), passo 7).
 
 ## 4. Regeneração estável
 

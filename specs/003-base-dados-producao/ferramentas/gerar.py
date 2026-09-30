@@ -16,6 +16,7 @@ from ferramentas import anotacoes as anot_mod
 from ferramentas import inventario as inv_mod
 from ferramentas import paginas
 from ferramentas.dependencias import extrair
+from ferramentas import migracao as migracao_mod
 from ferramentas.divergencias import comparar
 from ferramentas.divergencias import validar_anotacoes as validar_divergencias
 from ferramentas.modulos import analisar as analisar_modulos
@@ -27,7 +28,8 @@ PADRAO_MIGRATIONS = "specs/003-base-dados-producao/inventario"
 
 # Tudo dentro destas pastas é gerado: arquivo que não for mais produzido é apagado.
 PASTAS_GERADAS = ("catalogo",)
-ARQUIVOS_GERADOS_NA_RAIZ = ("mapa-rastreabilidade.md", "ordem-modulos.md", "divergencias.md", "achados.md")
+ARQUIVOS_GERADOS_NA_RAIZ = ("mapa-rastreabilidade.md", "ordem-modulos.md", "divergencias.md", "achados.md",
+                            "migracao.md")
 
 ROTULO_TIPO = {
     "tabela": "Tabelas", "view": "Views", "coluna": "Colunas", "restricao": "Restrições", "indice": "Índices",
@@ -42,7 +44,7 @@ ROTULO_TIPO = {
 class Contexto:
     """Tudo o que as páginas precisam, calculado uma vez."""
 
-    def __init__(self, inv, anot, fonte: str, divergencias=None, migrations=None):
+    def __init__(self, inv, anot, fonte: str, divergencias=None, migrations=None, migracao=None):
         self.inv = inv
         self.anot = anot
         self.fonte = fonte
@@ -55,6 +57,8 @@ class Contexto:
         self.modulos = analisar_modulos(inv, anot, self.grafo)
         self.violacoes = self.modulos.nao_justificadas
         self.aguardando = sum(1 for a in anot.achados if a.get("situacao") == "aguardando_decisao")
+        # Mapa de migração: sem pasta de anotações informada, todos os módulos ficam "sem mapa".
+        self.migracao = migracao or migracao_mod.analisar(inv, anot, Path("/inexistente"))
         # Índices usados pelas páginas.
         self.colunas = defaultdict(list)
         for c in sorted(inv.secoes.get("colunas", []), key=lambda c: (c["tabela"], c["posicao"])):
@@ -76,7 +80,9 @@ class Contexto:
     def resumo(self) -> str:
         return (f"Completude: {len(self.sem_anotacao)} objetos sem anotação | {len(self.sem_dono)} sem dono | "
                 f"{self.nao_classificadas} divergências não classificadas | {self.violacoes} violações de ordem | "
-                f"{self.aguardando} achados aguardando decisão")
+                f"{self.aguardando} achados aguardando decisão | "
+                f"{len(self.migracao.pendentes)} sem destino de migração | "
+                f"{len(self.migracao.sem_mapa)} módulos sem mapa de migração")
 
 
 def _readme(ctx: Contexto) -> str:
@@ -138,6 +144,7 @@ def documentos(ctx: Contexto) -> dict[str, str]:
     docs["mapa-rastreabilidade.md"] = paginas.pagina_mapa(ctx.inv, ctx.anot, ctx.modulos, ctx.aviso(), ROTULO_TIPO)
     docs["ordem-modulos.md"] = paginas.pagina_ordem(ctx.inv, ctx.anot, ctx.modulos, ctx.aviso(), ROTULO_TIPO)
     docs["achados.md"] = paginas.pagina_achados(ctx.anot.achados, ctx.aviso())
+    docs["migracao.md"] = paginas.pagina_migracao(ctx.migracao, ctx.anot, ctx.aviso())
     if ctx.migrations is not None:
         cabecalho = (f"Produção: inventário de {ctx.inv.data or '(data desconhecida)'}. Migrations: inventário de "
                      f"{ctx.migrations.data or '(data desconhecida)'}, do banco local reconstruído "
@@ -212,7 +219,11 @@ def main(argv=None) -> int:
             print("Anotação inválida:\n" + "\n".join(erros), file=sys.stderr)
             return 2
 
-    ctx = Contexto(inv, anot, _rotulo_fonte(p1, p2), divs, mig)
+    mapa_migracao = migracao_mod.analisar(inv, anot, resolver(a.anotacoes), resolver)
+    if mapa_migracao.erros:
+        print("Anotação inválida:\n" + "\n".join(mapa_migracao.erros), file=sys.stderr)
+        return 2
+    ctx = Contexto(inv, anot, _rotulo_fonte(p1, p2), divs, mig, mapa_migracao)
     if ctx.modulos.erros:
         print("Anotação inválida:\n" + "\n".join(ctx.modulos.erros), file=sys.stderr)
         return 2

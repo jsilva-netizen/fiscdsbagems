@@ -106,6 +106,7 @@ na lista de bloqueio e revoga os aparelhos confirmados.
 | id | UUID | preservado (`municipios.id`) |
 | nome | texto | único |
 | codigo_ibge | texto | 7 dígitos, único |
+| criado_em, atualizado_em | data e hora | do servidor (`municipios.created_at` na migração) |
 
 ### Entidade (entidade regulada)
 | Campo | Tipo | Regras |

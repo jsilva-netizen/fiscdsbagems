@@ -19,6 +19,7 @@ Chave anotada que não existe no inventário é **órfã** e faz o gerador falha
 | `divergencias.toml` | classificação e justificativa de cada divergência |
 | `achados.toml` | achados, opções, recomendação e decisão |
 | `externos.toml` | informações do sistema atual que não estão no banco (FR-023) |
+| `migracao/<modulo>.toml` | destino de migração de cada coluna e repositório de arquivos do módulo (um arquivo por módulo, criado com a spec do módulo) |
 
 ## Campos
 
@@ -114,6 +115,30 @@ descricao = """..."""
 como_obter = """..."""
 usado_por = ["..."]               # módulos ou specs que dependem desta informação
 ```
+
+### `migracao/<modulo>.toml`
+
+```toml
+modulo = "core"                                   # id de modulos.toml; um arquivo por módulo
+data_model = "specs/004-modulo-core/data-model.md"  # opcional; com ele, os destinos são conferidos
+notas = ["..."]                                   # opcional: fontes fora do catálogo, tabela de ajustes...
+
+[destino."coluna:profiles.full_name"]             # chave do catálogo: coluna de tabela ou bucket do módulo
+para = "core.Usuario.nome"                        # app.Modelo.campo[.chave]; ou lista de destinos
+transformacao = "..."                             # opcional: conversão, valores legados, conferência
+
+[destino."coluna:prestadores_servico.tipo"]
+descarte = "..."                                  # motivo; exclusivo com `para`
+```
+
+Regras (validadas pelo gerador, que falha com código 2):
+- a chave existe no inventário, é coluna de tabela (não de view) ou bucket, e o dono é o módulo do
+  arquivo;
+- `para` ou `descarte`, nunca os dois;
+- com `data_model`, o modelo é um título `### Modelo` do data-model e o campo, uma linha da tabela
+  dele. Destino em app sem data-model fica "não verificado";
+- num módulo com mapa, coluna ou bucket sem destino é **pendente**: conta na linha de completude,
+  com meta 0. Objetos fora do escopo não precisam de destino.
 
 ## Proibições
 

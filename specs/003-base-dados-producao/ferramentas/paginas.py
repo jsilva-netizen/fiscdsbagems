@@ -563,3 +563,88 @@ def pagina_achados(achados: list, aviso: str) -> str:
             linhas += [f"**Decisão** ({a.get('decidido_por', '')}, {a.get('decidido_em', '')}): "
                        f"{' '.join(str(a.get('decisao', '')).split())}", ""]
     return "\n".join(linhas)
+
+
+def _volume(item) -> str:
+    if item.volume is None:
+        return "—"
+    return f"{item.volume} arquivos" if item.tipo == "bucket" else f"{item.volume} linhas"
+
+
+def pagina_migracao(analise, anot, aviso: str) -> str:
+    """migracao.md: destino de migração de cada coluna e repositório de arquivos, por módulo."""
+    ordem = {m["id"]: m.get("ordem", 999) for m in anot.modulos}
+    nomes = {m["id"]: m.get("nome", m["id"]) for m in anot.modulos}
+    por_modulo = {}
+    fora = []
+    for i in analise.itens:
+        if i.modulo:
+            por_modulo.setdefault(i.modulo, []).append(i)
+        elif i.fora:
+            fora.append(i)
+    linhas = [aviso, "# Mapa de migração", "",
+              "Destino, no sistema novo, de cada coluna de tabela e de cada repositório de arquivos do banco de "
+              "produção: o campo que recebe o dado (com a transformação, quando há) ou o motivo do descarte. "
+              "Os mapas ficam em `anotacoes/migracao/<modulo>.toml`; destinos de apps com data-model são "
+              "conferidos contra ele. Num módulo com mapa, o que não tem destino é **pendente**. Colunas de "
+              "views não entram (não guardam dado).", "",
+              f"Pendentes: {len(analise.pendentes)} · módulos sem mapa: {len(analise.sem_mapa)} · "
+              f"destinos não verificados: {len(analise.nao_verificados)}.", "",
+              "| Módulo | Mapa | Colunas e repositórios | Com destino | Descartados | Pendentes |",
+              "|---|---|---:|---:|---:|---:|"]
+    for mid in sorted(por_modulo, key=lambda m: (ordem.get(m, 999), m)):
+        itens = por_modulo[mid]
+        mapa = analise.mapas.get(mid)
+        destino = sum(1 for i in itens if i.destino and i.destino.get("para"))
+        descarte = sum(1 for i in itens if i.destino and i.destino.get("descarte"))
+        pend = sum(1 for i in itens if mapa and i.destino is None)
+        linhas.append(f"| {nomes.get(mid, mid)} | {'sim' if mapa else '**sem mapa**'} | {len(itens)} | "
+                      f"{destino if mapa else '—'} | {descarte if mapa else '—'} | {pend if mapa else '—'} |")
+    if fora:
+        linhas.append(f"| fora do escopo | — | {len(fora)} | 0 | {len(fora)} | 0 |")
+    linhas.append("")
+
+    for mid in sorted(analise.mapas, key=lambda m: (ordem.get(m, 999), m)):
+        mapa = analise.mapas[mid]
+        linhas += [f"## {nomes.get(mid, mid)}", "",
+                   f"Mapa: `anotacoes/{mapa['arquivo']}`"
+                   + (f" · data-model: `{mapa['data_model']}`" if mapa["data_model"] else " · sem data-model"), ""]
+        for nota in mapa["notas"]:
+            linhas.append(f"- {' '.join(str(nota).split())}")
+        if mapa["notas"]:
+            linhas.append("")
+        linhas += ["| Objeto | Volume em produção | Destino | Transformação ou motivo do descarte |",
+                   "|---|---|---|---|"]
+        for i in por_modulo.get(mid, []):
+            d = i.destino
+            if d is None:
+                linhas.append(f"| `{celula(i.chave)}` | {_volume(i)} | **PENDENTE** | |")
+            elif d.get("descarte"):
+                linhas.append(f"| `{celula(i.chave)}` | {_volume(i)} | descartado | {celula(d['descarte'])} |")
+            else:
+                para = d["para"] if isinstance(d["para"], list) else [d["para"]]
+                linhas.append(f"| `{celula(i.chave)}` | {_volume(i)} | {'<br>'.join(f'`{p}`' for p in para)} | "
+                              f"{celula(d.get('transformacao', ''))} |")
+        linhas.append("")
+
+    if analise.sem_mapa:
+        linhas += ["## Módulos sem mapa", "",
+                   "Ainda sem `anotacoes/migracao/<modulo>.toml`; o mapa entra com a spec do módulo.", ""]
+        for mid in analise.sem_mapa:
+            itens = por_modulo[mid]
+            linhas.append(f"- **{nomes.get(mid, mid)}**: {len(itens)} colunas e repositórios")
+        linhas.append("")
+
+    if fora:
+        linhas += ["## Fora do escopo", "",
+                   "Descartados junto com o objeto, pelo motivo da anotação (spec 003).", "",
+                   "| Objeto | Volume em produção | Motivo |", "|---|---|---|"]
+        for i in fora:
+            linhas.append(f"| `{celula(i.chave)}` | {_volume(i)} | {celula(i.fora.get('motivo', ''))} |")
+        linhas.append("")
+
+    if analise.nao_verificados:
+        linhas += ["## Destinos não verificados", "",
+                   "Destinos em app que ainda não tem data-model; são conferidos quando ele existir.", ""]
+        linhas += [f"- `{celula(c)}` → `{d}`" for c, d in analise.nao_verificados] + [""]
+    return "\n".join(linhas)
