@@ -32,7 +32,7 @@ nome = "Fiscalização"
 ordem = 4
 app = "fiscalização"
 spec = ""
-observacao = "Fiscalização de campo comum às câmaras, incluindo a operação offline, a geração de relatórios e a localização dos registros de campo (ponto GPS com precisão e origem, sem travar a captura, e mapa-base); o que depende do traçado da rodovia (KML, KM, sentido, KM impreciso, marca d'água) é do app da CATERF. Na spec da fiscalização, `coluna:unidades_fiscalizadas.gps_accuracy_m` passa da DTR para este módulo (decisão do responsável, 2026-09-30)."
+observacao = "Fiscalização de campo comum às câmaras, incluindo a operação offline, a geração de relatórios e a localização dos registros de campo (ponto GPS com precisão e origem, sem travar a captura, e mapa-base); o que depende do traçado da rodovia (KML, KM, sentido, KM impreciso, marca d'água) é do app da CATERF. `coluna:unidades_fiscalizadas.gps_accuracy_m` passou da DTR para este módulo com a spec 007 (decisão do responsável, 2026-09-30)."
 
 [[modulo]]
 id = "dtr"

@@ -50,6 +50,7 @@
   - a data-limite da determinação continua como hoje (criação mais prazo);
   - o limite de imprecisão do GPS é 20 m para todas as câmaras;
   - as fotos são guardadas com e sem marca d'água (o dobro do armazenamento).
-- **Mapa de migração**: criado com o data-model do plano (passo 7 do molde); até lá, o módulo
-  aparece como "sem mapa".
+- **Mapa de migração (plano, 2026-09-30)**: criado com o data-model do plano (passo 7 do molde):
+  115 colunas e repositórios, 87 destinos conferidos e 28 descartes com motivo, 0 pendentes. A
+  precisão do GPS (`unidades_fiscalizadas.gps_accuracy_m`) passou da DTR para este módulo.
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`.

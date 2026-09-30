@@ -431,6 +431,7 @@ Sem atribuição: nenhum objeto.
 | `coluna:unidades_fiscalizadas.endereco` | coluna | fiscalizacao | LACUNA |
 | `coluna:unidades_fiscalizadas.fiscalizacao_id` | coluna | fiscalizacao | LACUNA |
 | `coluna:unidades_fiscalizadas.fotos_unidade` | coluna | fiscalizacao | LACUNA |
+| `coluna:unidades_fiscalizadas.gps_accuracy_m` | coluna | fiscalizacao | LACUNA |
 | `coluna:unidades_fiscalizadas.id` | coluna | fiscalizacao | LACUNA |
 | `coluna:unidades_fiscalizadas.latitude` | coluna | fiscalizacao | LACUNA |
 | `coluna:unidades_fiscalizadas.longitude` | coluna | fiscalizacao | LACUNA |
@@ -650,7 +651,6 @@ Sem atribuição: nenhum objeto.
 | `coluna:tipos_ocorrencia_dtr.item_contrato` | coluna | dtr | LACUNA |
 | `coluna:tipos_ocorrencia_dtr.rodovia` | coluna | dtr | LACUNA |
 | `coluna:unidades_fiscalizadas.frente` | coluna | dtr | LACUNA |
-| `coluna:unidades_fiscalizadas.gps_accuracy_m` | coluna | dtr | LACUNA |
 | `coluna:unidades_fiscalizadas.gravidade` | coluna | dtr | LACUNA |
 | `coluna:unidades_fiscalizadas.km` | coluna | dtr | LACUNA |
 | `coluna:unidades_fiscalizadas.km_impreciso` | coluna | dtr | LACUNA |

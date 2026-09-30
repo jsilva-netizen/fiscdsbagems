@@ -242,8 +242,11 @@ significado = "Prazo em dias para sanar a NC da ocorrência (em produção: 1, 1
 fonte = ["src/lib/offline/repository.ts:2384", "inventário: dominio_categorico"]
 
 [objeto."coluna:unidades_fiscalizadas.gps_accuracy_m"]
-modulo = "dtr"
-significado = "Precisão do GPS, em metros, quando o KM e a rodovia foram determinados."
+significado = """
+Precisão do GPS, em metros, quando o KM e a rodovia foram determinados. Hoje só as ocorrências da
+DTR a gravam; no sistema novo, a precisão do ponto é peça comum da fiscalização
+(R-fiscalizacao-010), e só o "KM impreciso" fica com a DTR.
+"""
 fonte = ["src/lib/offline/repository.ts:2384"]
 
 [objeto."coluna:unidades_fiscalizadas.km_impreciso"]

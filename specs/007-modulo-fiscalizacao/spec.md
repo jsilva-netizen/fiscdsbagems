@@ -1253,9 +1253,9 @@ Fonte: `src/pages/` e `src/components/fiscalizacao/` do sistema atual.
 
 ## Migração
 
-O mapa `specs/003-base-dados-producao/anotacoes/migracao/fiscalizacao.toml` é criado com o
-data-model do plano desta spec ([formatos/spec-modulo.md](../003-base-dados-producao/formatos/spec-modulo.md),
-passo 7). Até lá, o módulo aparece como "sem mapa" em `migracao.md`.
+Mapa: `specs/003-base-dados-producao/anotacoes/migracao/fiscalizacao.toml` (115 colunas e
+repositórios, 87 com destino e 28 descartes, 0 pendentes, destinos conferidos contra o data-model
+do plano).
 
 ### Volumes de produção
 

@@ -1,0 +1,406 @@
+# Mapa de migração do módulo fiscalização (spec 007). Destinos conferidos contra o data-model.
+modulo = "fiscalizacao"
+data_model = "specs/007-modulo-fiscalizacao/data-model.md"
+notas = [
+  "Ordem de carga: depois de core, checklists (versões dos itens) e do app da CATERF (catálogo e dados da rodovia), porque respostas e registros avulsos apontam para eles (research F18).",
+  "Toda fiscalização migrada recebe `origem = migrada`, sem atividade planejada e sem contar como pendência de ligação (spec, 'Casos conhecidos').",
+  "Os números (termo, C, NC, D, R) migram como estão e não são recalculados; a sequência de termos de cada ano continua do maior número migrado (R-fiscalizacao-013). A numeração das fiscalizações migradas e finalizadas fica congelada.",
+  "Registros que as regras novas recusariam são carregados e marcados em `legado`, com o motivo no relatório de conferência (MIG-4).",
+  "As colunas da DTR nas tabelas deste módulo (rodovia, km, sentido, frente, per, não atendimento, prazo da NC, gravidade, trecho, tipo de ocorrência, KM impreciso) são do módulo dtr e entram no mapa dele.",
+]
+
+# --- fiscalizacoes (26) ------------------------------------------------------------------
+
+[destino."coluna:fiscalizacoes.id"]
+para = "fiscalizacao.Fiscalizacao.id"
+
+[destino."coluna:fiscalizacoes.camara_tecnica_id"]
+para = "fiscalizacao.Fiscalizacao.camara"
+transformacao = "Vazia: deduzida dos serviços pela regra corrigida do A-021. Sem dedução possível, a fiscalização é carregada com a marca de legado 'sem câmara' e fica visível só ao administrador até ser classificada (premissa do core)."
+
+[destino."coluna:fiscalizacoes.municipio_id"]
+para = "fiscalizacao.Fiscalizacao.municipio"
+transformacao = "Município inexistente (não há chave em produção, A-037) é carregado como legado e listado."
+
+[destino."coluna:fiscalizacoes.municipio_nome"]
+descarte = "Cópia do nome do município, que vem do core. A migração confere a cópia contra o município antes do descarte, e a divergência vai para o relatório."
+
+[destino."coluna:fiscalizacoes.prestador_servico_id"]
+para = "fiscalizacao.Fiscalizacao.entidade"
+transformacao = "Entidade inexistente (sem chave em produção, A-037) é carregada como legado e listada."
+
+[destino."coluna:fiscalizacoes.prestador_servico_nome"]
+descarte = "Cópia do nome da entidade, que vem do core; conferida antes do descarte, como o município."
+
+[destino."coluna:fiscalizacoes.servicos"]
+para = "fiscalizacao.Fiscalizacao.servicos"
+transformacao = "Cada texto vira o serviço do core (a ordem da lista não importa); serviço fora da câmara da fiscalização vira legado."
+
+[destino."coluna:fiscalizacoes.fiscal_email"]
+para = ["fiscalizacao.Fiscalizacao.responsavel", "fiscalizacao.MembroEquipe.usuario"]
+transformacao = "O usuário do e-mail vira o responsável e o único membro da equipe (origem 'informado'). E-mail sem usuário é guardado na marca de legado."
+
+[destino."coluna:fiscalizacoes.fiscal_nome"]
+para = "fiscalizacao.Fiscalizacao.responsavel"
+transformacao = "Usado só quando o e-mail não identifica o usuário; o nome fica na marca de legado."
+
+[destino."coluna:fiscalizacoes.data_inicio"]
+para = "fiscalizacao.Fiscalizacao.data_inicio"
+
+[destino."coluna:fiscalizacoes.data_fim"]
+para = "fiscalizacao.Fiscalizacao.data_fim"
+
+[destino."coluna:fiscalizacoes.status"]
+para = ["fiscalizacao.Fiscalizacao.situacao", "fiscalizacao.Fiscalizacao.numeracao_congelada"]
+transformacao = "`finalizada` também congela a numeração (19 fiscalizações); `em_andamento` fica aberta (7)."
+
+[destino."coluna:fiscalizacoes.numero_termo"]
+para = "fiscalizacao.Fiscalizacao.numero_termo"
+transformacao = "Como está; alimenta a sequência do ano (SequenciaTermo)."
+
+[destino."coluna:fiscalizacoes.created_at"]
+para = "fiscalizacao.Fiscalizacao.criado_em"
+
+[destino."coluna:fiscalizacoes.updated_at"]
+para = "fiscalizacao.Fiscalizacao.atualizado_em"
+
+[destino."coluna:fiscalizacoes.created_by"]
+para = "fiscalizacao.Fiscalizacao.criado_por"
+
+[destino."coluna:fiscalizacoes.last_modified_by"]
+descarte = "Quem alterou por último está na auditoria migrada (R-fiscalizacao-024); a migração confere que a auditoria tem a mesma última alteração."
+
+[destino."coluna:fiscalizacoes.last_modified_at"]
+descarte = "Idem `last_modified_by`."
+
+[destino."coluna:fiscalizacoes.latitude_inicio"]
+descarte = "O app não grava (A-025)."
+
+[destino."coluna:fiscalizacoes.longitude_inicio"]
+descarte = "O app não grava (A-025)."
+
+[destino."coluna:fiscalizacoes.tipo_modulo"]
+descarte = "A diretoria vem da câmara (R-fiscalizacao-001, R-fiscalizacao-025); a migração confere que o módulo bate com a diretoria da câmara (24 DSB, 2 DTR) e lista a divergência."
+
+# --- unidades_fiscalizadas (402) ---------------------------------------------------------
+
+[destino."coluna:unidades_fiscalizadas.id"]
+para = "fiscalizacao.RegistroCampo.id"
+
+[destino."coluna:unidades_fiscalizadas.fiscalizacao_id"]
+para = "fiscalizacao.RegistroCampo.fiscalizacao"
+
+[destino."coluna:unidades_fiscalizadas.tipo_unidade_id"]
+para = ["fiscalizacao.RegistroCampo.catalogo_id", "fiscalizacao.RegistroCampo.item_versao_id", "fiscalizacao.RegistroCampo.tipo_avulso"]
+transformacao = "Unidade de saneamento: o tipo vira o catálogo (mesmo identificador, spec 005). Ocorrência da DTR (tipo vazio): catálogo da CATERF, com o item e a versão ligados pelo app da CATERF (frente, PER e descrição) e o tipo avulso registrado por ele. Tipo inexistente vira legado."
+
+[destino."coluna:unidades_fiscalizadas.tipo_unidade_nome"]
+descarte = "Cópia do nome do tipo que o app não grava (A-025)."
+
+[destino."coluna:unidades_fiscalizadas.nome_unidade"]
+para = "fiscalizacao.RegistroCampo.nome"
+
+[destino."coluna:unidades_fiscalizadas.codigo_unidade"]
+para = "fiscalizacao.RegistroCampo.codigo"
+
+[destino."coluna:unidades_fiscalizadas.endereco"]
+para = "fiscalizacao.RegistroCampo.endereco"
+
+[destino."coluna:unidades_fiscalizadas.latitude"]
+para = ["fiscalizacao.RegistroCampo.latitude", "fiscalizacao.RegistroCampo.origem_ponto"]
+transformacao = "Origem do ponto 'gps' quando há coordenada numérica."
+
+[destino."coluna:unidades_fiscalizadas.longitude"]
+para = "fiscalizacao.RegistroCampo.longitude"
+
+[destino."coluna:unidades_fiscalizadas.gps_accuracy_m"]
+para = ["fiscalizacao.RegistroCampo.precisao_m", "fiscalizacao.RegistroCampo.impreciso"]
+transformacao = "Impreciso quando passa de 20 m (o limite de hoje); vazio nas unidades de saneamento, que ficam sem precisão."
+
+[destino."coluna:unidades_fiscalizadas.coordenadas"]
+para = ["fiscalizacao.RegistroCampo.coordenadas_digitadas", "fiscalizacao.RegistroCampo.origem_ponto"]
+transformacao = "Texto como está. Sem coordenada numérica, o texto é convertido para latitude e longitude quando possível, com origem 'digitado'; o que não converte fica só no texto e é listado."
+
+[destino."coluna:unidades_fiscalizadas.data_hora_vistoria"]
+para = "fiscalizacao.RegistroCampo.data_hora_vistoria"
+
+[destino."coluna:unidades_fiscalizadas.ordem"]
+para = "fiscalizacao.RegistroCampo.ordem"
+
+[destino."coluna:unidades_fiscalizadas.status"]
+para = "fiscalizacao.RegistroCampo.situacao"
+transformacao = "`finalizada` vira finalizado; `em_andamento` fica; `pendente` (4 em produção) vira em andamento com a marca de legado."
+
+[destino."coluna:unidades_fiscalizadas.fotos_unidade"]
+para = ["fiscalizacao.Foto.arquivo", "fiscalizacao.Foto.arquivo_original", "fiscalizacao.Foto.legenda", "fiscalizacao.Foto.ordem", "fiscalizacao.Foto.latitude", "fiscalizacao.Foto.longitude", "fiscalizacao.Foto.largura", "fiscalizacao.Foto.altura"]
+transformacao = "Cada item da lista vira uma Foto, na mesma ordem: `bucket`/`path` → arquivo; `cleanBucket`/`cleanPath` → original (quando há); `localId` → identificador (se for UUID; senão, um novo); `resolucao_km` e `resolucao_rodovia` vão ao app da CATERF. O checksum é calculado na cópia do arquivo."
+
+[destino."coluna:unidades_fiscalizadas.total_constatacoes"]
+descarte = "Total calculado dos registros (A-025); a migração confere o total gravado contra o calculado e lista a diferença."
+
+[destino."coluna:unidades_fiscalizadas.total_ncs"]
+descarte = "Idem `total_constatacoes`."
+
+[destino."coluna:unidades_fiscalizadas.total_determinacoes"]
+descarte = "Nunca gravado pelo app atual (A-025, divergência defeito_corrigir)."
+
+[destino."coluna:unidades_fiscalizadas.total_recomendacoes"]
+descarte = "Nunca gravado pelo app atual (A-025, divergência defeito_corrigir)."
+
+[destino."coluna:unidades_fiscalizadas.created_at"]
+para = "fiscalizacao.RegistroCampo.criado_em"
+transformacao = "Define a versão do catálogo da unidade; a migração confere que as respostas apontam para versões vigentes nessa data ou já respondidas."
+
+[destino."coluna:unidades_fiscalizadas.updated_at"]
+para = "fiscalizacao.RegistroCampo.atualizado_em"
+
+# --- respostas_checklist (3.454) ---------------------------------------------------------
+
+[destino."coluna:respostas_checklist.id"]
+para = "fiscalizacao.Resposta.id"
+
+[destino."coluna:respostas_checklist.unidade_fiscalizada_id"]
+para = "fiscalizacao.Resposta.registro"
+
+[destino."coluna:respostas_checklist.item_checklist_id"]
+para = "fiscalizacao.Resposta.item_versao_id"
+transformacao = "Mesmo identificador da versão migrada (spec 005); 100% das respostas precisam encontrar a versão, e a que não encontrar vira legado."
+
+[destino."coluna:respostas_checklist.resposta"]
+para = "fiscalizacao.Resposta.valor"
+transformacao = "`SIM` → `sim`; `NAO` e `NÃO` → `nao`; vazio ou outro valor vira legado."
+
+[destino."coluna:respostas_checklist.pergunta"]
+para = ["fiscalizacao.Resposta.texto_constatacao", "fiscalizacao.Resposta.constatacao_excluida"]
+transformacao = "Texto da constatação como está (inclusive o editado); pergunta vazia com resposta preenchida marca a constatação como excluída."
+
+[destino."coluna:respostas_checklist.observacao"]
+para = "fiscalizacao.Resposta.observacao"
+
+[destino."coluna:respostas_checklist.numero_constatacao"]
+para = ["fiscalizacao.Resposta.numero_constatacao", "fiscalizacao.Resposta.ordem_constatacao"]
+transformacao = "O número vira também a ordem, junto com o das constatações manuais da unidade."
+
+[destino."coluna:respostas_checklist.gera_nc"]
+descarte = "Derivado do catálogo e da resposta (R-fiscalizacao-005); a migração confere, antes, que a marca bate com a declaração do item e a resposta (355 respostas com NC)."
+
+[destino."coluna:respostas_checklist.comentario"]
+descarte = "Campo antigo que a tela não usa (divergência residuo_descartar); a migração lista as respostas com valor nele."
+
+[destino."coluna:respostas_checklist.created_at"]
+para = "fiscalizacao.Resposta.criado_em"
+
+[destino."coluna:respostas_checklist.updated_at"]
+para = "fiscalizacao.Resposta.atualizado_em"
+
+# --- constatacoes_manuais (299) ----------------------------------------------------------
+
+[destino."coluna:constatacoes_manuais.id"]
+para = "fiscalizacao.ConstatacaoManual.id"
+
+[destino."coluna:constatacoes_manuais.unidade_fiscalizada_id"]
+para = "fiscalizacao.ConstatacaoManual.registro"
+
+[destino."coluna:constatacoes_manuais.descricao"]
+para = "fiscalizacao.ConstatacaoManual.descricao"
+
+[destino."coluna:constatacoes_manuais.gera_nc"]
+para = "fiscalizacao.ConstatacaoManual.gera_nc"
+
+[destino."coluna:constatacoes_manuais.artigo_portaria"]
+para = "fiscalizacao.ConstatacaoManual.dispositivo"
+
+[destino."coluna:constatacoes_manuais.descricao_nc"]
+para = "fiscalizacao.ConstatacaoManual.descricao_nc"
+
+[destino."coluna:constatacoes_manuais.texto_determinacao"]
+para = "fiscalizacao.ConstatacaoManual.texto_determinacao"
+
+[destino."coluna:constatacoes_manuais.texto_recomendacao"]
+para = "fiscalizacao.ConstatacaoManual.texto_recomendacao"
+
+[destino."coluna:constatacoes_manuais.numero_constatacao"]
+para = ["fiscalizacao.ConstatacaoManual.numero_constatacao", "fiscalizacao.ConstatacaoManual.ordem_constatacao"]
+
+[destino."coluna:constatacoes_manuais.ordem"]
+descarte = "Posição que a numeração não usa (padrão 0 em produção); a ordem vem do número da constatação."
+
+[destino."coluna:constatacoes_manuais.created_at"]
+para = "fiscalizacao.ConstatacaoManual.criado_em"
+
+[destino."coluna:constatacoes_manuais.updated_at"]
+para = "fiscalizacao.ConstatacaoManual.atualizado_em"
+
+# --- nao_conformidades (478) -------------------------------------------------------------
+
+[destino."coluna:nao_conformidades.id"]
+para = "fiscalizacao.NaoConformidade.id"
+transformacao = "Mesmo identificador da última regeneração; passa a ser estável."
+
+[destino."coluna:nao_conformidades.unidade_fiscalizada_id"]
+para = "fiscalizacao.NaoConformidade.registro"
+
+[destino."coluna:nao_conformidades.resposta_checklist_id"]
+para = ["fiscalizacao.NaoConformidade.resposta", "fiscalizacao.NaoConformidade.origem", "fiscalizacao.NaoConformidade.constatacao_manual"]
+transformacao = "Com resposta: origem `resposta:<id>`. Sem resposta: a constatação manual com NC da mesma unidade, na ordem do número, dá a origem `constatacao:<id>`. NC sem origem reconhecível vira legado (research F18)."
+
+[destino."coluna:nao_conformidades.descricao"]
+para = "fiscalizacao.NaoConformidade.descricao"
+
+[destino."coluna:nao_conformidades.artigo_portaria"]
+para = "fiscalizacao.NaoConformidade.dispositivo"
+
+[destino."coluna:nao_conformidades.numero_nc"]
+para = "fiscalizacao.NaoConformidade.numero"
+
+[destino."coluna:nao_conformidades.created_at"]
+para = ["fiscalizacao.NaoConformidade.criado_em", "fiscalizacao.NaoConformidade.atualizado_em"]
+
+[destino."coluna:nao_conformidades.gravidade"]
+descarte = "Valor fixo 'Média' nas 478 linhas (R-fiscalizacao-024)."
+
+[destino."coluna:nao_conformidades.fotos"]
+descarte = "Vazia em produção; as fotos são do registro (R-fiscalizacao-024)."
+
+[destino."coluna:nao_conformidades.latitude_foto"]
+descarte = "Sem uso (R-fiscalizacao-024)."
+
+[destino."coluna:nao_conformidades.longitude_foto"]
+descarte = "Sem uso (R-fiscalizacao-024)."
+
+# --- determinacoes (183) -----------------------------------------------------------------
+
+[destino."coluna:determinacoes.id"]
+para = "fiscalizacao.Determinacao.id"
+
+[destino."coluna:determinacoes.unidade_fiscalizada_id"]
+para = "fiscalizacao.Determinacao.registro"
+
+[destino."coluna:determinacoes.origem"]
+para = "fiscalizacao.Determinacao.origem"
+transformacao = "`checklist:<item>` → `resposta:<id da resposta daquele item na unidade>`; `manual_constatacao:<id>` → `constatacao:<id>`; `legacy:<id>` fica e vira legado."
+
+[destino."coluna:determinacoes.nao_conformidade_id"]
+para = "fiscalizacao.Determinacao.nao_conformidade"
+
+[destino."coluna:determinacoes.descricao"]
+para = ["fiscalizacao.Determinacao.descricao", "fiscalizacao.Determinacao.texto_editado"]
+transformacao = "Texto como está, marcado como editado, para a consolidação nunca reescrever o texto migrado."
+
+[destino."coluna:determinacoes.prazo_dias"]
+para = "fiscalizacao.Determinacao.prazo_dias"
+transformacao = "Vazio (1 em produção) vira 30, com a marca de legado."
+
+[destino."coluna:determinacoes.data_limite"]
+para = "fiscalizacao.Determinacao.data_limite"
+
+[destino."coluna:determinacoes.numero_determinacao"]
+para = ["fiscalizacao.Determinacao.numero", "fiscalizacao.Determinacao.ordem"]
+
+[destino."coluna:determinacoes.prazo"]
+descarte = "Coluna antiga que ninguém grava (A-025)."
+
+[destino."coluna:determinacoes.status"]
+descarte = "Nada muda a situação (as 183 estão pendentes); o cumprimento é do processo sancionador (R-fiscalizacao-009). A migração confere que todas estão pendentes."
+
+[destino."coluna:determinacoes.created_at"]
+para = "fiscalizacao.Determinacao.criado_em"
+
+[destino."coluna:determinacoes.updated_at"]
+para = "fiscalizacao.Determinacao.atualizado_em"
+
+# --- recomendacoes (350) -----------------------------------------------------------------
+
+[destino."coluna:recomendacoes.id"]
+para = "fiscalizacao.Recomendacao.id"
+
+[destino."coluna:recomendacoes.unidade_fiscalizada_id"]
+para = "fiscalizacao.Recomendacao.registro"
+
+[destino."coluna:recomendacoes.origem"]
+para = "fiscalizacao.Recomendacao.origem"
+transformacao = "Como nas determinações; `checklist` sem id e `legacy_rec:<id>` viram legado."
+
+[destino."coluna:recomendacoes.descricao"]
+para = ["fiscalizacao.Recomendacao.descricao", "fiscalizacao.Recomendacao.texto_editado"]
+transformacao = "Texto como está, marcado como editado."
+
+[destino."coluna:recomendacoes.numero_recomendacao"]
+para = ["fiscalizacao.Recomendacao.numero", "fiscalizacao.Recomendacao.ordem"]
+
+[destino."coluna:recomendacoes.created_at"]
+para = "fiscalizacao.Recomendacao.criado_em"
+
+[destino."coluna:recomendacoes.updated_at"]
+para = "fiscalizacao.Recomendacao.atualizado_em"
+
+# --- relatorios_jobs (18) ----------------------------------------------------------------
+
+[destino."coluna:relatorios_jobs.id"]
+para = "fiscalizacao.Relatorio.id"
+
+[destino."coluna:relatorios_jobs.fiscalizacao_id"]
+para = ["fiscalizacao.Relatorio.fiscalizacao", "fiscalizacao.Relatorio.versao"]
+transformacao = "Versões numeradas pela data do pedido, por fiscalização."
+
+[destino."coluna:relatorios_jobs.requested_by"]
+para = "fiscalizacao.Relatorio.pedido_por"
+
+[destino."coluna:relatorios_jobs.status"]
+para = ["fiscalizacao.Relatorio.situacao", "fiscalizacao.Relatorio.estado"]
+transformacao = "`queued` → na_fila, `processing` → gerando, `done` → pronto, `error` → erro (as 18 estão prontas). O mais recente pronto de cada fiscalização fica vigente; os demais, substituídos."
+
+[destino."coluna:relatorios_jobs.progress_unidades"]
+para = "fiscalizacao.Relatorio.progresso_registros"
+
+[destino."coluna:relatorios_jobs.progress_fotos"]
+para = "fiscalizacao.Relatorio.progresso_fotos"
+
+[destino."coluna:relatorios_jobs.error_message"]
+para = "fiscalizacao.Relatorio.mensagem_erro"
+
+[destino."coluna:relatorios_jobs.storage_path"]
+para = "fiscalizacao.Relatorio.arquivo"
+
+[destino."coluna:relatorios_jobs.parts_count"]
+para = "fiscalizacao.Relatorio.partes_legado"
+transformacao = "Com mais de uma parte, as chaves das partes (`latest_part1.pdf`...) vão para as partes de legado."
+
+[destino."coluna:relatorios_jobs.created_at"]
+para = "fiscalizacao.Relatorio.pedido_em"
+
+[destino."coluna:relatorios_jobs.updated_at"]
+para = "fiscalizacao.Relatorio.gerado_em"
+
+# --- fotos_evidencia (0, sem uso) --------------------------------------------------------
+
+[destino."coluna:fotos_evidencia.id"]
+descarte = "Tabela sem uso, vazia (A-030)."
+
+[destino."coluna:fotos_evidencia.fiscalizacao_id"]
+descarte = "Tabela sem uso, vazia (A-030)."
+
+[destino."coluna:fotos_evidencia.unidade_fiscalizada_id"]
+descarte = "Tabela sem uso, vazia (A-030)."
+
+[destino."coluna:fotos_evidencia.url"]
+descarte = "Tabela sem uso, vazia (A-030)."
+
+[destino."coluna:fotos_evidencia.bucket_path"]
+descarte = "Tabela sem uso, vazia (A-030)."
+
+[destino."coluna:fotos_evidencia.descricao"]
+descarte = "Tabela sem uso, vazia (A-030)."
+
+[destino."coluna:fotos_evidencia.created_at"]
+descarte = "Tabela sem uso, vazia (A-030)."
+
+# --- repositórios de arquivos ------------------------------------------------------------
+
+[destino."bucket:fotos_fiscalizacao"]
+para = ["fiscalizacao.Foto.arquivo", "fiscalizacao.Foto.arquivo_original"]
+transformacao = "Os 1.445 arquivos são copiados para o repositório privado com a chave da Foto, conferidos por checksum. Arquivos de `novo-ponto/` sem registro e arquivos que nenhuma lista cita são listados como órfãos no relatório, e não descartados sem decisão."
+
+[destino."bucket:relatorios_fiscalizacao"]
+para = ["fiscalizacao.Relatorio.arquivo", "fiscalizacao.Relatorio.partes_legado"]
+transformacao = "Os 43 arquivos vão para a versão vigente de cada fiscalização, conferidos por checksum; o arquivo solto fora do padrão é listado no relatório."

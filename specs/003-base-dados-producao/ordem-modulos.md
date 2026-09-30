@@ -30,15 +30,15 @@ Violações: 0 · sem justificativa: 0.
 ## 4. Fiscalização
 
 - **Id**: `fiscalizacao` · **App**: fiscalização · **Spec**: LACUNA
-- **Observação**: Fiscalização de campo comum às câmaras, incluindo a operação offline, a geração de relatórios e a localização dos registros de campo (ponto GPS com precisão e origem, sem travar a captura, e mapa-base); o que depende do traçado da rodovia (KML, KM, sentido, KM impreciso, marca d'água) é do app da CATERF. Na spec da fiscalização, `coluna:unidades_fiscalizadas.gps_accuracy_m` passa da DTR para este módulo (decisão do responsável, 2026-09-30).
-- **Objetos** (318): Tabelas: 9 · Colunas: 112 · Restrições: 27 · Índices: 33 · Funções: 12 · Gatilhos: 18 · Políticas de acesso: 42 · Repositórios de arquivos: 2 · Privilégios: 59 · Segredos (nomes): 2 · Extensões: 2
+- **Observação**: Fiscalização de campo comum às câmaras, incluindo a operação offline, a geração de relatórios e a localização dos registros de campo (ponto GPS com precisão e origem, sem travar a captura, e mapa-base); o que depende do traçado da rodovia (KML, KM, sentido, KM impreciso, marca d'água) é do app da CATERF. `coluna:unidades_fiscalizadas.gps_accuracy_m` passou da DTR para este módulo com a spec 007 (decisão do responsável, 2026-09-30).
+- **Objetos** (319): Tabelas: 9 · Colunas: 113 · Restrições: 27 · Índices: 33 · Funções: 12 · Gatilhos: 18 · Políticas de acesso: 42 · Repositórios de arquivos: 2 · Privilégios: 59 · Segredos (nomes): 2 · Extensões: 2
 - **Depende de**: `core`, `checklists`
 
 ## 5. DTR
 
 - **Id**: `dtr` · **App**: app da CATERF (câmara da DTR que fiscaliza as rodovias; decisão do responsável, 2026-09-30) · **Spec**: LACUNA
 - **Observação**: Especificidades da DTR (campos da rodovia no catálogo de ocorrências e nas ocorrências, mapa e KML); o catálogo de tipos é do motor de verificação (checklists) e o fluxo usa as tabelas do módulo fiscalização.
-- **Objetos** (26): Colunas: 20 · Índices: 1 · Políticas de acesso: 4 · Repositórios de arquivos: 1
+- **Objetos** (25): Colunas: 19 · Índices: 1 · Políticas de acesso: 4 · Repositórios de arquivos: 1
 - **Depende de**: `core`
 
 ## 6. Processo sancionador
