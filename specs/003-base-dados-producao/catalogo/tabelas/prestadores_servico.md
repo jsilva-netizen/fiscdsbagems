@@ -178,3 +178,5 @@ is_staff()
 - Divergência `politica:public.prestadores_servico.prestadores_prestador_select_own`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
 - Divergência `politica:public.prestadores_servico.prestadores_staff_all`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
 - Divergência `restricao:prestadores_servico.prestadores_servico_user_id_fkey`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
+- Achado **A-013** — Escrita sem login e acesso de conta não aprovada (situação: decidido; [detalhes](../../achados.md#a-013)).
+- Achado **A-023** — Vínculo do prestador gravado nos dois lados, sem transação (situação: aguardando_decisao; [detalhes](../../achados.md#a-023)).

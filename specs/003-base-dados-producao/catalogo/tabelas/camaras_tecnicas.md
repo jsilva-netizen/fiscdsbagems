@@ -94,4 +94,4 @@ WITH CHECK:
 
 ## Divergências e achados
 
-_Nenhuma divergência entre produção e migrations, nenhum achado._
+- Achado **A-010** — Câmaras caterm e catesg sem correspondência no código (situação: aguardando_decisao; [detalhes](../../achados.md#a-010)).

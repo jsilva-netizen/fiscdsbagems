@@ -120,4 +120,6 @@ WITH CHECK:
 
 ## Divergências e achados
 
-_Nenhuma divergência entre produção e migrations, nenhum achado._
+- Achado **A-001** — Políticas de teste automatizado (e2e_test_*) em produção (situação: aguardando_decisao; [detalhes](../../achados.md#a-001)).
+- Achado **A-007** — 13 tabelas vazias em produção (situação: aguardando_decisao; [detalhes](../../achados.md#a-007)).
+- Achado **A-031** — Dilação do CATERS grava status inexistente (situação: aguardando_decisao; [detalhes](../../achados.md#a-031)).

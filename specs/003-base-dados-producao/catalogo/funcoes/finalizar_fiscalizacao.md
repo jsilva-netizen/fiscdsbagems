@@ -203,4 +203,5 @@ $function$
 
 ## Divergências e achados
 
-_Nenhuma divergência entre produção e migrations, nenhum achado._
+- Achado **A-005** — 37 funções com permissão elevada (SECURITY DEFINER) (situação: aguardando_decisao; [detalhes](../../achados.md#a-005)).
+- Achado **A-015** — Funções sem verificação, finalização pela chave de serviço e fila da CATESA ausente (situação: decidido; [detalhes](../../achados.md#a-015)).

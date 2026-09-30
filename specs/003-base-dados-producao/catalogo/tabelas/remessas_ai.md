@@ -144,4 +144,7 @@ WITH CHECK:
 
 ## Divergências e achados
 
-_Nenhuma divergência entre produção e migrations, nenhum achado._
+- Achado **A-007** — 13 tabelas vazias em produção (situação: aguardando_decisao; [detalhes](../../achados.md#a-007)).
+- Achado **A-029** — Defesa do auto não é salva e referências a colunas inexistentes (situação: aguardando_decisao; [detalhes](../../achados.md#a-029)).
+- Achado **A-034** — Política "(DEV)" de remessas deixa um prestador alterar remessa de outro
+ (situação: aguardando_decisao; [detalhes](../../achados.md#a-034)).

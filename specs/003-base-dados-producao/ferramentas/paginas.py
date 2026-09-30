@@ -531,3 +531,35 @@ def pagina_ordem(inv, anot, analise, aviso: str, rotulos: dict) -> str:
                 linhas.append(f"  - `{v.de}` {v.natureza} `{v.para}` (módulo `{v.modulo_para}`): {marca}")
         linhas.append("")
     return "\n".join(linhas)
+
+
+# --- achados (T045) ------------------------------------------------------------------------
+
+SITUACOES = ("aguardando_decisao", "decidido")
+
+
+def pagina_achados(achados: list, aviso: str) -> str:
+    """achados.md: contagem por situação e um bloco por achado, com os objetos ligados ao catálogo."""
+    linhas = [aviso, "# Achados", "",
+              "O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência, risco, opções e "
+              "recomendação; a decisão é do responsável pelo projeto (`anotacoes/achados.toml`). Nada aqui altera "
+              "produção (FR-018).", "",
+              "| Situação | Achados |", "|---|---:|"]
+    linhas += [f"| {s} | {sum(1 for a in achados if a.get('situacao') == s)} |" for s in SITUACOES]
+    linhas += ["", "| Id | Título | Situação |", "|---|---|---|"]
+    ordenados = sorted(achados, key=lambda a: a["id"])
+    linhas += [f"| [{a['id']}](#{a['id'].lower()}) | {celula(a.get('titulo'))} | {a.get('situacao')} |" for a in ordenados]
+    linhas.append("")
+    for a in ordenados:
+        linhas += [f'<a id="{a["id"].lower()}"></a>', "", f"## {a['id']} — {a.get('titulo', '')}", "",
+                   f"**Situação**: {a.get('situacao')}", "",
+                   "**Objetos**: " + (", ".join(link(c, "catalogo/") for c in a.get("objetos", [])) or "—"), "",
+                   f"**Evidência**: {' '.join(str(a.get('evidencia', '')).split())}", "",
+                   f"**Risco**: {' '.join(str(a.get('risco', '')).split())}", "",
+                   "**Opções**:", ""]
+        linhas += [f"{i}. {' '.join(str(o).split())}" for i, o in enumerate(a.get("opcoes", []), 1)]
+        linhas += ["", f"**Recomendação**: {' '.join(str(a.get('recomendacao', '')).split())}", ""]
+        if a.get("situacao") == "decidido":
+            linhas += [f"**Decisão** ({a.get('decidido_por', '')}, {a.get('decidido_em', '')}): "
+                       f"{' '.join(str(a.get('decisao', '')).split())}", ""]
+    return "\n".join(linhas)

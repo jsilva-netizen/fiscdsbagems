@@ -56,4 +56,4 @@ _Nenhuma._
 
 ## Divergências e achados
 
-_Nenhuma divergência entre produção e migrations, nenhum achado._
+- Achado **A-004** — View caters_fiscalizacoes_disponiveis sem security_invoker (situação: decidido; [detalhes](../../achados.md#a-004)).

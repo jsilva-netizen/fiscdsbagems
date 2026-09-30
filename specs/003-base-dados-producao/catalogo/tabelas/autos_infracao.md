@@ -192,3 +192,7 @@ is_staff()
 - Divergência `politica:public.autos_infracao.autos_staff_all`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
 - Divergência `restricao:autos_infracao.autos_infracao_determinacao_id_fkey`: **estrutura_diferente**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
 - Divergência `restricao:autos_infracao.autos_infracao_pena_base_rs_nonneg`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
+- Achado **A-007** — 13 tabelas vazias em produção (situação: aguardando_decisao; [detalhes](../../achados.md#a-007)).
+- Achado **A-018** — AI assinado enviado pelo portal fica sem referência (situação: aguardando_decisao; [detalhes](../../achados.md#a-018)).
+- Achado **A-026** — Políticas da equipe ignoram a câmara nas tabelas filhas (situação: aguardando_decisao; [detalhes](../../achados.md#a-026)).
+- Achado **A-029** — Defesa do auto não é salva e referências a colunas inexistentes (situação: aguardando_decisao; [detalhes](../../achados.md#a-029)).

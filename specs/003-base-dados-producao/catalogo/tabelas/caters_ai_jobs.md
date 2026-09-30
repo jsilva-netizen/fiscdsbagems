@@ -106,4 +106,4 @@ is_caters_user()
 
 ## Divergências e achados
 
-_Nenhuma divergência entre produção e migrations, nenhum achado._
+- Achado **A-033** — Análises por IA do CATERS nunca processadas em produção (situação: aguardando_decisao; [detalhes](../../achados.md#a-033)).

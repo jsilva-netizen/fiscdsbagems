@@ -47,3 +47,6 @@ $function$
 ## Divergências e achados
 
 - Divergência `funcao:can_access_fiscalizacao(fiscalizacao uuid)`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
+- Achado **A-005** — 37 funções com permissão elevada (SECURITY DEFINER) (situação: aguardando_decisao; [detalhes](../../achados.md#a-005)).
+- Achado **A-009** — Objetos criados só em produção, sem migration, e objetos só nas migrations (situação: aguardando_decisao; [detalhes](../../achados.md#a-009)).
+- Achado **A-027** — Prestador lê dados da fiscalização sem ter recebido termo (situação: aguardando_decisao; [detalhes](../../achados.md#a-027)).

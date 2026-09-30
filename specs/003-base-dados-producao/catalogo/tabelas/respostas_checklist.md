@@ -213,3 +213,4 @@ is_staff()
 - Divergência `coluna:respostas_checklist.pergunta`: **estrutura_diferente**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
 - Divergência `politica:public.respostas_checklist.respostas_checklist_prestador_select`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
 - Divergência `politica:public.respostas_checklist.respostas_checklist_staff_all`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
+- Achado **A-001** — Políticas de teste automatizado (e2e_test_*) em produção (situação: aguardando_decisao; [detalhes](../../achados.md#a-001)).

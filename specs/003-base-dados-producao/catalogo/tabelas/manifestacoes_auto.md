@@ -179,3 +179,5 @@ is_staff()
 
 - Divergência `politica:public.manifestacoes_auto.manifestacoes_prestador_select`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
 - Divergência `politica:public.manifestacoes_auto.manifestacoes_staff_all`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
+- Achado **A-007** — 13 tabelas vazias em produção (situação: aguardando_decisao; [detalhes](../../achados.md#a-007)).
+- Achado **A-030** — Tabelas sem uso: julgamentos, manifestações e fotos de evidência (situação: aguardando_decisao; [detalhes](../../achados.md#a-030)).

@@ -1,0 +1,883 @@
+# Achados da spec 003 (T044; contracts/anotacoes.md). Decisões só pelo responsável (T046).
+
+[[achado]]
+id = "A-001"
+titulo = "Políticas de teste automatizado (e2e_test_*) em produção"
+objetos = ["politica:public.caters_deadline_extensions.e2e_test_user_own_rows_only", "politica:public.caters_deadline_extensions.e2e_test_user_own_rows_only_delete", "politica:public.caters_extra_documents.e2e_test_user_own_rows_only", "politica:public.caters_extra_documents.e2e_test_user_own_rows_only_delete", "politica:public.caters_municipality_responses.e2e_test_user_own_rows_only", "politica:public.caters_municipality_responses.e2e_test_user_own_rows_only_delete", "politica:public.caters_processes.e2e_test_user_own_rows_only", "politica:public.caters_processes.e2e_test_user_own_rows_only_delete", "politica:public.caters_recommendations.e2e_test_user_own_rows_only", "politica:public.caters_recommendations.e2e_test_user_own_rows_only_delete", "politica:public.constatacoes_manuais.e2e_test_user_own_rows_only", "politica:public.constatacoes_manuais.e2e_test_user_own_rows_only_delete", "politica:public.determinacoes.e2e_test_user_own_rows_only", "politica:public.determinacoes.e2e_test_user_own_rows_only_delete", "politica:public.fiscalizacoes.e2e_test_user_own_rows_only", "politica:public.fiscalizacoes.e2e_test_user_own_rows_only_delete", "politica:public.recomendacoes.e2e_test_user_own_rows_only", "politica:public.recomendacoes.e2e_test_user_own_rows_only_delete", "politica:public.respostas_checklist.e2e_test_user_own_rows_only", "politica:public.respostas_checklist.e2e_test_user_own_rows_only_delete", "politica:public.unidades_fiscalizadas.e2e_test_user_own_rows_only", "politica:public.unidades_fiscalizadas.e2e_test_user_own_rows_only_delete"]
+evidencia = """
+22 políticas restritivas em 11 tabelas (fiscalização e CATERS), criadas pela migration 135, limitam o usuário de teste e2e (id fixo) às linhas que ele criou. Existem também nas migrations, então não aparecem como divergência. Mostram que os testes automatizados escrevem em produção.
+"""
+risco = """
+Testes rodando contra produção criam registros de teste misturados aos reais; as políticas só limitam o usuário de teste, não impedem que os registros existam.
+"""
+opcoes = ["""
+Não levar as políticas; no sistema novo, testes automatizados rodam em ambiente próprio, sem acesso a produção.
+""", """
+Levar um mecanismo equivalente: usuário de teste restrito em produção.
+"""]
+recomendacao = """
+Opção 1: ambiente de homologação com dados sintéticos e nenhum usuário de teste em produção.
+"""
+situacao = "aguardando_decisao"
+decisao = ""
+decidido_por = ""
+decidido_em = ""
+
+[[achado]]
+id = "A-002"
+titulo = "Dados de teste em produção"
+objetos = ["tabela:respostas_determinacao", "coluna:respostas_determinacao.manifestacao_prestador", "bucket:evidencias-determinacoes"]
+evidencia = """
+As 34 respostas a determinações têm manifestações como "a", "aa", "aaa"; os 20 arquivos do bucket de evidências (2026-03-18 a 2026-03-30) são dessas respostas.
+"""
+risco = """
+Migrar dado de teste como se fosse real e distorcer indicadores (tempo médio de resposta, pontualidade).
+"""
+opcoes = ["""
+Não migrar os registros de teste (lista de ids fechada com o responsável antes da migração de dados).
+""", """
+Migrar marcando como teste.
+""", """
+Migrar tudo como está.
+"""]
+recomendacao = """
+Opção 1. Produção fica como está até a virada (FR-018); a exclusão acontece só na carga do sistema novo.
+"""
+situacao = "aguardando_decisao"
+decisao = ""
+decidido_por = ""
+decidido_em = ""
+
+[[achado]]
+id = "A-003"
+titulo = "Políticas e índices duplicados, e 2 políticas com nome corrompido"
+objetos = ["politica:public.fiscalizacoes.Prestadores: ler apenas suas pr├│prias fiscaliza├º├Áe", "politica:public.unidades_fiscalizadas.Prestadores: ler suas pr├│prias unidades", "politica:public.profiles.Edição Própria", "politica:public.profiles.profiles_self_update", "politica:public.profiles.Usuários comuns atualizam apenas dados de contato próprios", "politica:storage.objects.tn_upload_authenticated", "politica:storage.objects.tn_update_authenticated", "politica:storage.objects.tn_delete_authenticated", "indice:idx_nc_resposta"]
+evidencia = """
+Um conjunto de políticas criado direto em produção (`*_staff_all`, `*_prestador_select`, com `is_staff`, `current_role` e `can_access_*`) repete as das migrations em 13 tabelas; `profiles` tem 10 políticas, 3 delas para o usuário alterar o próprio perfil; nos arquivos, `tn_*` repete `documentos-termos authenticated all 16irk4e_*` e `Storage * authenticated` repete as políticas por bucket; `idx_nc_resposta` é idêntico a `idx_nc_resposta_checklist`; 2 políticas têm o nome corrompido por erro de codificação. As divergências classificadas como `residuo_descartar` listam cada uma.
+"""
+risco = """
+O acesso efetivo é a soma (OR) de todas as políticas da tabela, difícil de ler; uma duplicata esquecida mantém um acesso que se quis tirar (foi o que anulou proteções nas correções 137 a 139).
+"""
+opcoes = ["""
+No sistema novo, uma regra por papel e operação, descrita na spec de cada módulo pelo acesso efetivo.
+""", """
+Reproduzir o conjunto atual de políticas.
+"""]
+recomendacao = """
+Opção 1: a spec de cada módulo descreve o acesso efetivo (o resultado da soma), não as políticas.
+"""
+situacao = "aguardando_decisao"
+decisao = ""
+decidido_por = ""
+decidido_em = ""
+
+[[achado]]
+id = "A-004"
+titulo = "View caters_fiscalizacoes_disponiveis sem security_invoker"
+objetos = ["tabela:caters_fiscalizacoes_disponiveis"]
+evidencia = """
+A view rodava com as permissões do dono e era legível sem login, expondo fiscalizações finalizadas de todas as câmaras.
+"""
+risco = """
+Leitura sem login de dados de fiscalização.
+"""
+opcoes = ["""
+Corrigir em produção (security_invoker e sem acesso anônimo).
+""", """
+Só registrar.
+"""]
+recomendacao = """
+Opção 1.
+"""
+situacao = "decidido"
+decisao = """
+Corrigido em produção pela migration 140 (security_invoker e só SELECT para authenticated), aplicada pelo responsável. No sistema novo, a consulta respeita as permissões de quem pede.
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-29"
+
+[[achado]]
+id = "A-005"
+titulo = "37 funções com permissão elevada (SECURITY DEFINER)"
+objetos = ["funcao:admin_delete_user(p_user_id uuid)", "funcao:admin_delete_user_by_email(p_email text)", "funcao:camara_from_servicos(p_servicos text[])", "funcao:can_access_camara(row_camara text)", "funcao:can_access_fiscalizacao(fiscalizacao uuid)", "funcao:can_access_unidade(unidade uuid)", "funcao:caters_import_from_fiscalizacao(p_fiscalizacao_id uuid, p_caters_process_id uuid, p_prazo_dias integer)", "funcao:claim_caters_ai_jobs(p_limit integer, p_job_id uuid, p_stale_minutes integer)", "funcao:claim_catesa_ai_jobs(p_limit integer, p_job_id uuid, p_stale_minutes integer)", "funcao:claim_relatorios_jobs(p_limit integer, p_job_id uuid, p_stale_minutes integer)", "funcao:current_prestador_servico_id()", "funcao:current_role()", "funcao:determinacoes_fill_origem()", "funcao:enforce_profile_security()", "funcao:finalizar_fiscalizacao(p_fiscalizacao_id uuid)", "funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)", "funcao:get_my_camara_tecnica()", "funcao:get_my_diretoria()", "funcao:get_my_prestador_id()", "funcao:get_my_role()", "funcao:handle_new_user()", "funcao:is_caters_user()", "funcao:is_staff()", "funcao:kick_relatorios_worker(p_job_id uuid, p_limit integer)", "funcao:obter_resumo_indicadores(p_anos text[], p_servicos text[], p_municipio_ids uuid[], p_prestador_ids uuid[], p_apenas_finalizadas boolean)", "funcao:obter_resumo_indicadores(p_anos text[], p_servicos text[], p_municipio_ids uuid[], p_prestador_ids uuid[], p_tipo_modulo text[])", "funcao:prestadores_para_cadastro()", "funcao:process_audit_log()", "funcao:propagate_modification_to_parent()", "funcao:proteger_resposta_determinacao_prestador()", "funcao:proteger_termo_prestador()", "funcao:reabrir_fiscalizacao(p_fiscalizacao_id uuid)", "funcao:set_fiscalizacao_cache_fields()", "funcao:set_fiscalizacao_last_modified()", "funcao:trg_auto_set_camara()", "funcao:trg_fiscalizacao_set_camara()", "funcao:trg_remessa_set_camara()"]
+evidencia = """
+37 funções rodam com as permissões do dono e ignoram as regras por linha. Até a migration 141, algumas não verificavam quem chamava (reabrir fiscalização, filas dos workers, indicadores); hoje as que expõem dados verificam, e as demais são de gatilho, de permissão ou só leem o próprio perfil.
+"""
+risco = """
+Cada função é uma porta que ignora as regras por linha; esquecer a verificação expõe ou altera dados (aconteceu com 5 funções).
+"""
+opcoes = ["""
+No sistema novo, nenhuma regra de negócio em função do banco: serviços do Django com verificação explícita de papel e câmara, testada.
+""", """
+Manter funções no banco com verificação obrigatória revisada.
+"""]
+recomendacao = """
+Opção 1. As regras que elas implementam (geração de NCs, finalização, numeração, indicadores) vão para as specs dos módulos.
+"""
+situacao = "aguardando_decisao"
+decisao = ""
+decidido_por = ""
+decidido_em = ""
+
+[[achado]]
+id = "A-006"
+titulo = "Privilégios de anon em todas as tabelas e funções executáveis sem login"
+objetos = ["papel:anon", "privilegio_padrao:postgres.public.tabela", "privilegio_padrao:postgres.public.funcao"]
+evidencia = """
+36 tabelas e views dão todos os privilégios a `anon`, e 37 funções são executáveis por `anon`/`PUBLIC`: é o padrão do esquema no Supabase. Quem barra são as regras por linha e as verificações internas; as migrations 137, 138 e 141 fecharam os casos que estavam abertos.
+"""
+risco = """
+Tabela ou função nova nasce aberta; um descuido basta para expor dados sem login.
+"""
+opcoes = ["""
+No sistema novo, negar por padrão: sem login, só entrar, criar conta e listar as entidades do cadastro.
+""", """
+Reproduzir o modelo atual.
+"""]
+recomendacao = """
+Opção 1.
+"""
+situacao = "aguardando_decisao"
+decisao = ""
+decidido_por = ""
+decidido_em = ""
+
+[[achado]]
+id = "A-007"
+titulo = "13 tabelas vazias em produção"
+objetos = ["tabela:autos_infracao", "tabela:caters_analysis_history", "tabela:caters_deadline_extensions", "tabela:caters_extra_documents", "tabela:caters_municipality_responses", "tabela:caters_notification_reads", "tabela:catesa_ai_jobs", "tabela:fotos_evidencia", "tabela:julgamentos", "tabela:manifestacoes_auto", "tabela:pareceres_tecnicos", "tabela:remessas_ai", "tabela:remessas_ai_itens"]
+evidencia = """
+13 tabelas não têm nenhuma linha. Parte é funcionalidade pronta e ainda não usada (autos de infração, pareceres, remessas, extras do CATERS, fila da CATESA); parte não tem uso no código (julgamentos, manifestações, fotos de evidência — ver A-030).
+"""
+risco = """
+Descartar funcionalidade pronta por achar que é resíduo, ou levar estrutura sem uso.
+"""
+opcoes = ["""
+Preservar a funcionalidade das tabelas com uso no código, sem dado a migrar; decidir as sem uso no A-030.
+""", """
+Descartar todas as vazias.
+"""]
+recomendacao = """
+Opção 1.
+"""
+situacao = "aguardando_decisao"
+decisao = ""
+decidido_por = ""
+decidido_em = ""
+
+[[achado]]
+id = "A-008"
+titulo = "Bucket público logos-entidades"
+objetos = ["bucket:logos-entidades", "politica:storage.objects.logos_entidades_public_access"]
+evidencia = """
+Único bucket público: qualquer pessoa com o endereço abre o arquivo, sem login. Os nomes são aleatórios (uuid) e o bucket não tem limite de tamanho nem de tipo.
+"""
+risco = """
+Baixo: logotipos são institucionais. Sem limite de tipo, o bucket aceita qualquer arquivo de usuário logado.
+"""
+opcoes = ["""
+Manter público, limitando tipo (imagem) e tamanho.
+""", """
+Servir por endereço assinado, como os demais.
+"""]
+recomendacao = """
+Opção 1: logotipo aparece em relatórios e telas, e endereço público simplifica.
+"""
+situacao = "aguardando_decisao"
+decisao = ""
+decidido_por = ""
+decidido_em = ""
+
+[[achado]]
+id = "A-009"
+titulo = "Objetos criados só em produção, sem migration, e objetos só nas migrations"
+objetos = ["funcao:claim_relatorios_jobs(p_limit integer, p_job_id uuid, p_stale_minutes integer)", "funcao:is_staff()", "funcao:can_access_fiscalizacao(fiscalizacao uuid)", "funcao:can_access_unidade(unidade uuid)", "bucket:documentos-prestadores", "bucket:documentos-termos"]
+evidencia = """
+A comparação com o banco montado pelas migrations (divergencias.md) achou 119 objetos só em produção (funções, políticas, colunas, índices, buckets criados pelo painel ou SQL Editor) e 40 só nas migrations (entre eles a confirmação de e-mail na aprovação e o gatilho de datas de itens_checklist). A fila da CATESA, que existia só nas migrations, foi criada em produção pela 141. Um banco montado só pelas migrations não gera relatórios (falta `claim_relatorios_jobs`).
+"""
+risco = """
+Especificar a partir das migrations descreveria um sistema que não é o de produção.
+"""
+opcoes = ["""
+Especificar a partir de produção (catálogo), com as divergências classificadas.
+""", """
+Especificar a partir das migrations.
+"""]
+recomendacao = """
+Opção 1, que é o método desta spec; as migrations servem só de histórico.
+"""
+situacao = "aguardando_decisao"
+decisao = ""
+decidido_por = ""
+decidido_em = ""
+
+[[achado]]
+id = "A-010"
+titulo = "Câmaras caterm e catesg sem correspondência no código"
+objetos = ["tabela:camaras_tecnicas"]
+evidencia = """
+Produção tem 12 câmaras; `caterm` (terminais rodoviários, DTR) e `catesg` (serviços de gás, DGE) não estão na lista da interface, no mapa de dashboards nem na tela de cadastro, então nenhum usuário consegue escolhê-las.
+"""
+risco = """
+Câmaras que existem no cadastro mas não no sistema: usuários dessas câmaras não têm como ser cadastrados.
+"""
+opcoes = ["""
+Levar as 12 câmaras e completar a interface.
+""", """
+Levar só as 10 usadas.
+""", """
+Confirmar com as diretorias quais câmaras existem hoje.
+"""]
+recomendacao = """
+Opção 3 antes da spec do core.
+"""
+situacao = "aguardando_decisao"
+decisao = ""
+decidido_por = ""
+decidido_em = ""
+
+[[achado]]
+id = "A-011"
+titulo = "Escalada de privilégio no cadastro de usuário"
+objetos = ["funcao:handle_new_user()", "funcao:enforce_profile_security()", "funcao:get_my_role()"]
+evidencia = """
+O cadastro aceitava papel escolhido pelo usuário (inclusive admin) e as funções de identidade respondiam para perfil não aprovado (.specify/bugs/escalada-privilegio-cadastro).
+"""
+risco = """
+Qualquer pessoa criava conta de administrador.
+"""
+opcoes = ["""
+Corrigir em produção.
+""", """
+Só registrar.
+"""]
+recomendacao = """
+Opção 1.
+"""
+situacao = "decidido"
+decisao = """
+Corrigido em produção pela migration 137, aplicada pelo responsável. A parte que restringe a leitura de perfis não chegou a produção (A-012). No sistema novo, o papel é definido só pelo admin na aprovação.
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-29"
+
+[[achado]]
+id = "A-012"
+titulo = "Leitura de todos os perfis por conta não aprovada (parte da 137 não aplicada)"
+objetos = ["politica:public.profiles.Leitura pública de perfis"]
+evidencia = """
+O inventário de 2026-09-29 mostra `Leitura pública de perfis` com `USING (true)`: qualquer conta logada, mesmo sem aprovação, lê nome, e-mail e papel de todos os usuários. A migration 137 (commit 7df89f0) restringe ao próprio perfil ou a quem tem perfil ativo; o banco das migrations já tem a versão restrita.
+"""
+risco = """
+Quem cria uma conta (sem aprovação) obtém a lista de usuários da AGEMS com e-mails.
+"""
+opcoes = ["""
+Aplicar em produção o trecho da 137.
+""", """
+Só registrar.
+"""]
+recomendacao = """
+Opção 1: rodar o DROP/CREATE POLICY da 137 no SQL Editor e refazer o inventário.
+"""
+situacao = "decidido"
+decisao = """
+Aprovado pelo responsável ao ampliar a correção 137: restringir a leitura de perfis. Falta aplicar em produção o trecho da migration 137 (linhas 198 a 201).
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-28"
+
+[[achado]]
+id = "A-013"
+titulo = "Escrita sem login e acesso de conta não aprovada"
+objetos = ["tabela:itens_checklist", "tabela:tipos_unidade", "tabela:prestadores_servico"]
+evidencia = """
+Políticas `Public Access` permitiam escrita sem login em itens de checklist e tipos de unidade, e várias políticas `true` valiam para conta não aprovada (.specify/bugs/acesso-aberto-sem-aprovacao).
+"""
+risco = """
+Alteração do checklist por qualquer pessoa; leitura de dados por conta não aprovada.
+"""
+opcoes = ["""
+Corrigir em produção.
+""", """
+Só registrar.
+"""]
+recomendacao = """
+Opção 1.
+"""
+situacao = "decidido"
+decisao = """
+Corrigido em produção pela migration 138, aplicada pelo responsável.
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-29"
+
+[[achado]]
+id = "A-014"
+titulo = "Prazos e respostas adulteráveis pelo prestador"
+objetos = ["funcao:proteger_termo_prestador()", "funcao:proteger_resposta_determinacao_prestador()", "tabela:termos_notificacao"]
+evidencia = """
+O aparelho do prestador calculava e gravava prazos e pontualidade, e políticas amplas deixavam o prestador mudar status e a análise da equipe (.specify/bugs/prazos-calculados-pelo-prestador).
+"""
+risco = """
+A entidade regulada alterava o próprio processo sancionador.
+"""
+opcoes = ["""
+Corrigir em produção.
+""", """
+Só registrar.
+"""]
+recomendacao = """
+Opção 1.
+"""
+situacao = "decidido"
+decisao = """
+Corrigido em produção pela migration 139, aplicada pelo responsável. No sistema novo, prazos e pontualidade são calculados no servidor.
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-29"
+
+[[achado]]
+id = "A-015"
+titulo = "Funções sem verificação, finalização pela chave de serviço e fila da CATESA ausente"
+objetos = ["funcao:reabrir_fiscalizacao(p_fiscalizacao_id uuid)", "funcao:finalizar_fiscalizacao(p_fiscalizacao_id uuid)", "funcao:e_chave_de_servico()", "tabela:catesa_ai_jobs"]
+evidencia = """
+Funções com permissão elevada eram executáveis sem login; a finalização recusava a chave de serviço; a tabela da fila da CATESA não existia (.specify/bugs/funcoes-sem-verificacao).
+"""
+risco = """
+Reabrir fiscalizações e ler filas sem login; NCs não regeneradas no pedido de relatório; análise da CATESA sempre falhando.
+"""
+opcoes = ["""
+Corrigir em produção.
+""", """
+Só registrar.
+"""]
+recomendacao = """
+Opção 1.
+"""
+situacao = "decidido"
+decisao = """
+Corrigido em produção pela migration 141, aplicada pelo responsável.
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-29"
+
+[[achado]]
+id = "A-016"
+titulo = "Arquivos abertos a todo usuário ativo, inclusive o prestador"
+objetos = ["politica:storage.objects.Storage delete authenticated", "politica:storage.objects.Storage insert authenticated", "politica:storage.objects.Storage read authenticated", "politica:storage.objects.Storage update authenticated", "politica:storage.objects.documentos-autos authenticated all 1fhxxna_0", "politica:storage.objects.documentos-autos authenticated all 1fhxxna_1", "politica:storage.objects.documentos-autos authenticated all 1fhxxna_2", "politica:storage.objects.documentos-autos authenticated all 1fhxxna_3", "politica:storage.objects.documentos-prestadores authenticated all 1rt2ofe_0", "politica:storage.objects.documentos-prestadores authenticated all 1rt2ofe_1", "politica:storage.objects.documentos-prestadores authenticated all 1rt2ofe_2", "politica:storage.objects.documentos-prestadores authenticated all 1rt2ofe_3", "politica:storage.objects.documentos-termos authenticated all 16irk4e_0", "politica:storage.objects.documentos-termos authenticated all 16irk4e_1", "politica:storage.objects.documentos-termos authenticated all 16irk4e_2", "politica:storage.objects.documentos-termos authenticated all 16irk4e_3", "politica:storage.objects.kml_rodovias_authenticated_delete", "politica:storage.objects.kml_rodovias_authenticated_insert", "politica:storage.objects.kml_rodovias_authenticated_read", "politica:storage.objects.kml_rodovias_authenticated_update", "politica:storage.objects.logos_entidades_authenticated_delete", "politica:storage.objects.logos_entidades_authenticated_insert", "politica:storage.objects.logos_entidades_authenticated_update", "politica:storage.objects.logos_entidades_public_access", "politica:storage.objects.p_evid_write", "politica:storage.objects.relatorios_fiscalizacao authenticated all 1760aao_0", "politica:storage.objects.relatorios_fiscalizacao authenticated all 1760aao_1", "politica:storage.objects.relatorios_fiscalizacao authenticated all 1760aao_2", "politica:storage.objects.relatorios_fiscalizacao authenticated all 1760aao_3", "politica:storage.objects.tn_delete_authenticated", "politica:storage.objects.tn_update_authenticated", "politica:storage.objects.tn_upload_authenticated"]
+evidencia = """
+As políticas de `storage.objects` só olham o bucket e o perfil ativo: nenhuma olha caminho, câmara ou entidade. O prestador lê, troca e apaga qualquer arquivo dos buckets privados (termos, autos, relatórios, fotos, documentos de outras entidades).
+"""
+risco = """
+Vazamento e adulteração de documentos do processo sancionador por uma entidade regulada.
+"""
+opcoes = ["""
+Corrigir em produção agora (políticas por caminho/entidade).
+""", """
+Não corrigir em produção; no sistema novo, acesso ao arquivo decidido pelo registro que o referencia.
+"""]
+recomendacao = """
+No sistema novo, arquivo só é servido por endereço assinado emitido depois de verificar o acesso ao registro dono.
+"""
+situacao = "aguardando_decisao"
+decisao = ""
+decidido_por = ""
+decidido_em = ""
+
+[[achado]]
+id = "A-017"
+titulo = "Portal da entidade monta endereço público para fotos de bucket privado"
+objetos = ["bucket:fotos_fiscalizacao", "coluna:unidades_fiscalizadas.fotos_unidade"]
+evidencia = """
+A tela de resposta ao termo resolve as fotos com endereço público, supondo o bucket público (migration 044); em produção ele é privado, e esses endereços não abrem.
+"""
+risco = """
+O prestador não vê as fotos das unidades ao responder o termo.
+"""
+opcoes = ["""
+No sistema novo, fotos servidas por endereço assinado depois de verificar o acesso.
+""", """
+Tornar o bucket público.
+"""]
+recomendacao = """
+Opção 1 (não tornar público: fotos de vistoria podem ter dados sensíveis).
+"""
+situacao = "aguardando_decisao"
+decisao = ""
+decidido_por = ""
+decidido_em = ""
+
+[[achado]]
+id = "A-018"
+titulo = "AI assinado enviado pelo portal fica sem referência"
+objetos = ["bucket:documentos-autos", "tabela:autos_infracao"]
+evidencia = """
+O portal envia o AI assinado pela entidade e procura uma coluna para guardar o endereço entre quatro nomes; nenhuma existe em produção, então o arquivo fica no bucket sem registro que aponte para ele.
+"""
+risco = """
+Documento do processo sancionador perdido; a equipe não vê o AI assinado.
+"""
+opcoes = ["""
+No sistema novo, o AI assinado pela entidade é um campo do auto.
+""", """
+Descartar a etapa.
+"""]
+recomendacao = """
+Opção 1, a descrever na spec do processo sancionador.
+"""
+situacao = "aguardando_decisao"
+decisao = ""
+decidido_por = ""
+decidido_em = ""
+
+[[achado]]
+id = "A-019"
+titulo = "Envio de arquivos de termo tenta vários buckets até um aceitar"
+objetos = ["bucket:documentos-termos"]
+evidencia = """
+O envio tenta uma lista de nomes (`termos-notificacao`, `documentos-termos`, `documentos`...) e usa o primeiro que aceita; as políticas de arquivos citam `termos-notificacao`, que não existe.
+"""
+risco = """
+Arquivo gravado em repositório inesperado se outro bucket da lista passar a existir.
+"""
+opcoes = ["""
+No sistema novo, repositório fixo por tipo de documento.
+"""]
+recomendacao = """
+Opção 1.
+"""
+situacao = "aguardando_decisao"
+decisao = ""
+decidido_por = ""
+decidido_em = ""
+
+[[achado]]
+id = "A-020"
+titulo = "Excluir usuário falha para quem tem registros"
+objetos = ["funcao:admin_delete_user(p_user_id uuid)", "restricao:fiscalizacoes.fiscalizacoes_created_by_fkey", "restricao:caters_processes.caters_processes_created_by_fkey"]
+evidencia = """
+Autoria em fiscalizações, pedidos de relatório, vínculo de entidade e tabelas do CATERS aponta para a conta sem regra de exclusão; a exclusão falha inteira se houver qualquer registro.
+"""
+risco = """
+Não há como remover quem saiu; a saída real é desativar.
+"""
+opcoes = ["""
+No sistema novo, desativar em vez de excluir, preservando a autoria.
+""", """
+Excluir e anonimizar a autoria.
+"""]
+recomendacao = """
+Opção 1; excluir só cadastro sem nenhum registro.
+"""
+situacao = "aguardando_decisao"
+decisao = ""
+decidido_por = ""
+decidido_em = ""
+
+[[achado]]
+id = "A-021"
+titulo = """
+"Drenagem" × "Drenagem Urbana" na dedução da câmara
+"""
+objetos = ["funcao:camara_from_servicos(p_servicos text[])"]
+evidencia = """
+A lista da CATESA tem "Drenagem", mas prestadores e interface usam "Drenagem Urbana": uma fiscalização só de drenagem fica sem câmara.
+"""
+risco = """
+Fiscalização sem câmara fica visível a todos os fiscais e fora dos painéis da CATESA.
+"""
+opcoes = ["""
+No sistema novo, câmara escolhida explicitamente ou deduzida de tabela de serviços versionada.
+"""]
+recomendacao = """
+Opção 1.
+"""
+situacao = "aguardando_decisao"
+decisao = ""
+decidido_por = ""
+decidido_em = ""
+
+[[achado]]
+id = "A-022"
+titulo = "Coordenador exclui perfis e altera nome e e-mail de qualquer usuário pela API"
+objetos = ["politica:public.profiles.Admins e coordenadores gerenciam perfis"]
+evidencia = """
+A política dá acesso total ao coordenador; o gatilho impede mudar papel, aprovação e vínculos, mas não excluir nem alterar nome e e-mail. A tela não oferece isso ao coordenador.
+"""
+risco = """
+Coordenador remove ou altera usuários fora da própria câmara.
+"""
+opcoes = ["""
+No sistema novo, gestão de usuários só pelo admin.
+""", """
+Coordenador gerencia só a própria câmara.
+"""]
+recomendacao = """
+Opção 1, que é o que a tela faz hoje.
+"""
+situacao = "aguardando_decisao"
+decisao = ""
+decidido_por = ""
+decidido_em = ""
+
+[[achado]]
+id = "A-023"
+titulo = "Vínculo do prestador gravado nos dois lados, sem transação"
+objetos = ["coluna:profiles.prestador_servico_id", "coluna:prestadores_servico.user_id"]
+evidencia = """
+A tela grava a entidade no perfil e a conta na entidade em passos separados; as restrições do perfil são NOT VALID.
+"""
+risco = """
+Vínculos inconsistentes (perfil aponta para uma entidade, entidade para outra conta).
+"""
+opcoes = ["""
+No sistema novo, um único vínculo (perfil → entidade).
+"""]
+recomendacao = """
+Opção 1.
+"""
+situacao = "aguardando_decisao"
+decisao = ""
+decidido_por = ""
+decidido_em = ""
+
+[[achado]]
+id = "A-024"
+titulo = "Checklist versionado só por inserção"
+objetos = ["tabela:itens_checklist", "coluna:itens_checklist.ativo"]
+evidencia = """
+Nenhum item é alterado nem apagado: editar ou excluir insere versão nova. Produção tem 525 itens vigentes e 243 versões antigas; a vistoria usa a versão vigente na criação da unidade.
+"""
+risco = """
+Regra implícita (chave por tipo e ordem) difícil de manter; mas preserva o texto das vistorias antigas.
+"""
+opcoes = ["""
+Levar o versionamento com modelo explícito (versão, vigência).
+""", """
+Levar só a versão vigente e congelar o texto na resposta.
+"""]
+recomendacao = """
+Opção 1, descrita na spec de checklists.
+"""
+situacao = "aguardando_decisao"
+decisao = ""
+decidido_por = ""
+decidido_em = ""
+
+[[achado]]
+id = "A-025"
+titulo = "Colunas que nenhuma parte do sistema grava"
+objetos = ["coluna:fiscalizacoes.latitude_inicio", "coluna:fiscalizacoes.longitude_inicio", "coluna:unidades_fiscalizadas.tipo_unidade_nome", "coluna:unidades_fiscalizadas.total_determinacoes", "coluna:unidades_fiscalizadas.total_recomendacoes", "coluna:determinacoes.prazo"]
+evidencia = """
+Nenhuma tela, sincronização ou função grava essas colunas; `determinacoes.prazo` está sempre vazia, mas a importação do CATERS e a IA da CATESA a leem como prazo.
+"""
+risco = """
+Dado ausente tratado como informação (prazo vazio nas recomendações do CATERS).
+"""
+opcoes = ["""
+Não levar as colunas; calcular totais e usar `data_limite` como prazo.
+""", """
+Passar a gravá-las.
+"""]
+recomendacao = """
+Opção 1.
+"""
+situacao = "aguardando_decisao"
+decisao = ""
+decidido_por = ""
+decidido_em = ""
+
+[[achado]]
+id = "A-026"
+titulo = "Políticas da equipe ignoram a câmara nas tabelas filhas"
+objetos = ["politica:public.unidades_fiscalizadas.unidades_staff_all", "politica:public.autos_infracao.autos_staff_all"]
+evidencia = """
+As políticas `*_staff_all` dão acesso total a admin, fiscal e coordenador ativos sem olhar a câmara; como se somam às políticas por câmara, anulam o isolamento entre câmaras.
+"""
+risco = """
+Fiscal de uma câmara lê e altera dados de outra.
+"""
+opcoes = ["""
+No sistema novo, isolamento por câmara em toda consulta, com admin como exceção.
+""", """
+Manter acesso de toda a equipe a tudo.
+"""]
+recomendacao = """
+Confirmar com o responsável se o isolamento por câmara é requisito; se for, opção 1.
+"""
+situacao = "aguardando_decisao"
+decisao = ""
+decidido_por = ""
+decidido_em = ""
+
+[[achado]]
+id = "A-027"
+titulo = "Prestador lê dados da fiscalização sem ter recebido termo"
+objetos = ["politica:public.unidades_fiscalizadas.Prestadores: ler suas próprias unidades", "funcao:can_access_fiscalizacao(fiscalizacao uuid)"]
+evidencia = """
+Políticas antigas liberam ao prestador as unidades, NCs etc. de qualquer fiscalização da própria entidade; somadas, anulam a exigência de termo de `can_access_*`.
+"""
+risco = """
+A entidade vê a fiscalização antes da notificação formal.
+"""
+opcoes = ["""
+No sistema novo, o prestador só vê a fiscalização depois do termo.
+""", """
+Liberar desde a finalização.
+"""]
+recomendacao = """
+Opção 1 (regra do portal do prestador).
+"""
+situacao = "aguardando_decisao"
+decisao = ""
+decidido_por = ""
+decidido_em = ""
+
+[[achado]]
+id = "A-028"
+titulo = """
+Numeração de TN, AM e AI com repetição possível e "DSB" fixo
+"""
+objetos = ["funcao:gerar_numero_am()", "funcao:gerar_numero_auto()", "coluna:termos_notificacao.numero_termo_notificacao"]
+evidencia = """
+Números são a contagem do ano mais 1 (AM, AI) ou o maior mais 1 calculado no navegador (TN); pedidos simultâneos repetem números, e a sigla "DSB" é fixa para qualquer diretoria.
+"""
+risco = """
+Documentos oficiais com número repetido; numeração errada fora da DSB.
+"""
+opcoes = ["""
+No sistema novo, sequência no servidor por tipo, diretoria e ano, com unicidade garantida.
+"""]
+recomendacao = """
+Opção 1.
+"""
+situacao = "aguardando_decisao"
+decisao = ""
+decidido_por = ""
+decidido_em = ""
+
+[[achado]]
+id = "A-029"
+titulo = "Defesa do auto não é salva e referências a colunas inexistentes"
+objetos = ["coluna:autos_infracao.defesa_texto", "coluna:autos_infracao.defesa_arquivos", "coluna:remessas_ai.numero_tn"]
+evidencia = """
+O prestador não tem política de alteração em autos, então a defesa escrita no portal se perde sem erro; a tela usa `data_envio` e `data_limite_manifestacao`, que não existem em autos; `numero_tn` da remessa fica sempre vazio (a tela lê um campo inexistente).
+"""
+risco = """
+Defesa do regulado perdida no processo sancionador.
+"""
+opcoes = ["""
+No sistema novo, defesa como registro próprio do processo, gravada pelo portal.
+"""]
+recomendacao = """
+Opção 1, descrita nas specs do processo sancionador e do portal.
+"""
+situacao = "aguardando_decisao"
+decisao = ""
+decidido_por = ""
+decidido_em = ""
+
+[[achado]]
+id = "A-030"
+titulo = "Tabelas sem uso: julgamentos, manifestações e fotos de evidência"
+objetos = ["tabela:julgamentos", "tabela:manifestacoes_auto", "tabela:fotos_evidencia"]
+evidencia = """
+As três estão vazias e nenhuma tela as grava; o julgamento é etapa ainda não coberta, a defesa fica no auto e as fotos ficam na unidade.
+"""
+risco = """
+Levar estrutura sem requisito, ou perder a intenção (julgamento) sem registro.
+"""
+opcoes = ["""
+Não levar as tabelas; o julgamento entra como requisito do processo sancionador, se for escopo.
+""", """
+Levar como estão.
+"""]
+recomendacao = """
+Opção 1.
+"""
+situacao = "aguardando_decisao"
+decisao = ""
+decidido_por = ""
+decidido_em = ""
+
+[[achado]]
+id = "A-031"
+titulo = "Dilação do CATERS grava status inexistente"
+objetos = ["tipo:caters_process_status", "coluna:caters_processes.status", "tabela:caters_deadline_extensions"]
+evidencia = """
+Ao aprovar uma dilação, a tela grava `dilacao_solicitada`, que o tipo não tem; a dilação fica registrada, mas o prazo do processo e o histórico não mudam (a migration 123 supôs texto livre).
+"""
+risco = """
+Prazo do processo errado depois de dilação aprovada.
+"""
+opcoes = ["""
+No sistema novo, a dilação aprovada atualiza o prazo; incluir ou não a situação "dilação solicitada".
+"""]
+recomendacao = """
+Incluir a situação e atualizar o prazo na mesma operação.
+"""
+situacao = "aguardando_decisao"
+decisao = ""
+decidido_por = ""
+decidido_em = ""
+
+[[achado]]
+id = "A-032"
+titulo = "Excluir evento do histórico do CATERS não tem efeito"
+objetos = ["tabela:caters_analysis_history"]
+evidencia = """
+Não há política de exclusão; a tela oferece excluir, nada acontece e nenhum erro aparece.
+"""
+risco = """
+Usuário acredita ter excluído.
+"""
+opcoes = ["""
+Histórico imutável, sem opção de excluir.
+""", """
+Permitir excluir com registro de quem excluiu.
+"""]
+recomendacao = """
+Opção 1: histórico é trilha de auditoria.
+"""
+situacao = "aguardando_decisao"
+decisao = ""
+decidido_por = ""
+decidido_em = ""
+
+[[achado]]
+id = "A-033"
+titulo = "Análises por IA do CATERS nunca processadas em produção"
+objetos = ["tabela:caters_ai_jobs"]
+evidencia = """
+Produção tem 7 trabalhos: 6 `queued` e 1 `error`, nenhum concluído; o worker não roda (função não publicada, chave da IA ausente ou nada o aciona) e os workers de IA são publicados sem verificação de quem chama.
+"""
+risco = """
+Funcionalidade anunciada que não funciona.
+"""
+opcoes = ["""
+Verificar a publicação das edge functions e a chave do Gemini (externos.toml).
+""", """
+No sistema novo, fila de tarefas com monitoramento.
+"""]
+recomendacao = """
+As duas: verificar agora e especificar a fila no sistema novo.
+"""
+situacao = "aguardando_decisao"
+decisao = ""
+decidido_por = ""
+decidido_em = ""
+
+[[achado]]
+id = "A-034"
+titulo = """
+Política "(DEV)" de remessas deixa um prestador alterar remessa de outro
+"""
+objetos = ["politica:public.remessas_ai.Acesso total autenticado (DEV)"]
+evidencia = """
+Qualquer perfil ativo, de qualquer papel e câmara, lê, cria, altera e exclui qualquer remessa; é o que permite ao prestador registrar recebimento e defesa.
+"""
+risco = """
+Prestador lê e altera remessas de outras entidades.
+"""
+opcoes = ["""
+No sistema novo, prestador só registra recebimento e defesa das próprias remessas.
+"""]
+recomendacao = """
+Opção 1.
+"""
+situacao = "aguardando_decisao"
+decisao = ""
+decidido_por = ""
+decidido_em = ""
+
+[[achado]]
+id = "A-035"
+titulo = "Funções sem uso"
+objetos = ["funcao:determinacoes_fill_origem()", "funcao:obter_resumo_indicadores(p_anos text[], p_servicos text[], p_municipio_ids uuid[], p_prestador_ids uuid[], p_apenas_finalizadas boolean)"]
+evidencia = """
+`determinacoes_fill_origem` não é chamada por nenhum gatilho; a versão antiga de `obter_resumo_indicadores` não é chamada pela tela.
+"""
+risco = """
+Nenhum imediato; ruído na especificação.
+"""
+opcoes = ["""
+Não levar.
+"""]
+recomendacao = """
+Opção 1.
+"""
+situacao = "aguardando_decisao"
+decisao = ""
+decidido_por = ""
+decidido_em = ""
+
+[[achado]]
+id = "A-036"
+titulo = """
+IA da CATESA: botão em qualquer câmara, workers sem verificação e veredito que marca "no prazo"
+"""
+objetos = ["tabela:catesa_ai_jobs", "tabela:respostas_determinacao"]
+evidencia = """
+O botão "Analisar com IA" aparece em termos de qualquer câmara e o pedido é recusado para quem não é da CATESA; as edge functions de IA são publicadas com `verify_jwt = false` e os workers não verificam quem chama; aplicar o veredito a uma determinação sem resposta cria uma resposta com `dentro_prazo = true`.
+"""
+risco = """
+Qualquer pessoa aciona o processamento (custo da IA); pontualidade registrada sem resposta real.
+"""
+opcoes = ["""
+No sistema novo, análise por IA como tarefa interna, acionada só por usuário autorizado; veredito não cria resposta.
+"""]
+recomendacao = """
+Opção 1.
+"""
+situacao = "aguardando_decisao"
+decisao = ""
+decidido_por = ""
+decidido_em = ""
+
+[[achado]]
+id = "A-037"
+titulo = "Chaves estrangeiras ausentes e padrões inseguros em produção"
+objetos = ["tabela:fiscalizacoes", "tabela:unidades_fiscalizadas", "coluna:profiles.ativo", "coluna:profiles.role"]
+evidencia = """
+Produção não tem as chaves estrangeiras fiscalização → município, fiscalização → entidade e unidade → tipo, que as migrations criam; `profiles.ativo` tem padrão aprovado (`true`) e `profiles.role` tem padrão `user`, papel inválido (divergências `defeito_corrigir`).
+"""
+risco = """
+Referências a registros inexistentes; perfil criado por outro caminho nasceria aprovado.
+"""
+opcoes = ["""
+No sistema novo, chaves estrangeiras obrigatórias e perfil sem padrões (aprovação e papel explícitos).
+""", """
+Corrigir também em produção.
+"""]
+recomendacao = """
+Opção 1; conferir órfãos na migração de dados.
+"""
+situacao = "aguardando_decisao"
+decisao = ""
+decidido_por = ""
+decidido_em = ""
+
+[[achado]]
+id = "A-038"
+titulo = "Confirmação de e-mail na aprovação existe só nas migrations"
+objetos = ["tabela:profiles"]
+evidencia = """
+Nas migrations (027), aprovar o perfil confirma o e-mail da conta; produção não tem a função nem o gatilho. As 8 contas de produção têm e-mail confirmado.
+"""
+risco = """
+Sem saber se o login exige e-mail confirmado, o fluxo de aprovação do sistema novo pode travar ou dispensar a confirmação sem querer.
+"""
+opcoes = ["""
+Exigir confirmação de e-mail pelo próprio usuário.
+""", """
+Aprovação do admin confirma o e-mail.
+""", """
+Não exigir confirmação.
+"""]
+recomendacao = """
+Decidir com a configuração de autenticação de produção (externos.toml).
+"""
+situacao = "aguardando_decisao"
+decisao = ""
+decidido_por = ""
+decidido_em = ""

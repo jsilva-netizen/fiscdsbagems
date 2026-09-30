@@ -125,4 +125,5 @@ WITH CHECK:
 
 ## Divergências e achados
 
-_Nenhuma divergência entre produção e migrations, nenhum achado._
+- Achado **A-013** — Escrita sem login e acesso de conta não aprovada (situação: decidido; [detalhes](../../achados.md#a-013)).
+- Achado **A-024** — Checklist versionado só por inserção (situação: aguardando_decisao; [detalhes](../../achados.md#a-024)).

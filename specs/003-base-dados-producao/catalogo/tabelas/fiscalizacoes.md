@@ -238,3 +238,8 @@ WITH CHECK:
 ## Divergências e achados
 
 - Divergência `politica:public.fiscalizacoes.Prestadores: ler apenas suas pr├│prias fiscaliza├º├Áe`: **so_producao**, classificação **residuo_descartar** ([detalhes](../../divergencias.md)).
+- Achado **A-001** — Políticas de teste automatizado (e2e_test_*) em produção (situação: aguardando_decisao; [detalhes](../../achados.md#a-001)).
+- Achado **A-003** — Políticas e índices duplicados, e 2 políticas com nome corrompido (situação: aguardando_decisao; [detalhes](../../achados.md#a-003)).
+- Achado **A-020** — Excluir usuário falha para quem tem registros (situação: aguardando_decisao; [detalhes](../../achados.md#a-020)).
+- Achado **A-025** — Colunas que nenhuma parte do sistema grava (situação: aguardando_decisao; [detalhes](../../achados.md#a-025)).
+- Achado **A-037** — Chaves estrangeiras ausentes e padrões inseguros em produção (situação: aguardando_decisao; [detalhes](../../achados.md#a-037)).

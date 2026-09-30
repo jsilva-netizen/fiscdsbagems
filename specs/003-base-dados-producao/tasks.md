@@ -296,7 +296,7 @@ Todas as tarefas abaixo são [P] entre si (arquivos diferentes).
 
 **Independent Test**: `achados.md` cobre toda a lista mínima de FR-016, cada achado com evidência nos inventários. Antes da primeira spec de módulo, 0 aguardando decisão (SC-006).
 
-- [ ] T044 [US4] Escrever `S/anotacoes/achados.toml` com, no mínimo, estes achados, todos com `situacao = "aguardando_decisao"`, e cada um com evidência (chaves e números), risco, opções e recomendação:
+- [X] T044 [US4] Escrever `S/anotacoes/achados.toml` com, no mínimo, estes achados, todos com `situacao = "aguardando_decisao"`, e cada um com evidência (chaves e números), risco, opções e recomendação:
   - A-001: as 22 políticas `e2e_test_*` em produção;
   - A-002: dados de teste em produção (`respostas_determinacao.manifestacao_prestador` com "a", "aa"…, e outros encontrados no catálogo);
   - A-003: políticas duplicadas e as 2 de nome corrompido;
@@ -345,7 +345,7 @@ Todas as tarefas abaixo são [P] entre si (arquivos diferentes).
   - IA da CATESA: botão aparece em termos de qualquer câmara; workers de IA publicados sem
     verificação de quem chama (`verify_jwt = false`); aplicar o veredito cria resposta com
     `dentro_prazo = true`.
-- [ ] T045 [US4] Em `S/ferramentas/gerar.py`, gerar `S/achados.md` e incluir, em cada página de catálogo, os achados que citam o objeto.
+- [X] T045 [US4] Em `S/ferramentas/gerar.py`, gerar `S/achados.md` e incluir, em cada página de catálogo, os achados que citam o objeto.
 - [ ] T046 [US4] Apresentar os achados ao responsável pelo projeto e registrar em `S/anotacoes/achados.toml` cada decisão tomada (`situacao = "decidido"`, `decisao`, `decidido_por`, `decidido_em`). **Não alterar nada em produção** (FR-018): decisão de limpar produção vira trabalho separado. Regenerar e fazer commit.
 
 **Checkpoint**: nenhum defeito conhecido será herdado sem decisão.

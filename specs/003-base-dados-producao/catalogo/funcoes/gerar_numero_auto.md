@@ -50,4 +50,5 @@ $function$
 
 ## Divergências e achados
 
-_Nenhuma divergência entre produção e migrations, nenhum achado._
+- Achado **A-028** — Numeração de TN, AM e AI com repetição possível e "DSB" fixo
+ (situação: aguardando_decisao; [detalhes](../../achados.md#a-028)).

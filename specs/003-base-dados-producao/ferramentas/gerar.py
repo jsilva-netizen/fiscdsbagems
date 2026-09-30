@@ -137,6 +137,7 @@ def documentos(ctx: Contexto) -> dict[str, str]:
     docs["catalogo/externos.md"] = paginas.pagina_externos(ctx)
     docs["mapa-rastreabilidade.md"] = paginas.pagina_mapa(ctx.inv, ctx.anot, ctx.modulos, ctx.aviso(), ROTULO_TIPO)
     docs["ordem-modulos.md"] = paginas.pagina_ordem(ctx.inv, ctx.anot, ctx.modulos, ctx.aviso(), ROTULO_TIPO)
+    docs["achados.md"] = paginas.pagina_achados(ctx.anot.achados, ctx.aviso())
     if ctx.migrations is not None:
         cabecalho = (f"Produção: inventário de {ctx.inv.data or '(data desconhecida)'}. Migrations: inventário de "
                      f"{ctx.migrations.data or '(data desconhecida)'}, do banco local reconstruído "

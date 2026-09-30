@@ -60,3 +60,5 @@ $function$
 ## Divergências e achados
 
 - Divergência `funcao:determinacoes_fill_origem()`: **so_producao**, classificação **residuo_descartar** ([detalhes](../../divergencias.md)).
+- Achado **A-005** — 37 funções com permissão elevada (SECURITY DEFINER) (situação: aguardando_decisao; [detalhes](../../achados.md#a-005)).
+- Achado **A-035** — Funções sem uso (situação: aguardando_decisao; [detalhes](../../achados.md#a-035)).

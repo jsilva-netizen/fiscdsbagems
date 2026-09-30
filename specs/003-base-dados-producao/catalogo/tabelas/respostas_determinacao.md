@@ -205,3 +205,6 @@ is_staff()
 - Divergência `politica:public.respostas_determinacao.respostas_det_prestador_select`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
 - Divergência `politica:public.respostas_determinacao.respostas_det_prestador_update`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
 - Divergência `politica:public.respostas_determinacao.respostas_det_staff_all`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
+- Achado **A-002** — Dados de teste em produção (situação: aguardando_decisao; [detalhes](../../achados.md#a-002)).
+- Achado **A-036** — IA da CATESA: botão em qualquer câmara, workers sem verificação e veredito que marca "no prazo"
+ (situação: aguardando_decisao; [detalhes](../../achados.md#a-036)).

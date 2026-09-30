@@ -138,3 +138,4 @@ is_staff()
 
 - Divergência `politica:public.pareceres_tecnicos.pareceres_prestador_select`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
 - Divergência `politica:public.pareceres_tecnicos.pareceres_staff_all`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
+- Achado **A-007** — 13 tabelas vazias em produção (situação: aguardando_decisao; [detalhes](../../achados.md#a-007)).

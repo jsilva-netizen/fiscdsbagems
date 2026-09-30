@@ -100,3 +100,4 @@ WITH CHECK:
 ## Divergências e achados
 
 - Divergência `coluna:tipos_unidade.codigo`: **estrutura_diferente**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
+- Achado **A-013** — Escrita sem login e acesso de conta não aprovada (situação: decidido; [detalhes](../../achados.md#a-013)).

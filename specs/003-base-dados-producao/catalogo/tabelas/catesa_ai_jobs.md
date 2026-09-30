@@ -106,4 +106,7 @@ can_access_camara('catesa'::text)
 
 ## Divergências e achados
 
-_Nenhuma divergência entre produção e migrations, nenhum achado._
+- Achado **A-007** — 13 tabelas vazias em produção (situação: aguardando_decisao; [detalhes](../../achados.md#a-007)).
+- Achado **A-015** — Funções sem verificação, finalização pela chave de serviço e fila da CATESA ausente (situação: decidido; [detalhes](../../achados.md#a-015)).
+- Achado **A-036** — IA da CATESA: botão em qualquer câmara, workers sem verificação e veredito que marca "no prazo"
+ (situação: aguardando_decisao; [detalhes](../../achados.md#a-036)).

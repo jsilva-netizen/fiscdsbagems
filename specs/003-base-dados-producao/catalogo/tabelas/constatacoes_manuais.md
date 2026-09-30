@@ -203,3 +203,4 @@ WITH CHECK:
 - Divergência `coluna:constatacoes_manuais.ordem`: **estrutura_diferente**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
 - Divergência `politica:public.constatacoes_manuais.constatacoes_prestador_select`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
 - Divergência `politica:public.constatacoes_manuais.constatacoes_staff_all`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
+- Achado **A-001** — Políticas de teste automatizado (e2e_test_*) em produção (situação: aguardando_decisao; [detalhes](../../achados.md#a-001)).
