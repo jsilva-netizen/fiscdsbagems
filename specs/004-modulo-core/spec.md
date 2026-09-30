@@ -710,9 +710,8 @@ da spec 003 (`specs/003-base-dados-producao/catalogo/`).
 - **Chaves estrangeiras que produção não tem** (fiscalização → município e entidade, unidade → tipo,
   A-037) são exigidas pelas specs dos módulos donos dessas tabelas; o core garante só que município e
   entidade existem e têm identificador estável.
-- **Constituição**: a seção "Arquitetura do Sistema Novo" ainda prevê processamento assistido por IA e
-  análises com IA embutidas; o A-039 decidiu não refazer a IA. A constituição precisa de emenda para
-  refletir isso (fora do escopo desta spec).
+- **Constituição**: a emenda v2.2.0 (2026-09-30) retirou a IA da arquitetura do sistema novo, em
+  linha com o A-039.
 - **Recuperação de acesso** (esqueci a senha) segue o mesmo canal de e-mail e também exige o código
   de verificação.
 - **Assinatura eletrônica (futura)**: a AGEMS pretende implantar depois a assinatura eletrônica para

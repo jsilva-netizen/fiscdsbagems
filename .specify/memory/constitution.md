@@ -94,8 +94,8 @@ constituição.
 
 - Backend: Django + Django REST Framework, autenticação por JWT (SimpleJWT).
 - Banco: PostgreSQL self-hosted, próprio do sistema. Sem Backend-as-a-Service.
-- Assíncrono: Celery + Redis, incluindo o agendamento de rotinas de prazo e o processamento
-  assistido por IA.
+- Assíncrono: Celery + Redis, para as tarefas de fundo, incluindo o agendamento de rotinas de
+  prazo e a geração de relatórios.
 - Arquivos: `django-storages` com backend abstraído; nunca caminho de filesystem direto
   no código de aplicação.
 - Frontend: SPA React/Vite nova e separada, consumindo a API, no mesmo modelo offline do
@@ -117,10 +117,14 @@ O sistema é modularizado ao máximo, em apps Django:
   e pareceres técnicos.
 - **portal do prestador**.
 - **tramitação de documentos e dados**.
-- **análises com IA**: embutidas nos apps que as usam, não como app isolado.
 
 O que é comum a mais de uma câmara MUST viver em `core`, `fiscalização` ou `checklists`. O que é específico
 de uma câmara MUST NOT vazar para os apps comuns.
+
+**Inteligência artificial**: a análise por IA do sistema atual (filas de IA do CATERS e da
+CATESA) não é migrada nem refeita no sistema novo (decisão do responsável em 2026-09-30,
+achado A-039 da spec 003). Funcionalidade de IA só entra no sistema novo por nova decisão,
+tomada pelo fluxo de assessment e registrada em emenda a esta constituição.
 
 **Fronteiras de domínio**
 
@@ -201,4 +205,4 @@ constituição. Complexidade que viole o Princípio V MUST ser justificada por e
 removida. Violação de princípio marcado NÃO NEGOCIÁVEL bloqueia a entrega, sem exceção
 por prazo.
 
-**Version**: 2.1.0 | **Ratified**: 2026-09-18 | **Last Amended**: 2026-09-28
+**Version**: 2.2.0 | **Ratified**: 2026-09-18 | **Last Amended**: 2026-09-30
