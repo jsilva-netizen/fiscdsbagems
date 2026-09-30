@@ -2,7 +2,7 @@
 
 # Divergências entre produção e migrations
 
-Produção: inventário de 2026-09-29T17:09:53.583234+00:00. Migrations: inventário de 2026-09-30T12:49:12.661564+00:00, do banco local reconstruído (`python -m ferramentas.inventario_migrations --reconstruir`).
+Produção: inventário de 2026-09-29T17:09:53.583234+00:00. Migrations: inventário de 2026-09-29T17:33:29.481994+00:00, do banco local reconstruído (`python -m ferramentas.inventario_migrations --reconstruir`).
 
 Diferenças entre o banco de produção e o banco montado só pelas migrations do repositório. Nos diffs, `-` é a versão das migrations e `+` a de produção.
 
