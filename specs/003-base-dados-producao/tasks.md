@@ -358,7 +358,7 @@ Todas as tarefas abaixo são [P] entre si (arquivos diferentes).
 
 **Independent Test**: um trecho de exemplo em cada molde. Um revisor encontra, para cada regra, o comportamento desejado, o atual, o motivo e as referências. Na jornada, um passo sem regra aparece como `LACUNA`.
 
-- [ ] T047 [P] [US5] Escrever `S/formatos/spec-modulo.md`: o molde de spec de módulo sobre o template de spec do Spec Kit. Cada regra é um bloco com:
+- [X] T047 [P] [US5] Escrever `S/formatos/spec-modulo.md`: o molde de spec de módulo sobre o template de spec do Spec Kit. Cada regra é um bloco com:
   - `R-<modulo>-NNN`;
   - Comportamento desejado;
   - Comportamento atual (quando diferente);
@@ -367,7 +367,7 @@ Todas as tarefas abaixo são [P] entre si (arquivos diferentes).
   - Origem (achado ou divergência).
 
   Incluir como exemplo uma regra real e curta, tirada do catálogo: a semântica append-only de `itens_checklist`.
-- [ ] T048 [P] [US5] Escrever `S/formatos/jornada.md`: o molde de jornada por perfil (fiscal, coordenador, administrador, prestador). Cada passo tem ação do usuário, resultado esperado e regras `R-...`. Passo sem regra é marcado `LACUNA`. Incluir como exemplo 3 passos da jornada "fiscal vistoria uma unidade offline", com um passo propositalmente em `LACUNA`.
+- [X] T048 [P] [US5] Escrever `S/formatos/jornada.md`: o molde de jornada por perfil (fiscal, coordenador, administrador, prestador). Cada passo tem ação do usuário, resultado esperado e regras `R-...`. Passo sem regra é marcado `LACUNA`. Incluir como exemplo 3 passos da jornada "fiscal vistoria uma unidade offline", com um passo propositalmente em `LACUNA`.
 
 **Checkpoint**: a primeira spec de módulo pode começar no molde.
 
