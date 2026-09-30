@@ -154,8 +154,8 @@ Abastecimento de Água só oferece tipos com esse serviço.
   criação da unidade, e MUST manter cada resposta ligada à versão respondida (R-checklists-005).
 - **FR-006**: A importação por planilha MUST mostrar a prévia por linha, criar versão só quando o
   conteúdo mudou e ser repetível sem efeito (R-checklists-006).
-- **FR-007**: Só quem a R-checklists-007 define MUST poder criar e alterar tipos e itens, dentro da
-  própria câmara; o administrador, em todas.
+- **FR-007**: Coordenador e fiscal MUST poder criar e alterar tipos e itens só da própria câmara; o
+  administrador, de todas (R-checklists-007).
 - **FR-008**: Tipos e itens MUST estar disponíveis no aparelho para vistoria sem rede, no escopo da
   câmara do usuário (R-checklists-008).
 - **FR-009**: Tipo com itens ou unidades MUST NOT ser apagado; MUST poder ser desativado
@@ -226,8 +226,11 @@ da spec 003.
     prazo do item; sem ele, gera a recomendação.
 - **Comportamento atual**: igual ao desejado. Em produção todos os itens geram NC e têm prazo de 30
   dias; o texto da NC tem só 4 valores distintos e, na prática, a NC usa a descrição montada a partir
-  do dispositivo.
-- **Motivo da diferença**: —
+  do dispositivo. O formulário de item não oferece o prazo nem o texto da NC (só a importação os
+  preenche) e começa com "gera NC" desligado, enquanto a importação marca todo item como gerador de
+  NC. Excluir item ou tipo pede confirmação em dois passos, digitando "EXCLUIR".
+- **Motivo da diferença**: todos os campos do item passam a ser editáveis no formulário, com o
+  mesmo padrão da importação; a confirmação em dois passos é mantida.
 - **Objetos do catálogo**: `coluna:itens_checklist.pergunta`, `coluna:itens_checklist.texto_constatacao_sim`,
   `coluna:itens_checklist.texto_constatacao_nao`, `coluna:itens_checklist.gera_nc`,
   `coluna:itens_checklist.artigo_portaria`, `coluna:itens_checklist.texto_nc`,
@@ -294,9 +297,8 @@ da spec 003.
 
 ### R-checklists-007 — Quem mantém os checklists
 
-- **Comportamento desejado**: [NEEDS CLARIFICATION: quem cria e altera tipos e itens de checklist
-  da câmara? Hoje administrador, coordenador e fiscal alteram os de qualquer câmara]. Em qualquer
-  caso: só dentro da própria câmara; o administrador, em todas; o diretor lê os da sua diretoria; o
+- **Comportamento desejado**: coordenador e fiscal da câmara criam e alteram tipos e itens de
+  checklist, só da própria câmara; o administrador, de todas (decisão do responsável, 2026-09-30); o diretor lê os da sua diretoria; o
   prestador não acessa o cadastro de checklists (vê só os textos que chegam a ele nos documentos da
   fiscalização).
 - **Comportamento atual**: administrador, coordenador e fiscal ativos criam, alteram e excluem tipos
