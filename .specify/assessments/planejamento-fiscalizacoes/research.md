@@ -164,7 +164,7 @@ Não há planilha de planejamento no repositório, nem entrevista com coordenado
 
 ## Adendo (2026-09-30): planilha real da DSB
 
-Fonte: `specs/Atualização Cronograma de Fiscalização Programada_Julho, Agosto e Setembro-2026.pdf`
+Fonte: [`cronograma-dsb-2026-jul-set.pdf`](./cronograma-dsb-2026-jul-set.pdf) (original: "Atualização Cronograma de Fiscalização Programada_Julho, Agosto e Setembro-2026.pdf")
 ("Anexo I — Cronograma de Fiscalização", DSB), fornecido pelo responsável. Não contém dado pessoal:
 só municípios, serviços, quantidades e custos. (confidence: high, cited)
 

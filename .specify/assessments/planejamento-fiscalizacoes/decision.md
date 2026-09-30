@@ -114,9 +114,12 @@ decisões do responsável ajustam o handoff. Onde houver conflito, vale este blo
   - totais por viagem, por câmara e do plano.
 
   É estimativa de planejamento; pagar diárias e abastecer continuam com o financeiro e frotas, nos
-  apps deles. Os parâmetros (preço do litro, valores de diária por destino) são configuração da
-  câmara ou da diretoria [NEEDS CLARIFICATION: quem mantém os valores de diária e o preço do litro,
-  e do que depende o valor unitário da diária (R$ 200, 240, 250 na planilha)].
+  apps deles. O valor unitário da diária vem de uma **tabela de valores de diária por município**
+  (destino), que já existe na agência e será cadastrada depois (decisão do responsável). O preço do
+  litro é parâmetro do plano. Enquanto o app do financeiro não existir, a tabela de diárias fica no
+  planejamento, como o cadastro de veículos
+  [NEEDS CLARIFICATION: quem mantém a tabela de diárias e o preço do litro (administrador?
+  coordenadores?); passa ao financeiro quando o app dele existir?].
 - **Equipe**: o plano é aprovado com a quantidade de servidores e de diárias. Depois da aprovação,
   o coordenador escala os nomes, só servidores das câmaras (não há motorista nem outras áreas).
   Escalar servidor de outra câmara exige a liberação do coordenador dessa câmara, depois da
@@ -124,10 +127,11 @@ decisões do responsável ajustam o handoff. Onde houver conflito, vale este blo
 - **Mudanças**: a lista fechada de tipos de mudança continua. Por decisão do responsável, toda
   mudança que aumenta o valor das diárias pede aprovação do diretor, e a câmara não pode desmarcar
   isso.
-- **Revisão periódica**: o plano anual é revisado ao longo do ano (hoje há atualizações trimestrais
-  publicadas como anexo) [NEEDS CLARIFICATION: a atualização trimestral é uma nova versão do plano
-  aprovada pelo diretor, ou o conjunto das mudanças do trimestre?].
+- **Revisão periódica**: a "atualização" trimestral de hoje é o conjunto das mudanças do período
+  (decisão do responsável), e não uma nova versão aprovada do plano inteiro. O sistema emite o
+  cronograma atualizado de um período a partir das mudanças já aprovadas ou registradas.
 - **Documento do plano**: o sistema emite o cronograma no formato do Anexo I (mês, datas,
   municípios, serviços, KM, custos) para anexar ao processo, com o layout de cada câmara.
 - **Perguntas resolvidas**: planilha real; quem é a chefia de origem; motorista (não existe);
-  liberação depois da aprovação; aumento de diárias pede aprovação.
+  liberação depois da aprovação; aumento de diárias pede aprovação; valor da diária vem da tabela
+  por município; a atualização trimestral é o conjunto das mudanças.
