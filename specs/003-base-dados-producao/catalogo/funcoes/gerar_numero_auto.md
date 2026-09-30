@@ -51,4 +51,4 @@ $function$
 ## Divergências e achados
 
 - Achado **A-028** — Numeração de TN, AM e AI com repetição possível e "DSB" fixo
- (situação: aguardando_decisao; [detalhes](../../achados.md#a-028)).
+ (situação: decidido; [detalhes](../../achados.md#a-028)).

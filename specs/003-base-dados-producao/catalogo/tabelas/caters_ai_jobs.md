@@ -106,4 +106,4 @@ is_caters_user()
 
 ## Divergências e achados
 
-- Achado **A-033** — Análises por IA do CATERS nunca processadas em produção (situação: aguardando_decisao; [detalhes](../../achados.md#a-033)).
+- Achado **A-033** — Análises por IA do CATERS nunca processadas em produção (situação: decidido; [detalhes](../../achados.md#a-033)).

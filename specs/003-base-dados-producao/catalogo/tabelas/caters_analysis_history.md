@@ -95,5 +95,5 @@ WITH CHECK:
 
 ## Divergências e achados
 
-- Achado **A-007** — 13 tabelas vazias em produção (situação: aguardando_decisao; [detalhes](../../achados.md#a-007)).
-- Achado **A-032** — Excluir evento do histórico do CATERS não tem efeito (situação: aguardando_decisao; [detalhes](../../achados.md#a-032)).
+- Achado **A-007** — 13 tabelas vazias em produção (situação: decidido; [detalhes](../../achados.md#a-007)).
+- Achado **A-032** — Excluir evento do histórico do CATERS não tem efeito (situação: decidido; [detalhes](../../achados.md#a-032)).

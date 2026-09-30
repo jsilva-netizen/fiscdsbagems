@@ -126,4 +126,4 @@ WITH CHECK:
 ## Divergências e achados
 
 - Achado **A-013** — Escrita sem login e acesso de conta não aprovada (situação: decidido; [detalhes](../../achados.md#a-013)).
-- Achado **A-024** — Checklist versionado só por inserção (situação: aguardando_decisao; [detalhes](../../achados.md#a-024)).
+- Achado **A-024** — Checklist versionado só por inserção (situação: decidido; [detalhes](../../achados.md#a-024)).

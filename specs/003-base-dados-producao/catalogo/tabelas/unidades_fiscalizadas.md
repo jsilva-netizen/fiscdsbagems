@@ -297,10 +297,10 @@ is_staff()
 - Divergência `politica:public.unidades_fiscalizadas.unidades_prestador_select`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
 - Divergência `politica:public.unidades_fiscalizadas.unidades_staff_all`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
 - Divergência `restricao:unidades_fiscalizadas.unidades_fiscalizadas_fotos_is_array_check`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
-- Achado **A-001** — Políticas de teste automatizado (e2e_test_*) em produção (situação: aguardando_decisao; [detalhes](../../achados.md#a-001)).
-- Achado **A-003** — Políticas e índices duplicados, e 2 políticas com nome corrompido (situação: aguardando_decisao; [detalhes](../../achados.md#a-003)).
-- Achado **A-017** — Portal da entidade monta endereço público para fotos de bucket privado (situação: aguardando_decisao; [detalhes](../../achados.md#a-017)).
-- Achado **A-025** — Colunas que nenhuma parte do sistema grava (situação: aguardando_decisao; [detalhes](../../achados.md#a-025)).
-- Achado **A-026** — Políticas da equipe ignoram a câmara nas tabelas filhas (situação: aguardando_decisao; [detalhes](../../achados.md#a-026)).
-- Achado **A-027** — Prestador lê dados da fiscalização sem ter recebido termo (situação: aguardando_decisao; [detalhes](../../achados.md#a-027)).
-- Achado **A-037** — Chaves estrangeiras ausentes e padrões inseguros em produção (situação: aguardando_decisao; [detalhes](../../achados.md#a-037)).
+- Achado **A-001** — Políticas de teste automatizado (e2e_test_*) em produção (situação: decidido; [detalhes](../../achados.md#a-001)).
+- Achado **A-003** — Políticas e índices duplicados, e 2 políticas com nome corrompido (situação: decidido; [detalhes](../../achados.md#a-003)).
+- Achado **A-017** — Portal da entidade monta endereço público para fotos de bucket privado (situação: decidido; [detalhes](../../achados.md#a-017)).
+- Achado **A-025** — Colunas que nenhuma parte do sistema grava (situação: decidido; [detalhes](../../achados.md#a-025)).
+- Achado **A-026** — Políticas da equipe ignoram a câmara nas tabelas filhas (situação: decidido; [detalhes](../../achados.md#a-026)).
+- Achado **A-027** — Prestador lê dados da fiscalização sem ter recebido termo (situação: decidido; [detalhes](../../achados.md#a-027)).
+- Achado **A-037** — Chaves estrangeiras ausentes e padrões inseguros em produção (situação: decidido; [detalhes](../../achados.md#a-037)).

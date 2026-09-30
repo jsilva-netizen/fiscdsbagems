@@ -161,4 +161,4 @@ is_staff()
 - Divergência `politica:public.nao_conformidades.ncs_prestador_select`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
 - Divergência `politica:public.nao_conformidades.ncs_staff_all`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
 - Divergência `restricao:nao_conformidades.nao_conformidades_resposta_checklist_id_fkey`: **estrutura_diferente**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
-- Achado **A-003** — Políticas e índices duplicados, e 2 políticas com nome corrompido (situação: aguardando_decisao; [detalhes](../../achados.md#a-003)).
+- Achado **A-003** — Políticas e índices duplicados, e 2 políticas com nome corrompido (situação: decidido; [detalhes](../../achados.md#a-003)).

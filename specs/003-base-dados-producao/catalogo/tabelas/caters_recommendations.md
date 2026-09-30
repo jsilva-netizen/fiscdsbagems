@@ -194,4 +194,4 @@ WITH CHECK:
 
 ## Divergências e achados
 
-- Achado **A-001** — Políticas de teste automatizado (e2e_test_*) em produção (situação: aguardando_decisao; [detalhes](../../achados.md#a-001)).
+- Achado **A-001** — Políticas de teste automatizado (e2e_test_*) em produção (situação: decidido; [detalhes](../../achados.md#a-001)).

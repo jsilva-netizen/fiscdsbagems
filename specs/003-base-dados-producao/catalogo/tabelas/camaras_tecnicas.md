@@ -94,4 +94,4 @@ WITH CHECK:
 
 ## Divergências e achados
 
-- Achado **A-010** — Câmaras caterm e catesg sem correspondência no código (situação: aguardando_decisao; [detalhes](../../achados.md#a-010)).
+- Achado **A-010** — Câmaras caterm e catesg sem correspondência no código (situação: decidido; [detalhes](../../achados.md#a-010)).

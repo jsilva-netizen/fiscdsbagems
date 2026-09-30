@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-28
 
-**Status**: Draft
+**Status**: Implemented (2026-09-30; inventário de produção refeito em 2026-09-29, depois das migrations 137 a 141)
 
 **Input**: Handoff da avaliação `novo-sistema-django-apps` (`.specify/assessments/novo-sistema-django-apps/decision.md`, verdict go): primeira spec do levantamento. Ela cobre o inventário do banco de produção lido e explicado, as divergências entre produção e migrations, o mapa de rastreabilidade (objeto → módulo) e a ordem de dependência dos módulos. Fontes: `inventario-producao.csv` e `inventario-producao-parte2.csv` (produção, 2026-09-28).
 

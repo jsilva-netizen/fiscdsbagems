@@ -322,5 +322,5 @@ $function$
 
 ## Divergências e achados
 
-- Achado **A-005** — 37 funções com permissão elevada (SECURITY DEFINER) (situação: aguardando_decisao; [detalhes](../../achados.md#a-005)).
-- Achado **A-035** — Funções sem uso (situação: aguardando_decisao; [detalhes](../../achados.md#a-035)).
+- Achado **A-005** — 37 funções com permissão elevada (SECURITY DEFINER) (situação: decidido; [detalhes](../../achados.md#a-005)).
+- Achado **A-035** — Funções sem uso (situação: decidido; [detalhes](../../achados.md#a-035)).

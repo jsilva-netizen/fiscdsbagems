@@ -232,5 +232,5 @@ WITH CHECK:
 - Divergência `politica:public.determinacoes.determinacoes_prestador_select`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
 - Divergência `politica:public.determinacoes.determinacoes_staff_all`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
 - Divergência `restricao:determinacoes.determinacoes_status_check`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
-- Achado **A-001** — Políticas de teste automatizado (e2e_test_*) em produção (situação: aguardando_decisao; [detalhes](../../achados.md#a-001)).
-- Achado **A-025** — Colunas que nenhuma parte do sistema grava (situação: aguardando_decisao; [detalhes](../../achados.md#a-025)).
+- Achado **A-001** — Políticas de teste automatizado (e2e_test_*) em produção (situação: decidido; [detalhes](../../achados.md#a-001)).
+- Achado **A-025** — Colunas que nenhuma parte do sistema grava (situação: decidido; [detalhes](../../achados.md#a-025)).

@@ -18,10 +18,12 @@ Levar um mecanismo equivalente: usuário de teste restrito em produção.
 recomendacao = """
 Opção 1: ambiente de homologação com dados sintéticos e nenhum usuário de teste em produção.
 """
-situacao = "aguardando_decisao"
-decisao = ""
-decidido_por = ""
-decidido_em = ""
+situacao = "decidido"
+decisao = """
+Aprovada a recomendação: opção 1 — Não levar as políticas; no sistema novo, testes automatizados rodam em ambiente próprio, sem acesso a produção. (Opção 1: ambiente de homologação com dados sintéticos e nenhum usuário de teste em produção.)
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-30"
 
 [[achado]]
 id = "A-002"
@@ -43,10 +45,12 @@ Migrar tudo como está.
 recomendacao = """
 Opção 1. Produção fica como está até a virada (FR-018); a exclusão acontece só na carga do sistema novo.
 """
-situacao = "aguardando_decisao"
-decisao = ""
-decidido_por = ""
-decidido_em = ""
+situacao = "decidido"
+decisao = """
+Aprovada a recomendação: opção 1 — Não migrar os registros de teste (lista de ids fechada com o responsável antes da migração de dados). (Opção 1. Produção fica como está até a virada (FR-018); a exclusão acontece só na carga do sistema novo.)
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-30"
 
 [[achado]]
 id = "A-003"
@@ -66,10 +70,12 @@ Reproduzir o conjunto atual de políticas.
 recomendacao = """
 Opção 1: a spec de cada módulo descreve o acesso efetivo (o resultado da soma), não as políticas.
 """
-situacao = "aguardando_decisao"
-decisao = ""
-decidido_por = ""
-decidido_em = ""
+situacao = "decidido"
+decisao = """
+Aprovada a recomendação: opção 1 — No sistema novo, uma regra por papel e operação, descrita na spec de cada módulo pelo acesso efetivo. (Opção 1: a spec de cada módulo descreve o acesso efetivo (o resultado da soma), não as políticas.)
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-30"
 
 [[achado]]
 id = "A-004"
@@ -114,10 +120,12 @@ Manter funções no banco com verificação obrigatória revisada.
 recomendacao = """
 Opção 1. As regras que elas implementam (geração de NCs, finalização, numeração, indicadores) vão para as specs dos módulos.
 """
-situacao = "aguardando_decisao"
-decisao = ""
-decidido_por = ""
-decidido_em = ""
+situacao = "decidido"
+decisao = """
+Aprovada a recomendação: opção 1 — No sistema novo, nenhuma regra de negócio em função do banco: serviços do Django com verificação explícita de papel e câmara, testada. (Opção 1. As regras que elas implementam (geração de NCs, finalização, numeração, indicadores) vão para as specs dos módulos.)
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-30"
 
 [[achado]]
 id = "A-006"
@@ -137,10 +145,12 @@ Reproduzir o modelo atual.
 recomendacao = """
 Opção 1.
 """
-situacao = "aguardando_decisao"
-decisao = ""
-decidido_por = ""
-decidido_em = ""
+situacao = "decidido"
+decisao = """
+Aprovada a recomendação: opção 1 — No sistema novo, negar por padrão: sem login, só entrar, criar conta e listar as entidades do cadastro. (Opção 1.)
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-30"
 
 [[achado]]
 id = "A-007"
@@ -160,10 +170,12 @@ Descartar todas as vazias.
 recomendacao = """
 Opção 1.
 """
-situacao = "aguardando_decisao"
-decisao = ""
-decidido_por = ""
-decidido_em = ""
+situacao = "decidido"
+decisao = """
+Aprovada a recomendação: opção 1 — Preservar a funcionalidade das tabelas com uso no código, sem dado a migrar; decidir as sem uso no A-030. (Opção 1.)
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-30"
 
 [[achado]]
 id = "A-008"
@@ -183,10 +195,12 @@ Servir por endereço assinado, como os demais.
 recomendacao = """
 Opção 1: logotipo aparece em relatórios e telas, e endereço público simplifica.
 """
-situacao = "aguardando_decisao"
-decisao = ""
-decidido_por = ""
-decidido_em = ""
+situacao = "decidido"
+decisao = """
+Aprovada a recomendação: opção 1 — Manter público, limitando tipo (imagem) e tamanho. (Opção 1: logotipo aparece em relatórios e telas, e endereço público simplifica.)
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-30"
 
 [[achado]]
 id = "A-009"
@@ -206,10 +220,12 @@ Especificar a partir das migrations.
 recomendacao = """
 Opção 1, que é o método desta spec; as migrations servem só de histórico.
 """
-situacao = "aguardando_decisao"
-decisao = ""
-decidido_por = ""
-decidido_em = ""
+situacao = "decidido"
+decisao = """
+Aprovada a recomendação: opção 1 — Especificar a partir de produção (catálogo), com as divergências classificadas. (Opção 1, que é o método desta spec; as migrations servem só de histórico.)
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-30"
 
 [[achado]]
 id = "A-010"
@@ -231,10 +247,12 @@ Confirmar com as diretorias quais câmaras existem hoje.
 recomendacao = """
 Opção 3 antes da spec do core.
 """
-situacao = "aguardando_decisao"
-decisao = ""
-decidido_por = ""
-decidido_em = ""
+situacao = "decidido"
+decisao = """
+Aprovada a recomendação: opção 3 — Confirmar com as diretorias quais câmaras existem hoje. (Opção 3 antes da spec do core.) Pendente: confirmar com as diretorias as câmaras existentes antes da spec do core.
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-30"
 
 [[achado]]
 id = "A-011"
@@ -379,10 +397,12 @@ Não corrigir em produção; no sistema novo, acesso ao arquivo decidido pelo re
 recomendacao = """
 No sistema novo, arquivo só é servido por endereço assinado emitido depois de verificar o acesso ao registro dono.
 """
-situacao = "aguardando_decisao"
-decisao = ""
-decidido_por = ""
-decidido_em = ""
+situacao = "decidido"
+decisao = """
+Aprovada a recomendação: No sistema novo, arquivo só é servido por endereço assinado emitido depois de verificar o acesso ao registro dono.
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-30"
 
 [[achado]]
 id = "A-017"
@@ -402,10 +422,12 @@ Tornar o bucket público.
 recomendacao = """
 Opção 1 (não tornar público: fotos de vistoria podem ter dados sensíveis).
 """
-situacao = "aguardando_decisao"
-decisao = ""
-decidido_por = ""
-decidido_em = ""
+situacao = "decidido"
+decisao = """
+Aprovada a recomendação: opção 1 — No sistema novo, fotos servidas por endereço assinado depois de verificar o acesso. (Opção 1 (não tornar público: fotos de vistoria podem ter dados sensíveis).)
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-30"
 
 [[achado]]
 id = "A-018"
@@ -425,10 +447,12 @@ Descartar a etapa.
 recomendacao = """
 Opção 1, a descrever na spec do processo sancionador.
 """
-situacao = "aguardando_decisao"
-decisao = ""
-decidido_por = ""
-decidido_em = ""
+situacao = "decidido"
+decisao = """
+Aprovada a recomendação: opção 1 — No sistema novo, o AI assinado pela entidade é um campo do auto. (Opção 1, a descrever na spec do processo sancionador.)
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-30"
 
 [[achado]]
 id = "A-019"
@@ -446,10 +470,12 @@ No sistema novo, repositório fixo por tipo de documento.
 recomendacao = """
 Opção 1.
 """
-situacao = "aguardando_decisao"
-decisao = ""
-decidido_por = ""
-decidido_em = ""
+situacao = "decidido"
+decisao = """
+Aprovada a recomendação: opção 1 — No sistema novo, repositório fixo por tipo de documento. (Opção 1.)
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-30"
 
 [[achado]]
 id = "A-020"
@@ -469,10 +495,12 @@ Excluir e anonimizar a autoria.
 recomendacao = """
 Opção 1; excluir só cadastro sem nenhum registro.
 """
-situacao = "aguardando_decisao"
-decisao = ""
-decidido_por = ""
-decidido_em = ""
+situacao = "decidido"
+decisao = """
+Aprovada a recomendação: opção 1 — No sistema novo, desativar em vez de excluir, preservando a autoria. (Opção 1; excluir só cadastro sem nenhum registro.)
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-30"
 
 [[achado]]
 id = "A-021"
@@ -492,10 +520,12 @@ No sistema novo, câmara escolhida explicitamente ou deduzida de tabela de servi
 recomendacao = """
 Opção 1.
 """
-situacao = "aguardando_decisao"
-decisao = ""
-decidido_por = ""
-decidido_em = ""
+situacao = "decidido"
+decisao = """
+Aprovada a recomendação: opção 1 — No sistema novo, câmara escolhida explicitamente ou deduzida de tabela de serviços versionada. (Opção 1.)
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-30"
 
 [[achado]]
 id = "A-022"
@@ -515,10 +545,12 @@ Coordenador gerencia só a própria câmara.
 recomendacao = """
 Opção 1, que é o que a tela faz hoje.
 """
-situacao = "aguardando_decisao"
-decisao = ""
-decidido_por = ""
-decidido_em = ""
+situacao = "decidido"
+decisao = """
+Aprovada a recomendação: opção 1 — No sistema novo, gestão de usuários só pelo admin. (Opção 1, que é o que a tela faz hoje.)
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-30"
 
 [[achado]]
 id = "A-023"
@@ -536,10 +568,12 @@ No sistema novo, um único vínculo (perfil → entidade).
 recomendacao = """
 Opção 1.
 """
-situacao = "aguardando_decisao"
-decisao = ""
-decidido_por = ""
-decidido_em = ""
+situacao = "decidido"
+decisao = """
+Aprovada a recomendação: opção 1 — No sistema novo, um único vínculo (perfil → entidade). (Opção 1.)
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-30"
 
 [[achado]]
 id = "A-024"
@@ -559,10 +593,12 @@ Levar só a versão vigente e congelar o texto na resposta.
 recomendacao = """
 Opção 1, descrita na spec de checklists.
 """
-situacao = "aguardando_decisao"
-decisao = ""
-decidido_por = ""
-decidido_em = ""
+situacao = "decidido"
+decisao = """
+Aprovada a recomendação: opção 1 — Levar o versionamento com modelo explícito (versão, vigência). (Opção 1, descrita na spec de checklists.)
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-30"
 
 [[achado]]
 id = "A-025"
@@ -582,10 +618,12 @@ Passar a gravá-las.
 recomendacao = """
 Opção 1.
 """
-situacao = "aguardando_decisao"
-decisao = ""
-decidido_por = ""
-decidido_em = ""
+situacao = "decidido"
+decisao = """
+Aprovada a recomendação: opção 1 — Não levar as colunas; calcular totais e usar `data_limite` como prazo. (Opção 1.)
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-30"
 
 [[achado]]
 id = "A-026"
@@ -605,10 +643,12 @@ Manter acesso de toda a equipe a tudo.
 recomendacao = """
 Confirmar com o responsável se o isolamento por câmara é requisito; se for, opção 1.
 """
-situacao = "aguardando_decisao"
-decisao = ""
-decidido_por = ""
-decidido_em = ""
+situacao = "decidido"
+decisao = """
+Aprovada a recomendação: Confirmar com o responsável se o isolamento por câmara é requisito; se for, opção 1. Pendente: confirmar com as diretorias se o isolamento por câmara é requisito, antes da spec de fiscalização; se for, vale a opção 1.
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-30"
 
 [[achado]]
 id = "A-027"
@@ -628,10 +668,12 @@ Liberar desde a finalização.
 recomendacao = """
 Opção 1 (regra do portal do prestador).
 """
-situacao = "aguardando_decisao"
-decisao = ""
-decidido_por = ""
-decidido_em = ""
+situacao = "decidido"
+decisao = """
+Aprovada a recomendação: opção 1 — No sistema novo, o prestador só vê a fiscalização depois do termo. (Opção 1 (regra do portal do prestador).)
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-30"
 
 [[achado]]
 id = "A-028"
@@ -651,10 +693,12 @@ No sistema novo, sequência no servidor por tipo, diretoria e ano, com unicidade
 recomendacao = """
 Opção 1.
 """
-situacao = "aguardando_decisao"
-decisao = ""
-decidido_por = ""
-decidido_em = ""
+situacao = "decidido"
+decisao = """
+Aprovada a recomendação: opção 1 — No sistema novo, sequência no servidor por tipo, diretoria e ano, com unicidade garantida. (Opção 1.)
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-30"
 
 [[achado]]
 id = "A-029"
@@ -672,10 +716,12 @@ No sistema novo, defesa como registro próprio do processo, gravada pelo portal.
 recomendacao = """
 Opção 1, descrita nas specs do processo sancionador e do portal.
 """
-situacao = "aguardando_decisao"
-decisao = ""
-decidido_por = ""
-decidido_em = ""
+situacao = "decidido"
+decisao = """
+Aprovada a recomendação: opção 1 — No sistema novo, defesa como registro próprio do processo, gravada pelo portal. (Opção 1, descrita nas specs do processo sancionador e do portal.)
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-30"
 
 [[achado]]
 id = "A-030"
@@ -695,10 +741,12 @@ Levar como estão.
 recomendacao = """
 Opção 1.
 """
-situacao = "aguardando_decisao"
-decisao = ""
-decidido_por = ""
-decidido_em = ""
+situacao = "decidido"
+decisao = """
+Aprovada a recomendação: opção 1 — Não levar as tabelas; o julgamento entra como requisito do processo sancionador, se for escopo. (Opção 1.)
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-30"
 
 [[achado]]
 id = "A-031"
@@ -716,10 +764,12 @@ No sistema novo, a dilação aprovada atualiza o prazo; incluir ou não a situa�
 recomendacao = """
 Incluir a situação e atualizar o prazo na mesma operação.
 """
-situacao = "aguardando_decisao"
-decisao = ""
-decidido_por = ""
-decidido_em = ""
+situacao = "decidido"
+decisao = """
+Aprovada a recomendação: Incluir a situação e atualizar o prazo na mesma operação.
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-30"
 
 [[achado]]
 id = "A-032"
@@ -739,10 +789,12 @@ Permitir excluir com registro de quem excluiu.
 recomendacao = """
 Opção 1: histórico é trilha de auditoria.
 """
-situacao = "aguardando_decisao"
-decisao = ""
-decidido_por = ""
-decidido_em = ""
+situacao = "decidido"
+decisao = """
+Aprovada a recomendação: opção 1 — Histórico imutável, sem opção de excluir. (Opção 1: histórico é trilha de auditoria.)
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-30"
 
 [[achado]]
 id = "A-033"
@@ -762,10 +814,12 @@ No sistema novo, fila de tarefas com monitoramento.
 recomendacao = """
 As duas: verificar agora e especificar a fila no sistema novo.
 """
-situacao = "aguardando_decisao"
-decisao = ""
-decidido_por = ""
-decidido_em = ""
+situacao = "decidido"
+decisao = """
+Aprovada a recomendação: As duas: verificar agora e especificar a fila no sistema novo. Pendente: verificar a publicação das edge functions de IA e a chave do Gemini em produção.
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-30"
 
 [[achado]]
 id = "A-034"
@@ -785,10 +839,12 @@ No sistema novo, prestador só registra recebimento e defesa das próprias remes
 recomendacao = """
 Opção 1.
 """
-situacao = "aguardando_decisao"
-decisao = ""
-decidido_por = ""
-decidido_em = ""
+situacao = "decidido"
+decisao = """
+Aprovada a recomendação: opção 1 — No sistema novo, prestador só registra recebimento e defesa das próprias remessas. (Opção 1.)
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-30"
 
 [[achado]]
 id = "A-035"
@@ -806,10 +862,12 @@ Não levar.
 recomendacao = """
 Opção 1.
 """
-situacao = "aguardando_decisao"
-decisao = ""
-decidido_por = ""
-decidido_em = ""
+situacao = "decidido"
+decisao = """
+Aprovada a recomendação: opção 1 — Não levar. (Opção 1.)
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-30"
 
 [[achado]]
 id = "A-036"
@@ -829,10 +887,12 @@ No sistema novo, análise por IA como tarefa interna, acionada só por usuário 
 recomendacao = """
 Opção 1.
 """
-situacao = "aguardando_decisao"
-decisao = ""
-decidido_por = ""
-decidido_em = ""
+situacao = "decidido"
+decisao = """
+Aprovada a recomendação: opção 1 — No sistema novo, análise por IA como tarefa interna, acionada só por usuário autorizado; veredito não cria resposta. (Opção 1.)
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-30"
 
 [[achado]]
 id = "A-037"
@@ -852,10 +912,12 @@ Corrigir também em produção.
 recomendacao = """
 Opção 1; conferir órfãos na migração de dados.
 """
-situacao = "aguardando_decisao"
-decisao = ""
-decidido_por = ""
-decidido_em = ""
+situacao = "decidido"
+decisao = """
+Aprovada a recomendação: opção 1 — No sistema novo, chaves estrangeiras obrigatórias e perfil sem padrões (aprovação e papel explícitos). (Opção 1; conferir órfãos na migração de dados.)
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-30"
 
 [[achado]]
 id = "A-038"
@@ -877,7 +939,9 @@ Não exigir confirmação.
 recomendacao = """
 Decidir com a configuração de autenticação de produção (externos.toml).
 """
-situacao = "aguardando_decisao"
-decisao = ""
-decidido_por = ""
-decidido_em = ""
+situacao = "decidido"
+decisao = """
+Aprovada a recomendação: Decidir com a configuração de autenticação de produção (externos.toml). Pendente: exportar a configuração de autenticação de produção (externos.toml) para escolher a opção.
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-30"

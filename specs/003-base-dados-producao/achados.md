@@ -6,55 +6,55 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 | Situação | Achados |
 |---|---:|
-| aguardando_decisao | 32 |
-| decidido | 6 |
+| aguardando_decisao | 0 |
+| decidido | 38 |
 
 | Id | Título | Situação |
 |---|---|---|
-| [A-001](#a-001) | Políticas de teste automatizado (e2e_test_*) em produção | aguardando_decisao |
-| [A-002](#a-002) | Dados de teste em produção | aguardando_decisao |
-| [A-003](#a-003) | Políticas e índices duplicados, e 2 políticas com nome corrompido | aguardando_decisao |
+| [A-001](#a-001) | Políticas de teste automatizado (e2e_test_*) em produção | decidido |
+| [A-002](#a-002) | Dados de teste em produção | decidido |
+| [A-003](#a-003) | Políticas e índices duplicados, e 2 políticas com nome corrompido | decidido |
 | [A-004](#a-004) | View caters_fiscalizacoes_disponiveis sem security_invoker | decidido |
-| [A-005](#a-005) | 37 funções com permissão elevada (SECURITY DEFINER) | aguardando_decisao |
-| [A-006](#a-006) | Privilégios de anon em todas as tabelas e funções executáveis sem login | aguardando_decisao |
-| [A-007](#a-007) | 13 tabelas vazias em produção | aguardando_decisao |
-| [A-008](#a-008) | Bucket público logos-entidades | aguardando_decisao |
-| [A-009](#a-009) | Objetos criados só em produção, sem migration, e objetos só nas migrations | aguardando_decisao |
-| [A-010](#a-010) | Câmaras caterm e catesg sem correspondência no código | aguardando_decisao |
+| [A-005](#a-005) | 37 funções com permissão elevada (SECURITY DEFINER) | decidido |
+| [A-006](#a-006) | Privilégios de anon em todas as tabelas e funções executáveis sem login | decidido |
+| [A-007](#a-007) | 13 tabelas vazias em produção | decidido |
+| [A-008](#a-008) | Bucket público logos-entidades | decidido |
+| [A-009](#a-009) | Objetos criados só em produção, sem migration, e objetos só nas migrations | decidido |
+| [A-010](#a-010) | Câmaras caterm e catesg sem correspondência no código | decidido |
 | [A-011](#a-011) | Escalada de privilégio no cadastro de usuário | decidido |
 | [A-012](#a-012) | Leitura de todos os perfis por conta não aprovada (parte da 137 não aplicada) | decidido |
 | [A-013](#a-013) | Escrita sem login e acesso de conta não aprovada | decidido |
 | [A-014](#a-014) | Prazos e respostas adulteráveis pelo prestador | decidido |
 | [A-015](#a-015) | Funções sem verificação, finalização pela chave de serviço e fila da CATESA ausente | decidido |
-| [A-016](#a-016) | Arquivos abertos a todo usuário ativo, inclusive o prestador | aguardando_decisao |
-| [A-017](#a-017) | Portal da entidade monta endereço público para fotos de bucket privado | aguardando_decisao |
-| [A-018](#a-018) | AI assinado enviado pelo portal fica sem referência | aguardando_decisao |
-| [A-019](#a-019) | Envio de arquivos de termo tenta vários buckets até um aceitar | aguardando_decisao |
-| [A-020](#a-020) | Excluir usuário falha para quem tem registros | aguardando_decisao |
-| [A-021](#a-021) | "Drenagem" × "Drenagem Urbana" na dedução da câmara | aguardando_decisao |
-| [A-022](#a-022) | Coordenador exclui perfis e altera nome e e-mail de qualquer usuário pela API | aguardando_decisao |
-| [A-023](#a-023) | Vínculo do prestador gravado nos dois lados, sem transação | aguardando_decisao |
-| [A-024](#a-024) | Checklist versionado só por inserção | aguardando_decisao |
-| [A-025](#a-025) | Colunas que nenhuma parte do sistema grava | aguardando_decisao |
-| [A-026](#a-026) | Políticas da equipe ignoram a câmara nas tabelas filhas | aguardando_decisao |
-| [A-027](#a-027) | Prestador lê dados da fiscalização sem ter recebido termo | aguardando_decisao |
-| [A-028](#a-028) | Numeração de TN, AM e AI com repetição possível e "DSB" fixo | aguardando_decisao |
-| [A-029](#a-029) | Defesa do auto não é salva e referências a colunas inexistentes | aguardando_decisao |
-| [A-030](#a-030) | Tabelas sem uso: julgamentos, manifestações e fotos de evidência | aguardando_decisao |
-| [A-031](#a-031) | Dilação do CATERS grava status inexistente | aguardando_decisao |
-| [A-032](#a-032) | Excluir evento do histórico do CATERS não tem efeito | aguardando_decisao |
-| [A-033](#a-033) | Análises por IA do CATERS nunca processadas em produção | aguardando_decisao |
-| [A-034](#a-034) | Política "(DEV)" de remessas deixa um prestador alterar remessa de outro | aguardando_decisao |
-| [A-035](#a-035) | Funções sem uso | aguardando_decisao |
-| [A-036](#a-036) | IA da CATESA: botão em qualquer câmara, workers sem verificação e veredito que marca "no prazo" | aguardando_decisao |
-| [A-037](#a-037) | Chaves estrangeiras ausentes e padrões inseguros em produção | aguardando_decisao |
-| [A-038](#a-038) | Confirmação de e-mail na aprovação existe só nas migrations | aguardando_decisao |
+| [A-016](#a-016) | Arquivos abertos a todo usuário ativo, inclusive o prestador | decidido |
+| [A-017](#a-017) | Portal da entidade monta endereço público para fotos de bucket privado | decidido |
+| [A-018](#a-018) | AI assinado enviado pelo portal fica sem referência | decidido |
+| [A-019](#a-019) | Envio de arquivos de termo tenta vários buckets até um aceitar | decidido |
+| [A-020](#a-020) | Excluir usuário falha para quem tem registros | decidido |
+| [A-021](#a-021) | "Drenagem" × "Drenagem Urbana" na dedução da câmara | decidido |
+| [A-022](#a-022) | Coordenador exclui perfis e altera nome e e-mail de qualquer usuário pela API | decidido |
+| [A-023](#a-023) | Vínculo do prestador gravado nos dois lados, sem transação | decidido |
+| [A-024](#a-024) | Checklist versionado só por inserção | decidido |
+| [A-025](#a-025) | Colunas que nenhuma parte do sistema grava | decidido |
+| [A-026](#a-026) | Políticas da equipe ignoram a câmara nas tabelas filhas | decidido |
+| [A-027](#a-027) | Prestador lê dados da fiscalização sem ter recebido termo | decidido |
+| [A-028](#a-028) | Numeração de TN, AM e AI com repetição possível e "DSB" fixo | decidido |
+| [A-029](#a-029) | Defesa do auto não é salva e referências a colunas inexistentes | decidido |
+| [A-030](#a-030) | Tabelas sem uso: julgamentos, manifestações e fotos de evidência | decidido |
+| [A-031](#a-031) | Dilação do CATERS grava status inexistente | decidido |
+| [A-032](#a-032) | Excluir evento do histórico do CATERS não tem efeito | decidido |
+| [A-033](#a-033) | Análises por IA do CATERS nunca processadas em produção | decidido |
+| [A-034](#a-034) | Política "(DEV)" de remessas deixa um prestador alterar remessa de outro | decidido |
+| [A-035](#a-035) | Funções sem uso | decidido |
+| [A-036](#a-036) | IA da CATESA: botão em qualquer câmara, workers sem verificação e veredito que marca "no prazo" | decidido |
+| [A-037](#a-037) | Chaves estrangeiras ausentes e padrões inseguros em produção | decidido |
+| [A-038](#a-038) | Confirmação de e-mail na aprovação existe só nas migrations | decidido |
 
 <a id="a-001"></a>
 
 ## A-001 — Políticas de teste automatizado (e2e_test_*) em produção
 
-**Situação**: aguardando_decisao
+**Situação**: decidido
 
 **Objetos**: `politica:public.caters_deadline_extensions.e2e_test_user_own_rows_only`, `politica:public.caters_deadline_extensions.e2e_test_user_own_rows_only_delete`, `politica:public.caters_extra_documents.e2e_test_user_own_rows_only`, `politica:public.caters_extra_documents.e2e_test_user_own_rows_only_delete`, `politica:public.caters_municipality_responses.e2e_test_user_own_rows_only`, `politica:public.caters_municipality_responses.e2e_test_user_own_rows_only_delete`, `politica:public.caters_processes.e2e_test_user_own_rows_only`, `politica:public.caters_processes.e2e_test_user_own_rows_only_delete`, `politica:public.caters_recommendations.e2e_test_user_own_rows_only`, `politica:public.caters_recommendations.e2e_test_user_own_rows_only_delete`, `politica:public.constatacoes_manuais.e2e_test_user_own_rows_only`, `politica:public.constatacoes_manuais.e2e_test_user_own_rows_only_delete`, `politica:public.determinacoes.e2e_test_user_own_rows_only`, `politica:public.determinacoes.e2e_test_user_own_rows_only_delete`, `politica:public.fiscalizacoes.e2e_test_user_own_rows_only`, `politica:public.fiscalizacoes.e2e_test_user_own_rows_only_delete`, `politica:public.recomendacoes.e2e_test_user_own_rows_only`, `politica:public.recomendacoes.e2e_test_user_own_rows_only_delete`, `politica:public.respostas_checklist.e2e_test_user_own_rows_only`, `politica:public.respostas_checklist.e2e_test_user_own_rows_only_delete`, `politica:public.unidades_fiscalizadas.e2e_test_user_own_rows_only`, `politica:public.unidades_fiscalizadas.e2e_test_user_own_rows_only_delete`
 
@@ -69,11 +69,13 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 **Recomendação**: Opção 1: ambiente de homologação com dados sintéticos e nenhum usuário de teste em produção.
 
+**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: opção 1 — Não levar as políticas; no sistema novo, testes automatizados rodam em ambiente próprio, sem acesso a produção. (Opção 1: ambiente de homologação com dados sintéticos e nenhum usuário de teste em produção.)
+
 <a id="a-002"></a>
 
 ## A-002 — Dados de teste em produção
 
-**Situação**: aguardando_decisao
+**Situação**: decidido
 
 **Objetos**: [respostas_determinacao](catalogo/tabelas/respostas_determinacao.md), `coluna:respostas_determinacao.manifestacao_prestador`, [evidencias-determinacoes](catalogo/arquivos.md#evidencias-determinacoes)
 
@@ -89,11 +91,13 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 **Recomendação**: Opção 1. Produção fica como está até a virada (FR-018); a exclusão acontece só na carga do sistema novo.
 
+**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: opção 1 — Não migrar os registros de teste (lista de ids fechada com o responsável antes da migração de dados). (Opção 1. Produção fica como está até a virada (FR-018); a exclusão acontece só na carga do sistema novo.)
+
 <a id="a-003"></a>
 
 ## A-003 — Políticas e índices duplicados, e 2 políticas com nome corrompido
 
-**Situação**: aguardando_decisao
+**Situação**: decidido
 
 **Objetos**: `politica:public.fiscalizacoes.Prestadores: ler apenas suas pr├│prias fiscaliza├º├Áe`, `politica:public.unidades_fiscalizadas.Prestadores: ler suas pr├│prias unidades`, `politica:public.profiles.Edição Própria`, `politica:public.profiles.profiles_self_update`, `politica:public.profiles.Usuários comuns atualizam apenas dados de contato próprios`, `politica:storage.objects.tn_upload_authenticated`, `politica:storage.objects.tn_update_authenticated`, `politica:storage.objects.tn_delete_authenticated`, `indice:idx_nc_resposta`
 
@@ -107,6 +111,8 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 2. Reproduzir o conjunto atual de políticas.
 
 **Recomendação**: Opção 1: a spec de cada módulo descreve o acesso efetivo (o resultado da soma), não as políticas.
+
+**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: opção 1 — No sistema novo, uma regra por papel e operação, descrita na spec de cada módulo pelo acesso efetivo. (Opção 1: a spec de cada módulo descreve o acesso efetivo (o resultado da soma), não as políticas.)
 
 <a id="a-004"></a>
 
@@ -133,7 +139,7 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 ## A-005 — 37 funções com permissão elevada (SECURITY DEFINER)
 
-**Situação**: aguardando_decisao
+**Situação**: decidido
 
 **Objetos**: [admin_delete_user(p_user_id uuid)](catalogo/funcoes/admin_delete_user.md), [admin_delete_user_by_email(p_email text)](catalogo/funcoes/admin_delete_user_by_email.md), [camara_from_servicos(p_servicos text[])](catalogo/funcoes/camara_from_servicos.md), [can_access_camara(row_camara text)](catalogo/funcoes/can_access_camara.md), [can_access_fiscalizacao(fiscalizacao uuid)](catalogo/funcoes/can_access_fiscalizacao.md), [can_access_unidade(unidade uuid)](catalogo/funcoes/can_access_unidade.md), [caters_import_from_fiscalizacao(p_fiscalizacao_id uuid, p_caters_process_id uuid, p_prazo_dias integer)](catalogo/funcoes/caters_import_from_fiscalizacao.md), [claim_caters_ai_jobs(p_limit integer, p_job_id uuid, p_stale_minutes integer)](catalogo/funcoes/claim_caters_ai_jobs.md), [claim_catesa_ai_jobs(p_limit integer, p_job_id uuid, p_stale_minutes integer)](catalogo/funcoes/claim_catesa_ai_jobs.md), [claim_relatorios_jobs(p_limit integer, p_job_id uuid, p_stale_minutes integer)](catalogo/funcoes/claim_relatorios_jobs.md), [current_prestador_servico_id()](catalogo/funcoes/current_prestador_servico_id.md), [current_role()](catalogo/funcoes/current_role.md), [determinacoes_fill_origem()](catalogo/funcoes/determinacoes_fill_origem.md), [enforce_profile_security()](catalogo/funcoes/enforce_profile_security.md), [finalizar_fiscalizacao(p_fiscalizacao_id uuid)](catalogo/funcoes/finalizar_fiscalizacao.md), [gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)](catalogo/funcoes/gerar_ncs_unidade.md), [get_my_camara_tecnica()](catalogo/funcoes/get_my_camara_tecnica.md), [get_my_diretoria()](catalogo/funcoes/get_my_diretoria.md), [get_my_prestador_id()](catalogo/funcoes/get_my_prestador_id.md), [get_my_role()](catalogo/funcoes/get_my_role.md), [handle_new_user()](catalogo/funcoes/handle_new_user.md), [is_caters_user()](catalogo/funcoes/is_caters_user.md), [is_staff()](catalogo/funcoes/is_staff.md), [kick_relatorios_worker(p_job_id uuid, p_limit integer)](catalogo/funcoes/kick_relatorios_worker.md), [obter_resumo_indicadores(p_anos text[], p_servicos text[], p_municipio_ids uuid[], p_prestador_ids uuid[], p_apenas_finalizadas boolean)](catalogo/funcoes/obter_resumo_indicadores.md), [obter_resumo_indicadores(p_anos text[], p_servicos text[], p_municipio_ids uuid[], p_prestador_ids uuid[], p_tipo_modulo text[])](catalogo/funcoes/obter_resumo_indicadores.md), [prestadores_para_cadastro()](catalogo/funcoes/prestadores_para_cadastro.md), [process_audit_log()](catalogo/funcoes/process_audit_log.md), [propagate_modification_to_parent()](catalogo/funcoes/propagate_modification_to_parent.md), [proteger_resposta_determinacao_prestador()](catalogo/funcoes/proteger_resposta_determinacao_prestador.md), [proteger_termo_prestador()](catalogo/funcoes/proteger_termo_prestador.md), [reabrir_fiscalizacao(p_fiscalizacao_id uuid)](catalogo/funcoes/reabrir_fiscalizacao.md), [set_fiscalizacao_cache_fields()](catalogo/funcoes/set_fiscalizacao_cache_fields.md), [set_fiscalizacao_last_modified()](catalogo/funcoes/set_fiscalizacao_last_modified.md), [trg_auto_set_camara()](catalogo/funcoes/trg_auto_set_camara.md), [trg_fiscalizacao_set_camara()](catalogo/funcoes/trg_fiscalizacao_set_camara.md), [trg_remessa_set_camara()](catalogo/funcoes/trg_remessa_set_camara.md)
 
@@ -148,11 +154,13 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 **Recomendação**: Opção 1. As regras que elas implementam (geração de NCs, finalização, numeração, indicadores) vão para as specs dos módulos.
 
+**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: opção 1 — No sistema novo, nenhuma regra de negócio em função do banco: serviços do Django com verificação explícita de papel e câmara, testada. (Opção 1. As regras que elas implementam (geração de NCs, finalização, numeração, indicadores) vão para as specs dos módulos.)
+
 <a id="a-006"></a>
 
 ## A-006 — Privilégios de anon em todas as tabelas e funções executáveis sem login
 
-**Situação**: aguardando_decisao
+**Situação**: decidido
 
 **Objetos**: `papel:anon`, `privilegio_padrao:postgres.public.tabela`, `privilegio_padrao:postgres.public.funcao`
 
@@ -167,11 +175,13 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 **Recomendação**: Opção 1.
 
+**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: opção 1 — No sistema novo, negar por padrão: sem login, só entrar, criar conta e listar as entidades do cadastro. (Opção 1.)
+
 <a id="a-007"></a>
 
 ## A-007 — 13 tabelas vazias em produção
 
-**Situação**: aguardando_decisao
+**Situação**: decidido
 
 **Objetos**: [autos_infracao](catalogo/tabelas/autos_infracao.md), [caters_analysis_history](catalogo/tabelas/caters_analysis_history.md), [caters_deadline_extensions](catalogo/tabelas/caters_deadline_extensions.md), [caters_extra_documents](catalogo/tabelas/caters_extra_documents.md), [caters_municipality_responses](catalogo/tabelas/caters_municipality_responses.md), [caters_notification_reads](catalogo/tabelas/caters_notification_reads.md), [catesa_ai_jobs](catalogo/tabelas/catesa_ai_jobs.md), [fotos_evidencia](catalogo/tabelas/fotos_evidencia.md), [julgamentos](catalogo/tabelas/julgamentos.md), [manifestacoes_auto](catalogo/tabelas/manifestacoes_auto.md), [pareceres_tecnicos](catalogo/tabelas/pareceres_tecnicos.md), [remessas_ai](catalogo/tabelas/remessas_ai.md), [remessas_ai_itens](catalogo/tabelas/remessas_ai_itens.md)
 
@@ -186,11 +196,13 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 **Recomendação**: Opção 1.
 
+**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: opção 1 — Preservar a funcionalidade das tabelas com uso no código, sem dado a migrar; decidir as sem uso no A-030. (Opção 1.)
+
 <a id="a-008"></a>
 
 ## A-008 — Bucket público logos-entidades
 
-**Situação**: aguardando_decisao
+**Situação**: decidido
 
 **Objetos**: [logos-entidades](catalogo/arquivos.md#logos-entidades), `politica:storage.objects.logos_entidades_public_access`
 
@@ -205,11 +217,13 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 **Recomendação**: Opção 1: logotipo aparece em relatórios e telas, e endereço público simplifica.
 
+**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: opção 1 — Manter público, limitando tipo (imagem) e tamanho. (Opção 1: logotipo aparece em relatórios e telas, e endereço público simplifica.)
+
 <a id="a-009"></a>
 
 ## A-009 — Objetos criados só em produção, sem migration, e objetos só nas migrations
 
-**Situação**: aguardando_decisao
+**Situação**: decidido
 
 **Objetos**: [claim_relatorios_jobs(p_limit integer, p_job_id uuid, p_stale_minutes integer)](catalogo/funcoes/claim_relatorios_jobs.md), [is_staff()](catalogo/funcoes/is_staff.md), [can_access_fiscalizacao(fiscalizacao uuid)](catalogo/funcoes/can_access_fiscalizacao.md), [can_access_unidade(unidade uuid)](catalogo/funcoes/can_access_unidade.md), [documentos-prestadores](catalogo/arquivos.md#documentos-prestadores), [documentos-termos](catalogo/arquivos.md#documentos-termos)
 
@@ -224,11 +238,13 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 **Recomendação**: Opção 1, que é o método desta spec; as migrations servem só de histórico.
 
+**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: opção 1 — Especificar a partir de produção (catálogo), com as divergências classificadas. (Opção 1, que é o método desta spec; as migrations servem só de histórico.)
+
 <a id="a-010"></a>
 
 ## A-010 — Câmaras caterm e catesg sem correspondência no código
 
-**Situação**: aguardando_decisao
+**Situação**: decidido
 
 **Objetos**: [camaras_tecnicas](catalogo/tabelas/camaras_tecnicas.md)
 
@@ -243,6 +259,8 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 3. Confirmar com as diretorias quais câmaras existem hoje.
 
 **Recomendação**: Opção 3 antes da spec do core.
+
+**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: opção 3 — Confirmar com as diretorias quais câmaras existem hoje. (Opção 3 antes da spec do core.) Pendente: confirmar com as diretorias as câmaras existentes antes da spec do core.
 
 <a id="a-011"></a>
 
@@ -353,7 +371,7 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 ## A-016 — Arquivos abertos a todo usuário ativo, inclusive o prestador
 
-**Situação**: aguardando_decisao
+**Situação**: decidido
 
 **Objetos**: `politica:storage.objects.Storage delete authenticated`, `politica:storage.objects.Storage insert authenticated`, `politica:storage.objects.Storage read authenticated`, `politica:storage.objects.Storage update authenticated`, `politica:storage.objects.documentos-autos authenticated all 1fhxxna_0`, `politica:storage.objects.documentos-autos authenticated all 1fhxxna_1`, `politica:storage.objects.documentos-autos authenticated all 1fhxxna_2`, `politica:storage.objects.documentos-autos authenticated all 1fhxxna_3`, `politica:storage.objects.documentos-prestadores authenticated all 1rt2ofe_0`, `politica:storage.objects.documentos-prestadores authenticated all 1rt2ofe_1`, `politica:storage.objects.documentos-prestadores authenticated all 1rt2ofe_2`, `politica:storage.objects.documentos-prestadores authenticated all 1rt2ofe_3`, `politica:storage.objects.documentos-termos authenticated all 16irk4e_0`, `politica:storage.objects.documentos-termos authenticated all 16irk4e_1`, `politica:storage.objects.documentos-termos authenticated all 16irk4e_2`, `politica:storage.objects.documentos-termos authenticated all 16irk4e_3`, `politica:storage.objects.kml_rodovias_authenticated_delete`, `politica:storage.objects.kml_rodovias_authenticated_insert`, `politica:storage.objects.kml_rodovias_authenticated_read`, `politica:storage.objects.kml_rodovias_authenticated_update`, `politica:storage.objects.logos_entidades_authenticated_delete`, `politica:storage.objects.logos_entidades_authenticated_insert`, `politica:storage.objects.logos_entidades_authenticated_update`, `politica:storage.objects.logos_entidades_public_access`, `politica:storage.objects.p_evid_write`, `politica:storage.objects.relatorios_fiscalizacao authenticated all 1760aao_0`, `politica:storage.objects.relatorios_fiscalizacao authenticated all 1760aao_1`, `politica:storage.objects.relatorios_fiscalizacao authenticated all 1760aao_2`, `politica:storage.objects.relatorios_fiscalizacao authenticated all 1760aao_3`, `politica:storage.objects.tn_delete_authenticated`, `politica:storage.objects.tn_update_authenticated`, `politica:storage.objects.tn_upload_authenticated`
 
@@ -368,11 +386,13 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 **Recomendação**: No sistema novo, arquivo só é servido por endereço assinado emitido depois de verificar o acesso ao registro dono.
 
+**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: No sistema novo, arquivo só é servido por endereço assinado emitido depois de verificar o acesso ao registro dono.
+
 <a id="a-017"></a>
 
 ## A-017 — Portal da entidade monta endereço público para fotos de bucket privado
 
-**Situação**: aguardando_decisao
+**Situação**: decidido
 
 **Objetos**: [fotos_fiscalizacao](catalogo/arquivos.md#fotos_fiscalizacao), `coluna:unidades_fiscalizadas.fotos_unidade`
 
@@ -387,11 +407,13 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 **Recomendação**: Opção 1 (não tornar público: fotos de vistoria podem ter dados sensíveis).
 
+**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: opção 1 — No sistema novo, fotos servidas por endereço assinado depois de verificar o acesso. (Opção 1 (não tornar público: fotos de vistoria podem ter dados sensíveis).)
+
 <a id="a-018"></a>
 
 ## A-018 — AI assinado enviado pelo portal fica sem referência
 
-**Situação**: aguardando_decisao
+**Situação**: decidido
 
 **Objetos**: [documentos-autos](catalogo/arquivos.md#documentos-autos), [autos_infracao](catalogo/tabelas/autos_infracao.md)
 
@@ -406,11 +428,13 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 **Recomendação**: Opção 1, a descrever na spec do processo sancionador.
 
+**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: opção 1 — No sistema novo, o AI assinado pela entidade é um campo do auto. (Opção 1, a descrever na spec do processo sancionador.)
+
 <a id="a-019"></a>
 
 ## A-019 — Envio de arquivos de termo tenta vários buckets até um aceitar
 
-**Situação**: aguardando_decisao
+**Situação**: decidido
 
 **Objetos**: [documentos-termos](catalogo/arquivos.md#documentos-termos)
 
@@ -424,11 +448,13 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 **Recomendação**: Opção 1.
 
+**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: opção 1 — No sistema novo, repositório fixo por tipo de documento. (Opção 1.)
+
 <a id="a-020"></a>
 
 ## A-020 — Excluir usuário falha para quem tem registros
 
-**Situação**: aguardando_decisao
+**Situação**: decidido
 
 **Objetos**: [admin_delete_user(p_user_id uuid)](catalogo/funcoes/admin_delete_user.md), `restricao:fiscalizacoes.fiscalizacoes_created_by_fkey`, `restricao:caters_processes.caters_processes_created_by_fkey`
 
@@ -443,12 +469,14 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 **Recomendação**: Opção 1; excluir só cadastro sem nenhum registro.
 
+**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: opção 1 — No sistema novo, desativar em vez de excluir, preservando a autoria. (Opção 1; excluir só cadastro sem nenhum registro.)
+
 <a id="a-021"></a>
 
 ## A-021 — "Drenagem" × "Drenagem Urbana" na dedução da câmara
 
 
-**Situação**: aguardando_decisao
+**Situação**: decidido
 
 **Objetos**: [camara_from_servicos(p_servicos text[])](catalogo/funcoes/camara_from_servicos.md)
 
@@ -462,11 +490,13 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 **Recomendação**: Opção 1.
 
+**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: opção 1 — No sistema novo, câmara escolhida explicitamente ou deduzida de tabela de serviços versionada. (Opção 1.)
+
 <a id="a-022"></a>
 
 ## A-022 — Coordenador exclui perfis e altera nome e e-mail de qualquer usuário pela API
 
-**Situação**: aguardando_decisao
+**Situação**: decidido
 
 **Objetos**: `politica:public.profiles.Admins e coordenadores gerenciam perfis`
 
@@ -481,11 +511,13 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 **Recomendação**: Opção 1, que é o que a tela faz hoje.
 
+**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: opção 1 — No sistema novo, gestão de usuários só pelo admin. (Opção 1, que é o que a tela faz hoje.)
+
 <a id="a-023"></a>
 
 ## A-023 — Vínculo do prestador gravado nos dois lados, sem transação
 
-**Situação**: aguardando_decisao
+**Situação**: decidido
 
 **Objetos**: `coluna:profiles.prestador_servico_id`, `coluna:prestadores_servico.user_id`
 
@@ -499,11 +531,13 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 **Recomendação**: Opção 1.
 
+**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: opção 1 — No sistema novo, um único vínculo (perfil → entidade). (Opção 1.)
+
 <a id="a-024"></a>
 
 ## A-024 — Checklist versionado só por inserção
 
-**Situação**: aguardando_decisao
+**Situação**: decidido
 
 **Objetos**: [itens_checklist](catalogo/tabelas/itens_checklist.md), `coluna:itens_checklist.ativo`
 
@@ -518,11 +552,13 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 **Recomendação**: Opção 1, descrita na spec de checklists.
 
+**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: opção 1 — Levar o versionamento com modelo explícito (versão, vigência). (Opção 1, descrita na spec de checklists.)
+
 <a id="a-025"></a>
 
 ## A-025 — Colunas que nenhuma parte do sistema grava
 
-**Situação**: aguardando_decisao
+**Situação**: decidido
 
 **Objetos**: `coluna:fiscalizacoes.latitude_inicio`, `coluna:fiscalizacoes.longitude_inicio`, `coluna:unidades_fiscalizadas.tipo_unidade_nome`, `coluna:unidades_fiscalizadas.total_determinacoes`, `coluna:unidades_fiscalizadas.total_recomendacoes`, `coluna:determinacoes.prazo`
 
@@ -537,11 +573,13 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 **Recomendação**: Opção 1.
 
+**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: opção 1 — Não levar as colunas; calcular totais e usar `data_limite` como prazo. (Opção 1.)
+
 <a id="a-026"></a>
 
 ## A-026 — Políticas da equipe ignoram a câmara nas tabelas filhas
 
-**Situação**: aguardando_decisao
+**Situação**: decidido
 
 **Objetos**: `politica:public.unidades_fiscalizadas.unidades_staff_all`, `politica:public.autos_infracao.autos_staff_all`
 
@@ -556,11 +594,13 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 **Recomendação**: Confirmar com o responsável se o isolamento por câmara é requisito; se for, opção 1.
 
+**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: Confirmar com o responsável se o isolamento por câmara é requisito; se for, opção 1. Pendente: confirmar com as diretorias se o isolamento por câmara é requisito, antes da spec de fiscalização; se for, vale a opção 1.
+
 <a id="a-027"></a>
 
 ## A-027 — Prestador lê dados da fiscalização sem ter recebido termo
 
-**Situação**: aguardando_decisao
+**Situação**: decidido
 
 **Objetos**: `politica:public.unidades_fiscalizadas.Prestadores: ler suas próprias unidades`, [can_access_fiscalizacao(fiscalizacao uuid)](catalogo/funcoes/can_access_fiscalizacao.md)
 
@@ -575,12 +615,14 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 **Recomendação**: Opção 1 (regra do portal do prestador).
 
+**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: opção 1 — No sistema novo, o prestador só vê a fiscalização depois do termo. (Opção 1 (regra do portal do prestador).)
+
 <a id="a-028"></a>
 
 ## A-028 — Numeração de TN, AM e AI com repetição possível e "DSB" fixo
 
 
-**Situação**: aguardando_decisao
+**Situação**: decidido
 
 **Objetos**: [gerar_numero_am()](catalogo/funcoes/gerar_numero_am.md), [gerar_numero_auto()](catalogo/funcoes/gerar_numero_auto.md), `coluna:termos_notificacao.numero_termo_notificacao`
 
@@ -594,11 +636,13 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 **Recomendação**: Opção 1.
 
+**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: opção 1 — No sistema novo, sequência no servidor por tipo, diretoria e ano, com unicidade garantida. (Opção 1.)
+
 <a id="a-029"></a>
 
 ## A-029 — Defesa do auto não é salva e referências a colunas inexistentes
 
-**Situação**: aguardando_decisao
+**Situação**: decidido
 
 **Objetos**: `coluna:autos_infracao.defesa_texto`, `coluna:autos_infracao.defesa_arquivos`, `coluna:remessas_ai.numero_tn`
 
@@ -612,11 +656,13 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 **Recomendação**: Opção 1, descrita nas specs do processo sancionador e do portal.
 
+**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: opção 1 — No sistema novo, defesa como registro próprio do processo, gravada pelo portal. (Opção 1, descrita nas specs do processo sancionador e do portal.)
+
 <a id="a-030"></a>
 
 ## A-030 — Tabelas sem uso: julgamentos, manifestações e fotos de evidência
 
-**Situação**: aguardando_decisao
+**Situação**: decidido
 
 **Objetos**: [julgamentos](catalogo/tabelas/julgamentos.md), [manifestacoes_auto](catalogo/tabelas/manifestacoes_auto.md), [fotos_evidencia](catalogo/tabelas/fotos_evidencia.md)
 
@@ -631,11 +677,13 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 **Recomendação**: Opção 1.
 
+**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: opção 1 — Não levar as tabelas; o julgamento entra como requisito do processo sancionador, se for escopo. (Opção 1.)
+
 <a id="a-031"></a>
 
 ## A-031 — Dilação do CATERS grava status inexistente
 
-**Situação**: aguardando_decisao
+**Situação**: decidido
 
 **Objetos**: `tipo:caters_process_status`, `coluna:caters_processes.status`, [caters_deadline_extensions](catalogo/tabelas/caters_deadline_extensions.md)
 
@@ -649,11 +697,13 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 **Recomendação**: Incluir a situação e atualizar o prazo na mesma operação.
 
+**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: Incluir a situação e atualizar o prazo na mesma operação.
+
 <a id="a-032"></a>
 
 ## A-032 — Excluir evento do histórico do CATERS não tem efeito
 
-**Situação**: aguardando_decisao
+**Situação**: decidido
 
 **Objetos**: [caters_analysis_history](catalogo/tabelas/caters_analysis_history.md)
 
@@ -668,11 +718,13 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 **Recomendação**: Opção 1: histórico é trilha de auditoria.
 
+**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: opção 1 — Histórico imutável, sem opção de excluir. (Opção 1: histórico é trilha de auditoria.)
+
 <a id="a-033"></a>
 
 ## A-033 — Análises por IA do CATERS nunca processadas em produção
 
-**Situação**: aguardando_decisao
+**Situação**: decidido
 
 **Objetos**: [caters_ai_jobs](catalogo/tabelas/caters_ai_jobs.md)
 
@@ -687,12 +739,14 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 **Recomendação**: As duas: verificar agora e especificar a fila no sistema novo.
 
+**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: As duas: verificar agora e especificar a fila no sistema novo. Pendente: verificar a publicação das edge functions de IA e a chave do Gemini em produção.
+
 <a id="a-034"></a>
 
 ## A-034 — Política "(DEV)" de remessas deixa um prestador alterar remessa de outro
 
 
-**Situação**: aguardando_decisao
+**Situação**: decidido
 
 **Objetos**: `politica:public.remessas_ai.Acesso total autenticado (DEV)`
 
@@ -706,11 +760,13 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 **Recomendação**: Opção 1.
 
+**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: opção 1 — No sistema novo, prestador só registra recebimento e defesa das próprias remessas. (Opção 1.)
+
 <a id="a-035"></a>
 
 ## A-035 — Funções sem uso
 
-**Situação**: aguardando_decisao
+**Situação**: decidido
 
 **Objetos**: [determinacoes_fill_origem()](catalogo/funcoes/determinacoes_fill_origem.md), [obter_resumo_indicadores(p_anos text[], p_servicos text[], p_municipio_ids uuid[], p_prestador_ids uuid[], p_apenas_finalizadas boolean)](catalogo/funcoes/obter_resumo_indicadores.md)
 
@@ -724,12 +780,14 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 **Recomendação**: Opção 1.
 
+**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: opção 1 — Não levar. (Opção 1.)
+
 <a id="a-036"></a>
 
 ## A-036 — IA da CATESA: botão em qualquer câmara, workers sem verificação e veredito que marca "no prazo"
 
 
-**Situação**: aguardando_decisao
+**Situação**: decidido
 
 **Objetos**: [catesa_ai_jobs](catalogo/tabelas/catesa_ai_jobs.md), [respostas_determinacao](catalogo/tabelas/respostas_determinacao.md)
 
@@ -743,11 +801,13 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 **Recomendação**: Opção 1.
 
+**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: opção 1 — No sistema novo, análise por IA como tarefa interna, acionada só por usuário autorizado; veredito não cria resposta. (Opção 1.)
+
 <a id="a-037"></a>
 
 ## A-037 — Chaves estrangeiras ausentes e padrões inseguros em produção
 
-**Situação**: aguardando_decisao
+**Situação**: decidido
 
 **Objetos**: [fiscalizacoes](catalogo/tabelas/fiscalizacoes.md), [unidades_fiscalizadas](catalogo/tabelas/unidades_fiscalizadas.md), `coluna:profiles.ativo`, `coluna:profiles.role`
 
@@ -762,11 +822,13 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 **Recomendação**: Opção 1; conferir órfãos na migração de dados.
 
+**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: opção 1 — No sistema novo, chaves estrangeiras obrigatórias e perfil sem padrões (aprovação e papel explícitos). (Opção 1; conferir órfãos na migração de dados.)
+
 <a id="a-038"></a>
 
 ## A-038 — Confirmação de e-mail na aprovação existe só nas migrations
 
-**Situação**: aguardando_decisao
+**Situação**: decidido
 
 **Objetos**: [profiles](catalogo/tabelas/profiles.md)
 
@@ -781,3 +843,5 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 3. Não exigir confirmação.
 
 **Recomendação**: Decidir com a configuração de autenticação de produção (externos.toml).
+
+**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: Decidir com a configuração de autenticação de produção (externos.toml). Pendente: exportar a configuração de autenticação de produção (externos.toml) para escolher a opção.

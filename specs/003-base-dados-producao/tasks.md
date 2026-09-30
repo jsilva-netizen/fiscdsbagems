@@ -346,7 +346,7 @@ Todas as tarefas abaixo são [P] entre si (arquivos diferentes).
     verificação de quem chama (`verify_jwt = false`); aplicar o veredito cria resposta com
     `dentro_prazo = true`.
 - [X] T045 [US4] Em `S/ferramentas/gerar.py`, gerar `S/achados.md` e incluir, em cada página de catálogo, os achados que citam o objeto.
-- [ ] T046 [US4] Apresentar os achados ao responsável pelo projeto e registrar em `S/anotacoes/achados.toml` cada decisão tomada (`situacao = "decidido"`, `decisao`, `decidido_por`, `decidido_em`). **Não alterar nada em produção** (FR-018): decisão de limpar produção vira trabalho separado. Regenerar e fazer commit.
+- [X] T046 [US4] Apresentar os achados ao responsável pelo projeto e registrar em `S/anotacoes/achados.toml` cada decisão tomada (`situacao = "decidido"`, `decisao`, `decidido_por`, `decidido_em`). **Não alterar nada em produção** (FR-018): decisão de limpar produção vira trabalho separado. Regenerar e fazer commit.
 
 **Checkpoint**: nenhum defeito conhecido será herdado sem decisão.
 
@@ -378,7 +378,7 @@ Todas as tarefas abaixo são [P] entre si (arquivos diferentes).
 - [X] T049 Rodar o [quickstart.md](./quickstart.md) completo, passos 1 a 5 e 7. No passo 7, simular um inventário alterado copiando o de produção e removendo um objeto; conferir que a anotação dele fica órfã (retorno 2) e que nenhuma outra se perde. Registrar o resultado em `S/quickstart.md`, seção final "Execução".
 - [X] T050 [P] `python -m ferramentas.varredura` na pasta inteira, com retorno 0 (SC-005).
 - [X] T051 [P] `python -m ferramentas.gerar --verificar`, com retorno 0 (SC-007).
-- [ ] T052 Atualizar `S/spec.md` (Status: `Implemented`) e `S/checklists/requirements.md`. Marcar as tarefas concluídas neste arquivo e fazer commit.
+- [X] T052 Atualizar `S/spec.md` (Status: `Implemented`) e `S/checklists/requirements.md`. Marcar as tarefas concluídas neste arquivo e fazer commit.
 
 ---
 

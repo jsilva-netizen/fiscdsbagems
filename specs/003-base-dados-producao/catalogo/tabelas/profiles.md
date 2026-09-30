@@ -298,9 +298,9 @@ WITH CHECK:
 - Divergência `politica:public.profiles.profiles_self_update`: **so_producao**, classificação **residuo_descartar** ([detalhes](../../divergencias.md)).
 - Divergência `restricao:profiles.profiles_non_prestador_must_not_have_prestador_id`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
 - Divergência `restricao:profiles.profiles_prestador_must_have_prestador_id`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
-- Achado **A-003** — Políticas e índices duplicados, e 2 políticas com nome corrompido (situação: aguardando_decisao; [detalhes](../../achados.md#a-003)).
+- Achado **A-003** — Políticas e índices duplicados, e 2 políticas com nome corrompido (situação: decidido; [detalhes](../../achados.md#a-003)).
 - Achado **A-012** — Leitura de todos os perfis por conta não aprovada (parte da 137 não aplicada) (situação: decidido; [detalhes](../../achados.md#a-012)).
-- Achado **A-022** — Coordenador exclui perfis e altera nome e e-mail de qualquer usuário pela API (situação: aguardando_decisao; [detalhes](../../achados.md#a-022)).
-- Achado **A-023** — Vínculo do prestador gravado nos dois lados, sem transação (situação: aguardando_decisao; [detalhes](../../achados.md#a-023)).
-- Achado **A-037** — Chaves estrangeiras ausentes e padrões inseguros em produção (situação: aguardando_decisao; [detalhes](../../achados.md#a-037)).
-- Achado **A-038** — Confirmação de e-mail na aprovação existe só nas migrations (situação: aguardando_decisao; [detalhes](../../achados.md#a-038)).
+- Achado **A-022** — Coordenador exclui perfis e altera nome e e-mail de qualquer usuário pela API (situação: decidido; [detalhes](../../achados.md#a-022)).
+- Achado **A-023** — Vínculo do prestador gravado nos dois lados, sem transação (situação: decidido; [detalhes](../../achados.md#a-023)).
+- Achado **A-037** — Chaves estrangeiras ausentes e padrões inseguros em produção (situação: decidido; [detalhes](../../achados.md#a-037)).
+- Achado **A-038** — Confirmação de e-mail na aprovação existe só nas migrations (situação: decidido; [detalhes](../../achados.md#a-038)).

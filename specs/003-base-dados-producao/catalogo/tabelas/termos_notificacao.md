@@ -229,4 +229,4 @@ is_staff()
 - Divergência `politica:public.termos_notificacao.termos_staff_all`: **so_producao**, classificação **producao_vale** ([detalhes](../../divergencias.md)).
 - Achado **A-014** — Prazos e respostas adulteráveis pelo prestador (situação: decidido; [detalhes](../../achados.md#a-014)).
 - Achado **A-028** — Numeração de TN, AM e AI com repetição possível e "DSB" fixo
- (situação: aguardando_decisao; [detalhes](../../achados.md#a-028)).
+ (situação: decidido; [detalhes](../../achados.md#a-028)).

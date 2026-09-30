@@ -104,5 +104,5 @@ $function$
 
 ## Divergências e achados
 
-- Achado **A-005** — 37 funções com permissão elevada (SECURITY DEFINER) (situação: aguardando_decisao; [detalhes](../../achados.md#a-005)).
+- Achado **A-005** — 37 funções com permissão elevada (SECURITY DEFINER) (situação: decidido; [detalhes](../../achados.md#a-005)).
 - Achado **A-011** — Escalada de privilégio no cadastro de usuário (situação: decidido; [detalhes](../../achados.md#a-011)).
