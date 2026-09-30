@@ -110,7 +110,10 @@ O sistema é modularizado ao máximo, em apps Django:
   técnicas.
 - **fiscalização**: a fiscalização de campo comum às câmaras — fiscalizações, unidades
   fiscalizadas, respostas de checklist, não conformidades, constatações, determinações,
-  recomendações e evidências fotográficas —, incluindo a operação offline.
+  recomendações e evidências fotográficas —, incluindo a operação offline e a localização dos
+  registros de campo (ponto GPS com precisão, obtido sem rede e sem travar a captura). O que
+  depende de uma câmara (ex.: KM pelo traçado KML da rodovia) é peça do app dela, plugada na
+  localização comum.
 - **checklists**: o motor genérico de verificação (checklists e catálogos de ocorrência), comum
   a todas as câmaras.
 - **planejamento**: o planejamento anual de fiscalizações — municípios, concessões ou rodovias a
@@ -276,4 +279,4 @@ constituição. Complexidade que viole o Princípio V MUST ser justificada por e
 removida. Violação de princípio marcado NÃO NEGOCIÁVEL bloqueia a entrega, sem exceção
 por prazo.
 
-**Version**: 2.6.1 | **Ratified**: 2026-09-18 | **Last Amended**: 2026-09-30
+**Version**: 2.6.2 | **Ratified**: 2026-09-18 | **Last Amended**: 2026-09-30
