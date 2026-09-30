@@ -375,9 +375,9 @@ Todas as tarefas abaixo são [P] entre si (arquivos diferentes).
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T049 Rodar o [quickstart.md](./quickstart.md) completo, passos 1 a 5 e 7. No passo 7, simular um inventário alterado copiando o de produção e removendo um objeto; conferir que a anotação dele fica órfã (retorno 2) e que nenhuma outra se perde. Registrar o resultado em `S/quickstart.md`, seção final "Execução".
-- [ ] T050 [P] `python -m ferramentas.varredura` na pasta inteira, com retorno 0 (SC-005).
-- [ ] T051 [P] `python -m ferramentas.gerar --verificar`, com retorno 0 (SC-007).
+- [X] T049 Rodar o [quickstart.md](./quickstart.md) completo, passos 1 a 5 e 7. No passo 7, simular um inventário alterado copiando o de produção e removendo um objeto; conferir que a anotação dele fica órfã (retorno 2) e que nenhuma outra se perde. Registrar o resultado em `S/quickstart.md`, seção final "Execução".
+- [X] T050 [P] `python -m ferramentas.varredura` na pasta inteira, com retorno 0 (SC-005).
+- [X] T051 [P] `python -m ferramentas.gerar --verificar`, com retorno 0 (SC-007).
 - [ ] T052 Atualizar `S/spec.md` (Status: `Implemented`) e `S/checklists/requirements.md`. Marcar as tarefas concluídas neste arquivo e fazer commit.
 
 ---

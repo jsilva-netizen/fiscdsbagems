@@ -92,3 +92,22 @@ função chamada.
 3. Esperado: objetos novos aparecem como "sem anotação"; objetos que sumiram fazem as anotações
    deles aparecerem como órfãs (retorno 2, com a lista); nada do texto explicativo dos objetos que
    não mudaram se perde.
+
+## Execução
+
+**2026-09-30** (T049), com o inventário de produção de 2026-09-29 e o do banco das migrations
+reconstruído na mesma data:
+
+| Passo | Resultado |
+|---|---|
+| 1. Testes | 90 testes, todos passam |
+| 2. Inventário das migrations | 1.185 objetos; só a data de geração mudou em relação ao versionado |
+| 3. Gerar | retorno 0 · 0 sem anotação · 0 sem dono · 0 divergências não classificadas · 0 violações de ordem · 32 achados aguardando decisão |
+| 4. `--verificar` | retorno 0 |
+| 5. Varredura | retorno 0, nenhuma ocorrência |
+| 6. Amostra | feita na T031: 10 de 10 conferidas contra os CSVs; falta a leitura por uma pessoa que não conhece o banco |
+| 7. Mudança em produção | inventário simulado sem `determinacoes_fill_origem` (função e privilégios): retorno 2, listando só a anotação da função como órfã e os 2 achados que a citam (A-005, A-035); nenhuma outra anotação afetada |
+
+Na mudança real de 2026-09-29 (migrations 137 a 141 aplicadas em produção), o passo 7 mostrou os
+22 objetos novos como "sem anotação" e as 8 políticas removidas deixaram de aparecer, sem perda de
+nenhum texto.
