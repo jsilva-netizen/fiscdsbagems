@@ -48,4 +48,5 @@
   - o combustível da viagem conjunta fica com a câmara organizadora.
 - **Premissa externa**: o que RH, financeiro e frotas precisam ler é provisório até ouvir as áreas
   (constituição, "Premissas externas").
+- **Migração (2026-09-30)**: seção "Migração" acrescentada, dizendo que não há dados a migrar (funcionalidade nova).
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`.

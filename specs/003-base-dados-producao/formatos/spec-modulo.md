@@ -75,6 +75,43 @@ Regras:
 - Quando o comportamento visto na tela diverge do que o responsável relata, a linha diz "a
   confirmar" e a divergência vai para a regra (comportamento atual) até ser conferida.
 
+## Seção "Migração"
+
+Logo depois de "Telas do sistema atual". Diz como se prova que os dados do módulo chegaram ao
+sistema novo inteiros e certos (constituição, Princípio I: completude binária, conferência registro
+a registro por identificador). O destino de cada coluna está no mapa do módulo
+(`anotacoes/migracao/<módulo>.toml`, página [migracao.md](../migracao.md)); a seção não o repete.
+
+```markdown
+## Migração
+
+Mapa: `specs/003-base-dados-producao/anotacoes/migracao/<módulo>.toml`.
+
+### Volumes de produção
+
+| Origem | Registros ou arquivos | Destino |
+|---|---:|---|
+| `tabela:<nome>` | <linhas no inventário> | <modelo do sistema novo> |
+| `bucket:<id>` | <arquivos> | <campo de arquivo> |
+
+### Critérios
+
+| Critério | Meta |
+|---|---|
+| MIG-1 Registros | 100% dos registros chegam com o mesmo identificador, ou ficam fora com motivo registrado (teste do A-002, descarte decidido); conferência registro a registro |
+| MIG-2 Valores | Em 100% dos registros, cada campo migrado é igual ao da origem depois da transformação do mapa (comparação campo a campo) |
+| MIG-3 Arquivos | 100% dos arquivos chegam com o mesmo conteúdo (checksum) e ligados ao mesmo registro |
+| MIG-4 Legados | Registro que a regra nova recusaria é carregado e marcado como legado, nunca recusado; o relatório lista cada um, com o motivo |
+| MIG-5 Descartes | Toda coluna descartada tem motivo no mapa, e o relatório mostra o volume descartado |
+| MIG-6 Mapa | 0 pendentes no mapa do módulo, e destinos conferidos contra o data-model |
+
+### Casos conhecidos
+
+<legados, ajustes que o responsável decide antes da carga, dependências de outros módulos>
+```
+
+Módulo sem dados em produção (funcionalidade nova) diz só isso na seção, e por quê.
+
 ## Exemplo
 
 Regra real e curta, tirada do catálogo. Ela depende do A-024, ainda sem decisão; o exemplo mostra

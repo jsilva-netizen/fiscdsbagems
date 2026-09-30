@@ -754,6 +754,14 @@ O sistema atual não tem nenhuma tela de planejamento. As ações abaixo são no
 | Ver as fiscalizações previstas para a entidade (prestador, no portal) | R-planejamento-019 |
 | Painel dos planos da diretoria (diretor) | R-planejamento-007; R-core-025 |
 
+## Migração
+
+Não há dados a migrar. O sistema atual não tem planejamento, e o módulo não tem objetos no catálogo
+da spec 003, por isso não tem mapa de migração. O primeiro plano é criado no sistema novo. Os
+cronogramas de 2026, que hoje estão em planilha, podem ser registrados à mão como plano de 2026, se o
+responsável quiser (premissa "Plano de anos anteriores"). A tabela de diárias por município é
+carregada pelo administrador a partir da tabela da agência (R-planejamento-014).
+
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes

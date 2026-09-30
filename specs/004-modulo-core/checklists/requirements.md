@@ -61,4 +61,5 @@
 - **Central de avisos (2026-09-30)**: por decisão do responsável, o core ganhou a central de avisos
   comum a todos os apps: a US8, a R-core-026, a FR-022, o SC-011, o R15 no research, os modelos no
   data-model, as rotas, a linha na matriz e as tarefas T095 a T099.
+- **Migração (2026-09-30)**: seção "Migração" do molde acrescentada, com volumes, critérios MIG-1 a MIG-6 e casos conhecidos; as tarefas T087 e T088 passam a conferir valores e arquivos, e não só identificadores.
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`.

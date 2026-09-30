@@ -66,4 +66,5 @@
   registradas pelos apps: saídas, valores de contexto, modos). Montar e copiar modelos cabe ao
   coordenador e ao fiscal da câmara e ao administrador (decisão do responsável); copiar catálogos com
   itens entre câmaras, só ao administrador (premissa, pelo isolamento por câmara).
+- **Migração (2026-09-30)**: seção "Migração" do molde acrescentada (volumes, MIG-1 a MIG-6, casos conhecidos); os destinos do mapa são conferidos quando o plano da spec criar o data-model.
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`.

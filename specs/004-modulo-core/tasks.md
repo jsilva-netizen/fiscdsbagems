@@ -304,8 +304,11 @@ conferência registro a registro (Princípio I; research R13)
 
 - [ ] T085 Criar o comando `migrar_core` em `C/management/commands/migrar_core.py`, que lê um dump de produção (nunca a produção) e carrega, preservando UUIDs: diretorias, as 10 câmaras em uso, os 79 municípios, as 9 entidades (`ativo`/`status` viram `ativa`; `tipo` não é levado; `tipo_servico` vira `servicos`; logotipos copiados para o repositório público; logotipo gravado como imagem embutida é convertido em arquivo), os 2 contratos (parte do core), os usuários (sem senha; vínculo do prestador só no usuário; papel e câmara conforme a tabela de ajustes do responsável) e os 19.966 registros de auditoria
 - [ ] T086 Criar a tabela de ajustes em `backend/migracao/ajustes_core.toml` para o responsável preencher antes da carga: câmara dos coordenadores e fiscais sem câmara, destino da conta de autenticação sem perfil (produção tem 8 contas e 7 perfis) e ids dos registros de teste do A-002 a não migrar
-- [ ] T087 Implementar a opção `--conferir` do `migrar_core`: relatório registro a registro por identificador (carregado, ignorado com motivo, pendente), com falha se houver pendência
-- [ ] T088 Testes em `T/test_migrar_core.py` com um dump sintético pequeno (sem dado real): identificadores preservados; `caterm` e `catesg` ignorados com motivo; usuário sem senha e com e-mail de primeiro acesso não enviado automaticamente; auditoria importada imutável; conferência acusa registro faltando
+- [ ] T087 Implementar a opção `--conferir` do `migrar_core`, com relatório registro a registro por identificador (carregado, carregado como legado com o motivo, ignorado com motivo, pendente) e falha se houver pendência. A conferência cobre:
+  - valores: compara, campo a campo, a origem transformada pelo mapa (`specs/003-base-dados-producao/anotacoes/migracao/core.toml`) com o que foi gravado (MIG-2);
+  - arquivos: checksum de cada arquivo copiado e ligação à mesma entidade (MIG-3);
+  - volumes descartados (MIG-5).
+- [ ] T088 Testes em `T/test_migrar_core.py` com um dump sintético pequeno (sem dado real): identificadores preservados; `caterm` e `catesg` ignorados com motivo; usuário sem senha e com e-mail de primeiro acesso não enviado automaticamente; auditoria importada imutável; conferência acusa registro faltando, valor alterado e arquivo com checksum diferente; CNPJ repetido carregado como legado, não recusado
 
 ---
 

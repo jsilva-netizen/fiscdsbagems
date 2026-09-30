@@ -923,6 +923,47 @@ Ações das telas atuais que pertencem ao core, no molde `formatos/spec-modulo.m
 | Ver os avisos, com o contador de não lidos; marcar como lido; abrir o registro do aviso | R-core-026 |
 | Ligar ou desligar o e-mail dos tipos de aviso não obrigatórios | R-core-026 |
 
+## Migração
+
+Mapa: `specs/003-base-dados-producao/anotacoes/migracao/core.toml` (60 colunas e repositórios, 0
+pendentes, destinos conferidos contra o data-model).
+
+### Volumes de produção
+
+| Origem | Registros ou arquivos | Destino |
+|---|---:|---|
+| `tabela:diretorias` | 3 | `Diretoria` |
+| `tabela:camaras_tecnicas` | 12 (10 migradas; CATERM e CATESG não, A-010) | `CamaraTecnica` |
+| `tabela:municipios` | 79 | `Municipio` |
+| `tabela:profiles` e contas de autenticação | 7 perfis, 8 contas | `Usuario` |
+| `tabela:prestadores_servico` | 9 | `Entidade` (e `DocumentoEntidade`, nenhum em produção) |
+| `tabela:contratos` | 2 (a parte da DTR vai pelo app da CATERF) | `Contrato` |
+| `tabela:audit_logs` | 19.966 | `RegistroAuditoria` |
+| `bucket:logos-entidades` | 7 arquivos | `Entidade.logotipo` (repositório público) |
+| `bucket:documentos-prestadores` | 4 arquivos, todos do CATERS | app da CATERS |
+
+### Critérios
+
+| Critério | Meta |
+|---|---|
+| MIG-1 Registros | 100% dos registros acima chegam com o mesmo identificador, exceto CATERM, CATESG e os registros de teste do A-002, que ficam fora com o motivo no relatório (SC-007) |
+| MIG-2 Valores | Em 100% dos registros, cada campo migrado é igual ao da origem depois da transformação do mapa, inclusive os 19.966 registros de auditoria com os dados antes e depois |
+| MIG-3 Arquivos | Os 7 logotipos chegam ao repositório público com o mesmo checksum e ligados à mesma entidade; os 4 arquivos do CATERS são entregues ao app da CATERS com o checksum conferido |
+| MIG-4 Legados | CNPJ repetido ou inválido, e-mail do perfil diferente do da conta, papel fora da lista, `ativo` e `status` divergentes e vínculo de prestador divergente entre perfil e entidade são carregados e marcados, nunca recusados, e listados no relatório |
+| MIG-5 Descartes | `prestadores_servico.tipo` descartado com os valores listados (3 'prestador_servico', 1 'titular'); senhas não migradas (primeiro acesso com código) |
+| MIG-6 Mapa | 0 pendentes em `core.toml` |
+
+### Casos conhecidos
+
+- **Tabela de ajustes** (tarefa T086), preenchida pelo responsável antes da carga:
+  - a conta de autenticação sem perfil (8 contas e 7 perfis);
+  - os registros de teste do A-002;
+  - câmara para coordenador ou fiscal sem câmara (em produção, os 4 fiscais têm câmara).
+- **Nomes na auditoria:** o nome do autor nos registros de auditoria antigos vem do perfil atual,
+  porque o registro de hoje guarda só o id e o e-mail.
+- **Contratos:** a rodovia, o traçado KML e os pontos de KM são migrados pelo app da CATERF, que
+  aponta para o mesmo contrato.
+
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes

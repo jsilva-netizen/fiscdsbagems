@@ -804,6 +804,41 @@ modelo (R-checklists-016).
 | Copiar o modelo de outra câmara; o administrador, também os catálogos com itens | R-checklists-018 |
 | Ver as peças disponíveis (saídas, valores de contexto, modos) e os modelos incompletos | R-checklists-019 |
 
+## Migração
+
+Mapa: `specs/003-base-dados-producao/anotacoes/migracao/checklists.toml` (35 colunas, 0 pendentes).
+Os destinos são conferidos contra o data-model quando o plano desta spec existir; até lá, ficam
+"não verificados" em `migracao.md`.
+
+### Volumes de produção
+
+| Origem | Registros | Destino |
+|---|---:|---|
+| `tabela:tipos_unidade` | 33 | `Catalogo`, do modelo "Checklist por tipo de unidade" da CATESA ou da CATERS |
+| `tabela:itens_checklist` | 768 (525 vigentes, 243 versões antigas) | `VersaoItem`, agrupadas em `Item` |
+| `tabela:tipos_ocorrencia_dtr` (parte genérica) | 79 | `Item` e `VersaoItem` de um catálogo criado na migração, do modelo "Ocorrências do PER" da CATERF |
+
+Não há arquivos.
+
+### Critérios
+
+| Critério | Meta |
+|---|---|
+| MIG-1 Registros | Os 33 tipos, as 768 versões e os 79 tipos de ocorrência chegam com os mesmos identificadores (SC-006) |
+| MIG-2 Valores | Em 100% das versões, cada valor de campo do modelo é igual à coluna de origem; o relatório mostra, para cada item estável, as versões agrupadas nele e a vigência de cada uma |
+| MIG-3 Arquivos | Não se aplica |
+| MIG-4 Legados | Nome ou código de tipo vazio ou repetido é ajustado na tabela de ajustes antes da carga; versões idênticas à anterior (81 chaves) são mantidas e marcadas como repetição, nunca apagadas |
+| MIG-5 Descartes | Os 5 campos herdados sem uso (R-checklists-011) e `tipos_ocorrencia_dtr.gera_nc`, derivado da cláusula, são descartados; a migração confere, antes, que `created_date` repete `created_at` e que `gera_nc` bate com a cláusula nas 79 linhas |
+| MIG-6 Mapa | 0 pendentes em `checklists.toml` e, com o data-model do plano, 0 destinos não verificados |
+
+### Casos conhecidos
+
+- **Ligação com as vistorias:** as 3.454 respostas de checklist (módulo fiscalização) apontam para o
+  identificador da versão respondida. A migração da fiscalização confere que 100% das respostas
+  encontram a sua versão.
+- **Ocorrências da DTR:** a ligação das ocorrências já registradas ao tipo é feita pela migração da
+  CATERF (premissa "Migração da DTR").
+
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
