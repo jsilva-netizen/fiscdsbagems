@@ -16,7 +16,7 @@ nome = "Checklists"
 ordem = 2
 app = "checklists"
 spec = ""
-observacao = "Motor de checklists comum: tipos de unidade e itens de checklist (versionados, append-only)."
+observacao = "Motor de verificação comum a todas as câmaras: checklists por tipo de unidade (DSB) e catálogo de tipos de ocorrência (DTR), versionados; campos próprios de cada câmara são extensões do app dela (spec 005)."
 
 [[modulo]]
 id = "planejamento"
@@ -40,7 +40,7 @@ nome = "DTR"
 ordem = 5
 app = "app da diretoria/câmara DTR"
 spec = ""
-observacao = "Especificidades da DTR (tipos de ocorrência, mapa e KML); o fluxo usa as tabelas do módulo fiscalização."
+observacao = "Especificidades da DTR (campos da rodovia no catálogo de ocorrências e nas ocorrências, mapa e KML); o catálogo de tipos é do motor de verificação (checklists) e o fluxo usa as tabelas do módulo fiscalização."
 
 [[modulo]]
 id = "processo_sancionador"

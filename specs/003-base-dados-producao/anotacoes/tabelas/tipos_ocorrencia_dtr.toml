@@ -1,5 +1,5 @@
 [objeto."tabela:tipos_ocorrencia_dtr"]
-modulo = "dtr"
+modulo = "checklists"
 finalidade = """
 Catálogo de tipos de ocorrência que o fiscal da DTR registra na rodovia, derivado do PER
 (Programa de Exploração da Rodovia) do contrato de concessão. É o equivalente, na DTR, ao
@@ -21,6 +21,10 @@ Produção tem 79 tipos ativos, todos das rodovias "112/306".
 
 Diferente dos checklists, **não há versionamento**. A ocorrência já registrada preserva o texto
 porque copia frente, PER, não atendimento e prazo para a unidade.
+
+No sistema novo, o catálogo é do motor de verificação (módulo `checklists`, spec 005), que atende
+DSB e DTR; os campos próprios da rodovia (frente, item do PER, rodovias, etapas de obra) são
+extensões declaradas pelo app da DTR e ficam no módulo `dtr`.
 """
 fonte = [
   "src/lib/offline/repository.ts:320",
@@ -50,6 +54,7 @@ Se a ocorrência deste tipo é uma não conformidade (51 tipos) ou só uma const
 fonte = ["src/lib/offline/repository.ts:341", "inventário: dominio_categorico"]
 
 [objeto."coluna:tipos_ocorrencia_dtr.item_contrato"]
+modulo = "dtr"
 significado = """
 Seção do PER (ex.: "3.1.2 Sinalização e Elementos de Proteção e Segurança"). É copiada para
 `unidades_fiscalizadas.per` e faz parte da chave da importação.
@@ -96,6 +101,7 @@ significado = "Observação-padrão que pode sair nas tabelas de constatações 
 fonte = ["src/lib/offline/repository.ts:346"]
 
 [objeto."coluna:tipos_ocorrencia_dtr.frente"]
+modulo = "dtr"
 significado = """
 Frente da concessão: CONSERVAÇÃO (35), RECUPERAÇÃO E MANUTENÇÃO (31), SERVIÇOS OPERACIONAIS (7) ou
 MELHORIAS OPERACIONAIS… (6). É copiada para a ocorrência e faz parte da chave da importação.
@@ -103,6 +109,7 @@ MELHORIAS OPERACIONAIS… (6). É copiada para a ocorrência e faz parte da chav
 fonte = ["src/lib/offline/repository.ts:325", "inventário: dominio_categorico"]
 
 [objeto."coluna:tipos_ocorrencia_dtr.rodovia"]
+modulo = "dtr"
 significado = """
 Rodovias a que o tipo se aplica; vazio vale para todas as da concessão. Em produção, todos têm
 "112/306". Faz parte da chave da importação.
@@ -110,6 +117,7 @@ Rodovias a que o tipo se aplica; vazio vale para todas as da concessão. Em prod
 fonte = ["src/lib/offline/repository.ts:325", "inventário: dados_referencia.tipos_ocorrencia_dtr"]
 
 [objeto."coluna:tipos_ocorrencia_dtr.etapas_obra"]
+modulo = "dtr"
 significado = """
 Etapas de obra, uma por linha, oferecidas no assistente de registro quando o tipo é de obra (ex.:
 Limpeza, Terraplenagem, Pavimentação). Vazio quando não é obra, o que vale para 73 dos 79 tipos.
@@ -133,3 +141,6 @@ Quem tem perfil ativo lê os tipos. Desde a migration 138; antes, qualquer logad
 relatórios lê com a chave de serviço.
 """
 fonte = ["supabase/migrations/138_fix_open_policies.sql", "supabase/functions/relatorios_worker/index.ts:294"]
+
+[objeto."indice:idx_tipos_ocorrencia_dtr_rodovia"]
+modulo = "dtr"

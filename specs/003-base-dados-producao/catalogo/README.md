@@ -41,17 +41,13 @@ Funções: [admin_delete_user](funcoes/admin_delete_user.md) · [admin_delete_us
 
 ### checklists
 
-Tabelas e views: [itens_checklist](tabelas/itens_checklist.md) · [tipos_unidade](tabelas/tipos_unidade.md)
+Tabelas e views: [itens_checklist](tabelas/itens_checklist.md) · [tipos_ocorrencia_dtr](tabelas/tipos_ocorrencia_dtr.md) · [tipos_unidade](tabelas/tipos_unidade.md)
 
 ### fiscalizacao
 
 Tabelas e views: [constatacoes_manuais](tabelas/constatacoes_manuais.md) · [determinacoes](tabelas/determinacoes.md) · [fiscalizacoes](tabelas/fiscalizacoes.md) · [fotos_evidencia](tabelas/fotos_evidencia.md) · [nao_conformidades](tabelas/nao_conformidades.md) · [recomendacoes](tabelas/recomendacoes.md) · [relatorios_jobs](tabelas/relatorios_jobs.md) · [respostas_checklist](tabelas/respostas_checklist.md) · [unidades_fiscalizadas](tabelas/unidades_fiscalizadas.md)
 
 Funções: [claim_relatorios_jobs](funcoes/claim_relatorios_jobs.md) · [determinacoes_fill_origem](funcoes/determinacoes_fill_origem.md) · [finalizar_fiscalizacao](funcoes/finalizar_fiscalizacao.md) · [gerar_ncs_unidade](funcoes/gerar_ncs_unidade.md) · [kick_relatorios_worker](funcoes/kick_relatorios_worker.md) · [obter_resumo_indicadores](funcoes/obter_resumo_indicadores.md) · [propagate_modification_to_parent](funcoes/propagate_modification_to_parent.md) · [reabrir_fiscalizacao](funcoes/reabrir_fiscalizacao.md) · [set_fiscalizacao_cache_fields](funcoes/set_fiscalizacao_cache_fields.md) · [set_fiscalizacao_last_modified](funcoes/set_fiscalizacao_last_modified.md) · [trg_fiscalizacao_set_camara](funcoes/trg_fiscalizacao_set_camara.md)
-
-### dtr
-
-Tabelas e views: [tipos_ocorrencia_dtr](tabelas/tipos_ocorrencia_dtr.md)
 
 ### processo_sancionador
 

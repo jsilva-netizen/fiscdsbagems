@@ -1,4 +1,4 @@
-# Specification Quality Checklist: Módulo checklists — tipos de unidade e itens versionados
+# Specification Quality Checklist: Módulo checklists — motor de verificação comum às câmaras
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-09-30
@@ -39,4 +39,18 @@
 - **Dependência do core**: o vínculo serviço → câmara (R-checklists-002) foi acrescentado à spec do
   core (R-core-014, data-model `Servico.camara`, tarefas T011 e T026), porque checklists vem antes da
   fiscalização na ordem e não pode depender dela.
+- **Iteração 2 (2026-09-30), motor genérico**: a spec foi reescrita para cobrir os checklists da DSB
+  e o catálogo de ocorrências da DTR e qualquer câmara futura (decisão do responsável). Regras novas:
+  R-checklists-012 (modos de aplicação), 013 (tipos de resposta e o que geram), 014 (campos próprios
+  da câmara); as regras 001 a 011 mantêm o número e foram estendidas à DTR. História nova: US5
+  (câmara nova sem mudar o módulo). Na spec 003, `tabela:tipos_ocorrencia_dtr` passou ao módulo
+  `checklists`; as colunas frente, item do PER, rodovia e etapas de obra e o índice por rodovia
+  ficaram na `dtr`. Medição regenerada: 0 violações de ordem.
+- **Chaves do catálogo (iteração 2)**: 72 chaves citadas, todas no inventário de produção de
+  2026-09-29, exceto `funcao:sync_dates_columns()`, citada como divergência (só nas migrations). Os
+  61 objetos do módulo `checklists` no mapa de rastreabilidade são citados.
+- **Telas do sistema atual**: seção acrescentada pelo molde; 0 `LACUNA`. Um ponto fica **a
+  confirmar** sem bloquear o plano: o responsável informa que o formulário de item da DSB edita prazo
+  e texto da NC, e o código deste repositório não tem esses campos (R-checklists-003). O comportamento
+  desejado (todos os campos editáveis) não depende da conferência.
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`.

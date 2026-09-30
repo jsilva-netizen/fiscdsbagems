@@ -263,6 +263,7 @@ Sem atribuição: nenhum objeto.
 | `privilegio_padrao:postgres.public.tabela` | privilegio_padrao | core | LACUNA |
 | `extensao:uuid-ossp` | extensao | core | LACUNA |
 | `tabela:itens_checklist` | tabela | checklists | LACUNA |
+| `tabela:tipos_ocorrencia_dtr` | tabela | checklists | LACUNA |
 | `tabela:tipos_unidade` | tabela | checklists | LACUNA |
 | `coluna:itens_checklist.artigo_portaria` | coluna | checklists | LACUNA |
 | `coluna:itens_checklist.ativo` | coluna | checklists | LACUNA |
@@ -283,6 +284,16 @@ Sem atribuição: nenhum objeto.
 | `coluna:itens_checklist.texto_recomendacao` | coluna | checklists | LACUNA |
 | `coluna:itens_checklist.tipo_unidade_id` | coluna | checklists | LACUNA |
 | `coluna:itens_checklist.updated_date` | coluna | checklists | LACUNA |
+| `coluna:tipos_ocorrencia_dtr.ativo` | coluna | checklists | LACUNA |
+| `coluna:tipos_ocorrencia_dtr.created_at` | coluna | checklists | LACUNA |
+| `coluna:tipos_ocorrencia_dtr.descricao` | coluna | checklists | LACUNA |
+| `coluna:tipos_ocorrencia_dtr.gera_nc` | coluna | checklists | LACUNA |
+| `coluna:tipos_ocorrencia_dtr.id` | coluna | checklists | LACUNA |
+| `coluna:tipos_ocorrencia_dtr.nao_atendimento` | coluna | checklists | LACUNA |
+| `coluna:tipos_ocorrencia_dtr.nome` | coluna | checklists | LACUNA |
+| `coluna:tipos_ocorrencia_dtr.observacoes` | coluna | checklists | LACUNA |
+| `coluna:tipos_ocorrencia_dtr.prazo_dias_padrao` | coluna | checklists | LACUNA |
+| `coluna:tipos_ocorrencia_dtr.updated_at` | coluna | checklists | LACUNA |
 | `coluna:tipos_unidade.ativo` | coluna | checklists | LACUNA |
 | `coluna:tipos_unidade.codigo` | coluna | checklists | LACUNA |
 | `coluna:tipos_unidade.created_at` | coluna | checklists | LACUNA |
@@ -291,16 +302,24 @@ Sem atribuição: nenhum objeto.
 | `coluna:tipos_unidade.servicos_aplicaveis` | coluna | checklists | LACUNA |
 | `restricao:itens_checklist.itens_checklist_pkey` | restricao | checklists | LACUNA |
 | `restricao:itens_checklist.itens_checklist_tipo_unidade_id_fkey` | restricao | checklists | LACUNA |
+| `restricao:tipos_ocorrencia_dtr.tipos_ocorrencia_dtr_pkey` | restricao | checklists | LACUNA |
 | `restricao:tipos_unidade.tipos_unidade_pkey` | restricao | checklists | LACUNA |
 | `indice:itens_checklist_pkey` | indice | checklists | LACUNA |
+| `indice:tipos_ocorrencia_dtr_pkey` | indice | checklists | LACUNA |
 | `indice:tipos_unidade_pkey` | indice | checklists | LACUNA |
+| `gatilho:public.tipos_ocorrencia_dtr.update_tipos_ocorrencia_dtr_updated_at` | gatilho | checklists | LACUNA |
 | `politica:public.itens_checklist.Leitura pública de itens de checklist` | politica | checklists | LACUNA |
 | `politica:public.itens_checklist.Operadores gerenciam itens de checklist` | politica | checklists | LACUNA |
+| `politica:public.tipos_ocorrencia_dtr.Escrita admin tipos_ocorrencia_dtr` | politica | checklists | LACUNA |
+| `politica:public.tipos_ocorrencia_dtr.Leitura autenticada tipos_ocorrencia_dtr` | politica | checklists | LACUNA |
 | `politica:public.tipos_unidade.Leitura pública de tipos de unidade` | politica | checklists | LACUNA |
 | `politica:public.tipos_unidade.Operadores gerenciam tipos de unidade` | politica | checklists | LACUNA |
 | `privilegio:itens_checklist.anon` | privilegio | checklists | LACUNA |
 | `privilegio:itens_checklist.authenticated` | privilegio | checklists | LACUNA |
 | `privilegio:itens_checklist.service_role` | privilegio | checklists | LACUNA |
+| `privilegio:tipos_ocorrencia_dtr.anon` | privilegio | checklists | LACUNA |
+| `privilegio:tipos_ocorrencia_dtr.authenticated` | privilegio | checklists | LACUNA |
+| `privilegio:tipos_ocorrencia_dtr.service_role` | privilegio | checklists | LACUNA |
 | `privilegio:tipos_unidade.anon` | privilegio | checklists | LACUNA |
 | `privilegio:tipos_unidade.authenticated` | privilegio | checklists | LACUNA |
 | `privilegio:tipos_unidade.service_role` | privilegio | checklists | LACUNA |
@@ -622,25 +641,14 @@ Sem atribuição: nenhum objeto.
 | `segredo:RELATORIOS_WORKER_SECRET` | segredo | fiscalizacao | LACUNA |
 | `extensao:pg_net` | extensao | fiscalizacao | LACUNA |
 | `extensao:supabase_vault` | extensao | fiscalizacao | LACUNA |
-| `tabela:tipos_ocorrencia_dtr` | tabela | dtr | LACUNA |
 | `coluna:contratos.km_points` | coluna | dtr | LACUNA |
 | `coluna:contratos.kml_url` | coluna | dtr | LACUNA |
 | `coluna:contratos.rodovia` | coluna | dtr | LACUNA |
 | `coluna:fiscalizacoes.rodovia` | coluna | dtr | LACUNA |
-| `coluna:tipos_ocorrencia_dtr.ativo` | coluna | dtr | LACUNA |
-| `coluna:tipos_ocorrencia_dtr.created_at` | coluna | dtr | LACUNA |
-| `coluna:tipos_ocorrencia_dtr.descricao` | coluna | dtr | LACUNA |
 | `coluna:tipos_ocorrencia_dtr.etapas_obra` | coluna | dtr | LACUNA |
 | `coluna:tipos_ocorrencia_dtr.frente` | coluna | dtr | LACUNA |
-| `coluna:tipos_ocorrencia_dtr.gera_nc` | coluna | dtr | LACUNA |
-| `coluna:tipos_ocorrencia_dtr.id` | coluna | dtr | LACUNA |
 | `coluna:tipos_ocorrencia_dtr.item_contrato` | coluna | dtr | LACUNA |
-| `coluna:tipos_ocorrencia_dtr.nao_atendimento` | coluna | dtr | LACUNA |
-| `coluna:tipos_ocorrencia_dtr.nome` | coluna | dtr | LACUNA |
-| `coluna:tipos_ocorrencia_dtr.observacoes` | coluna | dtr | LACUNA |
-| `coluna:tipos_ocorrencia_dtr.prazo_dias_padrao` | coluna | dtr | LACUNA |
 | `coluna:tipos_ocorrencia_dtr.rodovia` | coluna | dtr | LACUNA |
-| `coluna:tipos_ocorrencia_dtr.updated_at` | coluna | dtr | LACUNA |
 | `coluna:unidades_fiscalizadas.frente` | coluna | dtr | LACUNA |
 | `coluna:unidades_fiscalizadas.gps_accuracy_m` | coluna | dtr | LACUNA |
 | `coluna:unidades_fiscalizadas.gravidade` | coluna | dtr | LACUNA |
@@ -653,20 +661,12 @@ Sem atribuição: nenhum objeto.
 | `coluna:unidades_fiscalizadas.sentido` | coluna | dtr | LACUNA |
 | `coluna:unidades_fiscalizadas.tipo_ocorrencia` | coluna | dtr | LACUNA |
 | `coluna:unidades_fiscalizadas.trecho` | coluna | dtr | LACUNA |
-| `restricao:tipos_ocorrencia_dtr.tipos_ocorrencia_dtr_pkey` | restricao | dtr | LACUNA |
 | `indice:idx_tipos_ocorrencia_dtr_rodovia` | indice | dtr | LACUNA |
-| `indice:tipos_ocorrencia_dtr_pkey` | indice | dtr | LACUNA |
-| `gatilho:public.tipos_ocorrencia_dtr.update_tipos_ocorrencia_dtr_updated_at` | gatilho | dtr | LACUNA |
-| `politica:public.tipos_ocorrencia_dtr.Escrita admin tipos_ocorrencia_dtr` | politica | dtr | LACUNA |
-| `politica:public.tipos_ocorrencia_dtr.Leitura autenticada tipos_ocorrencia_dtr` | politica | dtr | LACUNA |
 | `politica:storage.objects.kml_rodovias_authenticated_delete` | politica | dtr | LACUNA |
 | `politica:storage.objects.kml_rodovias_authenticated_insert` | politica | dtr | LACUNA |
 | `politica:storage.objects.kml_rodovias_authenticated_read` | politica | dtr | LACUNA |
 | `politica:storage.objects.kml_rodovias_authenticated_update` | politica | dtr | LACUNA |
 | `bucket:kml-rodovias` | bucket | dtr | LACUNA |
-| `privilegio:tipos_ocorrencia_dtr.anon` | privilegio | dtr | LACUNA |
-| `privilegio:tipos_ocorrencia_dtr.authenticated` | privilegio | dtr | LACUNA |
-| `privilegio:tipos_ocorrencia_dtr.service_role` | privilegio | dtr | LACUNA |
 | `tabela:autos_infracao` | tabela | processo_sancionador | LACUNA |
 | `tabela:julgamentos` | tabela | processo_sancionador | LACUNA |
 | `tabela:manifestacoes_auto` | tabela | processo_sancionador | LACUNA |

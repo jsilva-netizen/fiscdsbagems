@@ -3,7 +3,7 @@
 # tipos_ocorrencia_dtr
 
 - **Tipo**: tabela
-- **Dono**: módulo **dtr**
+- **Dono**: módulo **checklists**
 - **Linhas em produção**: 79
 - **RLS ativo**: sim
 
@@ -28,7 +28,11 @@ Produção tem 79 tipos ativos, todos das rodovias "112/306".
 - **App offline:** baixa os tipos para escolher offline.
 
 Diferente dos checklists, **não há versionamento**. A ocorrência já registrada preserva o texto
-porque copia frente, PER, não atendimento e prazo para a unidade. *(fonte: src/lib/offline/repository.ts:320, src/lib/offline/repository.ts:295, src/pages/DefinicoesDTR.jsx:136, src/pages/DefinicoesDTR.jsx:248, tabela:unidades_fiscalizadas, inventário: dados_referencia.tipos_ocorrencia_dtr)*
+porque copia frente, PER, não atendimento e prazo para a unidade.
+
+No sistema novo, o catálogo é do motor de verificação (módulo `checklists`, spec 005), que atende
+DSB e DTR; os campos próprios da rodovia (frente, item do PER, rodovias, etapas de obra) são
+extensões declaradas pelo app da DTR e ficam no módulo `dtr`. *(fonte: src/lib/offline/repository.ts:320, src/lib/offline/repository.ts:295, src/pages/DefinicoesDTR.jsx:136, src/pages/DefinicoesDTR.jsx:248, tabela:unidades_fiscalizadas, inventário: dados_referencia.tipos_ocorrencia_dtr)*
 
 Comentário no banco: Catálogo configurável de tipos de ocorrência para fiscalização de rodovias (DTR).
 

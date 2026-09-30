@@ -144,6 +144,11 @@ Funções, gatilhos, políticas e repositórios de arquivos seguem o dono da tab
 Funções de permissão (`get_my_role`, `is_staff`, `can_access_*`...) vão para o core. Casos
 ambíguos são anotação explícita.
 
+Revisão de 2026-09-30 (spec 005): o catálogo `tipos_ocorrencia_dtr` passou ao módulo checklists,
+que virou o motor de verificação comum a DSB e DTR; ficam na DTR só as colunas próprias da rodovia
+(frente, item do PER, rodovias, etapas de obra) e o índice por rodovia. A medição continua sem
+violação de ordem.
+
 **Descobertas que a lista de módulos precisa registrar** (FR-013):
 - **Portal do prestador** e **tramitação** não têm tabela própria no banco atual. O portal
   existe como políticas de acesso para o papel prestador e como telas. Se "tramitação" existe

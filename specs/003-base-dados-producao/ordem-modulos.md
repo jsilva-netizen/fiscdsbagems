@@ -16,8 +16,8 @@ Violações: 0 · sem justificativa: 0.
 ## 2. Checklists
 
 - **Id**: `checklists` · **App**: checklists · **Spec**: LACUNA
-- **Observação**: Motor de checklists comum: tipos de unidade e itens de checklist (versionados, append-only).
-- **Objetos** (42): Tabelas: 2 · Colunas: 25 · Restrições: 3 · Índices: 2 · Políticas de acesso: 4 · Privilégios: 6
+- **Observação**: Motor de verificação comum a todas as câmaras: checklists por tipo de unidade (DSB) e catálogo de tipos de ocorrência (DTR), versionados; campos próprios de cada câmara são extensões do app dela (spec 005).
+- **Objetos** (61): Tabelas: 3 · Colunas: 35 · Restrições: 4 · Índices: 3 · Gatilhos: 1 · Políticas de acesso: 6 · Privilégios: 9
 - **Depende de**: `core`
 
 ## 3. Planejamento de fiscalizações
@@ -37,8 +37,8 @@ Violações: 0 · sem justificativa: 0.
 ## 5. DTR
 
 - **Id**: `dtr` · **App**: app da diretoria/câmara DTR · **Spec**: LACUNA
-- **Observação**: Especificidades da DTR (tipos de ocorrência, mapa e KML); o fluxo usa as tabelas do módulo fiscalização.
-- **Objetos** (45): Tabelas: 1 · Colunas: 30 · Restrições: 1 · Índices: 2 · Gatilhos: 1 · Políticas de acesso: 6 · Repositórios de arquivos: 1 · Privilégios: 3
+- **Observação**: Especificidades da DTR (campos da rodovia no catálogo de ocorrências e nas ocorrências, mapa e KML); o catálogo de tipos é do motor de verificação (checklists) e o fluxo usa as tabelas do módulo fiscalização.
+- **Objetos** (26): Colunas: 20 · Índices: 1 · Políticas de acesso: 4 · Repositórios de arquivos: 1
 - **Depende de**: `core`
 
 ## 6. Processo sancionador
