@@ -111,12 +111,17 @@ O sistema é modularizado ao máximo, em apps Django:
 - **fiscalização**: a fiscalização de campo comum às câmaras — fiscalizações, unidades
   fiscalizadas, respostas de checklist, não conformidades, constatações, determinações,
   recomendações e evidências fotográficas —, incluindo a operação offline.
-- **checklists**: o motor de checklists, comum a todas as câmaras.
+- **checklists**: o motor genérico de verificação (checklists e catálogos de ocorrência), comum
+  a todas as câmaras.
 - **planejamento**: o planejamento anual de fiscalizações — municípios, concessões ou rodovias a
   fiscalizar, equipe, datas, veículos e diárias —, elaborado pelo coordenador, aprovado pelo
   diretor, consultado pelos fiscais e usado pelas áreas pertinentes.
-- **um app por diretoria/câmara técnica**: as especificidades de cada uma (ex.: DTR com mapa e
-  KML) e o layout próprio de relatórios.
+- **um app por câmara técnica**: cada câmara tem o seu app de fiscalização, com as
+  especificidades dela (ex.: a câmara que fiscaliza as rodovias, com mapa e KML), a montagem dos
+  apps comuns para o seu uso (ex.: os modelos de catálogo do motor de checklists) e o layout próprio
+  de relatórios. O app é da câmara, não da diretoria: câmaras da mesma diretoria têm apps
+  separados, e nenhum depende do outro; se duas câmaras trabalham da mesma forma, cada app registra
+  a sua configuração, ainda que igual à da outra.
 - **processo sancionador**: autos de infração, termos de notificação, análise da manifestação
   e pareceres técnicos.
 - **portal do prestador**.
@@ -124,6 +129,24 @@ O sistema é modularizado ao máximo, em apps Django:
 
 O que é comum a mais de uma câmara MUST viver em `core`, `fiscalização` ou `checklists`. O que é específico
 de uma câmara MUST NOT vazar para os apps comuns.
+
+**Apps comuns como motores genéricos**: os apps comuns são construídos como peças de montar
+("lego"), que o app de cada câmara combina para as próprias necessidades.
+
+- Um app comum MUST NOT conter tabela, coluna, tela, formato de arquivo, texto, identificador ou
+  regra de uma câmara específica. Ele oferece peças genéricas (ex.: no motor de checklists,
+  catálogo, item versionado, campo, resposta, saída, importação por planilha) e pontos de extensão
+  (ex.: no `core`, as abas, painéis e entradas de Definições que cada app registra).
+- O app da câmara monta o seu uso registrando configuração no app comum (ex.: o modelo de catálogo
+  com os campos, respostas, saídas e planilha da câmara) e acrescentando as próprias telas pelos
+  pontos de extensão. O app comum lê a configuração registrada; não importa código do app da câmara.
+- Quando uma câmara precisar de algo que as peças não oferecem, a peça nova entra no app comum de
+  forma genérica, disponível a todas as câmaras, ou fica no app da câmara. Um ramo "se for a câmara
+  X" num app comum é violação.
+- A regra MUST ser verificada automaticamente: um teste falha se um app comum citar uma câmara, e
+  outro prova que um app de teste monta um uso novo sem alterar o app comum.
+- A funcionalidade que cada câmara tem hoje MUST ser preservada (Princípio I) pela configuração que
+  o app dela registra; as specs dos apps comuns descrevem essa configuração como "modelo de hoje".
 
 **Independência entre apps**: a separação em apps existe para que uma mudança específica de uma
 área não exija mexer no resto do sistema. Por isso, a dependência entre apps tem uma única
@@ -250,4 +273,4 @@ constituição. Complexidade que viole o Princípio V MUST ser justificada por e
 removida. Violação de princípio marcado NÃO NEGOCIÁVEL bloqueia a entrega, sem exceção
 por prazo.
 
-**Version**: 2.5.0 | **Ratified**: 2026-09-18 | **Last Amended**: 2026-09-30
+**Version**: 2.6.0 | **Ratified**: 2026-09-18 | **Last Amended**: 2026-09-30
