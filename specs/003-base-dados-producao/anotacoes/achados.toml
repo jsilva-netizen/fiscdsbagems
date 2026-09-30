@@ -147,7 +147,7 @@ Opção 1.
 """
 situacao = "decidido"
 decisao = """
-Aprovada a recomendação: opção 1 — No sistema novo, negar por padrão: sem login, só entrar, criar conta e listar as entidades do cadastro. (Opção 1.)
+Aprovada a recomendação: negar por padrão. Com a decisão do A-038, sem login só existem o login (com a verificação por código) e a recuperação de acesso; não há criação de conta nem lista de entidades sem login.
 """
 decidido_por = "jsilva"
 decidido_em = "2026-09-30"
@@ -274,7 +274,7 @@ Opção 1.
 """
 situacao = "decidido"
 decisao = """
-Corrigido em produção pela migration 137, aplicada pelo responsável. A parte que restringe a leitura de perfis não chegou a produção (A-012). No sistema novo, o papel é definido só pelo admin na aprovação.
+Corrigido em produção pela migration 137, aplicada pelo responsável; a parte da leitura de perfis foi aplicada depois (A-012). No sistema novo não há cadastro pelo próprio usuário: o admin cria o usuário já com o papel (A-038).
 """
 decidido_por = "jsilva"
 decidido_em = "2026-09-29"
@@ -941,7 +941,7 @@ Decidir com a configuração de autenticação de produção (externos.toml).
 """
 situacao = "decidido"
 decisao = """
-Aprovada a recomendação: Decidir com a configuração de autenticação de produção (externos.toml). Pendente: exportar a configuração de autenticação de produção (externos.toml) para escolher a opção.
+Decisão do responsável (2026-09-30): sistema público/institucional, sem cadastro pelo próprio usuário. O admin cria a conta e o perfil (papel, diretoria, câmara, entidade). No primeiro login, e no login em um aparelho novo, o usuário confirma a identidade com um código enviado ao e-mail (verificação em duas etapas). Isso substitui a confirmação de e-mail e a aprovação de cadastro do sistema atual.
 """
 decidido_por = "jsilva"
 decidido_em = "2026-09-30"

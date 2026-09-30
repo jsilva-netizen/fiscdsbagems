@@ -50,8 +50,7 @@
   da história 4. Ficam como "aguardando decisão" nos artefatos, não como lacunas desta spec.
 - **Implementação (2026-09-30)**: critérios de sucesso conferidos no gerador e no quickstart.
   SC-001, SC-002, SC-003 e SC-008 em 0; SC-005 (varredura) e SC-007 (`--verificar`) com retorno
-  0; SC-006 com 0 achados aguardando decisão (39 achados, todos decididos; A-038 depende da
-  resposta sobre confirmação de e-mail). SC-004 conferido por
+  0; SC-006 com 0 achados aguardando decisão (39 achados, todos decididos). SC-004 conferido por
   amostra contra os inventários (10 de 10); a leitura por uma pessoa que não conhece o banco fica
   para a revisão do catálogo. O inventário de produção foi refeito em 2026-09-29, depois das
   correções 137 a 141; a parte da 137 sobre leitura de perfis foi aplicada em produção em

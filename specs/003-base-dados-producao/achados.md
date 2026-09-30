@@ -176,7 +176,7 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 **Recomendação**: Opção 1.
 
-**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: opção 1 — No sistema novo, negar por padrão: sem login, só entrar, criar conta e listar as entidades do cadastro. (Opção 1.)
+**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: negar por padrão. Com a decisão do A-038, sem login só existem o login (com a verificação por código) e a recuperação de acesso; não há criação de conta nem lista de entidades sem login.
 
 <a id="a-007"></a>
 
@@ -282,7 +282,7 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 **Recomendação**: Opção 1.
 
-**Decisão** (jsilva, 2026-09-29): Corrigido em produção pela migration 137, aplicada pelo responsável. A parte que restringe a leitura de perfis não chegou a produção (A-012). No sistema novo, o papel é definido só pelo admin na aprovação.
+**Decisão** (jsilva, 2026-09-29): Corrigido em produção pela migration 137, aplicada pelo responsável; a parte da leitura de perfis foi aplicada depois (A-012). No sistema novo não há cadastro pelo próprio usuário: o admin cria o usuário já com o papel (A-038).
 
 <a id="a-012"></a>
 
@@ -845,7 +845,7 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 **Recomendação**: Decidir com a configuração de autenticação de produção (externos.toml).
 
-**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: Decidir com a configuração de autenticação de produção (externos.toml). Pendente: exportar a configuração de autenticação de produção (externos.toml) para escolher a opção.
+**Decisão** (jsilva, 2026-09-30): Decisão do responsável (2026-09-30): sistema público/institucional, sem cadastro pelo próprio usuário. O admin cria a conta e o perfil (papel, diretoria, câmara, entidade). No primeiro login, e no login em um aparelho novo, o usuário confirma a identidade com um código enviado ao e-mail (verificação em duas etapas). Isso substitui a confirmação de e-mail e a aprovação de cadastro do sistema atual.
 
 <a id="a-039"></a>
 

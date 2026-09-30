@@ -256,6 +256,8 @@ modulo = "core"
 efeito = """
 Depois de cada conta nova criada no serviço de autenticação, chama `handle_new_user`, que cria o
 perfil inativo com nome, papel pedido e vínculos escolhidos na tela de cadastro. É a única forma
-de um perfil nascer. No sistema novo, o cadastro cria conta e perfil juntos.
+de um perfil nascer. No sistema novo não há cadastro pelo próprio usuário: o admin cria a conta
+e o perfil, e o primeiro login, ou o login num aparelho novo, exige um código enviado por e-mail
+(A-038).
 """
 fonte = ["funcao:handle_new_user()", "src/pages/Register.jsx:103"]

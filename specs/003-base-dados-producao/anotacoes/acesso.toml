@@ -16,8 +16,8 @@ entidades do cadastro vem de `prestadores_para_cadastro`) e ler os logotipos das
 privilégios de tabela continuam concedidos a `anon` (privilégio padrão do esquema `public`); o que
 o impede de ler e gravar são as regras de acesso por linha.
 
-No sistema novo, requisição sem login só alcança login, cadastro e a lista de entidades do
-cadastro.
+No sistema novo, requisição sem login só alcança o login (com a verificação por código enviado
+por e-mail) e a recuperação de acesso; não há cadastro pelo próprio usuário (A-038).
 """
 fonte = [
   "src/lib/supabase.js:4",

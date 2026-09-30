@@ -10,7 +10,8 @@
 
 **Finalidade**: Lista id e nome das entidades ativas, em ordem de nome, para a escolha da entidade na tela de
 cadastro, antes do login. Criada na migration 138 no lugar da leitura aberta de
-`prestadores_servico`, que expunha todas as colunas a quem não tinha login. Executável sem login. *(fonte: src/pages/Register.jsx:47, supabase/migrations/138_fix_open_policies.sql:23)*
+`prestadores_servico`, que expunha todas as colunas a quem não tinha login. Executável sem login.
+Sem equivalente no sistema novo, que não tem cadastro pelo próprio usuário (A-038). *(fonte: src/pages/Register.jsx:47, supabase/migrations/138_fix_open_policies.sql:23)*
 
 - **Lê**: [prestadores_servico](../tabelas/prestadores_servico.md)
 - **Escreve**: —

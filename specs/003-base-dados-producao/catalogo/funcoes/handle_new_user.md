@@ -10,7 +10,7 @@
 
 **Finalidade**: Cria o perfil (`profiles`) quando uma conta é criada em `auth.users`, pelo gatilho
 `on_auth_user_created`, na mesma transação do cadastro. Os dados vêm dos metadados que a tela de
-cadastro envia:
+cadastro envia (no sistema novo, sem equivalente: o admin cria conta e perfil, A-038):
 
 - **Nome:** o informado; se vier vazio, o e-mail.
 - **Papel:** fiscal, coordenador, diretor ou prestador. Qualquer outro valor vira fiscal, desde a
