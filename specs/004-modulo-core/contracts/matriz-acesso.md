@@ -25,6 +25,8 @@ para coordenador e fiscal; câmaras da diretoria para o diretor); **L** leitura;
 | contratos: criar, alterar, excluir | T | T | T | — | — |
 | auditoria: ler | T | E | E | — | — |
 | credenciais de sistema | T | — | — | — | — |
+| avisos: ler, marcar como lidos, preferências | P | P | P | P | P |
+| avisos de outro usuário | — | — | — | — | — |
 | sincronização do core: baixar | T | E | E | E | P |
 | sincronização do core: enviar (entidades, contratos) | T | T | T | — | — |
 

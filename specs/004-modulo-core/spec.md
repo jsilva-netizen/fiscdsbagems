@@ -208,6 +208,36 @@ primeira.
 
 ---
 
+### User Story 8 - Receber avisos de todos os apps num lugar só (Priority: P2)
+
+Cada usuário tem uma central de avisos. Os apps mandam para ela o que pede atenção: plano pendente
+de aprovação, pedido de liberação, prazo vencendo, resposta do prestador. O usuário vê os avisos na
+tela, com o número de não lidos, recebe por e-mail os que o tipo de aviso pede e abre o registro a
+partir do aviso.
+
+**Why this priority**: planejamento, fiscalização e processo sancionador precisam avisar pessoas.
+Sem uma central comum, cada app faria a sua, como o painel da CATERS faz hoje.
+
+**Independent Test**:
+- um app de teste registra um tipo de aviso e manda um aviso para os coordenadores da CATESA;
+- os dois coordenadores veem o aviso com o contador de não lidos e recebem o e-mail;
+- um deles marca como lido, e o contador dele zera sem mudar o do outro;
+- um fiscal da CATERS não vê o aviso;
+- abrir o aviso leva ao registro, respeitando o acesso ao registro.
+
+**Acceptance Scenarios**:
+
+1. **Given** um aviso para um usuário, **When** ele abre a central, **Then** vê o aviso como não
+   lido, e o contador de não lidos inclui o aviso.
+2. **Given** um aviso de um tipo com e-mail, **When** o aviso é criado, **Then** o usuário recebe o
+   e-mail, a menos que tenha desligado o e-mail desse tipo e o tipo não seja obrigatório.
+3. **Given** um aviso de um registro que o usuário deixou de alcançar, **When** ele abre o aviso,
+   **Then** o registro responde como inexistente.
+4. **Given** um usuário sem rede, **When** abre o aplicativo, **Then** vê os avisos já recebidos e
+   pode marcá-los como lidos; a marcação vai ao servidor quando a rede voltar.
+
+---
+
 ### Edge Cases
 
 - Usuário com o mesmo e-mail de outro já existente: o sistema recusa a criação, inclusive se o
@@ -287,6 +317,10 @@ primeira.
 - **FR-021**: O menu, o início, a lista e o detalhe das entidades e as Definições MUST ser montados
   com o que cada app registra, sem o core depender desses apps, e cada contribuição MUST respeitar o
   acesso do app dono do dado (R-core-025).
+- **FR-022**: O core MUST oferecer uma central de avisos comum a todos os apps: cada app registra os
+  seus tipos de aviso e manda avisos a usuários, a papéis de uma câmara ou a papéis de uma
+  diretoria; cada usuário MUST ver só os próprios avisos, na tela e, conforme o tipo, por e-mail
+  (R-core-026).
 
 ### Key Entities
 
@@ -308,6 +342,11 @@ primeira.
   permissões próprias, sem ser conta de pessoa.
 - **Registro de auditoria**: tabela e registro alterados, operação, autor, data, dados antes e
   depois.
+- **Tipo de aviso**: peça registrada por um app: código, nome, se manda e-mail por padrão, se o
+  e-mail é obrigatório.
+- **Aviso**: destinatário, tipo, app de origem, título, texto curto, registro a que se refere, data,
+  lido em.
+- **Preferência de aviso**: para cada usuário e tipo não obrigatório, se recebe e-mail.
 
 ## Regras do módulo
 
@@ -761,6 +800,38 @@ da spec 003 (`specs/003-base-dados-producao/catalogo/`).
 - **Objetos do catálogo**: — (composição de telas; não há objeto no banco)
 - **Origem**: constituição v2.5.0 (decisão do responsável, 2026-09-30).
 
+### R-core-026 — Central de avisos comum
+
+- **Comportamento desejado**: o core mantém a central de avisos de todos os apps.
+  - **Tipos**: cada app registra os seus tipos de aviso, com código, nome, se o tipo manda e-mail
+    por padrão e se o e-mail é obrigatório (ex.: prazo de resposta do prestador). O core não conhece
+    os tipos.
+  - **Envio**: um app manda um aviso com tipo, título, texto curto e o registro a que se refere
+    (app, tipo de registro e identificador). Os destinatários podem ser usuários, um papel numa
+    câmara (ex.: os coordenadores da CATESA) ou um papel numa diretoria (ex.: o diretor da DSB). O
+    core resolve os destinatários no momento do envio, só entre usuários ativos, e cria um aviso para
+    cada um.
+  - **Leitura**: cada usuário vê só os próprios avisos, com o contador de não lidos, e marca como
+    lido um aviso ou todos. Ninguém lê avisos de outro usuário, nem o administrador. O aviso mostra
+    título e texto; abrir o registro passa pelas regras de acesso do app dono. Se o usuário não
+    alcança mais o registro, ele responde como inexistente.
+  - **E-mail**: mandado em segundo plano, com novas tentativas, para os tipos com e-mail. O usuário
+    desliga o e-mail de um tipo não obrigatório nas preferências dele.
+  - **Sem rede**: os avisos já recebidos vão para o aparelho pela sincronização do core
+    (R-core-021), e marcar como lido sem rede é enviado depois.
+  - **Guarda**: avisos lidos há mais de um ano são apagados. O aviso não é o registro do ato; o
+    ato fica no app dono e na auditoria.
+- **Comportamento atual**: não há central. Só o painel da CATERS mostra avisos (resposta ou
+  recomendação com prazo vencido, processo aguardando análise), calculados na tela, e guarda numa
+  tabela as chaves dos avisos que cada usuário já leu; a tabela está vazia em produção. Os demais
+  módulos não avisam ninguém.
+- **Motivo da diferença**: planejamento (aprovações, liberações), fiscalização (prazos) e processo
+  sancionador precisam avisar pessoas. Uma peça comum no core evita uma central por app
+  (constituição, "Apps comuns como motores genéricos"; decisão do responsável, 2026-09-30).
+- **Objetos do catálogo**: `tabela:caters_notification_reads`,
+  `coluna:caters_notification_reads.key`, `coluna:caters_notification_reads.read_at`
+- **Origem**: decisão do responsável, 2026-09-30.
+
 ## Telas do sistema atual
 
 Ações das telas atuais que pertencem ao core, no molde `formatos/spec-modulo.md` da spec 003. Fonte:
@@ -849,6 +920,8 @@ Ações das telas atuais que pertencem ao core, no molde `formatos/spec-modulo.m
 | Alterar o próprio nome e a própria senha | R-core-008 |
 | Consultar o histórico de alterações de um registro | R-core-022 |
 | Criar e revogar credenciais de sistema | R-core-024 |
+| Ver os avisos, com o contador de não lidos; marcar como lido; abrir o registro do aviso | R-core-026 |
+| Ligar ou desligar o e-mail dos tipos de aviso não obrigatórios | R-core-026 |
 
 ## Success Criteria *(mandatory)*
 
@@ -874,6 +947,9 @@ Ações das telas atuais que pertencem ao core, no molde `formatos/spec-modulo.m
   na seção "Telas do sistema atual").
 - **SC-010**: Acrescentar um app de teste que registra uma aba no detalhe da entidade e uma entrada
   nas Definições exige 0 alterações no core.
+- **SC-011**: Um app de teste registra um tipo de aviso e manda avisos com 0 alterações no core; em
+  teste com usuários de duas câmaras, 0 avisos chegam a quem não é destinatário, e o e-mail de um
+  aviso chega em até 5 minutos.
 
 ## Assumptions
 

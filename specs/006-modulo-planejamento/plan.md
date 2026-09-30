@@ -89,8 +89,8 @@ offline)
 | IA fora | Passa | Nenhuma |
 
 **Pós-desenho (Phase 1)**: reavaliado depois do data-model, dos contratos e da matriz. Nenhuma
-violação nova. Ficou uma observação para a spec do core ou da fiscalização: uma central de avisos
-comum (P8) seria útil a vários apps e deve nascer no core, não no planejamento.
+violação nova. Os avisos usam a central comum do core (R-core-026), acrescentada ao core por decisão
+do responsável (P8).
 
 ## Project Structure
 
@@ -128,7 +128,8 @@ backend/
 │       ├── consultas.py               # leitura para outros apps (P12)
 │       ├── servicos.py                # escrita (dono), sempre auditada
 │       ├── api/                       # views e serializadores (inclui portal e integração)
-│       ├── tasks.py                   # expiração de pedidos, avisos por e-mail
+│       ├── avisos.py                  # tipos de aviso do planejamento, registrados na central do core
+│       ├── tasks.py                   # expiração de pedidos de liberação
 │       └── management/commands/       # carregar_tabela_diarias
 └── tests/
     └── planejamento/                  # custos (Anexo I), mudanças, fluxo, equipe, matriz, extensão

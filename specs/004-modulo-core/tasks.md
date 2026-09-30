@@ -12,7 +12,8 @@ description: "Tarefas do módulo core do sistema novo da AGEMS"
 (FR-009, SC-001) e a constituição, Princípio III, exige teste que falhe quando a regra for violada.
 Escreva os testes de cada história antes da implementação e confirme que falham.
 
-**Organization**: tarefas agrupadas pelas histórias da spec (US1 a US7).
+**Organization**: tarefas agrupadas pelas histórias da spec (US1 a US7); a US8 (central de avisos) fica
+na Phase 10, com as demais peças comuns que outros apps usam.
 
 ## Format: `[ID] [P?] [Story] Description`
 
@@ -278,7 +279,7 @@ outra câmara não vê o histórico de registros da primeira.
 
 ## Phase 10: Extensão para outras áreas e integrações
 
-**Purpose**: provar que o core aceita apps novos sem mudar (R-core-023, R-core-024, R-core-025; constituição
+**Purpose**: provar que o core aceita apps novos sem mudar (R-core-023, R-core-024, R-core-025, R-core-026; constituição
 v2.4.0 e v2.5.0)
 
 - [ ] T080 Criar `CredencialSistema` em `C/models/credencial.py` (`nome`, `prefixo`, `chave_hash`, `escopos` lista, `criada_por`, `criada_em`, `ultimo_uso_em`, `revogada_em`) e ligar `RegistroAuditoria.credencial` a ela
@@ -287,6 +288,11 @@ v2.4.0 e v2.5.0)
 - [ ] T083 Teste de extensão em `T/test_extensao_apps.py` com um app de teste `backend/tests/apps/area_teste/` que acrescenta um papel por migração de dados e lê entidades por `C/consultas.py`: o papel novo é cadastrado com as regras de vínculo dele; os papéis existentes continuam com o mesmo alcance (a matriz do core passa igual); o papel novo não consegue escrever em entidade (constituição v2.4.0)
 - [ ] T084 Acrescentar em `backend/.importlinter` o contrato do app de teste e um teste em `T/test_dependencias.py` que falha se `apps.core` importar qualquer app posterior
 - [ ] T093 Criar o registro de contribuições de tela em `frontend/src/shared/extensoes.ts`: cada app do frontend registra itens de menu, painéis do início por papel, contadores da lista de entidades, abas do detalhe da entidade e entradas das Definições, cada um com os papéis que o veem; o menu e as telas `frontend/src/core/inicio/`, `frontend/src/core/entidades/` e `frontend/src/core/definicoes/` montam só o que está registrado, sem importar nenhum app (R-core-025)
+- [ ] T095 [US8] Criar `Aviso` (`usuario`, `tipo`, `app`, `titulo` obrigatório, `texto`, `referencia_app`, `referencia_modelo`, `referencia_id`, `criado_em`, `lido_em`, `email_enviado_em`) e `PreferenciaAviso` (`usuario`, `tipo`, `email`; único por usuário e tipo) em `C/avisos/models.py`, e o registro de tipos em `C/avisos/registro.py` (`registrar_tipo(codigo, nome, app, email_padrao, email_obrigatorio)`; código único, prefixado pelo app) (R-core-026)
+- [ ] T096 [US8] Implementar `enviar_aviso(tipo, destinatarios, titulo, texto, referencia)` em `C/servicos.py`: resolve usuários, `(papel, camara)` e `(papel, diretoria)` só entre ativos; cria um aviso por destinatário numa transação; agenda o e-mail em `C/tasks.py` depois do commit, respeitando a preferência e o `email_obrigatorio`; tarefa diária que apaga avisos lidos há mais de um ano
+- [ ] T097 [US8] Views `avisos`, `avisos/{id}/lido`, `avisos/lidos`, `avisos/tipos` e `eu/preferencias-avisos` em `C/api/avisos.py`, com a matriz declarada (só o próprio usuário); incluir os avisos do usuário no `GET sync/core` e a marcação de lido no `POST sync/core` em `C/sincronizacao/`
+- [ ] T098 [P] [US8] Testes em `T/test_avisos.py`: app de teste registra um tipo e manda aviso para os coordenadores de uma câmara; só eles veem; marcar como lido não afeta o outro; administrador não lê aviso alheio; e-mail respeita preferência e tipo obrigatório (Mailpit); aviso de registro fora do alcance abre como 404; marcação de lido sem rede chega pela sincronização (SC-011)
+- [ ] T099 [P] [US8] Criar a central de avisos e o contador de não lidos no cabeçalho em `frontend/src/core/avisos/`, lendo do banco local, com a tela de preferências
 - [ ] T094 Testes em `frontend/src/shared/extensoes.test.ts` e regra de importação do lint do frontend: um app de teste registra uma aba no detalhe da entidade e uma entrada nas Definições, que aparecem só para os papéis declarados; retirá-lo não quebra as telas do core; `frontend/src/core/` importar `frontend/src/<app posterior>/` reprova o lint (SC-010)
 
 ---
@@ -327,7 +333,9 @@ conferência registro a registro (Princípio I; research R13)
 - **US6 (P3)**: depende só da Foundational; pode andar em paralelo com US4 e US5.
 - **US7 (P3)**: depende da auditoria da Foundational e dos serviços das histórias que geram
   registros (US1, US4, US5).
-- **Phase 10**: depende da US3 e da US4.
+- **Phase 10**: depende da US3 e da US4. A central de avisos (T095 a T099) depende da US1 (usuários e
+  papéis) e da sincronização da Foundational, e vem antes do planejamento, que é o primeiro app a
+  usá-la.
 - **Phase 11 (migração)**: depende de US1, US4, US5, US6 e US7 (todos os modelos).
 - **Polish**: depois de tudo.
 

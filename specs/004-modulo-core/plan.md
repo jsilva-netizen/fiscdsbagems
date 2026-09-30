@@ -11,7 +11,8 @@ pelo administrador, entrada com verificação por código no e-mail e aparelho c
 áreas que outros apps podem ampliar, isolamento por câmara técnica aplicado no servidor em todo
 caminho, estrutura organizacional (3 diretorias, 10 câmaras), municípios, entidades reguladas com
 documentos e logotipo, contratos, auditoria imutável, o protocolo de sincronização offline comum a
-todos os apps e credenciais de sistema para integrações.
+todos os apps, a central de avisos
+comum e credenciais de sistema para integrações.
 
 Abordagem ([research.md](./research.md)): projeto Django num **repositório novo**, um app por
 módulo; cada app expõe só `consultas` (leitura) e `servicos` (escrita do dono), com a direção das
@@ -61,7 +62,7 @@ entidades e novas áreas da agência
 | V. Manutenibilidade | Passa com justificativa | Tudo mainstream do ecossistema Django; duas peças próprias (verificação em duas etapas e auditoria) justificadas em Complexity Tracking |
 | Stack obrigatória | Passa | Django + DRF + SimpleJWT, PostgreSQL self-hosted, Celery + Redis, django-storages, SPA React/Vite com Dexie |
 | Organização em apps e independência | Passa | App `core` primeiro; `consultas`/`servicos` como únicos pontos de entrada; import-linter verifica a direção (R3) |
-| Extensão para outras áreas | Passa | Papéis por tabela com regras de vínculo (R4); leitura entre apps só por `consultas`; credenciais de sistema para integrações (R12) |
+| Extensão para outras áreas | Passa | Papéis por tabela com regras de vínculo (R4); leitura entre apps só por `consultas`; credenciais de sistema para integrações (R12); central de avisos comum, com tipos registrados pelos apps (R15) |
 | Banco único | Passa | Um PostgreSQL para todos os apps; armazenamento do aparelho é cópia de trabalho |
 | IA fora do sistema novo | Passa | Nenhuma funcionalidade de IA |
 | UUID gerado no cliente | Passa | Entidades e contratos aceitam o id do aparelho (data-model) |
@@ -100,6 +101,7 @@ backend/
 │       ├── sincronizacao/   # protocolo comum de baixar e enviar (usado por todos os apps)
 │       ├── arquivos/        # repositórios privado e público, endereços assinados, limites
 │       ├── auditoria/       # registro imutável e consulta com escopo
+│       ├── avisos/          # central de avisos: tipos registrados, envio, leitura, e-mail
 │       ├── consultas.py     # leitura para outros apps
 │       ├── servicos.py      # escrita (dono)
 │       ├── api/             # views e serializadores DRF

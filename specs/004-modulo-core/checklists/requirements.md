@@ -58,4 +58,7 @@
   módulo (0 `LACUNA`). O levantamento gerou a R-core-025 (telas montadas com o que cada app
   registra), a FR-021, os SC-009 e SC-010 e as tarefas T093 e T094, e ampliou a R-core-020
   (exclusão de contrato só sem registros).
+- **Central de avisos (2026-09-30)**: por decisão do responsável, o core ganhou a central de avisos
+  comum a todos os apps: a US8, a R-core-026, a FR-022, o SC-011, o R15 no research, os modelos no
+  data-model, as rotas, a linha na matriz e as tarefas T095 a T099.
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`.

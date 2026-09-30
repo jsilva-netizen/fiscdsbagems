@@ -794,8 +794,8 @@ O sistema atual não tem nenhuma tela de planejamento. As ações abaixo são no
   informa o valor unitário com justificativa (R-planejamento-006).
 - **Veículos e tabela de diárias mudam de dono** quando os apps de frotas e financeiro existirem;
   isso será tratado nas specs deles, sem alterar as viagens já registradas.
-- **Avisos**: os avisos a diretor, coordenadores e servidores escalados usam o canal de avisos do
-  sistema (na tela e por e-mail), definido no plano técnico.
+- **Avisos**: os avisos a diretor, coordenadores e servidores escalados usam a central de avisos do
+  core (R-core-026), na tela e por e-mail.
 - **Plano de anos anteriores**: não há dados a migrar; o primeiro plano é criado no sistema novo. Os
   cronogramas de 2026 em planilha podem ser registrados como plano de 2026, se o responsável quiser.
 - **Premissa externa**: o que RH, financeiro e frotas precisam ler é provisório até ouvir as áreas

@@ -173,19 +173,28 @@ dos coordenadores.
 
 ## P8 — Avisos
 
-**Decision**: nesta versão, os avisos são e-mail, pela tarefa de envio do core (R14 do core), e a
-lista "minhas pendências" nas telas do planejamento:
-- o diretor recebe planos, extras e mudanças pendentes;
-- o coordenador recebe as liberações pedidas à sua câmara e as decisões;
-- o servidor é avisado quando é escalado.
+**Decision**: o planejamento usa a central de avisos do core (R-core-026, research R15 do core). Ele
+registra os tipos dele e manda os avisos por `core.servicos.enviar_aviso`:
 
-Não há central de avisos nesta spec.
+| Tipo | Destinatários | E-mail |
+|---|---|---|
+| `planejamento.plano_enviado` | diretor da diretoria da câmara | sim |
+| `planejamento.plano_decidido` (aprovado ou devolvido) | coordenadores da câmara | sim |
+| `planejamento.extra_enviada`, `planejamento.mudanca_pendente` | diretor da diretoria | sim |
+| `planejamento.mudanca_decidida`, `planejamento.extra_decidida` | coordenador autor | sim |
+| `planejamento.convite_viagem` | coordenadores da câmara convidada | sim |
+| `planejamento.liberacao_pedida` | coordenadores da câmara de origem | sim |
+| `planejamento.liberacao_decidida`, `planejamento.liberacao_expirada` | coordenador que pediu | sim |
+| `planejamento.escalado` | servidor escalado | sim |
+| `planejamento.viagem_alterada` | servidores escalados e câmaras participantes | não |
 
-**Rationale**: é o mínimo que atende a spec com o que o core já tem.
+As telas do planejamento mantêm a lista "minhas pendências" (o que espera ação do usuário), que é
+uma consulta do planejamento, e não um aviso.
 
-**Alternatives considered**: uma central de avisos genérica. Ela seria útil também à fiscalização
-(prazos) e ao processo sancionador, mas é peça comum e caberia ao core. Fica como proposta para a
-spec do core ou para a da fiscalização, e não é criada dentro do planejamento.
+**Rationale**: decisão do responsável, 2026-09-30: a central de avisos é comum e fica no core.
+
+**Alternatives considered**: e-mail direto pelo planejamento: cada app teria o próprio jeito de
+avisar, e o usuário não teria um lugar só.
 
 ## P9 — Cronograma e atualização
 

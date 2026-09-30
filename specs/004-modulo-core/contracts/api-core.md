@@ -82,12 +82,25 @@ Erros: `{"erro": "<codigo>", "mensagem": "<texto para o usuário>", "campos": {.
 |---|---|
 | `GET auditoria?tabela=&registro=&desde=&ate=` | admin, coordenador e fiscal, só registros do escopo de cada um; sem escrita |
 
+## Avisos
+
+| Método e rota | Descrição |
+|---|---|
+| `GET avisos?lidos=&tipo=` | só os avisos do próprio usuário, mais recentes primeiro; cabeçalho ou campo `nao_lidos` |
+| `POST avisos/{id}/lido` · `POST avisos/lidos` | marca um ou todos como lidos |
+| `GET eu/preferencias-avisos` · `PUT eu/preferencias-avisos` | e-mail por tipo não obrigatório; **400** ao desligar tipo obrigatório |
+| `GET avisos/tipos` | tipos registrados pelos apps instalados |
+
+Os apps mandam avisos por `core.servicos.enviar_aviso(tipo, destinatarios, titulo, texto, referencia)`,
+não por rota. `destinatarios` aceita usuários, `(papel, camara)` e `(papel, diretoria)`. Registram
+os tipos por `core.avisos.registrar_tipo(codigo, nome, app, email_padrao, email_obrigatorio)`.
+
 ## Sincronização
 
 | Método e rota | Descrição |
 |---|---|
-| `GET sync/core?desde=<marca>` | alterações e remoções no escopo do usuário desde a marca do servidor: `{marca, diretorias, camaras, servicos, municipios, entidades, contratos, remocoes}` |
-| `POST sync/core` | `{operacoes: [{id, modelo, acao, dados}]}` idempotente; resposta por operação: `aceita` ou `recusada` com `erro` |
+| `GET sync/core?desde=<marca>` | alterações e remoções no escopo do usuário desde a marca do servidor: `{marca, diretorias, camaras, servicos, municipios, entidades, contratos, avisos, remocoes}`; `avisos` só do próprio usuário |
+| `POST sync/core` | `{operacoes: [{id, modelo, acao, dados}]}` idempotente; resposta por operação: `aceita` ou `recusada` com `erro`; inclui marcar aviso como lido feito sem rede |
 
 ## Integrações
 

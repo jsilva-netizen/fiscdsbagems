@@ -172,6 +172,34 @@ ligado a este (R-core-020); o core não conhece esses campos.
 
 Imutável: o banco recusa alteração e exclusão (R-core-022).
 
+### TipoAviso (registro em memória, não tabela)
+Registrado por cada app ao iniciar (R-core-026): `codigo` (único, prefixado pelo app, ex.:
+`planejamento.plano_enviado`), `nome`, `app`, `email_padrao` (sim ou não), `email_obrigatorio`
+(sim ou não).
+
+### Aviso
+| Campo | Tipo | Regras |
+|---|---|---|
+| id | UUID | |
+| usuario | → Usuario | destinatário; só ele lê |
+| tipo | texto | código de `TipoAviso` registrado |
+| app | texto | app de origem |
+| titulo | texto | obrigatório, curto |
+| texto | texto | opcional, curto; sem dado que o destinatário não possa ver |
+| referencia_app, referencia_modelo, referencia_id | textos, opcionais | registro a abrir, pelas regras do app dono |
+| criado_em | data e hora | |
+| lido_em | data e hora, opcional | |
+| email_enviado_em | data e hora, opcional | |
+
+Guarda: apagado um ano depois de lido.
+
+### PreferenciaAviso
+| Campo | Tipo | Regras |
+|---|---|---|
+| usuario | → Usuario | |
+| tipo | texto | código de `TipoAviso` não obrigatório |
+| email | booleano | único por usuário e tipo; sem linha, vale o `email_padrao` do tipo |
+
 ### RemocaoSincronizavel
 | Campo | Tipo | Regras |
 |---|---|---|
@@ -189,4 +217,5 @@ Usuario   1──* AparelhoConfirmado, DesafioVerificacao
 Entidade  *──* Servico
 Entidade  1──* DocumentoEntidade, Contrato, Usuario(prestador)
 Usuario / CredencialSistema 1──* RegistroAuditoria
+Usuario   1──* Aviso, PreferenciaAviso
 ```

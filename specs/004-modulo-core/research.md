@@ -242,3 +242,29 @@ nunca é gravado em log.
 
 **Alternatives considered**: serviço de e-mail transacional externo (dependência externa para um
 sistema institucional; reavaliar se o servidor institucional não atender).
+
+## R15 — Central de avisos
+
+**Decision**: um submódulo `core/avisos/` com:
+- o registro de tipos de aviso, em memória, preenchido por cada app no `AppConfig.ready`;
+- os modelos `Aviso` e `PreferenciaAviso`;
+- o serviço `enviar_aviso`, que:
+  - resolve os destinatários (usuários, papel na câmara, papel na diretoria), só ativos;
+  - cria um aviso por destinatário numa transação;
+  - agenda o e-mail pela tarefa de envio (R14) depois do commit, respeitando a preferência;
+- as rotas de leitura, só do próprio usuário;
+- a inclusão dos avisos do usuário no `sync/core`, com a marcação de lido aceita no envio;
+- uma tarefa diária que apaga os avisos lidos há mais de um ano.
+
+O frontend mostra o contador de não lidos no cabeçalho, com a central numa tela do core. Aviso não é
+auditado, porque não é registro de ato, mas o ato que o gerou é.
+
+**Rationale**: R-core-026. Planejamento, fiscalização e processo sancionador precisam da peça, e
+pela constituição o que é comum vive no core. Os avisos em tempo real não são necessários: a lista
+atualiza ao abrir e na sincronização.
+
+**Alternatives considered**:
+- django-notifications-hq: modelo genérico por `GenericForeignKey` e sem tipos com regra de e-mail,
+  preferências nem sincronização offline; a adaptação seria maior que a peça;
+- avisos em tempo real (WebSocket, Django Channels): infraestrutura a mais sem necessidade hoje;
+- uma central em cada app: repetição e divergência.
