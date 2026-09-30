@@ -31,6 +31,7 @@ Serviço regulado, que define em que diretoria a entidade aparece (R-core-016).
 | codigo | texto | ex.: `abastecimento_agua`, `rodovias` |
 | nome | texto | ex.: "Abastecimento de Água" (valores de `prestadores_servico.tipo_servico`) |
 | diretoria | → Diretoria | DSB: água, esgoto, limpeza urbana, resíduos sólidos, drenagem urbana; DTR: rodovias; DGE: energia elétrica, gás canalizado, iluminação pública |
+| camara | → CamaraTecnica, opcional | câmara técnica responsável pelo serviço, da mesma diretoria. DSB: água, esgoto e drenagem urbana → CATESA; limpeza urbana e resíduos sólidos → CATERS (hoje em `camara_from_servicos`, com a correção de "Drenagem Urbana", A-021); das demais diretorias, definida pelo responsável na carga da referência. Usada pelos checklists e pela fiscalização para saber de que câmara é um tipo de unidade ou uma fiscalização |
 
 ## Identidade e acesso
 

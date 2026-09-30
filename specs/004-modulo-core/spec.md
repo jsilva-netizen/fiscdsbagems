@@ -530,7 +530,9 @@ da spec 003 (`specs/003-base-dados-producao/catalogo/`).
   energia e mineração) — e 10 câmaras técnicas, cada uma de uma diretoria: CATESA, CATERS e CRES
   (DSB); CATRANSP, CATERF, CATEFIS e CRET (DTR); CATEGAS, CATENE e CREG (DGE). Todo usuário ativo lê
   essa estrutura; só o administrador a mantém. A lista vem do servidor, e não fica repetida no
-  aplicativo.
+  aplicativo. Cada serviço regulado pertence a uma diretoria e, quando houver, a uma câmara técnica
+  (na DSB: água, esgoto e drenagem urbana na CATESA; limpeza urbana e resíduos sólidos na CATERS);
+  é por esse vínculo que checklists e fiscalizações sabem de que câmara são.
 - **Comportamento atual**: produção tem 12 câmaras; CATERM e CATESG existem só no banco e nenhum
   usuário consegue escolhê-las. A lista também está fixa no código da interface. Qualquer conta
   logada lê, mesmo sem aprovação; não há tela de manutenção.
@@ -540,8 +542,9 @@ da spec 003 (`specs/003-base-dados-producao/catalogo/`).
   `coluna:camaras_tecnicas.diretoria_id`,
   `politica:public.camaras_tecnicas.Câmaras técnicas visíveis para todos autenticados`,
   `politica:public.camaras_tecnicas.Admins gerenciam câmaras técnicas`,
-  `politica:public.diretorias.Diretorias visíveis para todos autenticados`
-- **Origem**: A-010 (decidido).
+  `politica:public.diretorias.Diretorias visíveis para todos autenticados`,
+  `funcao:camara_from_servicos(p_servicos text[])`
+- **Origem**: A-010 (decidido), A-021 (decidido).
 
 ### R-core-015 — Municípios
 
