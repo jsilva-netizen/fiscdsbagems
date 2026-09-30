@@ -283,6 +283,9 @@ primeira.
   papéis existentes (R-core-023).
 - **FR-020**: Sistemas externos integrados MUST acessar o sistema só por credencial de sistema própria,
   com permissão limitada, revogável e auditada (R-core-024).
+- **FR-021**: O menu, o início, a lista e o detalhe das entidades e as Definições MUST ser montados
+  com o que cada app registra, sem o core depender desses apps, e cada contribuição MUST respeitar o
+  acesso do app dono do dado (R-core-025).
 
 ### Key Entities
 
@@ -645,11 +648,15 @@ da spec 003 (`specs/003-base-dados-producao/catalogo/`).
 - **Comportamento desejado**: a equipe registra contratos de uma entidade, inclusive sem rede: número
   (obrigatório), entidade e vigência (vigente ou encerrado). Módulos de diretoria acrescentam dados
   próprios ao contrato (a DTR, a rodovia, o traçado KML e os pontos de KM). O prestador não alcança
-  contratos por este módulo. Desativar a entidade não apaga os contratos.
+  contratos por este módulo. Desativar a entidade não apaga os contratos. Contrato sem nenhum
+  registro que o referencie (de qualquer app) pode ser excluído, com a confirmação em dois passos de
+  hoje; com registros, só passa a encerrado.
 - **Comportamento atual**: qualquer usuário com perfil ativo, inclusive o prestador, lê, cria, altera
   e exclui qualquer contrato (política de desenvolvimento). Excluir a entidade apaga os contratos.
+  A tela exclui contrato mesmo com registros ligados, depois de pedir que se digite "EXCLUIR".
   Produção tem 2 contratos, ambos da DTR.
-- **Motivo da diferença**: contrato é instrumento da AGEMS; o prestador não deve alterá-lo.
+- **Motivo da diferença**: contrato é instrumento da AGEMS; o prestador não deve alterá-lo; excluir
+  contrato com registros perderia a referência deles (A-020, por analogia).
 - **Objetos do catálogo**: `tabela:contratos`, `coluna:contratos.numero_contrato`,
   `coluna:contratos.prestador_servico_id`, `coluna:contratos.ativo`,
   `politica:public.contratos.Acesso total autenticado (DEV)`
@@ -725,6 +732,122 @@ da spec 003 (`specs/003-base-dados-producao/catalogo/`).
 - **Objetos do catálogo**: `papel:service_role`, `funcao:e_chave_de_servico()`
 - **Origem**: decisão do responsável em 2026-09-30.
 
+### R-core-025 — Telas do core montadas com o que cada app registra
+
+- **Comportamento desejado**: as telas do core que reúnem informação de vários módulos são montadas
+  com o que cada app instalado registra nelas, e o core não conhece esses apps:
+  - o menu de navegação e o início de cada papel (os painéis do diretor, R-core-012, são painéis
+    registrados pelos apps);
+  - a lista de entidades reguladas (contadores, como fiscalizações e recomendações) e o detalhe da
+    entidade (abas, como fiscalizações, determinações e autos);
+  - as Definições (entradas de configuração, como tipos de unidade, checklists e as definições da
+    DTR).
+
+  Cada contribuição declara quais papéis a veem e usa as regras de acesso do app dono do dado
+  (R-core-011, R-core-012, R-core-013): o que o usuário não alcança não aparece, nem como contador.
+  Acrescentar, alterar ou retirar um app muda só o que ele registrou; as telas do core continuam
+  funcionando sem ele.
+- **Comportamento atual**: as telas do core têm o conteúdo dos outros módulos fixo no código: o
+  detalhe da entidade tem as abas Fiscalizações, Determinações e Autos com contagens; a lista de
+  entidades conta fiscalizações e recomendações; as Definições têm abas fixas (Tipos de Unidade,
+  Checklists, Prestadores), e a DTR tem Definições separadas; o início mostra as últimas
+  fiscalizações; cada câmara tem um painel próprio no código, sete deles só com a lista de
+  "funcionalidades previstas".
+- **Motivo da diferença**: constituição v2.5.0, "Independência entre apps": o core não depende de
+  apps posteriores, e mudar o app de uma área não exige mudar o core. Com o conteúdo fixo, cada app
+  novo obrigaria a alterar as telas do core.
+- **Objetos do catálogo**: — (composição de telas; não há objeto no banco)
+- **Origem**: constituição v2.5.0 (decisão do responsável, 2026-09-30).
+
+## Telas do sistema atual
+
+Ações das telas atuais que pertencem ao core, no molde `formatos/spec-modulo.md` da spec 003. Fonte:
+`src/pages/` do sistema atual.
+
+### Entrar (`src/pages/Login.jsx`)
+
+| Ação | Regra |
+|---|---|
+| Entrar com e-mail e senha | R-core-005 |
+| Mensagem "aguarda aprovação" para perfil inativo | R-core-005 (retirada: não há aprovação de cadastro; usuário desativado recebe a mesma recusa genérica) |
+| Link "Cadastre-se" | R-core-001 (retirada: sem cadastro pela própria pessoa) |
+| Sem opção "esqueci a senha" | R-core-010 (nova: recuperação de acesso por e-mail com código; premissa "Recuperação de acesso") |
+
+### Cadastro (`src/pages/Register.jsx`)
+
+| Ação | Regra |
+|---|---|
+| A pessoa se cadastra escolhendo papel, diretoria, câmara e entidade (lista de entidades sem login) | R-core-001 (retirada: tela inteira; A-038) |
+
+### Gerenciar usuários (`src/pages/GerenciarUsuarios.jsx`)
+
+| Ação | Regra |
+|---|---|
+| Tela só para o administrador | R-core-001 |
+| Listar usuários com nome, e-mail, papel, câmara e situação | R-core-009 |
+| Criar usuário (o botão de convite foi retirado; hoje só existe o cadastro pela pessoa) | R-core-001 (nova: o administrador cria) |
+| Trocar o papel | R-core-002 |
+| Escolher diretoria e câmara (câmaras filtradas pela diretoria) | R-core-003 |
+| Aprovar ou desativar (alternar situação); na aprovação de prestador, escolher a entidade | R-core-007, R-core-004 |
+| Vincular ou trocar a entidade de um prestador | R-core-004 |
+| Excluir usuário (perfil e conta) | R-core-007 (só sem registros) |
+| Excluir usuário digitando o e-mail | R-core-007 (retirada: exclusão só pela lista, com a mesma regra) |
+| Link "Exportar / Importar Dados" (exporta e importa fiscalizações) | fora: fiscalizacao |
+
+### Entidades reguladas (`src/pages/PrestadoresServico.jsx`)
+
+| Ação | Regra |
+|---|---|
+| Listar entidades; o administrador filtra por diretoria (Todos, DSB, DTR, DGE); os demais veem só as da própria diretoria, pelos serviços | R-core-016 |
+| Título "Prestadores de Serviço" (DSB) ou "Concessionárias" (demais) | R-core-016 |
+| Contadores de fiscalizações e recomendações por entidade | R-core-025; fora: fiscalizacao |
+| Criar e editar: nome, razão social, CNPJ, natureza, serviços, situação, contato, endereço, responsável, cargo, observações | R-core-016 |
+| Enviar logotipo | R-core-019 |
+| Excluir, digitando "EXCLUIR" | R-core-017 |
+| Abrir o detalhe | R-core-016 |
+
+### Detalhe da entidade (`src/pages/DetalhePrestador.jsx`)
+
+| Ação | Regra |
+|---|---|
+| Aba Informações; editar os dados | R-core-016 |
+| Trocar o logotipo | R-core-019 |
+| Abas Fiscalizações, Determinações e Autos, com contagem | R-core-025; fora: fiscalizacao, processo_sancionador |
+| Aba Documentos: enviar e excluir documento | R-core-018 |
+
+### Contratos (`src/pages/Contratos.jsx`)
+
+| Ação | Regra |
+|---|---|
+| Listar contratos | R-core-020 |
+| Criar e editar: número, entidade, situação | R-core-020 |
+| Campo rodovia | fora: dtr (extensão do contrato, R-core-020) |
+| Excluir, digitando "EXCLUIR" | R-core-020 (só sem registros) |
+
+### Municípios (`src/pages/Municipios.jsx`)
+
+| Ação | Regra |
+|---|---|
+| Listar e buscar por nome ou código IBGE | R-core-015 |
+
+### Definições, início e painéis de câmara
+
+| Tela | Ação | Regra |
+|---|---|---|
+| Definições (`src/pages/Definicoes.jsx`) | Abas Tipos de Unidade, Checklists e Prestadores | R-core-025; Tipos de Unidade e Checklists: fora: checklists (spec 005); Prestadores: R-core-016 |
+| Início (`src/pages/Home.jsx`) | Boas-vindas e últimas fiscalizações | R-core-025; fora: fiscalizacao |
+| Painéis de câmara (`src/pages/*Dashboard.jsx`) | Painel fixo por câmara; CATEFIS, CATEGAS, CATENE, CATRANSP, CREG, CRES e CRET só listam "funcionalidades previstas" | R-core-025 (retirada: o início da câmara mostra o que os apps registram); CATERS e CATESA: fora: caters, fiscalizacao |
+
+### Ações novas, sem tela hoje
+
+| Ação | Regra |
+|---|---|
+| Informar o código recebido por e-mail; pedir novo código | R-core-005 |
+| Ver e revogar os próprios aparelhos confirmados; o administrador, os de qualquer usuário | R-core-006 |
+| Alterar o próprio nome e a própria senha | R-core-008 |
+| Consultar o histórico de alterações de um registro | R-core-022 |
+| Criar e revogar credenciais de sistema | R-core-024 |
+
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
@@ -745,6 +868,10 @@ da spec 003 (`specs/003-base-dados-producao/catalogo/`).
   registro a registro por identificador.
 - **SC-008**: Todo objeto do catálogo atribuído ao core no mapa de rastreabilidade é citado por pelo
   menos uma regra desta spec ou tem o destino registrado (descartado, ou descrito por outra spec).
+- **SC-009**: Toda ação das telas atuais do core tem regra ou destino em outro módulo (0 `LACUNA`
+  na seção "Telas do sistema atual").
+- **SC-010**: Acrescentar um app de teste que registra uma aba no detalhe da entidade e uma entrada
+  nas Definições exige 0 alterações no core.
 
 ## Assumptions
 

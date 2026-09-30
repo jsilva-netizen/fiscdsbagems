@@ -278,7 +278,7 @@ outra câmara não vê o histórico de registros da primeira.
 
 ## Phase 10: Extensão para outras áreas e integrações
 
-**Purpose**: provar que o core aceita apps novos sem mudar (R-core-023, R-core-024; constituição
+**Purpose**: provar que o core aceita apps novos sem mudar (R-core-023, R-core-024, R-core-025; constituição
 v2.4.0 e v2.5.0)
 
 - [ ] T080 Criar `CredencialSistema` em `C/models/credencial.py` (`nome`, `prefixo`, `chave_hash`, `escopos` lista, `criada_por`, `criada_em`, `ultimo_uso_em`, `revogada_em`) e ligar `RegistroAuditoria.credencial` a ela
@@ -286,6 +286,8 @@ v2.4.0 e v2.5.0)
 - [ ] T082 Testes em `T/test_credenciais.py`: chave mostrada uma vez; credencial revogada é recusada; credencial não alcança rota não marcada nem escreve; chamada auditada
 - [ ] T083 Teste de extensão em `T/test_extensao_apps.py` com um app de teste `backend/tests/apps/area_teste/` que acrescenta um papel por migração de dados e lê entidades por `C/consultas.py`: o papel novo é cadastrado com as regras de vínculo dele; os papéis existentes continuam com o mesmo alcance (a matriz do core passa igual); o papel novo não consegue escrever em entidade (constituição v2.4.0)
 - [ ] T084 Acrescentar em `backend/.importlinter` o contrato do app de teste e um teste em `T/test_dependencias.py` que falha se `apps.core` importar qualquer app posterior
+- [ ] T093 Criar o registro de contribuições de tela em `frontend/src/shared/extensoes.ts`: cada app do frontend registra itens de menu, painéis do início por papel, contadores da lista de entidades, abas do detalhe da entidade e entradas das Definições, cada um com os papéis que o veem; o menu e as telas `frontend/src/core/inicio/`, `frontend/src/core/entidades/` e `frontend/src/core/definicoes/` montam só o que está registrado, sem importar nenhum app (R-core-025)
+- [ ] T094 Testes em `frontend/src/shared/extensoes.test.ts` e regra de importação do lint do frontend: um app de teste registra uma aba no detalhe da entidade e uma entrada nas Definições, que aparecem só para os papéis declarados; retirá-lo não quebra as telas do core; `frontend/src/core/` importar `frontend/src/<app posterior>/` reprova o lint (SC-010)
 
 ---
 

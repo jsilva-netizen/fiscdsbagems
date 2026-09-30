@@ -53,4 +53,9 @@
   atribuído ao core no mapa de rastreabilidade é citado por pelo menos uma regra (SC-008).
 - **Parâmetros adotados como premissa** (código de 6 dígitos por 10 minutos, limites de arquivo):
   ficam para confirmação no plano; não mudam o escopo.
+- **Telas do sistema atual (2026-09-30)**: seção acrescentada pelo molde novo da spec 003. As 9
+  telas do core e os painéis de câmara foram percorridos; toda ação tem regra ou destino em outro
+  módulo (0 `LACUNA`). O levantamento gerou a R-core-025 (telas montadas com o que cada app
+  registra), a FR-021, os SC-009 e SC-010 e as tarefas T093 e T094, e ampliou a R-core-020
+  (exclusão de contrato só sem registros).
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`.
