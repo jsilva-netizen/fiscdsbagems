@@ -125,6 +125,22 @@ O sistema é modularizado ao máximo, em apps Django:
 O que é comum a mais de uma câmara MUST viver em `core`, `fiscalização` ou `checklists`. O que é específico
 de uma câmara MUST NOT vazar para os apps comuns.
 
+**Independência entre apps**: a separação em apps existe para que uma mudança específica de uma
+área não exija mexer no resto do sistema. Por isso, a dependência entre apps tem uma única
+direção:
+
+- Os apps comuns (`core`, `checklists`, `planejamento`, `fiscalização`) MUST NOT depender de
+  nenhum app de área nem de câmara.
+- Apps de área e de câmara dependem só dos apps comuns e, para consultar, dos apps cujos dados
+  leem. Nenhum app MUST depender de outro que venha depois dele na ordem de dependência.
+- Acrescentar ou alterar um app de área MUST NOT exigir alteração no `core`, nos apps comuns ou
+  nos apps de outras áreas.
+- Uma mudança no que um app oferece para consulta MUST NOT quebrar os apps que o consultam sem
+  ser planejada junto com eles.
+- A verificação da ordem de dependência, feita na spec 003 sobre o banco atual, MUST valer também
+  para os apps do sistema novo: dependência para um app posterior é violação, e só é aceita com
+  justificativa registrada.
+
 **Inteligência artificial**: a análise por IA do sistema atual (filas de IA do CATERS e da
 CATESA) não é migrada nem refeita no sistema novo (decisão do responsável em 2026-09-30,
 achado A-039 da spec 003). Funcionalidade de IA só entra no sistema novo por nova decisão,
@@ -234,4 +250,4 @@ constituição. Complexidade que viole o Princípio V MUST ser justificada por e
 removida. Violação de princípio marcado NÃO NEGOCIÁVEL bloqueia a entrega, sem exceção
 por prazo.
 
-**Version**: 2.4.1 | **Ratified**: 2026-09-18 | **Last Amended**: 2026-09-30
+**Version**: 2.5.0 | **Ratified**: 2026-09-18 | **Last Amended**: 2026-09-30
