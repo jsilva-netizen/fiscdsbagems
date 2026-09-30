@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -34,6 +34,10 @@
 - **Iteração 1 (2026-09-30)**: todos os itens passam, exceto os 2 marcadores de esclarecimento
   (R-core-004, usuários prestadores por entidade; R-core-012, alcance do diretor), apresentados ao
   responsável.
+- **Iteração 2 (2026-09-30)**: esclarecimentos respondidos pelo responsável: o diretor vê painéis
+  consolidados por padrão e consulta, só para leitura, os registros das câmaras da sua diretoria
+  (R-core-012); uma entidade pode ter vários usuários prestadores, cada um com verificação por
+  e-mail (R-core-004). Assinatura eletrônica futura registrada nas premissas. Todos os itens passam.
 - **Chaves do catálogo nas regras**: a seção "Regras do módulo" cita objetos do banco atual
   (tabelas, funções, políticas) porque o molde da spec 003 exige rastrear cada regra até o
   catálogo. São o objeto descrito (o sistema atual), não a forma de implementar o sistema novo.

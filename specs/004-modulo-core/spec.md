@@ -106,9 +106,11 @@ administrador lê os dois. Uma requisição sem login a qualquer recurso de dado
 1. **Given** um fiscal da CATESA, **When** ele pede um registro da CATERS, **Then** o sistema
    responde como se o registro não existisse.
 2. **Given** um administrador, **When** ele pede registros de qualquer câmara, **Then** recebe.
-3. **Given** uma requisição sem login, **When** ela pede qualquer dado, **Then** é recusada; só a
+3. **Given** um diretor da DSB, **When** ele entra, **Then** vê os painéis consolidados da DSB; ao
+   abrir um registro da CATESA, consegue ler e não consegue alterar; um registro da DTR não aparece.
+4. **Given** uma requisição sem login, **When** ela pede qualquer dado, **Then** é recusada; só a
    entrada no sistema, a verificação do código e a recuperação de acesso respondem sem login.
-4. **Given** uma regra de acesso qualquer do módulo, **When** ela é removida ou enfraquecida no
+5. **Given** uma regra de acesso qualquer do módulo, **When** ela é removida ou enfraquecida no
    código, **Then** um teste automatizado falha.
 
 ---
@@ -243,7 +245,10 @@ primeira.
   recuperação de acesso (R-core-010).
 - **FR-007**: Fiscal e coordenador MUST alcançar apenas registros da própria câmara técnica; o
   administrador, todos (R-core-011).
-- **FR-008**: O prestador MUST alcançar apenas dados da entidade que representa (R-core-013).
+- **FR-008**: O prestador MUST alcançar apenas dados da entidade que representa (R-core-013); uma
+  entidade MAY ter vários usuários prestadores, cada um com a própria conta (R-core-004).
+- **FR-008a**: O diretor MUST ver por padrão painéis e indicadores consolidados da sua diretoria e
+  MUST poder consultar, só para leitura, qualquer registro das câmaras da sua diretoria (R-core-012).
 - **FR-009**: Toda regra de acesso deste módulo MUST ter um teste automatizado que falhe quando a
   regra for violada (constituição, Princípio III).
 
@@ -344,15 +349,19 @@ da spec 003 (`specs/003-base-dados-producao/catalogo/`).
   `restricao:profiles.profiles_camara_tecnica_id_fkey`, `restricao:profiles.profiles_diretoria_id_fkey`
 - **Origem**: A-026 (decidido).
 
-### R-core-004 — Vínculo único do prestador com a entidade
+### R-core-004 — Vínculo do prestador com a entidade, vários usuários por entidade
 
 - **Comportamento desejado**: o vínculo entre o usuário prestador e a entidade é guardado num único
-  lugar (no usuário). Cada entidade tem no máximo [NEEDS CLARIFICATION: uma entidade pode ter mais
-  de um usuário prestador? Hoje é no máximo um] usuário prestador.
+  lugar (no usuário): cada usuário prestador representa exatamente uma entidade. Uma entidade pode
+  ter vários usuários prestadores, cada um com a própria conta, o próprio e-mail e a própria
+  verificação por código (R-core-005); o que cada um faz fica registrado com o nome dele
+  (R-core-022). Desativar um deles não afeta os demais.
 - **Comportamento atual**: o vínculo é gravado nos dois lados (na entidade e no perfil), em passos
   separados e sem transação, e os dois podem divergir. Índices únicos permitem no máximo um usuário
   por entidade.
-- **Motivo da diferença**: dois lugares para o mesmo fato geram inconsistência.
+- **Motivo da diferença**: dois lugares para o mesmo fato geram inconsistência; e a entidade costuma
+  ter mais de um responsável. Com um usuário só, a conta seria compartilhada e não se saberia quem
+  enviou ou recebeu cada documento (decisão do responsável, 2026-09-30).
 - **Objetos do catálogo**: `coluna:profiles.prestador_servico_id`, `coluna:prestadores_servico.user_id`,
   `indice:ux_profiles_prestador_servico_id`, `indice:ux_prestadores_user_id`,
   `restricao:prestadores_servico.prestadores_servico_user_id_fkey`
@@ -474,14 +483,18 @@ da spec 003 (`specs/003-base-dados-producao/catalogo/`).
 
 ### R-core-012 — Alcance do diretor
 
-- **Comportamento desejado**: o diretor [NEEDS CLARIFICATION: o diretor lê os dados de todas as
-  câmaras da sua diretoria, só para consulta? Ou também altera? Ou vê só painéis consolidados?].
+- **Comportamento desejado**: ao entrar, o diretor vê por padrão os painéis e indicadores
+  consolidados da sua diretoria. A partir deles, pode consultar qualquer registro das câmaras da sua
+  diretoria (fiscalizações, processos, relatórios), só para leitura: o diretor não cria, altera nem
+  exclui registros operacionais. Registros de câmaras de outras diretorias se comportam como
+  inexistentes para ele.
 - **Comportamento atual**: nenhuma regra do banco dá acesso ao diretor (`can_access_camara` e
   `is_staff` o excluem); a interface usa a diretoria dele só para escolher painéis e módulos.
-- **Motivo da diferença**: o papel existe e é oferecido no cadastro, mas não tem alcance definido.
+- **Motivo da diferença**: o papel existe e é oferecido no cadastro, mas não tinha alcance definido
+  (decisão do responsável, 2026-09-30).
 - **Objetos do catálogo**: `coluna:profiles.diretoria_id`, `funcao:get_my_diretoria()`,
   `funcao:can_access_camara(row_camara text)`
-- **Origem**: —
+- **Origem**: decisão do responsável em 2026-09-30, no esclarecimento desta spec.
 
 ### R-core-013 — O prestador só alcança a própria entidade
 
@@ -702,3 +715,8 @@ da spec 003 (`specs/003-base-dados-producao/catalogo/`).
   refletir isso (fora do escopo desta spec).
 - **Recuperação de acesso** (esqueci a senha) segue o mesmo canal de e-mail e também exige o código
   de verificação.
+- **Assinatura eletrônica (futura)**: a AGEMS pretende implantar depois a assinatura eletrônica para
+  validar o envio e o recebimento de documentos. Fica fora desta spec; o core já garante os
+  pré-requisitos: cada pessoa tem conta própria verificada por e-mail (R-core-004, R-core-005) e toda
+  ação fica registrada com o autor (R-core-022). A spec que a introduzir define em que documentos ela
+  se aplica.
