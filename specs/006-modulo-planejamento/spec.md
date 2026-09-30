@@ -525,7 +525,9 @@ e-mail ou ofício) é relevante, ele aparece em "Comportamento atual".
   com motivo obrigatório (denúncia, emergência, eventual ou outro, com descrição). A viagem extra
   segue o mesmo conteúdo das demais e é enviada ao diretor, que a aprova ou devolve. Aprovada, ela
   vale como as viagens do plano, marcada como extra. Antes da aprovação do plano, viagens novas são
-  simplesmente parte do rascunho.
+  simplesmente parte do rascunho. A viagem extra pode ter período já iniciado ou passado: é assim
+  que se regulariza uma fiscalização de urgência, que depois é ligada à atividade dela
+  (R-fiscalizacao-002).
 - **Comportamento atual**: fiscalizações fora do cronograma não têm registro de planejamento.
 - **Motivo da diferença**: as fiscalizações fora do plano continuam, e precisam de aprovação e de
   chegar às áreas (decisão do responsável, 2026-09-30).

@@ -49,4 +49,5 @@
 - **Premissa externa**: o que RH, financeiro e frotas precisam ler é provisório até ouvir as áreas
   (constituição, "Premissas externas").
 - **Migração (2026-09-30)**: seção "Migração" acrescentada, dizendo que não há dados a migrar (funcionalidade nova).
+- **Urgência (2026-09-30)**: a R-planejamento-009 aceita viagem extra com período já iniciado, para regularizar a fiscalização de urgência da spec 007 (R-fiscalizacao-002).
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`.
