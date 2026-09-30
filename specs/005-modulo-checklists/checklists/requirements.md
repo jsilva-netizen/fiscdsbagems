@@ -63,7 +63,7 @@
   os modelos na tela, pode ter vários modelos (cada um com a sua forma de resposta), copia o modelo de
   outra câmara (CATERS a partir da CATESA) e que a CATERF fiscaliza as rodovias. R-checklists-015
   reescrita (modelo montado na tela), novas R-checklists-018 (cópia entre câmaras) e 019 (peças
-  registradas pelos apps: saídas, valores de contexto, modos). Premissa adotada, a confirmar: montar
-  modelo cabe ao coordenador e ao administrador, não ao fiscal; copiar catálogos com itens entre
-  câmaras, só ao administrador.
+  registradas pelos apps: saídas, valores de contexto, modos). Montar e copiar modelos cabe ao
+  coordenador e ao fiscal da câmara e ao administrador (decisão do responsável); copiar catálogos com
+  itens entre câmaras, só ao administrador (premissa, pelo isolamento por câmara).
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`.

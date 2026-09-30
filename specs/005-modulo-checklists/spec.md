@@ -37,7 +37,7 @@ feito de peças**:
   offline, acesso por câmara, auditoria.
 - **Montagem** (a câmara, pela tela): um **modelo de catálogo** que diz quais campos o item tem,
   quais respostas existem, o que cada resposta gera, como os campos organizam a escolha do item e
-  qual é o formato da planilha. O coordenador da câmara monta o modelo na tela do motor, escolhendo
+  qual é o formato da planilha. A equipe da câmara (coordenador e fiscal) monta o modelo na tela do motor, escolhendo
   as peças, ou copia o modelo de outra câmara e o ajusta (a CATERS pode partir do modelo da CATESA).
   A DSB e a DTR de hoje são dois modelos; uma câmara nova monta o seu sem mudar o motor.
 - **Peças trazidas pelos apps**: o que o motor não sabe fazer sozinho vem dos apps que aplicam os
@@ -69,7 +69,7 @@ câmaras), que usam as peças definidas aqui.
 
 ### User Story 1 - A câmara monta o seu modelo com as peças do motor (Priority: P1)
 
-O coordenador da câmara monta na tela o modelo de catálogo dela, escolhendo as peças: campos do
+A equipe da câmara (coordenador e fiscal) monta na tela o modelo de catálogo dela, escolhendo as peças: campos do
 item, respostas, saídas de cada resposta, papéis dos campos na escolha do item e formato da
 planilha. Pode também copiar o modelo de outra câmara e ajustá-lo. O motor passa a oferecer, para os
 catálogos desse modelo, cadastro, versionamento, importação, cópia offline e controle de acesso, sem
@@ -225,7 +225,7 @@ prestador não alcança nenhum catálogo.
 - **FR-001**: O motor MUST NOT conter tabela, coluna, tela, formato de planilha, texto ou regra de
   nenhuma câmara; tudo o que é de uma câmara MUST vir do modelo dela (R-checklists-015,
   R-checklists-016).
-- **FR-002**: O coordenador da câmara e o administrador MUST poder montar e alterar na tela os modelos
+- **FR-002**: O coordenador e o fiscal da câmara e o administrador MUST poder montar e alterar na tela os modelos
   de catálogo da câmara, com validação ao salvar; uma câmara MUST poder ter quantos modelos quiser,
   cada um com a sua forma de resposta (R-checklists-015).
 - **FR-003**: O motor MUST manter catálogos com nome e código únicos, modelo, serviços aplicáveis e
@@ -257,7 +257,7 @@ prestador não alcança nenhum catálogo.
 - **FR-015**: Mudanças de modelo MUST valer só para versões novas (R-checklists-017).
 - **FR-016**: Toda regra de acesso deste módulo MUST ter teste automatizado que falhe quando a regra
   for violada (constituição, Princípio III).
-- **FR-017**: O coordenador MUST poder copiar para a sua câmara o modelo de outra câmara, gerando uma
+- **FR-017**: O coordenador e o fiscal MUST poder copiar para a sua câmara o modelo de outra câmara, gerando uma
   cópia independente; o administrador MUST poder copiar também os catálogos com os itens vigentes
   (R-checklists-018).
 - **FR-018**: As saídas, os valores de contexto e os modos de aplicação oferecidos na montagem MUST
@@ -436,9 +436,10 @@ da spec 003. As regras descrevem só peças genéricas; o que cada câmara faz h
 - **Comportamento desejado**: coordenador e fiscal da câmara criam e alteram catálogos e itens, só da
   própria câmara; o administrador, de todas (decisão do responsável, 2026-09-30); o diretor lê os da
   sua diretoria; o prestador não acessa os catálogos (vê só os textos que chegam a ele nos documentos
-  da fiscalização). Montar e alterar o modelo de catálogo da câmara e copiar modelo de outra câmara
-  cabem ao coordenador da câmara e ao administrador; o fiscal usa o modelo, mas não o altera
-  (R-checklists-015, R-checklists-018).
+  da fiscalização). Montar e alterar os modelos de catálogo da câmara e copiar modelo de outra câmara
+  cabem ao coordenador e ao fiscal da câmara e ao administrador (decisão do responsável, 2026-09-30);
+  toda mudança de modelo cria versão e é auditada (R-checklists-015, R-checklists-017,
+  R-checklists-018).
 - **Comportamento atual**: na DSB, administrador, coordenador e fiscal ativos criam, alteram e
   excluem tipos e itens de qualquer câmara, e qualquer usuário ativo, inclusive o prestador, lê
   todos. Na DTR, qualquer usuário com perfil ativo, inclusive o prestador, lê, cria, altera e apaga
@@ -585,7 +586,7 @@ da spec 003. As regras descrevem só peças genéricas; o que cada câmara faz h
 - **Comportamento desejado**: cada câmara tem um ou mais modelos de catálogo, cada um com: nome,
   câmara dona, modo de aplicação (R-checklists-012), campos do item (R-checklists-003), respostas e
   saídas (R-checklists-013), papéis de campo (R-checklists-014) e formato de planilha
-  (R-checklists-006). O coordenador da câmara e o administrador montam e alteram o modelo numa tela
+  (R-checklists-006). O coordenador e o fiscal da câmara e o administrador montam e alteram o modelo numa tela
   do motor, escolhendo as peças: acrescentar, ordenar e configurar campos; definir respostas; ligar
   cada resposta às saídas, com condição e campos; dar papéis aos campos; mapear as colunas da
   planilha. A tela mostra uma prévia do formulário de item e da planilha modelo. O motor valida ao
@@ -637,7 +638,7 @@ da spec 003. As regras descrevem só peças genéricas; o que cada câmara faz h
 
 ### R-checklists-018 — Copiar o modelo de outra câmara
 
-- **Comportamento desejado**: o coordenador de uma câmara vê a lista dos modelos de todas as câmaras
+- **Comportamento desejado**: o coordenador ou o fiscal de uma câmara vê a lista dos modelos de todas as câmaras
   (só a estrutura: campos, respostas, saídas, papéis e planilha; sem itens) e copia um deles para a
   sua câmara. A cópia é um modelo novo da câmara de destino, na versão 1, que registra o modelo e a
   versão de origem; depois disso, as duas seguem independentes, e nenhuma mudança numa chega à
@@ -818,7 +819,7 @@ modelo (R-checklists-016).
 - **SC-006**: Os 33 tipos e as 768 versões da DSB e os 79 tipos da DTR chegam ao sistema novo com os
   mesmos identificadores, conferidos registro a registro, nos catálogos dos modelos de hoje.
 - **SC-007**: 100% das regras de acesso deste módulo têm teste automatizado.
-- **SC-008**: Um coordenador monta pela tela um modelo com respostas, campos, papéis e planilha
+- **SC-008**: Um coordenador ou fiscal monta pela tela um modelo com respostas, campos, papéis e planilha
   próprios e o usa com 0 alterações de código e 0 mudanças nos modelos das outras câmaras.
 - **SC-011**: Copiar o modelo da CATESA para a CATERS e ajustá-lo leva menos de 10 minutos, e 0
   mudanças na cópia chegam à origem.
@@ -831,9 +832,9 @@ modelo (R-checklists-016).
   um da CATESA e um da CATERS (hoje iguais; cada câmara ajusta o seu na tela), e o modelo
   "Ocorrências do PER" da CATERF, que fiscaliza as rodovias (decisão do responsável, 2026-09-30).
   Nenhum modelo fica no código do motor nem no app de fiscalização comum.
-- **Quem monta modelos**: coordenador da câmara e administrador. O fiscal mantém os itens
-  (R-checklists-007), mas não altera o modelo, porque uma mudança no modelo muda o formulário e a
-  vistoria de toda a câmara.
+- **Quem monta modelos**: coordenador e fiscal da câmara e administrador (decisão do responsável,
+  2026-09-30). Como uma mudança no modelo muda o formulário e a vistoria de toda a câmara, ela é
+  versionada, auditada e mostrada com prévia antes de salvar.
 - **Migração da DSB**: cada uma das 768 linhas vira uma versão de item de um catálogo do modelo DSB,
   com o mesmo identificador (as respostas apontam para ele). As linhas são agrupadas em itens estáveis
   pela chave atual (tipo mais ordem, ou pergunta), ordenadas por data; a vigência vai da data da
