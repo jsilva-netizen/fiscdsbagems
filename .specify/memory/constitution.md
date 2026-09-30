@@ -138,9 +138,14 @@ O sistema é um só, com um banco único, e MUST nascer preparado para receber a
   demais apps, conforme as permissões do papel de quem acessa. Ex.: o coordenador lança o
   planejamento, o diretor aprova, e RH, financeiro e frotas veem o planejamento aprovado, cada
   um na sua tela, para lançar a folha de ponto, as diárias e a reserva de veículos.
-- Todo dado tem um app dono, que define as regras de criação e alteração. Os outros apps leem o
-  dado e só o alteram pelas regras do app dono; nenhum app mantém cópia própria de dado de
-  outro.
+- Todo dado tem um app dono, o único que o cria e o altera, pelo fluxo dele (ex.: o planejamento
+  só é elaborado e alterado no app de planejamento, e só o diretor o aprova). Os apps que
+  consultam o dado MUST NOT editá-lo por nenhum caminho: só leem. Nenhum app mantém cópia própria
+  de dado de outro.
+- Cada área executa as próprias ações por um fluxo próprio, no seu app, gerando registros dela
+  que apontam para o dado consultado (ex.: o RH lança o ponto, o financeiro lança as diárias e
+  frotas reserva os veículos, cada um referenciando o planejamento aprovado). Se uma área precisar
+  que o dado de outra mude, pede ao app dono pelo fluxo dele; não altera diretamente.
 - Áreas e papéis novos entram no `core` sem alterar o que os papéis existentes alcançam, e o
   isolamento entre câmaras técnicas continua valendo para os dados de fiscalização.
 - Sistemas externos integram por API, com credencial própria de sistema, limitada e auditada.
@@ -224,4 +229,4 @@ constituição. Complexidade que viole o Princípio V MUST ser justificada por e
 removida. Violação de princípio marcado NÃO NEGOCIÁVEL bloqueia a entrega, sem exceção
 por prazo.
 
-**Version**: 2.3.0 | **Ratified**: 2026-09-18 | **Last Amended**: 2026-09-30
+**Version**: 2.4.0 | **Ratified**: 2026-09-18 | **Last Amended**: 2026-09-30
