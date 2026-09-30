@@ -68,7 +68,6 @@ deixaram de ter origem válida (por exemplo, a resposta voltou para Sim). *(font
 - [gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)](../funcoes/gerar_ncs_unidade.md) — le (codigo)
 - [obter_resumo_indicadores(p_anos text[], p_servicos text[], p_municipio_ids uuid[], p_prestador_ids uuid[], p_apenas_finalizadas boolean)](../funcoes/obter_resumo_indicadores.md) — le (codigo)
 - [obter_resumo_indicadores(p_anos text[], p_servicos text[], p_municipio_ids uuid[], p_prestador_ids uuid[], p_tipo_modulo text[])](../funcoes/obter_resumo_indicadores.md) — le (codigo)
-- [propagate_modification_to_parent()](../funcoes/propagate_modification_to_parent.md) — le (codigo)
 - [proteger_resposta_determinacao_prestador()](../funcoes/proteger_resposta_determinacao_prestador.md) — le (codigo)
 - [autos_infracao](../tabelas/autos_infracao.md) — referencia (catalogo)
 - [caters_recommendations](../tabelas/caters_recommendations.md) — referencia (catalogo)

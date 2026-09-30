@@ -18,6 +18,7 @@ from ferramentas import paginas
 from ferramentas.dependencias import extrair
 from ferramentas.divergencias import comparar
 from ferramentas.divergencias import validar_anotacoes as validar_divergencias
+from ferramentas.modulos import analisar as analisar_modulos
 from ferramentas.raiz import PASTA_SPEC, raiz_repositorio, resolver
 
 PADRAO_P1 = ".specify/assessments/novo-sistema-django-apps/inventario-producao.csv"
@@ -51,7 +52,8 @@ class Contexto:
         self.sem_anotacao = anot.sem_anotacao(inv)
         self.sem_dono = anot.sem_dono(inv)
         self.nao_classificadas = sum(1 for d in self.divergencias if d.chave not in anot.divergencias)
-        self.violacoes = 0
+        self.modulos = analisar_modulos(inv, anot, self.grafo)
+        self.violacoes = self.modulos.nao_justificadas
         self.aguardando = sum(1 for a in anot.achados if a.get("situacao") == "aguardando_decisao")
         # Índices usados pelas páginas.
         self.colunas = defaultdict(list)
@@ -133,6 +135,8 @@ def documentos(ctx: Contexto) -> dict[str, str]:
     docs["catalogo/acesso.md"] = paginas.pagina_acesso(ctx)
     docs["catalogo/tipos.md"] = paginas.pagina_tipos(ctx)
     docs["catalogo/externos.md"] = paginas.pagina_externos(ctx)
+    docs["mapa-rastreabilidade.md"] = paginas.pagina_mapa(ctx.inv, ctx.anot, ctx.modulos, ctx.aviso(), ROTULO_TIPO)
+    docs["ordem-modulos.md"] = paginas.pagina_ordem(ctx.inv, ctx.anot, ctx.modulos, ctx.aviso(), ROTULO_TIPO)
     if ctx.migrations is not None:
         cabecalho = (f"Produção: inventário de {ctx.inv.data or '(data desconhecida)'}. Migrations: inventário de "
                      f"{ctx.migrations.data or '(data desconhecida)'}, do banco local reconstruído "
@@ -208,6 +212,9 @@ def main(argv=None) -> int:
             return 2
 
     ctx = Contexto(inv, anot, _rotulo_fonte(p1, p2), divs, mig)
+    if ctx.modulos.erros:
+        print("Anotação inválida:\n" + "\n".join(ctx.modulos.erros), file=sys.stderr)
+        return 2
     novos = documentos(ctx)
     saida = resolver(a.saida)
     atuais = _existentes(saida)

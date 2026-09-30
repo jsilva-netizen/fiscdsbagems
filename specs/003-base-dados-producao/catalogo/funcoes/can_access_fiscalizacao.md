@@ -6,7 +6,7 @@
 
 - **Retorno**: `boolean` · **Linguagem**: sql · **Volatilidade**: stable
 - **Permissão elevada** (`SECURITY DEFINER`): **sim**
-- **Dono**: módulo **core**
+- **Dono**: módulo **portal_prestador**
 
 **Finalidade**: Diz se o prestador logado pode ver dados de uma fiscalização: só quando existe um termo de
 notificação daquela fiscalização dirigido à entidade dele. Antes do termo, a fiscalização é

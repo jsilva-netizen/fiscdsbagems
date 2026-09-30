@@ -267,7 +267,7 @@ Todas as tarefas abaixo são [P] entre si (arquivos diferentes).
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T039 [P] [US3] Escrever `S/ferramentas/testes/test_modulos.py` cobrindo:
+- [X] T039 [P] [US3] Escrever `S/ferramentas/testes/test_modulos.py` cobrindo:
   - objeto com dono;
   - objeto `fora_escopo`;
   - objeto sem nenhum dos dois, que aparece em "sem atribuição";
@@ -277,14 +277,14 @@ Todas as tarefas abaixo são [P] entre si (arquivos diferentes).
 
 ### Implementation for User Story 3
 
-- [ ] T040 [US3] Implementar `S/ferramentas/modulos.py` até a T039 passar. Ele atribui dono a cada objeto (anotação direta ou herdada da tabela), calcula as dependências entre módulos a partir de `dependencias.py`, detecta violações de ordem e aceita a justificativa de exceção em `modulos.toml` (`[[excecao]]` com `de`, `para`, `justificativa`; documentar em `S/contracts/anotacoes.md`).
-- [ ] T041 [US3] Escrever `S/anotacoes/modulos.toml` com os 9 módulos de [research.md D6](./research.md#d6--módulos-organização-da-constituição-v210-ordem-pelas-dependências):
+- [X] T040 [US3] Implementar `S/ferramentas/modulos.py` até a T039 passar. Ele atribui dono a cada objeto (anotação direta ou herdada da tabela), calcula as dependências entre módulos a partir de `dependencias.py`, detecta violações de ordem e aceita a justificativa de exceção em `modulos.toml` (`[[excecao]]` com `de`, `para`, `justificativa`; documentar em `S/contracts/anotacoes.md`).
+- [X] T041 [US3] Escrever `S/anotacoes/modulos.toml` com os 9 módulos de [research.md D6](./research.md#d6--módulos-organização-da-constituição-v210-ordem-pelas-dependências):
   - na ordem de especificação: `core` (1), `checklists` (2), `fiscalizacao` (3), `dtr` (4), `processo_sancionador` (5), `caters` (6);
   - sem objeto próprio no banco hoje: `catesa`, `portal_prestador` e `tramitacao`, com a `observacao` de cada um.
 
   Todos com `spec = ""`.
-- [ ] T042 [US3] Em `S/ferramentas/gerar.py`, gerar `S/mapa-rastreabilidade.md` e `S/ordem-modulos.md` (contracts/artefatos-gerados.md).
-- [ ] T043 [US3] Rodar o gerador. Para cada violação de ordem que as funções ou políticas revelarem (as FKs sozinhas não têm nenhuma): mover o objeto de módulo **ou** anotar `[[excecao]]` com justificativa. Chegar a 0 sem atribuição (SC-002) e 0 violações sem justificativa (SC-008). Se a ordem mudar, atualizar `S/research.md`, D6. Fazer commit.
+- [X] T042 [US3] Em `S/ferramentas/gerar.py`, gerar `S/mapa-rastreabilidade.md` e `S/ordem-modulos.md` (contracts/artefatos-gerados.md).
+- [X] T043 [US3] Rodar o gerador. Para cada violação de ordem que as funções ou políticas revelarem (as FKs sozinhas não têm nenhuma): mover o objeto de módulo **ou** anotar `[[excecao]]` com justificativa. Chegar a 0 sem atribuição (SC-002) e 0 violações sem justificativa (SC-008). Se a ordem mudar, atualizar `S/research.md`, D6. Fazer commit.
 
 **Checkpoint**: a próxima spec a escrever é a do primeiro módulo da ordem, e o mapa mostra o que falta.
 

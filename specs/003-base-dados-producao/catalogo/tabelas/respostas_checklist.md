@@ -63,7 +63,6 @@ respostas, 355 delas gerando NC.
 - [finalizar_fiscalizacao(p_fiscalizacao_id uuid)](../funcoes/finalizar_fiscalizacao.md) — le (codigo)
 - [gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)](../funcoes/gerar_ncs_unidade.md) — le (codigo)
 - [obter_resumo_indicadores(p_anos text[], p_servicos text[], p_municipio_ids uuid[], p_prestador_ids uuid[], p_apenas_finalizadas boolean)](../funcoes/obter_resumo_indicadores.md) — le (codigo)
-- [propagate_modification_to_parent()](../funcoes/propagate_modification_to_parent.md) — le (codigo)
 - [nao_conformidades](../tabelas/nao_conformidades.md) — referencia (catalogo)
 
 ## Gatilhos

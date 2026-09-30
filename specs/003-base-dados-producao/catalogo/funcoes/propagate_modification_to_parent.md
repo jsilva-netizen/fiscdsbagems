@@ -13,7 +13,7 @@ recomendação, atualiza `updated_at` da fiscalização a que pertence. Assim, a
 incremental dos aparelhos baixa de novo a fiscalização inteira. Usada pelos 5 gatilhos
 `trg_propagate_*`. *(fonte: gatilho:public.unidades_fiscalizadas.trg_propagate_unidades, gatilho:public.respostas_checklist.trg_propagate_respostas, src/lib/offline/syncEngine.ts:1702)*
 
-- **Lê**: [constatacoes_manuais](../tabelas/constatacoes_manuais.md), [determinacoes](../tabelas/determinacoes.md), [recomendacoes](../tabelas/recomendacoes.md), [respostas_checklist](../tabelas/respostas_checklist.md), [unidades_fiscalizadas](../tabelas/unidades_fiscalizadas.md)
+- **Lê**: [unidades_fiscalizadas](../tabelas/unidades_fiscalizadas.md)
 - **Escreve**: [fiscalizacoes](../tabelas/fiscalizacoes.md)
 - **Chama**: —
 - **Chamada por (banco)**: `gatilho:public.constatacoes_manuais.trg_propagate_constatacoes` (dispara), `gatilho:public.determinacoes.trg_propagate_determinacoes` (dispara), `gatilho:public.recomendacoes.trg_propagate_recomendacoes` (dispara), `gatilho:public.respostas_checklist.trg_propagate_respostas` (dispara), `gatilho:public.unidades_fiscalizadas.trg_propagate_unidades` (dispara)

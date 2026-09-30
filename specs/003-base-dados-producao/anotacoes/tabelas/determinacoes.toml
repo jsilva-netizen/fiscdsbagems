@@ -121,6 +121,7 @@ termo de notificação.
 fonte = ["funcao:get_my_prestador_id()", "src/pages/PortalPrestadorHome.jsx:114"]
 
 [objeto."politica:public.determinacoes.determinacoes_prestador_select"]
+modulo = "portal_prestador"
 descricao = "Leitura pelo prestador com termo de notificação; sem efeito próprio hoje."
 fonte = ["funcao:can_access_unidade(unidade uuid)"]
 

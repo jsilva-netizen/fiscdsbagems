@@ -127,6 +127,7 @@ descricao = "O prestador ativo lê as respostas da própria entidade."
 fonte = ["funcao:get_my_prestador_id()"]
 
 [objeto."politica:public.respostas_determinacao.respostas_det_prestador_insert"]
+modulo = "portal_prestador"
 descricao = """
 O prestador ativo cria respostas da própria entidade para fiscalizações com termo dirigido a ele,
 só como rascunho ou envio. Desde a migration 139 é a única política de inclusão do prestador.
@@ -134,6 +135,7 @@ só como rascunho ou envio. Desde a migration 139 é a única política de inclu
 fonte = ["funcao:can_access_fiscalizacao(fiscalizacao uuid)", "supabase/migrations/139_fix_prestador_prazos.sql"]
 
 [objeto."politica:public.respostas_determinacao.respostas_det_prestador_select"]
+modulo = "portal_prestador"
 descricao = """
 Leitura pelo prestador exigindo também termo para a fiscalização. Sem efeito próprio: a política
 "Prestadores: ler suas próprias respostas determinacoes" não exige termo.
@@ -141,6 +143,7 @@ Leitura pelo prestador exigindo também termo para a fiscalização. Sem efeito 
 fonte = ["funcao:can_access_fiscalizacao(fiscalizacao uuid)"]
 
 [objeto."politica:public.respostas_determinacao.respostas_det_prestador_update"]
+modulo = "portal_prestador"
 descricao = """
 O prestador ativo altera as respostas da própria entidade com termo, mantendo rascunho ou envio.
 Desde a migration 139 é a única política de alteração do prestador; o gatilho recusa alterar

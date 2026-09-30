@@ -153,6 +153,22 @@ ambíguos são anotação explícita.
   funcionalidade atual dela está nas edge functions e nas telas.
 - Módulos de outras câmaras entram só com requisitos (decisão da avaliação).
 
+**Verificação completa (T043, 2026-09-30)**: com todas as dependências (chaves estrangeiras,
+views, gatilhos, funções usadas por políticas, leituras, escritas e chamadas entre funções), a
+ordem se manteve e restaram 0 violações, depois de dois ajustes:
+
+1. `can_access_fiscalizacao` e `can_access_unidade` saíram do core para o **portal do
+   prestador**, com as 9 políticas que as usam. Elas implementam a regra "o prestador só vê a
+   fiscalização depois de receber termo de notificação", que lê `termos_notificacao` (processo
+   sancionador) e `unidades_fiscalizadas` (fiscalização); no core, criavam 3 violações. O portal
+   passa a ter objetos próprios e depende de core, fiscalização e processo sancionador.
+2. O extrator deixou de contar nome de tabela dentro de texto entre aspas como leitura
+   (`TG_TABLE_NAME = 'relatorios_jobs'` em `process_audit_log`, e as comparações de
+   `propagate_modification_to_parent`), o que criava uma violação falsa core → fiscalização.
+
+A CATESA ganhou `catesa_ai_jobs` em produção (migration 141) e depende de core e processo
+sancionador.
+
 **Rationale**: a atribuição pelas chaves estrangeiras dá uma ordem sem ciclos entre tabelas. A
 verificação completa, com chamadas entre funções e funções usadas por políticas, é tarefa da
 implementação (SC-008), e a ordem pode mudar se ela encontrar dependência que as chaves

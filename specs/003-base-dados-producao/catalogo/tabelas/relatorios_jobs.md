@@ -65,7 +65,6 @@ todos concluídos. Inclusão e exclusão são auditadas. *(fonte: supabase/funct
 
 - [claim_relatorios_jobs(p_limit integer, p_job_id uuid, p_stale_minutes integer)](../funcoes/claim_relatorios_jobs.md) — escreve (codigo)
 - [claim_relatorios_jobs(p_limit integer, p_job_id uuid, p_stale_minutes integer)](../funcoes/claim_relatorios_jobs.md) — le (codigo)
-- [process_audit_log()](../funcoes/process_audit_log.md) — le (codigo)
 - [reabrir_fiscalizacao(p_fiscalizacao_id uuid)](../funcoes/reabrir_fiscalizacao.md) — escreve (codigo)
 
 ## Gatilhos

@@ -1,5 +1,5 @@
 [objeto."funcao:can_access_unidade(unidade uuid)"]
-modulo = "core"
+modulo = "portal_prestador"
 finalidade = """
 Mesma regra de `can_access_fiscalizacao`, partindo de uma unidade fiscalizada: o prestador vê a
 unidade se a fiscalização dela tem termo de notificação para a entidade dele.

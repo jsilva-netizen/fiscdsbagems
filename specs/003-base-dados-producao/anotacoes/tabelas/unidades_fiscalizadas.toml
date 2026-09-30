@@ -303,6 +303,7 @@ descricao = "Mesma restrição, para exclusão."
 fonte = ["supabase/migrations/135_e2e_test_user_write_restriction.sql"]
 
 [objeto."politica:public.unidades_fiscalizadas.unidades_prestador_select"]
+modulo = "portal_prestador"
 descricao = """
 O prestador ativo lê as unidades de fiscalizações com termo de notificação para a entidade dele
 (`can_access_fiscalizacao`). Hoje não tem efeito próprio, porque a política anterior já libera

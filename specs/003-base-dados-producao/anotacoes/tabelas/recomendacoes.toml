@@ -74,6 +74,7 @@ termo de notificação.
 fonte = ["funcao:get_my_prestador_id()"]
 
 [objeto."politica:public.recomendacoes.recomendacoes_prestador_select"]
+modulo = "portal_prestador"
 descricao = "Leitura pelo prestador com termo de notificação; sem efeito próprio hoje."
 fonte = ["funcao:can_access_unidade(unidade uuid)"]
 

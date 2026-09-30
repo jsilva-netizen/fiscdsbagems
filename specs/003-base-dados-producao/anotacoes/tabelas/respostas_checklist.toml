@@ -109,6 +109,7 @@ termo de notificação.
 fonte = ["funcao:get_my_prestador_id()"]
 
 [objeto."politica:public.respostas_checklist.respostas_checklist_prestador_select"]
+modulo = "portal_prestador"
 descricao = """
 O prestador ativo lê as respostas se houver termo de notificação para a entidade dele
 (`can_access_unidade`). Sem efeito próprio hoje: a política anterior já libera sem termo.

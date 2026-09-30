@@ -6,7 +6,7 @@
 
 - **Retorno**: `boolean` · **Linguagem**: sql · **Volatilidade**: stable
 - **Permissão elevada** (`SECURITY DEFINER`): **sim**
-- **Dono**: módulo **core**
+- **Dono**: módulo **portal_prestador**
 
 **Finalidade**: Mesma regra de `can_access_fiscalizacao`, partindo de uma unidade fiscalizada: o prestador vê a
 unidade se a fiscalização dela tem termo de notificação para a entidade dele.

@@ -458,3 +458,76 @@ def pagina_divergencias(divs, anotadas: dict, aviso: str, rotulos: dict, cabecal
             if d.diff:
                 linhas.append(detalhes("Diff do código", d.diff, "diff"))
     return "\n".join(linhas)
+
+
+# --- mapa de rastreabilidade e ordem dos módulos (T042) --------------------------------------
+
+def _rotulo_dono(at) -> str:
+    if at.modulo:
+        return at.modulo
+    if at.fora:
+        return f"fora do escopo: {at.fora.get('classificacao')}"
+    return "**sem atribuição**"
+
+
+def pagina_mapa(inv, anot, analise, aviso: str, rotulos: dict) -> str:
+    """mapa-rastreabilidade.md: cada objeto com dono (ou classificação fora do escopo) e spec do módulo."""
+    ats = analise.atribuicao
+    com_dono = sum(1 for a in ats.values() if a.modulo)
+    fora = sum(1 for a in ats.values() if a.fora)
+    lacuna = sum(1 for a in ats.values() if a.spec == "LACUNA")
+    linhas = [aviso, "# Mapa de rastreabilidade", "",
+              "Cada objeto do banco de produção, com o módulo dono (ou a classificação fora do escopo) e a spec "
+              "do módulo que o descreve. `LACUNA` quer dizer que o módulo ainda não tem spec.", "",
+              "| Total | Com dono | Fora do escopo | Sem atribuição | Em lacuna |", "|---:|---:|---:|---:|---:|",
+              f"| {len(ats)} | {com_dono} | {fora} | {len(analise.sem_atribuicao)} | {lacuna} |", ""]
+    if analise.sem_atribuicao:
+        linhas += ["## Sem atribuição", ""] + [f"- `{c}`" for c in analise.sem_atribuicao] + [""]
+    else:
+        linhas += ["Sem atribuição: nenhum objeto.", ""]
+    ordem_mod = {m["id"]: m.get("ordem", 999) for m in anot.modulos}
+    tipos = list(rotulos)
+
+    def chave_ordem(c):
+        a, obj = ats[c], inv.objetos[c]
+        grupo = (0, ordem_mod.get(a.modulo, 999), a.modulo) if a.modulo else ((1, 0, "") if a.fora else (2, 0, ""))
+        return (*grupo, tipos.index(obj.tipo) if obj.tipo in tipos else len(tipos), c)
+
+    linhas += ["| Chave | Tipo | Dono | Spec |", "|---|---|---|---|"]
+    for c in sorted(ats, key=chave_ordem):
+        a = ats[c]
+        linhas.append(f"| `{celula(c)}` | {inv.objetos[c].tipo} | {_rotulo_dono(a)} | {a.spec or '—'} |")
+    linhas.append("")
+    return "\n".join(linhas)
+
+
+def pagina_ordem(inv, anot, analise, aviso: str, rotulos: dict) -> str:
+    """ordem-modulos.md: módulos na ordem de especificação, com dependências e violações de ordem."""
+    linhas = [aviso, "# Ordem de especificação dos módulos", "",
+              "Um módulo só depende de módulos anteriores na ordem. Dependência para um módulo posterior é "
+              "**violação de ordem**: vale só com justificativa anotada em `anotacoes/modulos.toml` "
+              "(`[[excecao]]`).", "",
+              f"Violações: {len(analise.violacoes)} · sem justificativa: {analise.nao_justificadas}.", ""]
+    tipos = list(rotulos)
+    for m in sorted(anot.modulos, key=lambda m: m.get("ordem", 999)):
+        mid = m["id"]
+        objs = [c for c, a in analise.atribuicao.items() if a.modulo == mid]
+        contagem = defaultdict(int)
+        for c in objs:
+            contagem[inv.objetos[c].tipo] += 1
+        linhas += [f"## {m.get('ordem')}. {m.get('nome', mid)}", "",
+                   f"- **Id**: `{mid}` · **App**: {m.get('app', '')} · **Spec**: {m.get('spec') or 'LACUNA'}"]
+        if (m.get("observacao") or "").strip():
+            linhas.append(f"- **Observação**: {m['observacao']}")
+        partes = [f"{rotulos.get(t, t)}: {contagem[t]}"
+                  for t in sorted(contagem, key=lambda t: (tipos.index(t) if t in tipos else len(tipos), t))]
+        linhas.append(f"- **Objetos** ({len(objs)}): {' · '.join(partes) or 'nenhum'}")
+        linhas.append(f"- **Depende de**: {', '.join(f'`{d}`' for d in analise.depende.get(mid, [])) or '—'}")
+        vs = [v for v in analise.violacoes if v.modulo_de == mid]
+        if vs:
+            linhas += ["- **Violações de ordem**:"]
+            for v in vs:
+                marca = f"justificada — {v.justificativa}" if v.justificativa else "**VIOLAÇÃO**"
+                linhas.append(f"  - `{v.de}` {v.natureza} `{v.para}` (módulo `{v.modulo_para}`): {marca}")
+        linhas.append("")
+    return "\n".join(linhas)

@@ -52,11 +52,14 @@ def _chamada(nome: str) -> re.Pattern:
 
 
 def _corpo(definicao: str) -> str:
-    """Código da função sem a linha de cabeçalho (que repete o próprio nome) e sem comentários."""
+    """Código da função sem a linha de cabeçalho (que repete o próprio nome), sem comentários e sem
+    texto entre aspas simples: nome de tabela dentro de texto (ex.: `TG_TABLE_NAME = 'relatorios_jobs'`)
+    não é leitura. Nenhuma função de produção monta SQL dinâmico (ver o cabeçalho do módulo)."""
     linhas = definicao.split("\n")
     corpo = "\n".join(linhas[1:]) if linhas and linhas[0].upper().startswith("CREATE") else definicao
     corpo = re.sub(r"--[^\n]*", " ", corpo)
-    return re.sub(r"/\*.*?\*/", " ", corpo, flags=re.DOTALL)
+    corpo = re.sub(r"/\*.*?\*/", " ", corpo, flags=re.DOTALL)
+    return re.sub(r"'(?:[^']|'')*'", "''", corpo)
 
 
 def extrair(inv) -> Grafo:

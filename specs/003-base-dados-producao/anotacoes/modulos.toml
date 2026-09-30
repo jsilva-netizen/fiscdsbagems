@@ -64,7 +64,7 @@ nome = "Portal do prestador"
 ordem = 8
 app = "portal do prestador"
 spec = ""
-observacao = "Sem tabela própria no banco atual: existe como políticas de acesso para o papel prestador e como telas."
+observacao = "Sem tabela própria no banco atual: existe como políticas de acesso para o papel prestador e como telas. É dono da regra 'o prestador só vê a fiscalização depois de receber termo de notificação' (can_access_fiscalizacao, can_access_unidade e as políticas que as usam), que depende de fiscalização e processo sancionador e por isso fica depois deles."
 
 [[modulo]]
 id = "tramitacao"

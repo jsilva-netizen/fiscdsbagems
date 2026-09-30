@@ -66,6 +66,19 @@ spec = ""                          # preenchido quando a spec de módulo existir
 observacao = ""
 ```
 
+Exceção de ordem (T040), no mesmo arquivo: aceita uma dependência de um objeto para outro de
+módulo posterior na ordem. Liga dois objetos, não dois módulos, para que uma dependência nova
+entre os mesmos módulos continue aparecendo como violação.
+
+```toml
+[[excecao]]
+de = "funcao:x()"                  # objeto que depende
+para = "tabela:y"                  # objeto de que ele depende (módulo posterior)
+justificativa = """..."""          # obrigatória
+```
+
+Exceção sem justificativa, ou que não corresponde a nenhuma violação, é erro (retorno 2).
+
 ### `divergencias.toml`
 
 ```toml

@@ -24,7 +24,7 @@ Roda com permissão elevada e sem `search_path` fixo, diferente das demais funç
 histórico da fiscalização. A spec de fiscalização deve dizer o que é auditado. A do core deve
 decidir se perfis, checklists e processos passam a ser auditados.
 
-- **Lê**: [profiles](../tabelas/profiles.md), [relatorios_jobs](../tabelas/relatorios_jobs.md), `externo:auth.jwt`, `externo:auth.uid`, `externo:auth.users`
+- **Lê**: [profiles](../tabelas/profiles.md), `externo:auth.jwt`, `externo:auth.uid`, `externo:auth.users`
 - **Escreve**: [audit_logs](../tabelas/audit_logs.md)
 - **Chama**: —
 - **Chamada por (banco)**: `gatilho:public.constatacoes_manuais.trg_audit_constatacoes` (dispara), `gatilho:public.determinacoes.trg_audit_determinacoes` (dispara), `gatilho:public.fiscalizacoes.trg_audit_fiscalizacoes` (dispara), `gatilho:public.recomendacoes.trg_audit_recomendacoes` (dispara), `gatilho:public.relatorios_jobs.trg_audit_relatorios_jobs` (dispara), `gatilho:public.respostas_checklist.trg_audit_respostas` (dispara), `gatilho:public.unidades_fiscalizadas.trg_audit_unidades` (dispara)

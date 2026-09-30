@@ -37,7 +37,7 @@ Completude: 0 objetos sem anotação | 0 sem dono | 0 divergências não classif
 
 Tabelas e views: [audit_logs](tabelas/audit_logs.md) · [camaras_tecnicas](tabelas/camaras_tecnicas.md) · [contratos](tabelas/contratos.md) · [diretorias](tabelas/diretorias.md) · [municipios](tabelas/municipios.md) · [prestadores_servico](tabelas/prestadores_servico.md) · [profiles](tabelas/profiles.md)
 
-Funções: [admin_delete_user](funcoes/admin_delete_user.md) · [admin_delete_user_by_email](funcoes/admin_delete_user_by_email.md) · [camara_from_servicos](funcoes/camara_from_servicos.md) · [can_access_camara](funcoes/can_access_camara.md) · [can_access_fiscalizacao](funcoes/can_access_fiscalizacao.md) · [can_access_unidade](funcoes/can_access_unidade.md) · [current_prestador_servico_id](funcoes/current_prestador_servico_id.md) · [current_role](funcoes/current_role.md) · [e_chave_de_servico](funcoes/e_chave_de_servico.md) · [enforce_profile_security](funcoes/enforce_profile_security.md) · [get_my_camara_tecnica](funcoes/get_my_camara_tecnica.md) · [get_my_diretoria](funcoes/get_my_diretoria.md) · [get_my_prestador_id](funcoes/get_my_prestador_id.md) · [get_my_role](funcoes/get_my_role.md) · [handle_new_user](funcoes/handle_new_user.md) · [is_caters_user](funcoes/is_caters_user.md) · [is_staff](funcoes/is_staff.md) · [prestadores_para_cadastro](funcoes/prestadores_para_cadastro.md) · [process_audit_log](funcoes/process_audit_log.md) · [update_updated_at_column](funcoes/update_updated_at_column.md)
+Funções: [admin_delete_user](funcoes/admin_delete_user.md) · [admin_delete_user_by_email](funcoes/admin_delete_user_by_email.md) · [camara_from_servicos](funcoes/camara_from_servicos.md) · [can_access_camara](funcoes/can_access_camara.md) · [current_prestador_servico_id](funcoes/current_prestador_servico_id.md) · [current_role](funcoes/current_role.md) · [e_chave_de_servico](funcoes/e_chave_de_servico.md) · [enforce_profile_security](funcoes/enforce_profile_security.md) · [get_my_camara_tecnica](funcoes/get_my_camara_tecnica.md) · [get_my_diretoria](funcoes/get_my_diretoria.md) · [get_my_prestador_id](funcoes/get_my_prestador_id.md) · [get_my_role](funcoes/get_my_role.md) · [handle_new_user](funcoes/handle_new_user.md) · [is_caters_user](funcoes/is_caters_user.md) · [is_staff](funcoes/is_staff.md) · [prestadores_para_cadastro](funcoes/prestadores_para_cadastro.md) · [process_audit_log](funcoes/process_audit_log.md) · [update_updated_at_column](funcoes/update_updated_at_column.md)
 
 ### checklists
 
@@ -70,6 +70,10 @@ Funções: [caters_import_from_fiscalizacao](funcoes/caters_import_from_fiscaliz
 Tabelas e views: [catesa_ai_jobs](tabelas/catesa_ai_jobs.md)
 
 Funções: [catesa_ai_jobs_set_updated_at](funcoes/catesa_ai_jobs_set_updated_at.md) · [claim_catesa_ai_jobs](funcoes/claim_catesa_ai_jobs.md)
+
+### portal_prestador
+
+Funções: [can_access_fiscalizacao](funcoes/can_access_fiscalizacao.md) · [can_access_unidade](funcoes/can_access_unidade.md)
 
 ## Anotações marcadas como hipótese (para revisão)
 
