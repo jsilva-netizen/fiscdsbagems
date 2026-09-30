@@ -61,19 +61,19 @@ Funções: [gerar_numero_am](funcoes/gerar_numero_am.md) · [gerar_numero_auto](
 
 ### caters
 
-Tabelas e views: [caters_ai_jobs](tabelas/caters_ai_jobs.md) · [caters_analysis_history](tabelas/caters_analysis_history.md) · [caters_deadline_extensions](tabelas/caters_deadline_extensions.md) · [caters_extra_documents](tabelas/caters_extra_documents.md) · [caters_fiscalizacoes_disponiveis](tabelas/caters_fiscalizacoes_disponiveis.md) · [caters_municipality_responses](tabelas/caters_municipality_responses.md) · [caters_notification_reads](tabelas/caters_notification_reads.md) · [caters_processes](tabelas/caters_processes.md) · [caters_recommendations](tabelas/caters_recommendations.md)
+Tabelas e views: [caters_analysis_history](tabelas/caters_analysis_history.md) · [caters_deadline_extensions](tabelas/caters_deadline_extensions.md) · [caters_extra_documents](tabelas/caters_extra_documents.md) · [caters_fiscalizacoes_disponiveis](tabelas/caters_fiscalizacoes_disponiveis.md) · [caters_municipality_responses](tabelas/caters_municipality_responses.md) · [caters_notification_reads](tabelas/caters_notification_reads.md) · [caters_processes](tabelas/caters_processes.md) · [caters_recommendations](tabelas/caters_recommendations.md)
 
-Funções: [caters_import_from_fiscalizacao](funcoes/caters_import_from_fiscalizacao.md) · [caters_set_updated_at](funcoes/caters_set_updated_at.md) · [claim_caters_ai_jobs](funcoes/claim_caters_ai_jobs.md)
-
-### catesa
-
-Tabelas e views: [catesa_ai_jobs](tabelas/catesa_ai_jobs.md)
-
-Funções: [catesa_ai_jobs_set_updated_at](funcoes/catesa_ai_jobs_set_updated_at.md) · [claim_catesa_ai_jobs](funcoes/claim_catesa_ai_jobs.md)
+Funções: [caters_import_from_fiscalizacao](funcoes/caters_import_from_fiscalizacao.md) · [caters_set_updated_at](funcoes/caters_set_updated_at.md)
 
 ### portal_prestador
 
 Funções: [can_access_fiscalizacao](funcoes/can_access_fiscalizacao.md) · [can_access_unidade](funcoes/can_access_unidade.md)
+
+### fora do escopo: descartar
+
+Tabelas e views: [caters_ai_jobs](tabelas/caters_ai_jobs.md) · [catesa_ai_jobs](tabelas/catesa_ai_jobs.md)
+
+Funções: [catesa_ai_jobs_set_updated_at](funcoes/catesa_ai_jobs_set_updated_at.md) · [claim_caters_ai_jobs](funcoes/claim_caters_ai_jobs.md) · [claim_catesa_ai_jobs](funcoes/claim_catesa_ai_jobs.md)
 
 ## Anotações marcadas como hipótese (para revisão)
 

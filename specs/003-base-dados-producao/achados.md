@@ -7,7 +7,7 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 | Situação | Achados |
 |---|---:|
 | aguardando_decisao | 0 |
-| decidido | 38 |
+| decidido | 39 |
 
 | Id | Título | Situação |
 |---|---|---|
@@ -49,6 +49,7 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 | [A-036](#a-036) | IA da CATESA: botão em qualquer câmara, workers sem verificação e veredito que marca "no prazo" | decidido |
 | [A-037](#a-037) | Chaves estrangeiras ausentes e padrões inseguros em produção | decidido |
 | [A-038](#a-038) | Confirmação de e-mail na aprovação existe só nas migrations | decidido |
+| [A-039](#a-039) | Análises por IA ficam fora do sistema novo | decidido |
 
 <a id="a-001"></a>
 
@@ -260,7 +261,7 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 **Recomendação**: Opção 3 antes da spec do core.
 
-**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: opção 3 — Confirmar com as diretorias quais câmaras existem hoje. (Opção 3 antes da spec do core.) Pendente: confirmar com as diretorias as câmaras existentes antes da spec do core.
+**Decisão** (jsilva, 2026-09-30): O responsável confirmou (2026-09-30) que `caterm` e `catesg` não existem: não vão para o sistema novo. O core leva as 10 câmaras que a interface usa.
 
 <a id="a-011"></a>
 
@@ -302,7 +303,7 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 **Recomendação**: Opção 1: rodar o DROP/CREATE POLICY da 137 no SQL Editor e refazer o inventário.
 
-**Decisão** (jsilva, 2026-09-28): Aprovado pelo responsável ao ampliar a correção 137: restringir a leitura de perfis. Falta aplicar em produção o trecho da migration 137 (linhas 198 a 201).
+**Decisão** (jsilva, 2026-09-28): Aprovado pelo responsável ao ampliar a correção 137. O responsável aplicou a 137 completa em produção em 2026-09-30; o próximo inventário deve mostrar a política restrita.
 
 <a id="a-013"></a>
 
@@ -594,7 +595,7 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 **Recomendação**: Confirmar com o responsável se o isolamento por câmara é requisito; se for, opção 1.
 
-**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: Confirmar com o responsável se o isolamento por câmara é requisito; se for, opção 1. Pendente: confirmar com as diretorias se o isolamento por câmara é requisito, antes da spec de fiscalização; se for, vale a opção 1.
+**Decisão** (jsilva, 2026-09-30): O responsável confirmou (2026-09-30) que o isolamento por câmara é requisito: no sistema novo, toda consulta da equipe se limita à câmara do usuário, com o admin como exceção (opção 1).
 
 <a id="a-027"></a>
 
@@ -739,7 +740,7 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 **Recomendação**: As duas: verificar agora e especificar a fila no sistema novo.
 
-**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: As duas: verificar agora e especificar a fila no sistema novo. Pendente: verificar a publicação das edge functions de IA e a chave do Gemini em produção.
+**Decisão** (jsilva, 2026-09-30): As edge functions de IA estão publicadas em produção, mas a análise por IA não será refeita no sistema novo (A-039). Nada a especificar.
 
 <a id="a-034"></a>
 
@@ -801,7 +802,7 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 
 **Recomendação**: Opção 1.
 
-**Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: opção 1 — No sistema novo, análise por IA como tarefa interna, acionada só por usuário autorizado; veredito não cria resposta. (Opção 1.)
+**Decisão** (jsilva, 2026-09-30): A análise por IA da CATESA não será refeita no sistema novo (A-039). Fica registrado para a spec do processo sancionador que aplicar um veredito nunca cria resposta nem marca pontualidade.
 
 <a id="a-037"></a>
 
@@ -845,3 +846,24 @@ O que o sistema novo não deve herdar sem decisão. Cada achado traz evidência,
 **Recomendação**: Decidir com a configuração de autenticação de produção (externos.toml).
 
 **Decisão** (jsilva, 2026-09-30): Aprovada a recomendação: Decidir com a configuração de autenticação de produção (externos.toml). Pendente: exportar a configuração de autenticação de produção (externos.toml) para escolher a opção.
+
+<a id="a-039"></a>
+
+## A-039 — Análises por IA ficam fora do sistema novo
+
+**Situação**: decidido
+
+**Objetos**: [caters_ai_jobs](catalogo/tabelas/caters_ai_jobs.md), [catesa_ai_jobs](catalogo/tabelas/catesa_ai_jobs.md), `tipo:caters_ai_job_type`, [claim_caters_ai_jobs(p_limit integer, p_job_id uuid, p_stale_minutes integer)](catalogo/funcoes/claim_caters_ai_jobs.md), [claim_catesa_ai_jobs(p_limit integer, p_job_id uuid, p_stale_minutes integer)](catalogo/funcoes/claim_catesa_ai_jobs.md), [catesa_ai_jobs_set_updated_at()](catalogo/funcoes/catesa_ai_jobs_set_updated_at.md)
+
+**Evidência**: O sistema atual tem duas filas de análise por IA (Gemini): a do CATERS (extrair recomendações do relatório, relacionar o ofício de resposta, avaliar respostas) e a da CATESA (avaliar a resposta ao termo de notificação), com as edge functions `caters_ai_*` e `catesa_ai_*`, publicadas em produção. A do CATERS nunca concluiu um trabalho (A-033); a da CATESA não tem trabalhos.
+
+**Risco**: Nenhum para o sistema novo: as telas de cadastro e análise manual continuam; só a sugestão por IA deixa de existir.
+
+**Opções**:
+
+1. Não refazer a análise por IA no sistema novo.
+2. Refazer como tarefa interna.
+
+**Recomendação**: Decisão do responsável: opção 1.
+
+**Decisão** (jsilva, 2026-09-30): Não refazer: a análise por IA do CATERS e da CATESA não será migrada nem refeita no sistema novo. As tabelas, funções e tipo das filas ficam fora do escopo (descartar); as telas de recomendações e de análise da resposta continuam sem o botão de IA.

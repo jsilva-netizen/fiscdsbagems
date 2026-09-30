@@ -3,7 +3,7 @@
 # catesa_ai_jobs
 
 - **Tipo**: tabela
-- **Dono**: módulo **catesa**
+- **Dono**: fora do escopo: **descartar** — Análise por IA não será refeita no sistema novo (decisão do responsável, 2026-09-30)., achado A-039
 - **Linhas em produção**: 0
 - **RLS ativo**: sim
 
@@ -110,3 +110,4 @@ can_access_camara('catesa'::text)
 - Achado **A-015** — Funções sem verificação, finalização pela chave de serviço e fila da CATESA ausente (situação: decidido; [detalhes](../../achados.md#a-015)).
 - Achado **A-036** — IA da CATESA: botão em qualquer câmara, workers sem verificação e veredito que marca "no prazo"
  (situação: decidido; [detalhes](../../achados.md#a-036)).
+- Achado **A-039** — Análises por IA ficam fora do sistema novo (situação: decidido; [detalhes](../../achados.md#a-039)).

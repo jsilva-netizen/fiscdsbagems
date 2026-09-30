@@ -6,7 +6,7 @@
 
 - **Retorno**: `SETOF caters_ai_jobs` · **Linguagem**: plpgsql · **Volatilidade**: volatile
 - **Permissão elevada** (`SECURITY DEFINER`): **sim**
-- **Dono**: módulo **caters**
+- **Dono**: fora do escopo: **descartar** — Análise por IA não será refeita no sistema novo (decisão do responsável, 2026-09-30)., achado A-039
 
 **Finalidade**: Reivindica trabalhos da fila de IA do CATERS para o worker: marca como `processing` um trabalho
 específico ou os mais antigos em `queued`, e também os `processing` parados.
@@ -57,3 +57,4 @@ $function$
 ## Divergências e achados
 
 - Achado **A-005** — 37 funções com permissão elevada (SECURITY DEFINER) (situação: decidido; [detalhes](../../achados.md#a-005)).
+- Achado **A-039** — Análises por IA ficam fora do sistema novo (situação: decidido; [detalhes](../../achados.md#a-039)).

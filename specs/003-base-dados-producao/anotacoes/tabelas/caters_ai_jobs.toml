@@ -1,5 +1,5 @@
 [objeto."tabela:caters_ai_jobs"]
-modulo = "caters"
+fora_escopo = { classificacao = "descartar", motivo = "Análise por IA não será refeita no sistema novo (decisão do responsável, 2026-09-30).", achado = "A-039" }
 finalidade = """
 Fila de análises por IA do CATERS, processadas pelas edge functions `caters_ai_enqueue`,
 `caters_ai_worker` e `caters_ai_status`, com o modelo Gemini. Tipos de análise:
@@ -94,7 +94,7 @@ criação é feita pela edge function, com a chave de serviço.
 fonte = ["funcao:is_caters_user()", "supabase/functions/caters_ai_enqueue/index.ts:216"]
 
 [objeto."tipo:caters_ai_job_type"]
-modulo = "caters"
+fora_escopo = { classificacao = "descartar", motivo = "Análise por IA não será refeita no sistema novo (decisão do responsável, 2026-09-30).", achado = "A-039" }
 finalidade = """
 Tipos de análise por IA do CATERS:
 

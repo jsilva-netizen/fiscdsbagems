@@ -1,5 +1,5 @@
 [objeto."tabela:catesa_ai_jobs"]
-modulo = "catesa"
+fora_escopo = { classificacao = "descartar", motivo = "Análise por IA não será refeita no sistema novo (decisão do responsável, 2026-09-30).", achado = "A-039" }
 finalidade = """
 Fila de análises por IA da resposta a um termo de notificação, pedida na tela Analisar resposta.
 Para cada determinação do termo, o modelo Gemini compara o que foi determinado com a resposta da

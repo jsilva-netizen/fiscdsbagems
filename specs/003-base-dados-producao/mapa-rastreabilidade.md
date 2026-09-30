@@ -6,7 +6,7 @@ Cada objeto do banco de produção, com o módulo dono (ou a classificação for
 
 | Total | Com dono | Fora do escopo | Sem atribuição | Em lacuna |
 |---:|---:|---:|---:|---:|
-| 1264 | 1223 | 41 | 0 | 1223 |
+| 1264 | 1160 | 104 | 0 | 1160 |
 
 Sem atribuição: nenhum objeto.
 
@@ -948,7 +948,6 @@ Sem atribuição: nenhum objeto.
 | `privilegio:trg_remessa_set_camara.anon` | privilegio | processo_sancionador | LACUNA |
 | `privilegio:trg_remessa_set_camara.authenticated` | privilegio | processo_sancionador | LACUNA |
 | `privilegio:trg_remessa_set_camara.service_role` | privilegio | processo_sancionador | LACUNA |
-| `tabela:caters_ai_jobs` | tabela | caters | LACUNA |
 | `tabela:caters_analysis_history` | tabela | caters | LACUNA |
 | `tabela:caters_deadline_extensions` | tabela | caters | LACUNA |
 | `tabela:caters_extra_documents` | tabela | caters | LACUNA |
@@ -957,20 +956,6 @@ Sem atribuição: nenhum objeto.
 | `tabela:caters_processes` | tabela | caters | LACUNA |
 | `tabela:caters_recommendations` | tabela | caters | LACUNA |
 | `tabela:caters_fiscalizacoes_disponiveis` | view | caters | LACUNA |
-| `coluna:caters_ai_jobs.created_at` | coluna | caters | LACUNA |
-| `coluna:caters_ai_jobs.error_message` | coluna | caters | LACUNA |
-| `coluna:caters_ai_jobs.id` | coluna | caters | LACUNA |
-| `coluna:caters_ai_jobs.input_text` | coluna | caters | LACUNA |
-| `coluna:caters_ai_jobs.job_type` | coluna | caters | LACUNA |
-| `coluna:caters_ai_jobs.process_id` | coluna | caters | LACUNA |
-| `coluna:caters_ai_jobs.requested_by` | coluna | caters | LACUNA |
-| `coluna:caters_ai_jobs.result_json` | coluna | caters | LACUNA |
-| `coluna:caters_ai_jobs.reviewed_at` | coluna | caters | LACUNA |
-| `coluna:caters_ai_jobs.reviewed_by` | coluna | caters | LACUNA |
-| `coluna:caters_ai_jobs.status` | coluna | caters | LACUNA |
-| `coluna:caters_ai_jobs.storage_bucket` | coluna | caters | LACUNA |
-| `coluna:caters_ai_jobs.storage_path` | coluna | caters | LACUNA |
-| `coluna:caters_ai_jobs.updated_at` | coluna | caters | LACUNA |
 | `coluna:caters_analysis_history.action_type` | coluna | caters | LACUNA |
 | `coluna:caters_analysis_history.created_at` | coluna | caters | LACUNA |
 | `coluna:caters_analysis_history.description` | coluna | caters | LACUNA |
@@ -1061,11 +1046,6 @@ Sem atribuição: nenhum objeto.
 | `coluna:caters_recommendations.status` | coluna | caters | LACUNA |
 | `coluna:caters_recommendations.titular_response` | coluna | caters | LACUNA |
 | `coluna:caters_recommendations.updated_at` | coluna | caters | LACUNA |
-| `restricao:caters_ai_jobs.caters_ai_jobs_pkey` | restricao | caters | LACUNA |
-| `restricao:caters_ai_jobs.caters_ai_jobs_process_id_fkey` | restricao | caters | LACUNA |
-| `restricao:caters_ai_jobs.caters_ai_jobs_requested_by_fkey` | restricao | caters | LACUNA |
-| `restricao:caters_ai_jobs.caters_ai_jobs_reviewed_by_fkey` | restricao | caters | LACUNA |
-| `restricao:caters_ai_jobs.caters_ai_jobs_status_check` | restricao | caters | LACUNA |
 | `restricao:caters_analysis_history.caters_analysis_history_performed_by_fkey` | restricao | caters | LACUNA |
 | `restricao:caters_analysis_history.caters_analysis_history_pkey` | restricao | caters | LACUNA |
 | `restricao:caters_analysis_history.caters_analysis_history_process_id_fkey` | restricao | caters | LACUNA |
@@ -1093,9 +1073,6 @@ Sem atribuição: nenhum objeto.
 | `restricao:caters_recommendations.caters_recommendations_pkey` | restricao | caters | LACUNA |
 | `restricao:caters_recommendations.caters_recommendations_process_id_fkey` | restricao | caters | LACUNA |
 | `restricao:caters_recommendations.caters_recommendations_recomendacao_id_fkey` | restricao | caters | LACUNA |
-| `indice:caters_ai_jobs_pkey` | indice | caters | LACUNA |
-| `indice:caters_ai_jobs_process_id_idx` | indice | caters | LACUNA |
-| `indice:caters_ai_jobs_status_idx` | indice | caters | LACUNA |
 | `indice:caters_analysis_history_pkey` | indice | caters | LACUNA |
 | `indice:caters_deadline_extensions_pkey` | indice | caters | LACUNA |
 | `indice:caters_deadline_extensions_process_id_idx` | indice | caters | LACUNA |
@@ -1112,12 +1089,9 @@ Sem atribuição: nenhum objeto.
 | `indice:idx_caters_recommendations_recomendacao_id` | indice | caters | LACUNA |
 | `funcao:caters_import_from_fiscalizacao(p_fiscalizacao_id uuid, p_caters_process_id uuid, p_prazo_dias integer)` | funcao | caters | LACUNA |
 | `funcao:caters_set_updated_at()` | funcao | caters | LACUNA |
-| `funcao:claim_caters_ai_jobs(p_limit integer, p_job_id uuid, p_stale_minutes integer)` | funcao | caters | LACUNA |
-| `gatilho:public.caters_ai_jobs.trg_caters_ai_jobs_updated_at` | gatilho | caters | LACUNA |
 | `gatilho:public.caters_municipality_responses.trg_caters_municipality_responses_updated_at` | gatilho | caters | LACUNA |
 | `gatilho:public.caters_processes.trg_caters_processes_updated_at` | gatilho | caters | LACUNA |
 | `gatilho:public.caters_recommendations.trg_caters_recommendations_updated_at` | gatilho | caters | LACUNA |
-| `politica:public.caters_ai_jobs.CATERS ai jobs: gestao` | politica | caters | LACUNA |
 | `politica:public.caters_analysis_history.CATERS historico: inserir` | politica | caters | LACUNA |
 | `politica:public.caters_analysis_history.CATERS historico: leitura` | politica | caters | LACUNA |
 | `politica:public.caters_deadline_extensions.authenticated users can manage deadline extensions` | politica | caters | LACUNA |
@@ -1144,14 +1118,10 @@ Sem atribuição: nenhum objeto.
 | `politica:public.caters_recommendations.CATERS recomendacoes: leitura` | politica | caters | LACUNA |
 | `politica:public.caters_recommendations.e2e_test_user_own_rows_only` | politica | caters | LACUNA |
 | `politica:public.caters_recommendations.e2e_test_user_own_rows_only_delete` | politica | caters | LACUNA |
-| `tipo:caters_ai_job_type` | tipo | caters | LACUNA |
 | `tipo:caters_analysis_action_type` | tipo | caters | LACUNA |
 | `tipo:caters_process_status` | tipo | caters | LACUNA |
 | `tipo:caters_recommendation_priority` | tipo | caters | LACUNA |
 | `tipo:caters_recommendation_status` | tipo | caters | LACUNA |
-| `privilegio:caters_ai_jobs.anon` | privilegio | caters | LACUNA |
-| `privilegio:caters_ai_jobs.authenticated` | privilegio | caters | LACUNA |
-| `privilegio:caters_ai_jobs.service_role` | privilegio | caters | LACUNA |
 | `privilegio:caters_analysis_history.anon` | privilegio | caters | LACUNA |
 | `privilegio:caters_analysis_history.authenticated` | privilegio | caters | LACUNA |
 | `privilegio:caters_analysis_history.service_role` | privilegio | caters | LACUNA |
@@ -1183,39 +1153,6 @@ Sem atribuição: nenhum objeto.
 | `privilegio:caters_set_updated_at.anon` | privilegio | caters | LACUNA |
 | `privilegio:caters_set_updated_at.authenticated` | privilegio | caters | LACUNA |
 | `privilegio:caters_set_updated_at.service_role` | privilegio | caters | LACUNA |
-| `privilegio:claim_caters_ai_jobs.service_role` | privilegio | caters | LACUNA |
-| `tabela:catesa_ai_jobs` | tabela | catesa | LACUNA |
-| `coluna:catesa_ai_jobs.created_at` | coluna | catesa | LACUNA |
-| `coluna:catesa_ai_jobs.error_message` | coluna | catesa | LACUNA |
-| `coluna:catesa_ai_jobs.id` | coluna | catesa | LACUNA |
-| `coluna:catesa_ai_jobs.input_text` | coluna | catesa | LACUNA |
-| `coluna:catesa_ai_jobs.requested_by` | coluna | catesa | LACUNA |
-| `coluna:catesa_ai_jobs.result_json` | coluna | catesa | LACUNA |
-| `coluna:catesa_ai_jobs.reviewed_at` | coluna | catesa | LACUNA |
-| `coluna:catesa_ai_jobs.reviewed_by` | coluna | catesa | LACUNA |
-| `coluna:catesa_ai_jobs.status` | coluna | catesa | LACUNA |
-| `coluna:catesa_ai_jobs.termo_id` | coluna | catesa | LACUNA |
-| `coluna:catesa_ai_jobs.updated_at` | coluna | catesa | LACUNA |
-| `restricao:catesa_ai_jobs.catesa_ai_jobs_pkey` | restricao | catesa | LACUNA |
-| `restricao:catesa_ai_jobs.catesa_ai_jobs_requested_by_fkey` | restricao | catesa | LACUNA |
-| `restricao:catesa_ai_jobs.catesa_ai_jobs_reviewed_by_fkey` | restricao | catesa | LACUNA |
-| `restricao:catesa_ai_jobs.catesa_ai_jobs_status_check` | restricao | catesa | LACUNA |
-| `restricao:catesa_ai_jobs.catesa_ai_jobs_termo_id_fkey` | restricao | catesa | LACUNA |
-| `indice:catesa_ai_jobs_pkey` | indice | catesa | LACUNA |
-| `indice:catesa_ai_jobs_status_idx` | indice | catesa | LACUNA |
-| `indice:catesa_ai_jobs_termo_id_idx` | indice | catesa | LACUNA |
-| `funcao:catesa_ai_jobs_set_updated_at()` | funcao | catesa | LACUNA |
-| `funcao:claim_catesa_ai_jobs(p_limit integer, p_job_id uuid, p_stale_minutes integer)` | funcao | catesa | LACUNA |
-| `gatilho:public.catesa_ai_jobs.trg_catesa_ai_jobs_updated_at` | gatilho | catesa | LACUNA |
-| `politica:public.catesa_ai_jobs.CATESA ai jobs: gestao` | politica | catesa | LACUNA |
-| `privilegio:catesa_ai_jobs.anon` | privilegio | catesa | LACUNA |
-| `privilegio:catesa_ai_jobs.authenticated` | privilegio | catesa | LACUNA |
-| `privilegio:catesa_ai_jobs.service_role` | privilegio | catesa | LACUNA |
-| `privilegio:catesa_ai_jobs_set_updated_at.PUBLIC` | privilegio | catesa | LACUNA |
-| `privilegio:catesa_ai_jobs_set_updated_at.anon` | privilegio | catesa | LACUNA |
-| `privilegio:catesa_ai_jobs_set_updated_at.authenticated` | privilegio | catesa | LACUNA |
-| `privilegio:catesa_ai_jobs_set_updated_at.service_role` | privilegio | catesa | LACUNA |
-| `privilegio:claim_catesa_ai_jobs.service_role` | privilegio | catesa | LACUNA |
 | `funcao:can_access_fiscalizacao(fiscalizacao uuid)` | funcao | portal_prestador | LACUNA |
 | `funcao:can_access_unidade(unidade uuid)` | funcao | portal_prestador | LACUNA |
 | `politica:public.constatacoes_manuais.constatacoes_prestador_select` | politica | portal_prestador | LACUNA |
@@ -1235,6 +1172,57 @@ Sem atribuição: nenhum objeto.
 | `privilegio:can_access_unidade.anon` | privilegio | portal_prestador | LACUNA |
 | `privilegio:can_access_unidade.authenticated` | privilegio | portal_prestador | LACUNA |
 | `privilegio:can_access_unidade.service_role` | privilegio | portal_prestador | LACUNA |
+| `tabela:caters_ai_jobs` | tabela | fora do escopo: descartar | — |
+| `tabela:catesa_ai_jobs` | tabela | fora do escopo: descartar | — |
+| `coluna:caters_ai_jobs.created_at` | coluna | fora do escopo: descartar | — |
+| `coluna:caters_ai_jobs.error_message` | coluna | fora do escopo: descartar | — |
+| `coluna:caters_ai_jobs.id` | coluna | fora do escopo: descartar | — |
+| `coluna:caters_ai_jobs.input_text` | coluna | fora do escopo: descartar | — |
+| `coluna:caters_ai_jobs.job_type` | coluna | fora do escopo: descartar | — |
+| `coluna:caters_ai_jobs.process_id` | coluna | fora do escopo: descartar | — |
+| `coluna:caters_ai_jobs.requested_by` | coluna | fora do escopo: descartar | — |
+| `coluna:caters_ai_jobs.result_json` | coluna | fora do escopo: descartar | — |
+| `coluna:caters_ai_jobs.reviewed_at` | coluna | fora do escopo: descartar | — |
+| `coluna:caters_ai_jobs.reviewed_by` | coluna | fora do escopo: descartar | — |
+| `coluna:caters_ai_jobs.status` | coluna | fora do escopo: descartar | — |
+| `coluna:caters_ai_jobs.storage_bucket` | coluna | fora do escopo: descartar | — |
+| `coluna:caters_ai_jobs.storage_path` | coluna | fora do escopo: descartar | — |
+| `coluna:caters_ai_jobs.updated_at` | coluna | fora do escopo: descartar | — |
+| `coluna:catesa_ai_jobs.created_at` | coluna | fora do escopo: descartar | — |
+| `coluna:catesa_ai_jobs.error_message` | coluna | fora do escopo: descartar | — |
+| `coluna:catesa_ai_jobs.id` | coluna | fora do escopo: descartar | — |
+| `coluna:catesa_ai_jobs.input_text` | coluna | fora do escopo: descartar | — |
+| `coluna:catesa_ai_jobs.requested_by` | coluna | fora do escopo: descartar | — |
+| `coluna:catesa_ai_jobs.result_json` | coluna | fora do escopo: descartar | — |
+| `coluna:catesa_ai_jobs.reviewed_at` | coluna | fora do escopo: descartar | — |
+| `coluna:catesa_ai_jobs.reviewed_by` | coluna | fora do escopo: descartar | — |
+| `coluna:catesa_ai_jobs.status` | coluna | fora do escopo: descartar | — |
+| `coluna:catesa_ai_jobs.termo_id` | coluna | fora do escopo: descartar | — |
+| `coluna:catesa_ai_jobs.updated_at` | coluna | fora do escopo: descartar | — |
+| `restricao:caters_ai_jobs.caters_ai_jobs_pkey` | restricao | fora do escopo: descartar | — |
+| `restricao:caters_ai_jobs.caters_ai_jobs_process_id_fkey` | restricao | fora do escopo: descartar | — |
+| `restricao:caters_ai_jobs.caters_ai_jobs_requested_by_fkey` | restricao | fora do escopo: descartar | — |
+| `restricao:caters_ai_jobs.caters_ai_jobs_reviewed_by_fkey` | restricao | fora do escopo: descartar | — |
+| `restricao:caters_ai_jobs.caters_ai_jobs_status_check` | restricao | fora do escopo: descartar | — |
+| `restricao:catesa_ai_jobs.catesa_ai_jobs_pkey` | restricao | fora do escopo: descartar | — |
+| `restricao:catesa_ai_jobs.catesa_ai_jobs_requested_by_fkey` | restricao | fora do escopo: descartar | — |
+| `restricao:catesa_ai_jobs.catesa_ai_jobs_reviewed_by_fkey` | restricao | fora do escopo: descartar | — |
+| `restricao:catesa_ai_jobs.catesa_ai_jobs_status_check` | restricao | fora do escopo: descartar | — |
+| `restricao:catesa_ai_jobs.catesa_ai_jobs_termo_id_fkey` | restricao | fora do escopo: descartar | — |
+| `indice:caters_ai_jobs_pkey` | indice | fora do escopo: descartar | — |
+| `indice:caters_ai_jobs_process_id_idx` | indice | fora do escopo: descartar | — |
+| `indice:caters_ai_jobs_status_idx` | indice | fora do escopo: descartar | — |
+| `indice:catesa_ai_jobs_pkey` | indice | fora do escopo: descartar | — |
+| `indice:catesa_ai_jobs_status_idx` | indice | fora do escopo: descartar | — |
+| `indice:catesa_ai_jobs_termo_id_idx` | indice | fora do escopo: descartar | — |
+| `funcao:catesa_ai_jobs_set_updated_at()` | funcao | fora do escopo: descartar | — |
+| `funcao:claim_caters_ai_jobs(p_limit integer, p_job_id uuid, p_stale_minutes integer)` | funcao | fora do escopo: descartar | — |
+| `funcao:claim_catesa_ai_jobs(p_limit integer, p_job_id uuid, p_stale_minutes integer)` | funcao | fora do escopo: descartar | — |
+| `gatilho:public.caters_ai_jobs.trg_caters_ai_jobs_updated_at` | gatilho | fora do escopo: descartar | — |
+| `gatilho:public.catesa_ai_jobs.trg_catesa_ai_jobs_updated_at` | gatilho | fora do escopo: descartar | — |
+| `politica:public.caters_ai_jobs.CATERS ai jobs: gestao` | politica | fora do escopo: descartar | — |
+| `politica:public.catesa_ai_jobs.CATESA ai jobs: gestao` | politica | fora do escopo: descartar | — |
+| `tipo:caters_ai_job_type` | tipo | fora do escopo: descartar | — |
 | `papel:authenticator` | papel | fora do escopo: plataforma | — |
 | `papel:cli_login_postgres` | papel | fora do escopo: plataforma | — |
 | `papel:dashboard_user` | papel | fora do escopo: plataforma | — |
@@ -1249,6 +1237,18 @@ Sem atribuição: nenhum objeto.
 | `papel:supabase_realtime_admin` | papel | fora do escopo: plataforma | — |
 | `papel:supabase_replication_admin` | papel | fora do escopo: plataforma | — |
 | `papel:supabase_storage_admin` | papel | fora do escopo: plataforma | — |
+| `privilegio:caters_ai_jobs.anon` | privilegio | fora do escopo: descartar | — |
+| `privilegio:caters_ai_jobs.authenticated` | privilegio | fora do escopo: descartar | — |
+| `privilegio:caters_ai_jobs.service_role` | privilegio | fora do escopo: descartar | — |
+| `privilegio:catesa_ai_jobs.anon` | privilegio | fora do escopo: descartar | — |
+| `privilegio:catesa_ai_jobs.authenticated` | privilegio | fora do escopo: descartar | — |
+| `privilegio:catesa_ai_jobs.service_role` | privilegio | fora do escopo: descartar | — |
+| `privilegio:catesa_ai_jobs_set_updated_at.PUBLIC` | privilegio | fora do escopo: descartar | — |
+| `privilegio:catesa_ai_jobs_set_updated_at.anon` | privilegio | fora do escopo: descartar | — |
+| `privilegio:catesa_ai_jobs_set_updated_at.authenticated` | privilegio | fora do escopo: descartar | — |
+| `privilegio:catesa_ai_jobs_set_updated_at.service_role` | privilegio | fora do escopo: descartar | — |
+| `privilegio:claim_caters_ai_jobs.service_role` | privilegio | fora do escopo: descartar | — |
+| `privilegio:claim_catesa_ai_jobs.service_role` | privilegio | fora do escopo: descartar | — |
 | `privilegio_padrao:postgres.storage.funcao` | privilegio_padrao | fora do escopo: plataforma | — |
 | `privilegio_padrao:postgres.storage.sequencia` | privilegio_padrao | fora do escopo: plataforma | — |
 | `privilegio_padrao:postgres.storage.tabela` | privilegio_padrao | fora do escopo: plataforma | — |

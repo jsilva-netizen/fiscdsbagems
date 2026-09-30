@@ -1,5 +1,5 @@
 [objeto."funcao:catesa_ai_jobs_set_updated_at()"]
-modulo = "catesa"
+fora_escopo = { classificacao = "descartar", motivo = "Análise por IA não será refeita no sistema novo (decisão do responsável, 2026-09-30).", achado = "A-039" }
 finalidade = """
 Função do gatilho `trg_catesa_ai_jobs_updated_at`: grava a hora atual em `updated_at`. Repete
 `update_updated_at_column` do core e `caters_set_updated_at` do CATERS.

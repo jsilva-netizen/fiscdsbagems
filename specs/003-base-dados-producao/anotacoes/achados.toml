@@ -249,7 +249,7 @@ Opção 3 antes da spec do core.
 """
 situacao = "decidido"
 decisao = """
-Aprovada a recomendação: opção 3 — Confirmar com as diretorias quais câmaras existem hoje. (Opção 3 antes da spec do core.) Pendente: confirmar com as diretorias as câmaras existentes antes da spec do core.
+O responsável confirmou (2026-09-30) que `caterm` e `catesg` não existem: não vão para o sistema novo. O core leva as 10 câmaras que a interface usa.
 """
 decidido_por = "jsilva"
 decidido_em = "2026-09-30"
@@ -299,7 +299,7 @@ Opção 1: rodar o DROP/CREATE POLICY da 137 no SQL Editor e refazer o inventár
 """
 situacao = "decidido"
 decisao = """
-Aprovado pelo responsável ao ampliar a correção 137: restringir a leitura de perfis. Falta aplicar em produção o trecho da migration 137 (linhas 198 a 201).
+Aprovado pelo responsável ao ampliar a correção 137. O responsável aplicou a 137 completa em produção em 2026-09-30; o próximo inventário deve mostrar a política restrita.
 """
 decidido_por = "jsilva"
 decidido_em = "2026-09-28"
@@ -645,7 +645,7 @@ Confirmar com o responsável se o isolamento por câmara é requisito; se for, o
 """
 situacao = "decidido"
 decisao = """
-Aprovada a recomendação: Confirmar com o responsável se o isolamento por câmara é requisito; se for, opção 1. Pendente: confirmar com as diretorias se o isolamento por câmara é requisito, antes da spec de fiscalização; se for, vale a opção 1.
+O responsável confirmou (2026-09-30) que o isolamento por câmara é requisito: no sistema novo, toda consulta da equipe se limita à câmara do usuário, com o admin como exceção (opção 1).
 """
 decidido_por = "jsilva"
 decidido_em = "2026-09-30"
@@ -816,7 +816,7 @@ As duas: verificar agora e especificar a fila no sistema novo.
 """
 situacao = "decidido"
 decisao = """
-Aprovada a recomendação: As duas: verificar agora e especificar a fila no sistema novo. Pendente: verificar a publicação das edge functions de IA e a chave do Gemini em produção.
+As edge functions de IA estão publicadas em produção, mas a análise por IA não será refeita no sistema novo (A-039). Nada a especificar.
 """
 decidido_por = "jsilva"
 decidido_em = "2026-09-30"
@@ -889,7 +889,7 @@ Opção 1.
 """
 situacao = "decidido"
 decisao = """
-Aprovada a recomendação: opção 1 — No sistema novo, análise por IA como tarefa interna, acionada só por usuário autorizado; veredito não cria resposta. (Opção 1.)
+A análise por IA da CATESA não será refeita no sistema novo (A-039). Fica registrado para a spec do processo sancionador que aplicar um veredito nunca cria resposta nem marca pontualidade.
 """
 decidido_por = "jsilva"
 decidido_em = "2026-09-30"
@@ -942,6 +942,31 @@ Decidir com a configuração de autenticação de produção (externos.toml).
 situacao = "decidido"
 decisao = """
 Aprovada a recomendação: Decidir com a configuração de autenticação de produção (externos.toml). Pendente: exportar a configuração de autenticação de produção (externos.toml) para escolher a opção.
+"""
+decidido_por = "jsilva"
+decidido_em = "2026-09-30"
+
+[[achado]]
+id = "A-039"
+titulo = "Análises por IA ficam fora do sistema novo"
+objetos = ["tabela:caters_ai_jobs", "tabela:catesa_ai_jobs", "tipo:caters_ai_job_type", "funcao:claim_caters_ai_jobs(p_limit integer, p_job_id uuid, p_stale_minutes integer)", "funcao:claim_catesa_ai_jobs(p_limit integer, p_job_id uuid, p_stale_minutes integer)", "funcao:catesa_ai_jobs_set_updated_at()"]
+evidencia = """
+O sistema atual tem duas filas de análise por IA (Gemini): a do CATERS (extrair recomendações do relatório, relacionar o ofício de resposta, avaliar respostas) e a da CATESA (avaliar a resposta ao termo de notificação), com as edge functions `caters_ai_*` e `catesa_ai_*`, publicadas em produção. A do CATERS nunca concluiu um trabalho (A-033); a da CATESA não tem trabalhos.
+"""
+risco = """
+Nenhum para o sistema novo: as telas de cadastro e análise manual continuam; só a sugestão por IA deixa de existir.
+"""
+opcoes = ["""
+Não refazer a análise por IA no sistema novo.
+""", """
+Refazer como tarefa interna.
+"""]
+recomendacao = """
+Decisão do responsável: opção 1.
+"""
+situacao = "decidido"
+decisao = """
+Não refazer: a análise por IA do CATERS e da CATESA não será migrada nem refeita no sistema novo. As tabelas, funções e tipo das filas ficam fora do escopo (descartar); as telas de recomendações e de análise da resposta continuam sem o botão de IA.
 """
 decidido_por = "jsilva"
 decidido_em = "2026-09-30"

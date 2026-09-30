@@ -166,8 +166,9 @@ ordem se manteve e restaram 0 violações, depois de dois ajustes:
    (`TG_TABLE_NAME = 'relatorios_jobs'` em `process_audit_log`, e as comparações de
    `propagate_modification_to_parent`), o que criava uma violação falsa core → fiscalização.
 
-A CATESA ganhou `catesa_ai_jobs` em produção (migration 141) e depende de core e processo
-sancionador.
+A CATESA ganhou `catesa_ai_jobs` em produção (migration 141), mas o responsável decidiu em
+2026-09-30 que a análise por IA não será refeita (A-039): as filas de IA do CATERS e da CATESA
+ficaram fora do escopo, e a CATESA não tem objeto próprio no sistema novo.
 
 **Rationale**: a atribuição pelas chaves estrangeiras dá uma ordem sem ciclos entre tabelas. A
 verificação completa, com chamadas entre funções e funções usadas por políticas, é tarefa da

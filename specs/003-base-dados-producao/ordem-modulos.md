@@ -37,23 +37,23 @@ Violações: 0 · sem justificativa: 0.
 ## 5. Processo sancionador
 
 - **Id**: `processo_sancionador` · **App**: processo sancionador · **Spec**: LACUNA
-- **Observação**: Termos de notificação, respostas a determinações, autos de infração, manifestações, pareceres técnicos, julgamentos e remessas para análise com IA.
+- **Observação**: Termos de notificação, respostas a determinações, autos de infração (AI), manifestações, pareceres técnicos, julgamentos e remessas de autos de infração à entidade (remessas_ai: AI aqui é auto de infração).
 - **Objetos** (281): Tabelas: 8 · Colunas: 117 · Restrições: 32 · Índices: 13 · Funções: 7 · Gatilhos: 5 · Políticas de acesso: 44 · Repositórios de arquivos: 3 · Privilégios: 52
 - **Depende de**: `core`, `fiscalizacao`
 
 ## 6. CATERS
 
 - **Id**: `caters` · **App**: app da câmara CATERS · **Spec**: LACUNA
-- **Observação**: Processos, recomendações e análises com IA da câmara de resíduos sólidos.
-- **Objetos** (236): Tabelas: 8 · Views: 1 · Colunas: 104 · Restrições: 32 · Índices: 17 · Funções: 3 · Gatilhos: 4 · Políticas de acesso: 27 · Tipos: 5 · Privilégios: 35
+- **Observação**: Processos e recomendações da câmara de resíduos sólidos. As análises por IA (caters_ai_jobs) não serão refeitas no sistema novo (A-039).
+- **Objetos** (205): Tabelas: 7 · Views: 1 · Colunas: 90 · Restrições: 27 · Índices: 14 · Funções: 2 · Gatilhos: 3 · Políticas de acesso: 26 · Tipos: 4 · Privilégios: 31
 - **Depende de**: `core`, `fiscalizacao`
 
 ## 7. CATESA
 
 - **Id**: `catesa` · **App**: app da câmara CATESA · **Spec**: LACUNA
-- **Observação**: Análise por IA da resposta ao termo de notificação (edge functions catesa_ai_* e tabela catesa_ai_jobs, criada em produção pela migration 141).
-- **Objetos** (32): Tabelas: 1 · Colunas: 11 · Restrições: 5 · Índices: 3 · Funções: 2 · Gatilhos: 1 · Políticas de acesso: 1 · Privilégios: 8
-- **Depende de**: `core`, `processo_sancionador`
+- **Observação**: Sem objeto próprio no sistema novo: a única funcionalidade específica da CATESA no banco atual é a análise por IA da resposta ao termo (catesa_ai_jobs), que não será refeita (A-039). A câmara segue existindo no core e nos demais módulos.
+- **Objetos** (0): nenhum
+- **Depende de**: —
 
 ## 8. Portal do prestador
 

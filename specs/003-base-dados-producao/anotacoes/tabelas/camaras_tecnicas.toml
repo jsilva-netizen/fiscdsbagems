@@ -9,7 +9,8 @@ As câmaras técnicas de cada diretoria. Produção tem 12:
 
 `caterm` e `catesg` existem só no banco: a lista da interface (`CAMARAS_POR_DIRETORIA`), o
 mapa de dashboards (`CAMARA_DASHBOARD_PAGE`) e a tela de cadastro têm só as outras 10, então
-nenhum usuário consegue escolhê-las.
+nenhum usuário consegue escolhê-las. O responsável confirmou em 2026-09-30 que essas duas câmaras
+não existem: são resíduo e não vão para o sistema novo (A-010).
 
 A câmara organiza o acesso (usuário e registros têm câmara, e `can_access_camara` compara as
 duas) e a navegação (cada câmara tem seu dashboard).

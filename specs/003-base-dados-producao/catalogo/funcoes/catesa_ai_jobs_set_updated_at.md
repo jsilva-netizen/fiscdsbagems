@@ -6,7 +6,7 @@
 
 - **Retorno**: `trigger` · **Linguagem**: plpgsql · **Volatilidade**: volatile
 - **Permissão elevada** (`SECURITY DEFINER`): não
-- **Dono**: módulo **catesa**
+- **Dono**: fora do escopo: **descartar** — Análise por IA não será refeita no sistema novo (decisão do responsável, 2026-09-30)., achado A-039
 
 **Finalidade**: Função do gatilho `trg_catesa_ai_jobs_updated_at`: grava a hora atual em `updated_at`. Repete
 `update_updated_at_column` do core e `caters_set_updated_at` do CATERS. *(fonte: gatilho:public.catesa_ai_jobs.trg_catesa_ai_jobs_updated_at, funcao:update_updated_at_column())*
@@ -35,4 +35,4 @@ $function$
 
 ## Divergências e achados
 
-_Nenhuma divergência entre produção e migrations, nenhum achado._
+- Achado **A-039** — Análises por IA ficam fora do sistema novo (situação: decidido; [detalhes](../../achados.md#a-039)).

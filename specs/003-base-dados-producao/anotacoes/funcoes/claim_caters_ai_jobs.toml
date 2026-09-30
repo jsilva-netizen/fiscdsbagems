@@ -1,5 +1,5 @@
 [objeto."funcao:claim_caters_ai_jobs(p_limit integer, p_job_id uuid, p_stale_minutes integer)"]
-modulo = "caters"
+fora_escopo = { classificacao = "descartar", motivo = "Análise por IA não será refeita no sistema novo (decisão do responsável, 2026-09-30).", achado = "A-039" }
 finalidade = """
 Reivindica trabalhos da fila de IA do CATERS para o worker: marca como `processing` um trabalho
 específico ou os mais antigos em `queued`, e também os `processing` parados.

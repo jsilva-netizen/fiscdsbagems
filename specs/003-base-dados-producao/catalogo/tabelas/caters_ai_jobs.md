@@ -3,7 +3,7 @@
 # caters_ai_jobs
 
 - **Tipo**: tabela
-- **Dono**: módulo **caters**
+- **Dono**: fora do escopo: **descartar** — Análise por IA não será refeita no sistema novo (decisão do responsável, 2026-09-30)., achado A-039
 - **Linhas em produção**: 7
 - **RLS ativo**: sim
 
@@ -107,3 +107,4 @@ is_caters_user()
 ## Divergências e achados
 
 - Achado **A-033** — Análises por IA do CATERS nunca processadas em produção (situação: decidido; [detalhes](../../achados.md#a-033)).
+- Achado **A-039** — Análises por IA ficam fora do sistema novo (situação: decidido; [detalhes](../../achados.md#a-039)).

@@ -7,7 +7,7 @@
 - **Espécie**: enum
 - **Valores**: `extract_pdf`, `analyze_response`, `match_response_pdf`
 - **Usado em**: [caters_ai_jobs](tabelas/caters_ai_jobs.md).`job_type`
-- **Dono**: módulo **caters**
+- **Dono**: fora do escopo: **descartar** — Análise por IA não será refeita no sistema novo (decisão do responsável, 2026-09-30)., achado A-039
 
 **Finalidade**: Tipos de análise por IA do CATERS:
 

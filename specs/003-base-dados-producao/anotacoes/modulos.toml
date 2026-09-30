@@ -40,7 +40,7 @@ nome = "Processo sancionador"
 ordem = 5
 app = "processo sancionador"
 spec = ""
-observacao = "Termos de notificação, respostas a determinações, autos de infração, manifestações, pareceres técnicos, julgamentos e remessas para análise com IA."
+observacao = "Termos de notificação, respostas a determinações, autos de infração (AI), manifestações, pareceres técnicos, julgamentos e remessas de autos de infração à entidade (remessas_ai: AI aqui é auto de infração)."
 
 [[modulo]]
 id = "caters"
@@ -48,7 +48,7 @@ nome = "CATERS"
 ordem = 6
 app = "app da câmara CATERS"
 spec = ""
-observacao = "Processos, recomendações e análises com IA da câmara de resíduos sólidos."
+observacao = "Processos e recomendações da câmara de resíduos sólidos. As análises por IA (caters_ai_jobs) não serão refeitas no sistema novo (A-039)."
 
 [[modulo]]
 id = "catesa"
@@ -56,7 +56,7 @@ nome = "CATESA"
 ordem = 7
 app = "app da câmara CATESA"
 spec = ""
-observacao = "Análise por IA da resposta ao termo de notificação (edge functions catesa_ai_* e tabela catesa_ai_jobs, criada em produção pela migration 141)."
+observacao = "Sem objeto próprio no sistema novo: a única funcionalidade específica da CATESA no banco atual é a análise por IA da resposta ao termo (catesa_ai_jobs), que não será refeita (A-039). A câmara segue existindo no core e nos demais módulos."
 
 [[modulo]]
 id = "portal_prestador"
