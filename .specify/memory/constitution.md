@@ -93,7 +93,8 @@ constituição.
 **Stack obrigatória**
 
 - Backend: Django + Django REST Framework, autenticação por JWT (SimpleJWT).
-- Banco: PostgreSQL self-hosted, próprio do sistema. Sem Backend-as-a-Service.
+- Banco: PostgreSQL self-hosted, próprio do sistema, único e compartilhado por todos os apps,
+  os de agora e os que vierem. Sem Backend-as-a-Service.
 - Assíncrono: Celery + Redis, para as tarefas de fundo, incluindo o agendamento de rotinas de
   prazo e a geração de relatórios.
 - Arquivos: `django-storages` com backend abstraído; nunca caminho de filesystem direto
@@ -134,6 +135,10 @@ tomada pelo fluxo de assessment e registrada em emenda a esta constituição.
 O sistema é um só, com um banco único, e MUST nascer preparado para receber apps de outras
 áreas da agência (ex.: RH, financeiro, frotas):
 
+- Todos os apps, os de agora e os que vierem, usam o mesmo banco. Um app MUST NOT ter banco
+  próprio nem manter dados num banco separado sincronizado com este. O armazenamento local do
+  aplicativo offline não é outro banco: é a cópia de trabalho do aparelho, que sincroniza com o
+  banco único.
 - Cada área ganha um app no mesmo sistema, com telas próprias, e consulta os mesmos dados dos
   demais apps, conforme as permissões do papel de quem acessa. Ex.: o coordenador lança o
   planejamento, o diretor aprova, e RH, financeiro e frotas veem o planejamento aprovado, cada
@@ -229,4 +234,4 @@ constituição. Complexidade que viole o Princípio V MUST ser justificada por e
 removida. Violação de princípio marcado NÃO NEGOCIÁVEL bloqueia a entrega, sem exceção
 por prazo.
 
-**Version**: 2.4.0 | **Ratified**: 2026-09-18 | **Last Amended**: 2026-09-30
+**Version**: 2.4.1 | **Ratified**: 2026-09-18 | **Last Amended**: 2026-09-30
