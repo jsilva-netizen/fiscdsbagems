@@ -31,6 +31,7 @@ escrita valem para uso com rede e aplicam as mesmas regras e serviços.
 | `POST fiscalizacoes/{id}/reabrir` | `{motivo}` obrigatório; só com rede; fiscal ou coordenador da câmara; **400** sem motivo |
 | `DELETE fiscalizacoes/{id}` | **409** se já finalizada alguma vez ou com documento ligado (relatório, ou consulta de outros apps: termo, auto, remessa) |
 | `GET fiscalizacoes/{id}/historico` | auditoria da fiscalização e do que pende dela |
+| `POST fiscalizacoes/{id}/fotos/zip` | gera em segundo plano o arquivo compactado das fotos (pastas com e sem marca d'água, subpasta por registro); aviso e endereço assinado quando pronto |
 
 ## Registros de campo e vistoria
 

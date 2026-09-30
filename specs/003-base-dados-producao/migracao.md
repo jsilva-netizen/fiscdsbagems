@@ -184,7 +184,7 @@ Mapa: `anotacoes/migracao/fiscalizacao.toml` · data-model: `specs/007-modulo-fi
 | `coluna:fiscalizacoes.last_modified_by` | 26 linhas | descartado | Quem alterou por último está na auditoria migrada (R-fiscalizacao-024); a migração confere que a auditoria tem a mesma última alteração. |
 | `coluna:fiscalizacoes.latitude_inicio` | 26 linhas | descartado | O app não grava (A-025). |
 | `coluna:fiscalizacoes.longitude_inicio` | 26 linhas | descartado | O app não grava (A-025). |
-| `coluna:fiscalizacoes.municipio_id` | 26 linhas | `fiscalizacao.Fiscalizacao.municipio` | Município inexistente (não há chave em produção, A-037) é carregado como legado e listado. |
+| `coluna:fiscalizacoes.municipio_id` | 26 linhas | `fiscalizacao.Fiscalizacao.municipio`<br>`fiscalizacao.Fiscalizacao.destinos` | O município vira também o destino do tipo município. Vazio nas fiscalizações rodoviárias, cujos destinos (concessão e rodovia) vêm do app da CATERF. Município inexistente (não há chave em produção, A-037) é carregado como legado e listado. |
 | `coluna:fiscalizacoes.municipio_nome` | 26 linhas | descartado | Cópia do nome do município, que vem do core. A migração confere a cópia contra o município antes do descarte, e a divergência vai para o relatório. |
 | `coluna:fiscalizacoes.numero_termo` | 26 linhas | `fiscalizacao.Fiscalizacao.numero_termo` | Como está; alimenta a sequência do ano (SequenciaTermo). |
 | `coluna:fiscalizacoes.prestador_servico_id` | 26 linhas | `fiscalizacao.Fiscalizacao.entidade` | Entidade inexistente (sem chave em produção, A-037) é carregada como legado e listada. |

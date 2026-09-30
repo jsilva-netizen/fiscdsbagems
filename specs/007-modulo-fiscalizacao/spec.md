@@ -379,7 +379,7 @@ origem. Um arquivo com unidade de tipo inexistente é recusado com o motivo da l
 ### Key Entities
 
 - **Fiscalização**:
-  - câmara, entidade, município, serviços;
+  - câmara, entidade, destinos (e município, quando for destino), serviços;
   - atividade planejada, ou urgência com motivo;
   - equipe e responsável;
   - datas de início e fim;
@@ -416,7 +416,10 @@ da spec 003.
 
 - **Comportamento desejado**: a fiscalização tem:
   - câmara técnica (obrigatória);
-  - entidade regulada e município (obrigatórios, com chave para o core);
+  - entidade regulada (obrigatória, com chave para o core);
+  - destinos, copiados da atividade planejada, com os tipos registrados pelos apps (município e
+    entidade do core; concessão e rodovia da CATERF), e o município (com chave para o core) quando
+    algum destino é município. A fiscalização rodoviária não tem município;
   - serviços fiscalizados (pelo menos um, todos da câmara);
   - atividade planejada, ou marca de urgência com motivo (R-fiscalizacao-002);
   - equipe (usuários) e fiscal responsável;
@@ -790,7 +793,9 @@ da spec 003.
     linhas com rodovia e KM.
 
   O sistema guarda sempre a versão com marca d'água e a versão sem marca. Cada registro tem até 20
-  fotos, com legenda, e elas são reordenáveis e excluíveis. A ordem é a do relatório ("Figura n –
+  fotos, com legenda, e elas são reordenáveis e excluíveis. A equipe baixa as fotos de uma
+  fiscalização num arquivo compactado, com duas pastas (com e sem marca d'água) e uma subpasta por
+  registro, como a lista da DTR faz hoje. A ordem é a do relatório ("Figura n –
   legenda"). As fotos vão ao servidor pela fila e são entregues só a quem alcança a fiscalização,
   por endereço temporário (A-016, A-017).
 - **Comportamento atual**:
@@ -1177,7 +1182,7 @@ Fonte: `src/pages/` e `src/components/fiscalizacao/` do sistema atual.
 
 | Ação | Regra |
 |---|---|
-| Escolher município, entidade e serviços | R-fiscalizacao-002 (vêm da atividade planejada) |
+| Escolher município, entidade e serviços | R-fiscalizacao-002 (vêm da atividade planejada, com os destinos) |
 | Link "Novo" para cadastrar entidade | fora: core (R-core-016) |
 | Capturar e recapturar a posição GPS (não gravada) | R-fiscalizacao-024 (retirada: o ponto é do registro de campo) |
 

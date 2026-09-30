@@ -11,6 +11,7 @@ câmara.
 |---|---|---|
 | `registrar_layout_relatorio(codigo, app, template, contexto)` | template HTML e uma função que acrescenta ao contexto padrão os dados próprios (ex.: rodovia, KM, frente) | escolhido na configuração da câmara; o motor de documentos gera o PDF (F10) |
 | `registrar_tipo_registro_avulso(codigo, app, serializador_extensao, apagar_extensao)` | o serializador dos dados próprios do registro avulso, gravados no modelo do app da câmara, e a remoção deles | `servicos.criar_registro_avulso(fiscalizacao, dados_comuns, dados_extensao)` valida o comum (catálogo no modo avulso, item, resposta, ponto, fotos), grava, chama o serializador da câmara na mesma transação e consolida |
+| `registrar_extensao_fiscalizacao(app, serializador_extensao)` | o serializador dos dados próprios da câmara sobre a fiscalização (ex.: contrato e rodovia da CATERF), gravados no modelo do app da câmara | `servicos.criar_fiscalizacao` aceita os dados da extensão e chama o serializador na mesma transação; sem rede, o aparelho envia a extensão pela sincronização do app da câmara, depois da fiscalização |
 | `registrar_verificacao_documento(app, funcao)` | função que diz se a fiscalização tem documento do app (termo, auto, remessa) | a exclusão da fiscalização é recusada se alguma disser que sim (R-fiscalizacao-015) |
 | `registrar_campos_marca_dagua(app, campos)` | nomes e descrições dos campos que o app acrescenta às linhas da marca d'água (ex.: `{rodovia}`, `{km}`, `{sentido}`) | a tela de configuração oferece os campos; o aparelho preenche (abaixo) |
 

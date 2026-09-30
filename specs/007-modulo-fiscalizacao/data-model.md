@@ -45,7 +45,8 @@ Uma linha por ano (F6).
 | id | UUID | do aparelho |
 | camara | → CamaraTecnica | obrigatória |
 | entidade | → Entidade | obrigatória |
-| municipio | → Municipio | obrigatório |
+| municipio | → Municipio, opcional | obrigatório quando algum destino é município |
+| destinos | lista de destinos | copiados da atividade: tipo registrado, objeto_id, nome no momento (como no planejamento) |
 | servicos | → Servico (vários) | pelo menos um; todos da câmara |
 | atividade_id | UUID, opcional | `atividade_id` do planejamento; único quando preenchido (F15) |
 | urgencia | booleano | verdadeiro só sem atividade, criada por coordenador |

@@ -19,8 +19,8 @@ para = "fiscalizacao.Fiscalizacao.camara"
 transformacao = "Vazia: deduzida dos serviços pela regra corrigida do A-021. Sem dedução possível, a fiscalização é carregada com a marca de legado 'sem câmara' e fica visível só ao administrador até ser classificada (premissa do core)."
 
 [destino."coluna:fiscalizacoes.municipio_id"]
-para = "fiscalizacao.Fiscalizacao.municipio"
-transformacao = "Município inexistente (não há chave em produção, A-037) é carregado como legado e listado."
+para = ["fiscalizacao.Fiscalizacao.municipio", "fiscalizacao.Fiscalizacao.destinos"]
+transformacao = "O município vira também o destino do tipo município. Vazio nas fiscalizações rodoviárias, cujos destinos (concessão e rodovia) vêm do app da CATERF. Município inexistente (não há chave em produção, A-037) é carregado como legado e listado."
 
 [destino."coluna:fiscalizacoes.municipio_nome"]
 descarte = "Cópia do nome do município, que vem do core. A migração confere a cópia contra o município antes do descarte, e a divergência vai para o relatório."
