@@ -63,7 +63,7 @@ oferecer, para os catálogos desse modelo, cadastro, versionamento, importação
 controle de acesso, sem nenhuma alteração no motor.
 
 **Why this priority**: é o que torna o motor comum a todas as câmaras; sem isso, cada câmara
-exigiria mudar o módulo (constituição v2.5.0, "Independência entre apps").
+exigiria mudar o módulo (constituição v2.6.0, "Apps comuns como motores genéricos").
 
 **Independent Test**: um app de teste registra um modelo com resposta Sim / Não / Não se aplica, um
 campo de agrupamento e um formato de planilha próprio; a equipe cadastra e importa itens, e uma
@@ -556,7 +556,8 @@ da spec 003. As regras descrevem só peças genéricas; o que cada câmara faz h
   implantação; o motor não importa código do app.
 - **Comportamento atual**: não há modelo; cada lista é uma tabela e uma tela próprias.
 - **Motivo da diferença**: é a peça que permite a cada câmara adaptar o motor às suas necessidades
-  sem mudá-lo (decisão do responsável, 2026-09-30).
+  sem mudá-lo (decisão do responsável, 2026-09-30; constituição v2.6.0, "Apps comuns como motores
+  genéricos").
 - **Objetos do catálogo**: — (conceito novo; não há objeto no banco)
 - **Origem**: decisão do responsável, 2026-09-30.
 
@@ -570,10 +571,11 @@ da spec 003. As regras descrevem só peças genéricas; o que cada câmara faz h
   registra um modelo novo e o usa sem mudança no motor.
 - **Comportamento atual**: cada câmara tem tabela, tela e regras próprias no código: tipos de unidade
   e itens da DSB, tipos de ocorrência da DTR, aba de tipos nas Definições da DTR.
-- **Motivo da diferença**: constituição v2.5.0 (o módulo comum não depende de apps de área, e mudar
-  uma área não exige mudar o comum); decisão do responsável: o motor é um "lego".
+- **Motivo da diferença**: constituição v2.6.0, "Apps comuns como motores genéricos" (app comum não
+  contém nada de uma câmara; a câmara monta o seu uso por configuração), e v2.5.0, "Independência
+  entre apps"; decisão do responsável: o motor é um "lego".
 - **Objetos do catálogo**: `tabela:tipos_unidade`, `tabela:itens_checklist`, `tabela:tipos_ocorrencia_dtr`
-- **Origem**: decisão do responsável, 2026-09-30; constituição v2.5.0.
+- **Origem**: decisão do responsável, 2026-09-30; constituição v2.6.0.
 
 ### R-checklists-017 — Mudança de modelo
 
@@ -594,7 +596,7 @@ Configuração que preserva o que o sistema atual faz, a ser registrada pelos ap
 (R-checklists-015). Não é parte do motor; a spec de cada câmara a confirma. Enquanto uma câmara não
 tiver app próprio, o modelo dela entra como dado de configuração na implantação.
 
-### Modelo "Checklist por tipo de unidade" (DSB: CATESA e CATERS)
+### Modelo "Checklist por tipo de unidade" (apps da CATESA e da CATERS)
 
 - **Modo**: lista por unidade. Cada tipo de unidade é um catálogo deste modelo (33 em produção).
 - **Campos do item**:
@@ -621,7 +623,7 @@ tiver app próprio, o modelo dela entra como dado de configuração na implanta�
   não existem (nome ou código, sem diferenciar maiúsculas, com os serviços da planilha). Chave: catálogo
   + ordem.
 
-### Modelo "Ocorrências do PER" (DTR)
+### Modelo "Ocorrências do PER" (app da câmara das rodovias, na DTR)
 
 - **Modo**: registro avulso. Um catálogo em produção (79 tipos).
 - **Campos do item**:
@@ -731,10 +733,12 @@ modelo (R-checklists-016).
 
 ## Assumptions
 
-- **Quem registra os modelos de hoje**: o modelo "Ocorrências do PER" é do app da DTR; o modelo
-  "Checklist por tipo de unidade" é usado pela CATESA e pela CATERS e é registrado pelo app da câmara
-  que primeiro for construído (ou como dado de configuração, se a fiscalização da DSB entrar antes de
-  um app de câmara). Em nenhum caso ele fica no motor nem no app de fiscalização comum.
+- **Quem registra os modelos de hoje**: cada câmara tem o seu app (constituição v2.6.0). Os apps
+  da CATESA e da CATERS registram, cada um, o seu modelo "Checklist por tipo de unidade", hoje
+  iguais, que podem divergir depois sem afetar a outra câmara. O modelo "Ocorrências do PER" é
+  registrado pelo app da câmara da DTR responsável pelas rodovias, a que o responsável definir no
+  vínculo serviço → câmara (R-core-014). Nenhum modelo fica no motor nem no app de fiscalização
+  comum.
 - **Migração da DSB**: cada uma das 768 linhas vira uma versão de item de um catálogo do modelo DSB,
   com o mesmo identificador (as respostas apontam para ele). As linhas são agrupadas em itens estáveis
   pela chave atual (tipo mais ordem, ou pergunta), ordenadas por data; a vigência vai da data da
@@ -749,7 +753,7 @@ modelo (R-checklists-016).
   rodovias, e a câmara dele é a que o responsável definir para esse serviço (R-core-014).
 - **Tipos sem itens**: os 3 tipos de produção sem itens são migrados e ficam indisponíveis para
   unidade nova até terem itens.
-- **DGE**: não tem catálogo hoje; o app dela registra o modelo quando vier.
+- **DGE**: não tem catálogo hoje; o app de cada câmara da DGE registra o seu modelo quando vier.
 - **Planilhas**: os formatos de hoje (DSB e DTR) são mantidos nos modelos, para a equipe não refazer
   as planilhas; a DSB ganha o arquivo modelo para baixar.
 - **Prazo e texto da NC no formulário da DSB**: a divergência entre o relato do responsável e o

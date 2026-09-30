@@ -151,7 +151,7 @@ Substitui a lista `prestadores_servico.documentos`: um registro por documento, s
 | vigente | booleano | (`contratos.ativo`) |
 | criado_em, atualizado_em | data e hora | |
 
-A DTR estende o contrato no app dela (rodovia, traçado KML, pontos de KM), com um registro próprio
+O app da câmara das rodovias estende o contrato (rodovia, traçado KML, pontos de KM), com um registro próprio
 ligado a este (R-core-020); o core não conhece esses campos.
 
 ## Auditoria e sincronização

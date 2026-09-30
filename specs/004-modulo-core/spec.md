@@ -146,7 +146,8 @@ tem acesso à entidade; uma entidade com processos não pode ser excluída, só 
 ### User Story 5 - Equipe mantém os contratos das entidades (Priority: P2)
 
 A equipe registra os contratos (instrumentos) firmados com as entidades reguladas: número, entidade
-e vigência. Módulos de diretoria acrescentam o que é deles (a DTR, a rodovia e o traçado).
+e vigência. Os apps das câmaras acrescentam o que é deles (a câmara das rodovias, a rodovia e o
+traçado).
 
 **Why this priority**: os contratos são a fonte única de instrumentos (constituição, "Fronteiras de
 domínio"); hoje só a DTR os usa, e o módulo DTR depende deles.
@@ -299,8 +300,8 @@ primeira.
 - **Entidade regulada**: concessionária ou órgão público que presta serviço regulado; identificação,
   contato, serviços prestados, situação, documentos e logotipo.
 - **Documento da entidade**: arquivo anexo a uma entidade, com nome, tipo e data.
-- **Contrato**: instrumento firmado com uma entidade; número, entidade e vigência. Módulos de
-  diretoria o estendem.
+- **Contrato**: instrumento firmado com uma entidade; número, entidade e vigência. Os apps das
+  câmaras o estendem.
 - **Área da agência**: unidade organizacional a que o usuário pertence. Hoje são as diretorias e
   câmaras técnicas; apps de outras áreas (RH, financeiro, frotas) acrescentam as suas.
 - **Credencial de sistema**: acesso de um sistema externo integrado (ex.: folha de ponto), com
@@ -646,8 +647,8 @@ da spec 003 (`specs/003-base-dados-producao/catalogo/`).
 ### R-core-020 — Contratos (instrumentos)
 
 - **Comportamento desejado**: a equipe registra contratos de uma entidade, inclusive sem rede: número
-  (obrigatório), entidade e vigência (vigente ou encerrado). Módulos de diretoria acrescentam dados
-  próprios ao contrato (a DTR, a rodovia, o traçado KML e os pontos de KM). O prestador não alcança
+  (obrigatório), entidade e vigência (vigente ou encerrado). Os apps das câmaras acrescentam dados
+  próprios ao contrato (o da câmara das rodovias, a rodovia, o traçado KML e os pontos de KM). O prestador não alcança
   contratos por este módulo. Desativar a entidade não apaga os contratos. Contrato sem nenhum
   registro que o referencie (de qualquer app) pode ser excluído, com a confirmação em dois passos de
   hoje; com registros, só passa a encerrado.

@@ -229,10 +229,10 @@ diretoria (R-core-020).
 
 - [ ] T070 [US5] Criar `Contrato` em `C/models/contrato.py`: `id` UUID (do aparelho), `entidade` FK protegida, `numero` obrigatório, `vigente`, `criado_em`, `atualizado_em`
 - [ ] T071 [US5] Implementar os serviços de contrato em `C/servicos.py` (auditados, registrados na sincronização) e as views em `C/api/contratos.py` com matriz declarada
-- [ ] T072 [US5] Expor em `C/consultas.py` a consulta de contratos e documentar em `C/consultas.py` como um app de diretoria estende o contrato com registro próprio ligado a ele (a DTR, com rodovia e traçado)
+- [ ] T072 [US5] Expor em `C/consultas.py` a consulta de contratos e documentar em `C/consultas.py` como um app de câmara estende o contrato com registro próprio ligado a ele (o da câmara das rodovias, com rodovia e traçado)
 - [ ] T073 [P] [US5] Criar as telas de contratos em `frontend/src/core/contratos/`
 
-**Checkpoint**: contratos prontos para o app da DTR estender.
+**Checkpoint**: contratos prontos para o app da câmara das rodovias estender.
 
 ---
 
