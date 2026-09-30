@@ -183,9 +183,13 @@ só municípios, serviços, quantidades e custos. (confidence: high, cited)
   sem placa ou modelo.
 - **Revisão periódica**: o documento é uma "Atualização" trimestral (julho, agosto e setembro) do
   cronograma, publicada como anexo.
-- **Erros de conta na planilha**: nas duas viagens de agosto, os totais de diárias estão trocados
-  (5 × R$ 200 aparece como R$ 1.400, e 7 × R$ 200 como R$ 1.000), o que afeta a coluna
-  "combustível + diárias". É evidência a favor do cálculo automático.
+- **Erros de conta na planilha** (conferidos recalculando as 10 linhas):
+  - nas duas viagens de agosto, os totais de diárias estão trocados (5 × R$ 200 aparece como
+    R$ 1.400, e 7 × R$ 200 como R$ 1.000), o que afeta a coluna "combustível + diárias";
+  - em junho, o total "combustível + diárias" é R$ 2.675,00, e a soma de R$ 875,00 com R$ 1.750,00
+    dá R$ 2.625,00.
+
+  São 3 viagens com erro em 10. É evidência a favor do cálculo automático.
 
 Decisões do responsável depois da leitura da planilha (2026-09-30, sessão):
 - **Plano e viagens**: um plano por câmara, e uma viagem pode ser conjunta de duas câmaras da mesma
