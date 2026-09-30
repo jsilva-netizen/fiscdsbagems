@@ -92,3 +92,42 @@ segundo fluxo de aprovação sem virar motor de regras.
   - [NEEDS CLARIFICATION: posse do cadastro de veículos quando o app de frotas existir]
   - [NEEDS CLARIFICATION: premissa externa: o que RH, financeiro e frotas precisam ler, e com que
     antecedência — provisório até ouvir as áreas]
+
+## Revisão (2026-09-30): depois da planilha real
+
+O veredito continua **go**, com a opção B. A planilha real da DSB (adendo do research.md) e as
+decisões do responsável ajustam o handoff. Onde houver conflito, vale este bloco.
+
+- **Evidência**: sobe para perto de forte. A planilha confirma as colunas, a granularidade e o
+  vocabulário; continuam sem escuta RH, financeiro e frotas.
+- **Unidade do plano**: o item é uma **viagem**, com período, um ou mais municípios ou outros
+  objetos, uma ou mais atividades de uma lista de tipos da câmara (fiscalização, apresentação de
+  proposta de revisão tarifária, educação ambiental...) e os serviços de cada atividade. Só as
+  atividades de fiscalização se ligam à execução de campo.
+- **Plano por câmara, viagem conjunta**: cada câmara tem o seu plano anual. Uma viagem pode ser
+  conjunta de duas ou mais câmaras da mesma diretoria, e cada câmara tem nela os seus serviços, a
+  sua equipe e os seus custos. Cada coordenador elabora e altera só a sua parte; o diretor vê e
+  aprova o conjunto.
+- **Custos estimados entram no escopo** (deixa de valer o "sem valores"):
+  - combustível: distância em KM ÷ autonomia do veículo × preço do litro;
+  - diárias: quantidade, com meia diária, × valor unitário;
+  - totais por viagem, por câmara e do plano.
+
+  É estimativa de planejamento; pagar diárias e abastecer continuam com o financeiro e frotas, nos
+  apps deles. Os parâmetros (preço do litro, valores de diária por destino) são configuração da
+  câmara ou da diretoria [NEEDS CLARIFICATION: quem mantém os valores de diária e o preço do litro,
+  e do que depende o valor unitário da diária (R$ 200, 240, 250 na planilha)].
+- **Equipe**: o plano é aprovado com a quantidade de servidores e de diárias. Depois da aprovação,
+  o coordenador escala os nomes, só servidores das câmaras (não há motorista nem outras áreas).
+  Escalar servidor de outra câmara exige a liberação do coordenador dessa câmara, depois da
+  aprovação do diretor.
+- **Mudanças**: a lista fechada de tipos de mudança continua. Por decisão do responsável, toda
+  mudança que aumenta o valor das diárias pede aprovação do diretor, e a câmara não pode desmarcar
+  isso.
+- **Revisão periódica**: o plano anual é revisado ao longo do ano (hoje há atualizações trimestrais
+  publicadas como anexo) [NEEDS CLARIFICATION: a atualização trimestral é uma nova versão do plano
+  aprovada pelo diretor, ou o conjunto das mudanças do trimestre?].
+- **Documento do plano**: o sistema emite o cronograma no formato do Anexo I (mês, datas,
+  municípios, serviços, KM, custos) para anexar ao processo, com o layout de cada câmara.
+- **Perguntas resolvidas**: planilha real; quem é a chefia de origem; motorista (não existe);
+  liberação depois da aprovação; aumento de diárias pede aprovação.

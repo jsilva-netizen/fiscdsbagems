@@ -161,3 +161,42 @@ Não há planilha de planejamento no repositório, nem entrevista com coordenado
 - `.specify/memory/constitution.md` (v2.6.2); `specs/004-modulo-core/spec.md`;
   `specs/005-modulo-checklists/spec.md` — interno
 - Nenhuma URL externa foi consultada.
+
+## Adendo (2026-09-30): planilha real da DSB
+
+Fonte: `specs/Atualização Cronograma de Fiscalização Programada_Julho, Agosto e Setembro-2026.pdf`
+("Anexo I — Cronograma de Fiscalização", DSB), fornecido pelo responsável. Não contém dado pessoal:
+só municípios, serviços, quantidades e custos. (confidence: high, cited)
+
+- **Unidade do plano = viagem**: cada linha é uma viagem com período (data de início e fim), um ou
+  mais municípios (até 3) e um ou mais serviços. São 10 viagens, de fevereiro a setembro de 2026.
+- **Viagem que atende duas câmaras**: "SAA, SES e RS" junta água e esgoto (CATESA) e resíduos
+  sólidos (CATERS) na mesma viagem.
+- **Atividades que não são fiscalização**: "Apresentação de Proposta de Revisão Tarifária" e
+  "SAA, SES e Educação Ambiental" aparecem como viagens do mesmo cronograma.
+- **Custos calculados**:
+  - combustível = KM ÷ autonomia do veículo (8 km/L) × preço do litro (R$ 7,00);
+  - diárias = quantidade (com meia diária: 7,5; 4,5) × valor unitário (R$ 200, 240 ou 250,
+    conforme a viagem);
+  - total = combustível + diárias.
+- **Equipe como quantidade**: "QTDE. SERVIDORES" (2 a 4), sem nomes; veículo só pela autonomia,
+  sem placa ou modelo.
+- **Revisão periódica**: o documento é uma "Atualização" trimestral (julho, agosto e setembro) do
+  cronograma, publicada como anexo.
+- **Erros de conta na planilha**: nas duas viagens de agosto, os totais de diárias estão trocados
+  (5 × R$ 200 aparece como R$ 1.400, e 7 × R$ 200 como R$ 1.000), o que afeta a coluna
+  "combustível + diárias". É evidência a favor do cálculo automático.
+
+Decisões do responsável depois da leitura da planilha (2026-09-30, sessão):
+- **Plano e viagens**: um plano por câmara, e uma viagem pode ser conjunta de duas câmaras da mesma
+  diretoria. Cada câmara tem na viagem os seus serviços e a sua equipe, e cada coordenador cuida da
+  sua parte.
+- **Custos**: o plano calcula o custo estimado de combustível e diárias, como a planilha; pagar
+  continua sendo do financeiro.
+- **Atividades**: a viagem tem uma ou mais atividades (fiscalização, apresentação, educação
+  ambiental...), de uma lista de tipos da câmara; só as de fiscalização se ligam à execução.
+- **Equipe**: o diretor aprova com a quantidade de servidores e de diárias; depois da aprovação, o
+  coordenador escala os nomes.
+- **Liberação**: a chefia de um servidor de outra câmara é o coordenador dessa câmara, e a liberação
+  vem depois da aprovação do diretor. Não há motorista: a equipe é só de servidores das câmaras.
+- **Aprovação de mudanças**: mudança que aumenta o valor das diárias pede aprovação do diretor.
