@@ -170,6 +170,12 @@ A CATESA ganhou `catesa_ai_jobs` em produção (migration 141), mas o responsáv
 2026-09-30 que a análise por IA não será refeita (A-039): as filas de IA do CATERS e da CATESA
 ficaram fora do escopo, e a CATESA não tem objeto próprio no sistema novo.
 
+**Planejamento (2026-09-30)**: o responsável acrescentou o módulo **planejamento de fiscalizações**,
+funcionalidade nova sem objeto no banco atual, na ordem 3, antes da fiscalização (que executa o que
+foi planejado). Os módulos seguintes passaram uma posição para baixo. O sistema também deve nascer
+pronto para apps de outras áreas (RH, financeiro, frotas), interligados; ver a spec 004, R-core-023 e
+R-core-024.
+
 **Rationale**: a atribuição pelas chaves estrangeiras dá uma ordem sem ciclos entre tabelas. A
 verificação completa, com chamadas entre funções e funções usadas por políticas, é tarefa da
 implementação (SC-008), e a ordem pode mudar se ela encontrar dependência que as chaves

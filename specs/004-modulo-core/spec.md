@@ -27,8 +27,10 @@ registrando, regra a regra, o que muda e por quê.
 
 Fica fora desta spec: o que o prestador vê e faz no portal (módulo portal do prestador), o traçado
 KML e os pontos de KM dos contratos (módulo DTR), as regras de acesso específicas de cada tabela
-dos outros módulos (cada spec descreve as suas, usando as regras de base daqui) e a análise por IA,
-que não será refeita (A-039).
+dos outros módulos (cada spec descreve as suas, usando as regras de base daqui), o planejamento anual
+de fiscalizações (spec própria, antes da fiscalização), os apps de outras áreas da agência (RH,
+financeiro, frotas), que virão depois, e a análise por IA, que não será refeita (A-039). O core
+precisa nascer pronto para receber esses apps (R-core-023, R-core-024).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -274,6 +276,14 @@ primeira.
   imutável com autor, data e dados antes e depois (R-core-022).
 - **FR-018**: A consulta ao histórico MUST respeitar o isolamento por câmara (R-core-022).
 
+**Extensão para outras áreas**
+
+- **FR-019**: O cadastro de usuários e o controle de acesso MUST aceitar áreas e papéis novos,
+  trazidos por apps de outras áreas da agência (ex.: RH, financeiro, frotas), sem alterar as regras dos
+  papéis existentes (R-core-023).
+- **FR-020**: Sistemas externos integrados MUST acessar o sistema só por credencial de sistema própria,
+  com permissão limitada, revogável e auditada (R-core-024).
+
 ### Key Entities
 
 - **Usuário**: pessoa que usa o sistema. Nome, e-mail único, papel, situação (ativo ou desativado),
@@ -288,6 +298,10 @@ primeira.
 - **Documento da entidade**: arquivo anexo a uma entidade, com nome, tipo e data.
 - **Contrato**: instrumento firmado com uma entidade; número, entidade e vigência. Módulos de
   diretoria o estendem.
+- **Área da agência**: unidade organizacional a que o usuário pertence. Hoje são as diretorias e
+  câmaras técnicas; apps de outras áreas (RH, financeiro, frotas) acrescentam as suas.
+- **Credencial de sistema**: acesso de um sistema externo integrado (ex.: folha de ponto), com
+  permissões próprias, sem ser conta de pessoa.
 - **Registro de auditoria**: tabela e registro alterados, operação, autor, data, dados antes e
   depois.
 
@@ -319,7 +333,8 @@ da spec 003 (`specs/003-base-dados-producao/catalogo/`).
 
 - **Comportamento desejado**: todo usuário tem exatamente um papel: administrador, coordenador,
   fiscal, diretor ou prestador. O papel é obrigatório na criação e não tem valor padrão; qualquer
-  outro valor é recusado. O papel só tem efeito enquanto o usuário está ativo.
+  outro valor é recusado. O papel só tem efeito enquanto o usuário está ativo. Apps de outras áreas
+  da agência acrescentam papéis próprios, sem mudar as regras destes cinco (R-core-023).
 - **Comportamento atual**: o papel é texto livre, sem restrição de valores, com padrão `user`, que
   nenhuma regra reconhece; o gatilho de perfil troca papéis não permitidos por `fiscal`.
 - **Motivo da diferença**: valor inválido ou padrão implícito cria usuários com acesso indefinido.
@@ -486,8 +501,9 @@ da spec 003 (`specs/003-base-dados-producao/catalogo/`).
 - **Comportamento desejado**: ao entrar, o diretor vê por padrão os painéis e indicadores
   consolidados da sua diretoria. A partir deles, pode consultar qualquer registro das câmaras da sua
   diretoria (fiscalizações, processos, relatórios), só para leitura: o diretor não cria, altera nem
-  exclui registros operacionais. Registros de câmaras de outras diretorias se comportam como
-  inexistentes para ele.
+  exclui registros operacionais. A exceção são as aprovações que outras specs atribuírem a ele, como a
+  aprovação do planejamento anual de fiscalizações (spec de planejamento). Registros de câmaras de
+  outras diretorias se comportam como inexistentes para ele.
 - **Comportamento atual**: nenhuma regra do banco dá acesso ao diretor (`can_access_camara` e
   `is_staff` o excluem); a interface usa a diretoria dele só para escolher painéis e módulos.
 - **Motivo da diferença**: o papel existe e é oferecido no cadastro, mas não tinha alcance definido
@@ -670,6 +686,36 @@ da spec 003 (`specs/003-base-dados-producao/catalogo/`).
   `coluna:audit_logs.user_email`, `coluna:audit_logs.old_data`, `coluna:audit_logs.new_data`,
   `politica:public.audit_logs.Fiscais, Coordenadores e Admins leem logs de auditoria`
 - **Origem**: —
+
+### R-core-023 — Áreas e papéis extensíveis
+
+- **Comportamento desejado**: a estrutura de áreas e papéis admite que novos apps tragam as áreas
+  deles e os papéis dessas áreas (ex.: servidor do RH que consulta o planejamento aprovado para lançar
+  a folha de ponto; servidor do financeiro que lança as diárias; servidor de frotas que reserva os
+  veículos). O administrador cadastra esses usuários como os demais (R-core-001), com a verificação
+  por código (R-core-005). Cada app define o que os papéis dele alcançam; acrescentar uma área ou um
+  papel não muda o que os papéis existentes alcançam, e o isolamento por câmara (R-core-011) continua
+  valendo para os dados de fiscalização.
+- **Comportamento atual**: os papéis são fixos (cinco), e só diretorias e câmaras técnicas organizam
+  os usuários.
+- **Motivo da diferença**: decisão do responsável (2026-09-30): o sistema nasce preparado para receber
+  apps de outras áreas, interligados; o planejamento de fiscalizações, aprovado pelo diretor, segue
+  para RH, financeiro e frotas.
+- **Objetos do catálogo**: `coluna:profiles.role`, `tabela:diretorias`, `tabela:camaras_tecnicas`
+- **Origem**: decisão do responsável em 2026-09-30.
+
+### R-core-024 — Credenciais de sistema para integrações
+
+- **Comportamento desejado**: um sistema externo integrado (ex.: a folha de ponto do RH, recebendo o
+  planejamento aprovado) acessa o sistema por uma credencial de sistema, criada e revogada pelo
+  administrador, com permissão limitada ao que a integração precisa. Toda ação feita por ela é
+  auditada com a identificação da integração (R-core-022). Integração nunca usa a conta de uma pessoa.
+- **Comportamento atual**: não há integração externa; as tarefas internas usam uma chave de serviço
+  única, com acesso total ao banco.
+- **Motivo da diferença**: integrações com outras áreas estão previstas (decisão do responsável,
+  2026-09-30); chave com acesso total ou conta de pessoa emprestada não deixa rastro nem limite.
+- **Objetos do catálogo**: `papel:service_role`, `funcao:e_chave_de_servico()`
+- **Origem**: decisão do responsável em 2026-09-30.
 
 ## Success Criteria *(mandatory)*
 

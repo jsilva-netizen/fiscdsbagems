@@ -19,9 +19,17 @@ spec = ""
 observacao = "Motor de checklists comum: tipos de unidade e itens de checklist (versionados, append-only)."
 
 [[modulo]]
+id = "planejamento"
+nome = "Planejamento de fiscalizações"
+ordem = 3
+app = "planejamento"
+spec = ""
+observacao = "Funcionalidade nova, sem objeto no banco atual (decisão do responsável, 2026-09-30). O coordenador elabora o planejamento anual de fiscalizações (municípios, concessões ou rodovias a fiscalizar, equipe, datas, veículos e diárias), o diretor aprova, os fiscais consultam, e o planejamento aprovado segue para as áreas pertinentes (RH para a folha de ponto, financeiro para as diárias, frotas para a reserva de veículos), que virão como apps próprios, interligados, ou por integração externa. Vem antes da fiscalização, que executa o que foi planejado."
+
+[[modulo]]
 id = "fiscalizacao"
 nome = "Fiscalização"
-ordem = 3
+ordem = 4
 app = "fiscalização"
 spec = ""
 observacao = "Fiscalização de campo comum às câmaras, incluindo a operação offline e a geração de relatórios."
@@ -29,7 +37,7 @@ observacao = "Fiscalização de campo comum às câmaras, incluindo a operação
 [[modulo]]
 id = "dtr"
 nome = "DTR"
-ordem = 4
+ordem = 5
 app = "app da diretoria/câmara DTR"
 spec = ""
 observacao = "Especificidades da DTR (tipos de ocorrência, mapa e KML); o fluxo usa as tabelas do módulo fiscalização."
@@ -37,7 +45,7 @@ observacao = "Especificidades da DTR (tipos de ocorrência, mapa e KML); o fluxo
 [[modulo]]
 id = "processo_sancionador"
 nome = "Processo sancionador"
-ordem = 5
+ordem = 6
 app = "processo sancionador"
 spec = ""
 observacao = "Termos de notificação, respostas a determinações, autos de infração (AI), manifestações, pareceres técnicos, julgamentos e remessas de autos de infração à entidade (remessas_ai: AI aqui é auto de infração)."
@@ -45,7 +53,7 @@ observacao = "Termos de notificação, respostas a determinações, autos de inf
 [[modulo]]
 id = "caters"
 nome = "CATERS"
-ordem = 6
+ordem = 7
 app = "app da câmara CATERS"
 spec = ""
 observacao = "Processos e recomendações da câmara de resíduos sólidos. As análises por IA (caters_ai_jobs) não serão refeitas no sistema novo (A-039)."
@@ -53,7 +61,7 @@ observacao = "Processos e recomendações da câmara de resíduos sólidos. As a
 [[modulo]]
 id = "catesa"
 nome = "CATESA"
-ordem = 7
+ordem = 8
 app = "app da câmara CATESA"
 spec = ""
 observacao = "Sem objeto próprio no sistema novo: a única funcionalidade específica da CATESA no banco atual é a análise por IA da resposta ao termo (catesa_ai_jobs), que não será refeita (A-039). A câmara segue existindo no core e nos demais módulos."
@@ -61,7 +69,7 @@ observacao = "Sem objeto próprio no sistema novo: a única funcionalidade espec
 [[modulo]]
 id = "portal_prestador"
 nome = "Portal do prestador"
-ordem = 8
+ordem = 9
 app = "portal do prestador"
 spec = ""
 observacao = "Sem tabela própria no banco atual: existe como políticas de acesso para o papel prestador e como telas. É dono da regra 'o prestador só vê a fiscalização depois de receber termo de notificação' (can_access_fiscalizacao, can_access_unidade e as políticas que as usam), que depende de fiscalização e processo sancionador e por isso fica depois deles."
@@ -69,7 +77,7 @@ observacao = "Sem tabela própria no banco atual: existe como políticas de aces
 [[modulo]]
 id = "tramitacao"
 nome = "Tramitação de documentos e dados"
-ordem = 9
+ordem = 10
 app = "tramitação de documentos e dados"
 spec = ""
 observacao = "Sem tabela própria no banco atual. Se corresponde a algo que já existe (remessas, respostas, histórico de análise) ou é funcionalidade nova é pergunta aberta da avaliação."

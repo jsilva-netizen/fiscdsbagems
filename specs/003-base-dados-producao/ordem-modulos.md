@@ -20,49 +20,56 @@ Violações: 0 · sem justificativa: 0.
 - **Objetos** (42): Tabelas: 2 · Colunas: 25 · Restrições: 3 · Índices: 2 · Políticas de acesso: 4 · Privilégios: 6
 - **Depende de**: `core`
 
-## 3. Fiscalização
+## 3. Planejamento de fiscalizações
+
+- **Id**: `planejamento` · **App**: planejamento · **Spec**: LACUNA
+- **Observação**: Funcionalidade nova, sem objeto no banco atual (decisão do responsável, 2026-09-30). O coordenador elabora o planejamento anual de fiscalizações (municípios, concessões ou rodovias a fiscalizar, equipe, datas, veículos e diárias), o diretor aprova, os fiscais consultam, e o planejamento aprovado segue para as áreas pertinentes (RH para a folha de ponto, financeiro para as diárias, frotas para a reserva de veículos), que virão como apps próprios, interligados, ou por integração externa. Vem antes da fiscalização, que executa o que foi planejado.
+- **Objetos** (0): nenhum
+- **Depende de**: —
+
+## 4. Fiscalização
 
 - **Id**: `fiscalizacao` · **App**: fiscalização · **Spec**: LACUNA
 - **Observação**: Fiscalização de campo comum às câmaras, incluindo a operação offline e a geração de relatórios.
 - **Objetos** (318): Tabelas: 9 · Colunas: 112 · Restrições: 27 · Índices: 33 · Funções: 12 · Gatilhos: 18 · Políticas de acesso: 42 · Repositórios de arquivos: 2 · Privilégios: 59 · Segredos (nomes): 2 · Extensões: 2
 - **Depende de**: `core`, `checklists`
 
-## 4. DTR
+## 5. DTR
 
 - **Id**: `dtr` · **App**: app da diretoria/câmara DTR · **Spec**: LACUNA
 - **Observação**: Especificidades da DTR (tipos de ocorrência, mapa e KML); o fluxo usa as tabelas do módulo fiscalização.
 - **Objetos** (45): Tabelas: 1 · Colunas: 30 · Restrições: 1 · Índices: 2 · Gatilhos: 1 · Políticas de acesso: 6 · Repositórios de arquivos: 1 · Privilégios: 3
 - **Depende de**: `core`
 
-## 5. Processo sancionador
+## 6. Processo sancionador
 
 - **Id**: `processo_sancionador` · **App**: processo sancionador · **Spec**: LACUNA
 - **Observação**: Termos de notificação, respostas a determinações, autos de infração (AI), manifestações, pareceres técnicos, julgamentos e remessas de autos de infração à entidade (remessas_ai: AI aqui é auto de infração).
 - **Objetos** (281): Tabelas: 8 · Colunas: 117 · Restrições: 32 · Índices: 13 · Funções: 7 · Gatilhos: 5 · Políticas de acesso: 44 · Repositórios de arquivos: 3 · Privilégios: 52
 - **Depende de**: `core`, `fiscalizacao`
 
-## 6. CATERS
+## 7. CATERS
 
 - **Id**: `caters` · **App**: app da câmara CATERS · **Spec**: LACUNA
 - **Observação**: Processos e recomendações da câmara de resíduos sólidos. As análises por IA (caters_ai_jobs) não serão refeitas no sistema novo (A-039).
 - **Objetos** (205): Tabelas: 7 · Views: 1 · Colunas: 90 · Restrições: 27 · Índices: 14 · Funções: 2 · Gatilhos: 3 · Políticas de acesso: 26 · Tipos: 4 · Privilégios: 31
 - **Depende de**: `core`, `fiscalizacao`
 
-## 7. CATESA
+## 8. CATESA
 
 - **Id**: `catesa` · **App**: app da câmara CATESA · **Spec**: LACUNA
 - **Observação**: Sem objeto próprio no sistema novo: a única funcionalidade específica da CATESA no banco atual é a análise por IA da resposta ao termo (catesa_ai_jobs), que não será refeita (A-039). A câmara segue existindo no core e nos demais módulos.
 - **Objetos** (0): nenhum
 - **Depende de**: —
 
-## 8. Portal do prestador
+## 9. Portal do prestador
 
 - **Id**: `portal_prestador` · **App**: portal do prestador · **Spec**: LACUNA
 - **Observação**: Sem tabela própria no banco atual: existe como políticas de acesso para o papel prestador e como telas. É dono da regra 'o prestador só vê a fiscalização depois de receber termo de notificação' (can_access_fiscalizacao, can_access_unidade e as políticas que as usam), que depende de fiscalização e processo sancionador e por isso fica depois deles.
 - **Objetos** (19): Funções: 2 · Políticas de acesso: 9 · Privilégios: 8
 - **Depende de**: `core`, `fiscalizacao`, `processo_sancionador`
 
-## 9. Tramitação de documentos e dados
+## 10. Tramitação de documentos e dados
 
 - **Id**: `tramitacao` · **App**: tramitação de documentos e dados · **Spec**: LACUNA
 - **Observação**: Sem tabela própria no banco atual. Se corresponde a algo que já existe (remessas, respostas, histórico de análise) ou é funcionalidade nova é pergunta aberta da avaliação.

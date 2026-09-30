@@ -38,6 +38,11 @@
   consolidados por padrão e consulta, só para leitura, os registros das câmaras da sua diretoria
   (R-core-012); uma entidade pode ter vários usuários prestadores, cada um com verificação por
   e-mail (R-core-004). Assinatura eletrônica futura registrada nas premissas. Todos os itens passam.
+- **Iteração 3 (2026-09-30)**: o responsável pediu que o sistema nasça pronto para apps de outras
+  áreas (RH, financeiro, frotas) e para o planejamento de fiscalizações aprovado pelo diretor.
+  Acrescentadas R-core-023 (áreas e papéis extensíveis) e R-core-024 (credenciais de sistema para
+  integrações), FR-019 e FR-020, e a exceção de aprovação do diretor na R-core-012. Todos os itens
+  passam.
 - **Chaves do catálogo nas regras**: a seção "Regras do módulo" cita objetos do banco atual
   (tabelas, funções, políticas) porque o molde da spec 003 exige rastrear cada regra até o
   catálogo. São o objeto descrito (o sistema atual), não a forma de implementar o sistema novo.
