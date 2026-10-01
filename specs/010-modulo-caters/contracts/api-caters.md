@@ -31,7 +31,7 @@ pode chamar cada rota está em [matriz-acesso.md](./matriz-acesso.md). O app é 
 
 | Método e rota | Descrição |
 |---|---|
-| `PUT caters/processos/{id}/resposta` | `{recebida_em, protocolo?, situacao_cronograma, observacoes?}`; gera evento "resposta recebida"; situação vai a `respondido` se estava aguardando |
+| `PUT caters/processos/{id}/resposta` | `{recebida_em, protocolo?, situacao_cronograma, observacoes?}`; gera evento "resposta recebida"; situação vai a `em_analise` com adequação solicitada ou a `respondido` nos demais casos, se não estiver encerrado |
 | `POST caters/processos/{id}/dilacoes/previa` | `{data_referencia, dias}`: devolve o novo prazo, sem gravar |
 | `POST caters/processos/{id}/dilacoes` | `{data_referencia, dias, pedido_em?, protocolo_municipio?, decisao, manter_situacao?, observacoes?}`: grava e, se aprovada, muda prazo, situação e linha do tempo na mesma transação (T6). Sem `PATCH` nem `DELETE` |
 | `POST caters/processos/{id}/eventos` | `{tipo: registro \| observacao, descricao}`. Sem `PATCH` nem `DELETE` (405) |

@@ -309,7 +309,9 @@ da spec 003.
   - dilação solicitada;
   - encerrado.
 
-  O painel e a tela mostram ainda o prazo remanescente e os dias restantes, calculados.
+  O painel e a tela mostram ainda o prazo remanescente e os dias restantes (ou de atraso),
+  calculados, enquanto o processo não está respondido, em análise nem encerrado; nessas situações o
+  prazo deixa de contar.
 - **Comportamento atual**:
   - o município é texto livre;
   - o técnico é texto livre;
@@ -338,6 +340,10 @@ da spec 003.
     (padrão 30), e prioridade média;
   - cada **determinação**, com prazo igual à data-limite dela (R-fiscalizacao-009).
 
+  No cadastro do processo, escolher a fiscalização preenche o município e o técnico com os dela,
+  sugere como prazo de resposta a data de fim da fiscalização mais 30 dias (editável) e põe a
+  situação inicial em "em análise"; a importação roda junto com a criação.
+
   Um item importado guarda o identificador de origem e não entra duas vezes. Uma nova importação
   traz só o que é novo e lista o que deixou de existir na fiscalização, sem apagar. A importação
   entra na linha do tempo.
@@ -345,7 +351,10 @@ da spec 003.
   - uma função do banco com permissão elevada importa, sem duplicar;
   - as determinações entram com o prazo de uma coluna antiga que está sempre vazia, e ficam sem
     prazo;
-  - a lista de fiscalizações vem de uma view.
+  - a lista de fiscalizações vem de uma view;
+  - o cadastro sugere o número "CATERS-<número da fiscalização>", que não é o do processo
+    administrativo;
+  - o filtro por datas da lista é feito no navegador.
 - **Motivo da diferença**:
   - as determinações ganham prazo, porque a fiscalização guarda a data-limite;
   - nenhuma regra de negócio em função do banco (A-005);
@@ -394,10 +403,14 @@ da spec 003.
     com as ações "Aprovar cronograma", "Solicitar adequação" e "Dispensar";
   - observações.
 
-  Registrar ou mudar a resposta entra na linha do tempo ("resposta recebida"), e a situação do
-  processo passa a "respondido", se estava aguardando.
-- **Comportamento atual**: a mesma resposta única, gravada ou substituída pela tela; a mudança não
-  gera evento no histórico.
+  Registrar ou mudar a resposta entra na linha do tempo ("resposta recebida"). A situação do
+  processo, se não estiver encerrado, passa a:
+  - "em análise", com adequação solicitada (a CATERS aguarda o cronograma ajustado);
+  - "respondido", nos demais casos.
+- **Comportamento atual**:
+  - a mesma resposta única, gravada ou substituída pela tela, com a mesma mudança de situação;
+  - a mudança não gera evento no histórico;
+  - "Marcar hoje" preenche a data de recebimento com a data UTC do aparelho.
 - **Motivo da diferença**: rastro da resposta na linha do tempo.
 - **Objetos do catálogo**: `tabela:caters_municipality_responses`,
   `coluna:caters_municipality_responses.id`, `coluna:caters_municipality_responses.process_id`,
@@ -412,7 +425,7 @@ da spec 003.
 
 - **Comportamento desejado**: a equipe da CATERS registra uma dilação com:
   - data de referência;
-  - dias concedidos (inteiro positivo);
+  - dias concedidos (inteiro positivo, padrão 30);
   - data do pedido e protocolo do município;
   - decisão (aprovada ou negada);
   - observações.
@@ -547,9 +560,12 @@ da spec 003.
 
 - **Comportamento desejado**: o app registra no início (R-core-025), para os usuários da CATERS e o
   diretor da DSB, o painel da CATERS:
-  - processos em acompanhamento;
-  - respostas atrasadas (prazo de resposta vencido sem resposta);
-  - recomendações vencidas;
+  - processos ativos (não encerrados);
+  - processos em acompanhamento: não encerrados nem aguardando análise, com recomendação em aberto,
+    com as vencidas e as no prazo de cada um, os com mais vencidas primeiro;
+  - respostas atrasadas: prazo de resposta vencido, com o processo fora de "respondido", "em análise"
+    e "encerrado";
+  - recomendações vencidas, com o processo e o município;
   - processos aguardando análise;
   - termos de notificação da CATERS por situação, pelas consultas do processo sancionador, quando
     ele existir.
@@ -561,8 +577,9 @@ da spec 003.
 
   Uma rotina diária os envia à equipe da CATERS **uma vez por prazo**: um prazo prorrogado gera
   aviso novo quando vencer.
-- **Comportamento atual**: o painel calcula os avisos na tela e guarda, por usuário, as chaves dos
-  avisos lidos (com o prazo na chave, para o aviso voltar quando o prazo muda); ele também conta os
+- **Comportamento atual**: o painel lê até 1.000 processos e 2.000 recomendações, mostra as 10
+  primeiras de cada lista, calcula os avisos na tela e guarda, por usuário, as chaves dos avisos
+  lidos (com o prazo na chave, para o aviso voltar quando o prazo muda); ele também conta os
   termos da CATERS.
 - **Motivo da diferença**: central de avisos comum (R-core-026).
 - **Objetos do catálogo**: `tabela:caters_notification_reads`, `coluna:caters_notification_reads.id`,

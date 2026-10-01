@@ -130,7 +130,7 @@ Imutável (T7).
 ```text
 ProcessoAcompanhamento.situacao: escolhida pela equipe entre as não encerradas;
   dilação aprovada → dilacao_solicitada (ou mantém);
-  resposta registrada → respondido (se aguardando_analise ou em_analise);
+  resposta registrada → em_analise (adequação solicitada) ou respondido (demais), se não encerrado;
   encerrar → encerrado (só leitura); reabrir (com motivo) → em_analise
 ```
 

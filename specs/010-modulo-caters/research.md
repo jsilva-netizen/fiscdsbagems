@@ -143,8 +143,9 @@ já guarda a leitura; falta só não repetir o envio.
 
 ## T10 — Painel
 
-**Decision**: `GET painel/caters`, só leitura, com o alcance: processos em acompanhamento, respostas
-atrasadas, recomendações vencidas, aguardando análise e, com o processo sancionador instalado, termos
+**Decision**: `GET painel/caters`, só leitura, com o alcance e calculado no banco (sem o limite de
+linhas de hoje): processos ativos, processos em acompanhamento, respostas atrasadas, recomendações
+vencidas, aguardando análise (definições na R-caters-012) e, com o processo sancionador instalado, termos
 da CATERS por situação (consultas dele). Registrado no início do core (R-core-025) para a CATERS, o
 diretor da DSB e o administrador.
 

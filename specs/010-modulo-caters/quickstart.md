@@ -37,7 +37,7 @@ excluir a fiscalização é recusado.
 3. Registrar outra negada; registrar a resposta do município com o cronograma "adequação".
 
 Esperado: prazo 31/03 (origem `ar`); depois da aprovação, 15/04, situação "dilação solicitada" e o
-evento "prazo estendido"; a negada não muda o prazo; a resposta põe a situação em "respondido".
+evento "prazo estendido"; a negada não muda o prazo; a resposta com adequação solicitada põe a situação em "em análise", e a aprovada, em "respondido".
 
 ## 4. Recomendações (US3)
 

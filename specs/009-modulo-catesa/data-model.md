@@ -65,4 +65,4 @@ Resposta de `GET painel/catesa` ([contracts/api-catesa.md](./contracts/api-cates
 |---|---|---|
 | fiscalizações | em andamento, finalizadas | `fiscalizacao.consultas.contagem_por_situacao` |
 | termos de notificação | total emitido, pendentes de emissão, aguardando assinatura, aguardando resposta, prazo vencido, respondidos com análise pendente | consultas do processo sancionador (presente só com o app instalado) |
-| autos de infração | total, gerados, enviados, em análise, finalizados | idem |
+| autos de infração | total; gerados (pendentes de remessa); enviados ou em análise (enviado, defesa recebida, com parecer); finalizados (julgado, deliberado), como os quatro cartões de hoje | idem |
