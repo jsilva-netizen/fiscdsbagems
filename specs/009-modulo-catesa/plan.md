@@ -65,8 +65,8 @@ Ajustes em outras specs:
   `aplicar_configuracao_inicial` no contrato de extensões;
 - spec 006: o serviço `aplicar_configuracao_inicial`;
 - spec 008: a configuração inicial da CATERF passa pelo mesmo serviço;
-- spec 005, no plano dela: o mesmo serviço no motor de checklists e o comando de migração, que roda
-  depois da configuração das câmaras;
+- spec 005: o mesmo serviço no motor de checklists (R-checklists-020, FR-019) e a ordem da migração
+  dos checklists, depois da configuração das câmaras (seção "Migração", "Ordem");
 - spec do processo sancionador: as consultas de contagem de termos e autos por situação.
 
 ## Project Structure

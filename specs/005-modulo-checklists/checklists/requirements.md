@@ -67,4 +67,8 @@
   coordenador e ao fiscal da câmara e ao administrador (decisão do responsável); copiar catálogos com
   itens entre câmaras, só ao administrador (premissa, pelo isolamento por câmara).
 - **Migração (2026-09-30)**: seção "Migração" do molde acrescentada (volumes, MIG-1 a MIG-6, casos conhecidos); os destinos do mapa são conferidos quando o plano da spec criar o data-model.
+- **Configuração inicial (2026-10-01)**: R-checklists-020 e FR-019, vindos do plano da spec 009: o
+  app da câmara entrega os modelos num pacote; o motor valida como a tela, cria só o que falta e nunca
+  altera modelo existente. A seção "Migração" ganhou a ordem (depois da configuração das câmaras) e
+  a conferência dos catálogos por câmara.
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`.

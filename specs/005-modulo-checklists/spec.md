@@ -47,7 +47,8 @@ feito de peças**:
 
 O módulo **não tem tabela, coluna, tela, formato de planilha, texto nem regra de nenhuma câmara**.
 Os modelos de hoje estão descritos na seção "Modelos de hoje", como a configuração inicial das
-câmaras, carregada na implantação para preservar o que o sistema atual faz.
+câmaras: o app de cada câmara a entrega na implantação, pelo serviço do motor (R-checklists-020),
+para preservar o que o sistema atual faz.
 
 **O que fica no app de cada câmara**: tudo o que não é catálogo. O app da CATERF, por exemplo, faz o
 registro de ocorrência na rodovia (GPS, KM pelo traçado KML, sentido, fotos com marca d'água, mapa e
@@ -217,6 +218,11 @@ prestador não alcança nenhum catálogo.
 - Catálogo sem itens (produção tem 3 tipos de unidade assim): existe, mas não é oferecido para
   registro novo até ter um item vigente.
 - Aparelho sem catálogo baixado: o app avisa e pede sincronização; nunca usa lista fixa no código.
+- A câmara alterou na tela o modelo entregue pelo app dela, e a configuração inicial é aplicada de
+  novo (nova implantação): o modelo alterado continua como está; a aplicação só informa que ele já
+  existia (R-checklists-020).
+- Migração dos checklists com uma câmara sem o modelo dela: a migração não começa e lista as
+  câmaras sem modelo (seção "Migração", "Ordem").
 
 ## Requirements *(mandatory)*
 
@@ -262,12 +268,16 @@ prestador não alcança nenhum catálogo.
   (R-checklists-018).
 - **FR-018**: As saídas, os valores de contexto e os modos de aplicação oferecidos na montagem MUST
   ser os registrados pelos apps instalados (R-checklists-019).
+- **FR-019**: O motor MUST oferecer aos apps de câmara um serviço de configuração inicial que valida
+  os modelos como a tela de montagem, cria só os que a câmara ainda não tem e nunca altera um modelo
+  existente (R-checklists-020).
 
 ### Key Entities
 
 - **Modelo de catálogo**: a montagem de uma câmara: câmara dona, modo de aplicação, campos do item,
   respostas, saídas por resposta, papéis dos campos, formato da planilha e, se veio de cópia, o
-  modelo e a versão de origem. Tem versões (R-checklists-017). Um modelo serve a vários catálogos
+  modelo e a versão de origem, ou o app que o entregou como configuração inicial. Tem versões
+  (R-checklists-017). Um modelo serve a vários catálogos
   (os tipos de unidade da CATESA usam o mesmo modelo).
 - **Peça registrada por app**: saída, valor de contexto ou modo de aplicação que um app instalado
   oferece para a montagem, com o app que a oferece.
@@ -675,10 +685,34 @@ da spec 003. As regras descrevem só peças genéricas; o que cada câmara faz h
 - **Objetos do catálogo**: — (conceito novo)
 - **Origem**: decisão do responsável, 2026-09-30.
 
+### R-checklists-020 — Configuração inicial entregue pelo app da câmara
+
+- **Comportamento desejado**: o motor oferece aos apps de câmara um serviço de configuração inicial,
+  usado na implantação pelo comando de cada app (ex.: `configurar_catesa`). O app entrega um pacote
+  com os modelos da câmara, no mesmo formato da tela de montagem, e o serviço:
+  - valida cada modelo como a tela de montagem (R-checklists-015, R-checklists-019) e recusa o pacote
+    inteiro se algum for inválido, mostrando o motivo;
+  - cria só os modelos que a câmara ainda não tem, pela chave câmara + código do modelo;
+  - nunca altera um modelo existente: depois da implantação, vale o que a câmara mantém na tela;
+  - registra na auditoria a criação, com o app de origem;
+  - devolve o que criou e o que já existia, e pode ser chamado de novo sem efeito.
+
+  O pacote traz só modelos. Os catálogos e os itens chegam pela migração dos checklists (com os
+  identificadores de produção) ou pela importação por planilha (R-checklists-006). O motor não
+  importa código do app: recebe o pacote como dado.
+- **Comportamento atual**: não há modelo; os formulários e as regras de saída estão no código das
+  telas.
+- **Motivo da diferença**: a câmara começa com o que tem hoje sem nada de câmara no motor
+  (constituição v2.6.0 e v2.6.2), e a configuração entregue pelo app é igual a uma montada na tela.
+  Não sobrescrever preserva o que a câmara montou (constituição v2.6.1). Desenho do plano da spec 009
+  (research S3 a S5).
+- **Objetos do catálogo**: — (conceito novo)
+- **Origem**: plano da spec 009 (2026-10-01).
+
 ## Modelos de hoje
 
-Configuração inicial que preserva o que o sistema atual faz, carregada na implantação para cada
-câmara (R-checklists-015). Não é parte do motor; a spec de cada câmara a confirma. Depois da
+Configuração inicial que preserva o que o sistema atual faz, entregue na implantação pelo app de
+cada câmara (R-checklists-020). Não é parte do motor; a spec de cada câmara a confirma. Depois da
 implantação, cada câmara a mantém na tela de montagem.
 
 ### Modelo "Checklist por tipo de unidade" (CATESA e CATERS, um modelo para cada)
@@ -810,6 +844,19 @@ Mapa: `specs/003-base-dados-producao/anotacoes/migracao/checklists.toml` (35 col
 Os destinos são conferidos contra o data-model quando o plano desta spec existir; até lá, ficam
 "não verificados" em `migracao.md`.
 
+### Ordem
+
+O mapa liga cada tipo de unidade ao modelo da câmara dos seus serviços, e os tipos de ocorrência ao
+modelo da CATERF. Por isso a migração dos checklists roda:
+1. depois da migração do core (câmaras e serviços);
+2. depois de os apps da CATESA, da CATERS e da CATERF aplicarem a configuração inicial
+   (R-checklists-020; specs 009, 010 e 008);
+3. antes da migração da fiscalização (as respostas apontam para as versões) e das extensões da
+   CATERF.
+
+Antes de carregar, a migração confere que cada câmara com tipos a migrar tem o seu modelo; se faltar
+algum, não começa e lista as câmaras sem modelo.
+
 ### Volumes de produção
 
 | Origem | Registros | Destino |
@@ -838,6 +885,9 @@ Não há arquivos.
   encontram a sua versão.
 - **Ocorrências da DTR:** a ligação das ocorrências já registradas ao tipo é feita pela migração da
   CATERF (premissa "Migração da DTR").
+- **Catálogos por câmara:** a conferência mostra quantos catálogos ficaram no modelo de cada câmara:
+  25 tipos na CATESA (14 de água, 8 de esgoto, 3 de água e esgoto), 8 na CATERS e o catálogo de
+  ocorrências na CATERF (spec 009, SC-002).
 
 ## Success Criteria *(mandatory)*
 
@@ -863,10 +913,10 @@ Não há arquivos.
 
 ## Assumptions
 
-- **Modelos iniciais**: a implantação carrega o modelo "Checklist por tipo de unidade" duas vezes,
-  um da CATESA e um da CATERS (hoje iguais; cada câmara ajusta o seu na tela), e o modelo
-  "Ocorrências do PER" da CATERF, que fiscaliza as rodovias (decisão do responsável, 2026-09-30).
-  Nenhum modelo fica no código do motor nem no app de fiscalização comum.
+- **Modelos iniciais**: o app da CATESA e o da CATERS entregam, cada um, o seu modelo "Checklist
+  por tipo de unidade" (hoje iguais; cada câmara ajusta o seu na tela), e o app da CATERF, que
+  fiscaliza as rodovias, entrega o modelo "Ocorrências do PER" (decisão do responsável, 2026-09-30;
+  R-checklists-020). Nenhum modelo fica no código do motor nem no app de fiscalização comum.
 - **Quem monta modelos**: coordenador e fiscal da câmara e administrador (decisão do responsável,
   2026-09-30). Como uma mudança no modelo muda o formulário e a vistoria de toda a câmara, ela é
   versionada, auditada e mostrada com prévia antes de salvar.

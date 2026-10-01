@@ -23,7 +23,7 @@ não tem sincronização (o painel é online).
 
 | App | Serviço | Regra |
 |---|---|---|
-| checklists | `servicos.aplicar_configuracao_inicial(camara, pacote, app)` | cria o modelo pela chave (câmara, código) se não existir; valida como a tela de montagem; definido no plano da spec 005 |
+| checklists | `servicos.aplicar_configuracao_inicial(camara, pacote, app)` | cria o modelo pela chave (câmara, código) se não existir; valida como a tela de montagem ([R-checklists-020 da spec 005](../../005-modulo-checklists/spec.md)) |
 | fiscalização | `servicos.aplicar_configuracao_inicial(camara, pacote, app)` | cria a `ConfiguracaoFiscalizacao` da câmara se não existir ([extensões da 007](../../007-modulo-fiscalizacao/contracts/extensoes.md)) |
 | planejamento | `servicos.aplicar_configuracao_inicial(camara, pacote, app)` | cria a `ConfiguracaoPlanejamento` e os tipos de atividade da câmara se não existirem ([API da 006](../../006-modulo-planejamento/contracts/api-planejamento.md)) |
 
