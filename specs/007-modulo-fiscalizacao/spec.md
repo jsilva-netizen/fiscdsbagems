@@ -1214,11 +1214,21 @@ da spec 003.
   | entidades, municípios, serviços, câmaras e contratos, só para consulta | core | o alcance do usuário (inclui o necessário para a fiscalização de urgência do coordenador) |
   | modelos e catálogos de checklists, com as versões vigentes e as que as fiscalizações já usam | checklists | a câmara do usuário e as câmaras das fiscalizações e viagens em que ele está |
   | configuração de fiscalização da câmara: linhas da marca d'água, limite de imprecisão, título | fiscalização | as mesmas câmaras |
-  | fiscalizações em andamento e finalizadas há até 90 dias, com registros, respostas, constatações, saídas e as miniaturas das fotos | fiscalização | as da equipe do usuário |
+  | fiscalizações em andamento e finalizadas há até 90 dias, com registros, respostas, constatações, saídas e as fotos (ver abaixo) | fiscalização | as da equipe do usuário |
   | dados dos apps das câmaras (ex.: contratos rodoviários e o pacote do traçado vigente das rodovias das atividades e fiscalizações, CATERF) | app da câmara | as mesmas atividades e fiscalizações |
 
-  As fotos originais e os relatórios são baixados só com rede. O mapa-base guarda as imagens de mapa
-  já vistas; sem elas, os pontos e as camadas aparecem sobre um fundo simples.
+  **Fotos no aparelho**:
+  - **as tiradas no próprio aparelho** ficam nele em tamanho cheio, nas duas versões (com e sem marca
+    d'água), como foram gravadas na captura (R-fiscalizacao-011). Continuam no aparelho depois de
+    enviadas, enquanto a fiscalização estiver em andamento e até 90 dias depois de finalizada. Foto
+    ainda não enviada nunca sai do aparelho;
+  - **as tiradas por outro membro da equipe** chegam ao aparelho como miniatura, suficiente para ver
+    e conferir sem rede. O tamanho cheio é aberto com rede;
+  - com o espaço do aparelho no limite, saem primeiro os tamanhos cheios já enviados das
+    fiscalizações finalizadas, e o aparelho avisa antes de chegar a recusar uma foto nova.
+
+  Os relatórios são baixados só com rede. O mapa-base guarda as imagens de mapa já vistas; sem elas,
+  os pontos e as camadas aparecem sobre um fundo simples.
 
   **Conferência de prontidão**: depois de cada sincronização completa, o aparelho confere, para cada
   atividade de fiscalização escalada nos próximos 7 dias e para cada fiscalização em andamento da

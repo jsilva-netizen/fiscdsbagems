@@ -356,8 +356,11 @@ pede.
   `importacoes/fila`.
 
 - **pacote de campo** (R-fiscalizacao-027): o `GET sync/fiscalizacao` passa a trazer também a
-  `ConfiguracaoFiscalizacao` das câmaras alcançadas e as miniaturas das fotos (até 400 px, geradas no
-  servidor no envio da foto); as originais ficam para o pedido com rede;
+  `ConfiguracaoFiscalizacao` das câmaras alcançadas e a miniatura (até 400 px, gerada no servidor no
+  envio) das fotos que **não** foram tiradas no aparelho. As fotos tiradas no aparelho ficam nele em
+  tamanho cheio, nas duas versões, depois do envio, durante a fiscalização e até 90 dias depois de
+  finalizada; a limpeza por espaço começa pelos tamanhos cheios já enviados de fiscalizações
+  finalizadas e nunca toca em foto pendente;
 - **conferência de prontidão**: função pura `frontend/src/fiscalizacao/campo/prontidao.ts`, que lê o
   banco local e devolve, por atividade (próximos 7 dias) e fiscalização em andamento, a lista do que
   falta. Os apps das câmaras acrescentam verificações pelo ponto de extensão "verificação de
