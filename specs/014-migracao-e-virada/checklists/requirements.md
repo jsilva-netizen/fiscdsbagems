@@ -45,4 +45,7 @@
   - volta em menos de 1 hora;
   - marco de 1,5 dia útil para decidir;
   - conferência diária nos primeiros 30 dias.
+- **Plano (2026-10-01)**: research M1 a M14; app `virada` e biblioteca `compartilhado/migracao`;
+  itens para as tarefas de outros apps (JSON de conferência, `marcar_avisos_ate`, fases da CATERF,
+  chave de abertura no core).
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`.
