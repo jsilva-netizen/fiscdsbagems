@@ -106,3 +106,11 @@ escrita valem para uso com rede e aplicam as mesmas regras e serviços.
 | `tem_documento_ligado` | ponto de extensão: os apps que ligam documentos à fiscalização (termo, auto, remessa) registram uma verificação, usada na exclusão |
 
 A escrita do registro avulso pelos apps de câmara está em [extensoes.md](./extensoes.md).
+
+## Registros no motor de checklists (no `AppConfig.ready`)
+
+| Registro | O que a fiscalização fornece |
+|---|---|
+| `checklists.pecas.registrar_saida` | `fiscalizacao.constatacao`, `fiscalizacao.nc`, `fiscalizacao.determinacao`, `fiscalizacao.recomendacao`, com os dados de cada uma ([research F3](../research.md)) |
+| `checklists.pecas.registrar_modo` | `fiscalizacao.vistoria_unidade`, do tipo `lista` |
+| `checklists.alcance.registrar_alcance_aparelho` | para um usuário, as câmaras das fiscalizações em que ele está na equipe e as versões de item citadas nas fiscalizações do alcance dele ([research K8 da spec 005](../../005-modulo-checklists/research.md)) |

@@ -4,7 +4,7 @@ app = "caterf"
 data_model = "specs/008-modulo-dtr-caterf/data-model.md"
 notas = [
   "Ordem de carga: core → checklists → caterf (contratos, traçados, pontos) → fiscalização (fiscalizações e registros) → caterf (extensões das fiscalizações e das ocorrências) (research C11).",
-  "Os campos da DTR nos tipos de ocorrência vão para os valores do modelo 'Ocorrências do PER' no motor de checklists; ficam 'não verificados' até o data-model da spec 005.",
+  "Os campos da DTR nos tipos de ocorrência vão para os valores do modelo 'Ocorrências do PER' no motor de checklists; conferidos contra o data-model da spec 005 e gravados pela migração dos checklists (research K14 da spec 005).",
 ]
 
 # --- contratos (2) -----------------------------------------------------------------------

@@ -4,7 +4,7 @@
 
 Destino, no sistema novo, de cada coluna de tabela e de cada repositório de arquivos do banco de produção: o campo que recebe o dado (com a transformação, quando há) ou o motivo do descarte. Os mapas ficam em `anotacoes/migracao/<modulo>.toml`; destinos de apps com data-model são conferidos contra ele. Num módulo com mapa, o que não tem destino é **pendente**. Colunas de views não entram (não guardam dado).
 
-Pendentes: 0 · módulos sem mapa: 2 · destinos não verificados: 37.
+Pendentes: 0 · módulos sem mapa: 2 · destinos não verificados: 1.
 
 | Módulo | Mapa | Colunas e repositórios | Com destino | Descartados | Pendentes |
 |---|---|---:|---:|---:|---:|
@@ -90,8 +90,9 @@ Mapa: `anotacoes/migracao/core.toml` · data-model: `specs/004-modulo-core/data-
 
 ## Checklists
 
-Mapa: `anotacoes/migracao/checklists.toml` · sem data-model
+Mapa: `anotacoes/migracao/checklists.toml` · data-model: `specs/005-modulo-checklists/data-model.md`
 
+- Ordem de carga: depois da migração do core e da configuração inicial da CATESA, da CATERS e da CATERF (modelos das câmaras); antes da fiscalização e das extensões da CATERF (spec 005, 'Migração', 'Ordem'; research K14).
 - Cada tipo de unidade vira um catálogo do modelo 'Checklist por tipo de unidade' da câmara dos seus serviços (CATESA ou CATERS); os tipos de ocorrência da DTR viram os itens de um catálogo criado na migração, do modelo 'Ocorrências do PER' da CATERF (spec 005, 'Modelos de hoje').
 - As 768 linhas de `itens_checklist` viram versões com o mesmo identificador (as respostas das vistorias apontam para ele), agrupadas em itens estáveis pela chave atual (tipo + ordem, ou pergunta), com vigência da data da linha até a da seguinte; versões idênticas à anterior são mantidas e marcadas como repetição (spec 005, premissa 'Migração da DSB').
 - Os 79 tipos de ocorrência viram itens com uma versão cada, com o mesmo identificador no item e na versão (spec 005, premissa 'Migração da DTR'). As colunas frente, item do PER, rodovia e etapas de obra são da DTR e entram no mapa dela.
@@ -267,7 +268,7 @@ Mapa: `anotacoes/migracao/fiscalizacao.toml` · data-model: `specs/007-modulo-fi
 Mapa: `anotacoes/migracao/dtr.toml` · data-model: `specs/008-modulo-dtr-caterf/data-model.md`
 
 - Ordem de carga: core → checklists → caterf (contratos, traçados, pontos) → fiscalização (fiscalizações e registros) → caterf (extensões das fiscalizações e das ocorrências) (research C11).
-- Os campos da DTR nos tipos de ocorrência vão para os valores do modelo 'Ocorrências do PER' no motor de checklists; ficam 'não verificados' até o data-model da spec 005.
+- Os campos da DTR nos tipos de ocorrência vão para os valores do modelo 'Ocorrências do PER' no motor de checklists; conferidos contra o data-model da spec 005 e gravados pela migração dos checklists (research K14 da spec 005).
 
 | Objeto | Volume em produção | Destino | Transformação ou motivo do descarte |
 |---|---|---|---|
@@ -335,40 +336,4 @@ Descartados junto com o objeto, pelo motivo da anotação (spec 003).
 
 Destinos em app que ainda não tem data-model; são conferidos quando ele existir.
 
-- `coluna:tipos_unidade.id` → `checklists.Catalogo.id`
-- `coluna:tipos_unidade.nome` → `checklists.Catalogo.nome`
-- `coluna:tipos_unidade.codigo` → `checklists.Catalogo.codigo`
-- `coluna:tipos_unidade.servicos_aplicaveis` → `checklists.Catalogo.servicos`
-- `coluna:tipos_unidade.servicos_aplicaveis` → `checklists.Catalogo.modelo`
-- `coluna:tipos_unidade.ativo` → `checklists.Catalogo.ativo`
-- `coluna:tipos_unidade.created_at` → `checklists.Catalogo.criado_em`
-- `coluna:itens_checklist.id` → `checklists.VersaoItem.id`
-- `coluna:itens_checklist.tipo_unidade_id` → `checklists.Item.catalogo`
-- `coluna:itens_checklist.ordem` → `checklists.Item.ordem`
-- `coluna:itens_checklist.pergunta` → `checklists.VersaoItem.valores.pergunta`
-- `coluna:itens_checklist.texto_constatacao_sim` → `checklists.VersaoItem.valores.constatacao_sim`
-- `coluna:itens_checklist.texto_constatacao_nao` → `checklists.VersaoItem.valores.constatacao_nao`
-- `coluna:itens_checklist.gera_nc` → `checklists.VersaoItem.valores.gera_nc`
-- `coluna:itens_checklist.artigo_portaria` → `checklists.VersaoItem.valores.dispositivo_normativo`
-- `coluna:itens_checklist.texto_nc` → `checklists.VersaoItem.valores.texto_nc`
-- `coluna:itens_checklist.texto_determinacao` → `checklists.VersaoItem.valores.determinacao`
-- `coluna:itens_checklist.prazo_dias` → `checklists.VersaoItem.valores.prazo_dias`
-- `coluna:itens_checklist.texto_recomendacao` → `checklists.VersaoItem.valores.recomendacao`
-- `coluna:itens_checklist.ativo` → `checklists.VersaoItem.vigente_ate`
-- `coluna:itens_checklist.created_at` → `checklists.VersaoItem.vigente_desde`
-- `coluna:itens_checklist.created_at` → `checklists.VersaoItem.criado_em`
-- `coluna:tipos_ocorrencia_dtr.id` → `checklists.Item.id`
-- `coluna:tipos_ocorrencia_dtr.id` → `checklists.VersaoItem.id`
-- `coluna:tipos_ocorrencia_dtr.descricao` → `checklists.VersaoItem.valores.descricao`
-- `coluna:tipos_ocorrencia_dtr.nome` → `checklists.VersaoItem.valores.descricao`
-- `coluna:tipos_ocorrencia_dtr.nao_atendimento` → `checklists.VersaoItem.valores.clausula_nao_atendida`
-- `coluna:tipos_ocorrencia_dtr.prazo_dias_padrao` → `checklists.VersaoItem.valores.prazo_padrao`
-- `coluna:tipos_ocorrencia_dtr.observacoes` → `checklists.VersaoItem.valores.observacao_padrao`
-- `coluna:tipos_ocorrencia_dtr.ativo` → `checklists.VersaoItem.vigente_ate`
-- `coluna:tipos_ocorrencia_dtr.created_at` → `checklists.Item.criado_em`
-- `coluna:tipos_ocorrencia_dtr.updated_at` → `checklists.VersaoItem.vigente_desde`
 - `bucket:documentos-prestadores` → `caters.DocumentoProcesso.arquivo`
-- `coluna:tipos_ocorrencia_dtr.frente` → `checklists.VersaoItem.valores.frente`
-- `coluna:tipos_ocorrencia_dtr.item_contrato` → `checklists.VersaoItem.valores.item_per`
-- `coluna:tipos_ocorrencia_dtr.rodovia` → `checklists.VersaoItem.valores.rodovias`
-- `coluna:tipos_ocorrencia_dtr.etapas_obra` → `checklists.VersaoItem.valores.etapas_obra`

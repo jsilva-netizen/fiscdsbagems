@@ -71,4 +71,7 @@
   app da câmara entrega os modelos num pacote; o motor valida como a tela, cria só o que falta e nunca
   altera modelo existente. A seção "Migração" ganhou a ordem (depois da configuração das câmaras) e
   a conferência dos catálogos por câmara.
+- **Plano (2026-10-01)**: research K1 a K14, data-model, contratos e quickstart. O mapa
+  `checklists.toml` aponta para o data-model: os 35 destinos dele e os 4 da DTR que vão para o motor
+  estão conferidos (MIG-6). O contrato da spec 007 ganhou os registros da fiscalização no motor.
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`.

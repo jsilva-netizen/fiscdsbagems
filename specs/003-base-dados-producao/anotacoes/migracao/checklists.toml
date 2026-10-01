@@ -1,8 +1,9 @@
-# Mapa de migração do módulo checklists (spec 005). A spec ainda não tem data-model: os destinos
-# usam os nomes das entidades da spec (Catalogo, Item, VersaoItem, com os valores dos campos do
-# modelo em VersaoItem.valores) e ficam "não verificados" até o plano da spec 005.
+# Mapa de migração do módulo checklists (spec 005). Destinos conferidos contra o data-model; os
+# valores dos campos do modelo de cada câmara ficam em VersaoItem.valores (research K3).
 modulo = "checklists"
+data_model = "specs/005-modulo-checklists/data-model.md"
 notas = [
+  "Ordem de carga: depois da migração do core e da configuração inicial da CATESA, da CATERS e da CATERF (modelos das câmaras); antes da fiscalização e das extensões da CATERF (spec 005, 'Migração', 'Ordem'; research K14).",
   "Cada tipo de unidade vira um catálogo do modelo 'Checklist por tipo de unidade' da câmara dos seus serviços (CATESA ou CATERS); os tipos de ocorrência da DTR viram os itens de um catálogo criado na migração, do modelo 'Ocorrências do PER' da CATERF (spec 005, 'Modelos de hoje').",
   "As 768 linhas de `itens_checklist` viram versões com o mesmo identificador (as respostas das vistorias apontam para ele), agrupadas em itens estáveis pela chave atual (tipo + ordem, ou pergunta), com vigência da data da linha até a da seguinte; versões idênticas à anterior são mantidas e marcadas como repetição (spec 005, premissa 'Migração da DSB').",
   "Os 79 tipos de ocorrência viram itens com uma versão cada, com o mesmo identificador no item e na versão (spec 005, premissa 'Migração da DTR'). As colunas frente, item do PER, rodovia e etapas de obra são da DTR e entram no mapa dela.",
