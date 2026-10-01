@@ -72,6 +72,6 @@ Violações: 0 · sem justificativa: 0.
 ## 10. Tramitação de documentos e dados
 
 - **Id**: `tramitacao` · **App**: tramitação de documentos e dados · **Spec**: LACUNA
-- **Observação**: Sem tabela própria no banco atual. Se corresponde a algo que já existe (remessas, respostas, histórico de análise) ou é funcionalidade nova é pergunta aberta da avaliação.
+- **Observação**: Funcionalidade nova, sem objeto no banco atual (decisão do responsável, 2026-10-01; spec 013): troca de documentos com as entidades, pedidos de dados (pontuais e periódicos, com formato), movimentação interna e integração com o e-MS, que continua sendo o protocolo oficial.
 - **Objetos** (0): nenhum
 - **Depende de**: —
