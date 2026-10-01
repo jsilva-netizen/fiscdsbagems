@@ -291,7 +291,8 @@ atualiza ao abrir e na sincronização.
 - **atualização**: no modo "perguntar". A versão nova é baixada em segundo plano e aplicada quando
   o usuário não tem registro aberto, ou quando ele aceita. Nunca limpa o IndexedDB;
 - **pronto para campo**: um indicador que só fica verde com os pedaços da área de campo
-  pré-carregados e a primeira sincronização dos dados de consulta concluída;
+  pré-carregados e a conferência de prontidão da fiscalização sem falta (R-fiscalizacao-027, F19 da
+  spec 007);
 - **persistência**: `navigator.storage.persist()` no primeiro acesso, com aviso se negado;
 - **registro**: cada app marca as suas telas da área de campo no registro de contribuições
   (`frontend/src/shared/extensoes.ts`), e a configuração do Workbox é gerada a partir dele no build.

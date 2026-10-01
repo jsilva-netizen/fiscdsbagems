@@ -376,6 +376,8 @@ origem. Um arquivo com unidade de tipo inexistente é recusado com o motivo da l
 - **FR-017**: A barra de sincronização MUST aparecer só na área de campo, sincronizar todos os dados
   dela de uma vez e oferecer a qualquer usuário o backup local com a fila e as fotos pendentes
   (R-fiscalizacao-026).
+- **FR-018**: A sincronização completa MUST deixar no aparelho todos os dados da R-fiscalizacao-027, e
+  o aparelho MUST mostrar, antes de ir a campo, o que falta por atividade (R-fiscalizacao-027).
 - **FR-016**: Toda regra de acesso deste módulo MUST ter teste automatizado que falhe quando a regra
   for violada (constituição, Princípio III).
 
@@ -1199,6 +1201,46 @@ da spec 003.
   de recuperação (Princípio II).
 - **Objetos do catálogo**: — (aplicativo; não há objeto no banco)
 - **Origem**: decisão do responsável, 2026-10-01.
+
+### R-fiscalizacao-027 — O que a sincronização deixa no aparelho para a fiscalização sem rede
+
+- **Comportamento desejado**: a sincronização completa da área de campo (R-fiscalizacao-026) deixa no
+  aparelho tudo o que o fiscal precisa para executar sem rede as fiscalizações das atividades em que
+  está escalado e as que já estão em andamento na equipe dele:
+
+  | O quê | De quem | Alcance |
+  |---|---|---|
+  | atividades planejadas, com destinos, período, equipe e veículo | planejamento | viagens vigentes em que o usuário está escalado ou liberado |
+  | entidades, municípios, serviços, câmaras e contratos, só para consulta | core | o alcance do usuário (inclui o necessário para a fiscalização de urgência do coordenador) |
+  | modelos e catálogos de checklists, com as versões vigentes e as que as fiscalizações já usam | checklists | a câmara do usuário e as câmaras das fiscalizações e viagens em que ele está |
+  | configuração de fiscalização da câmara: linhas da marca d'água, limite de imprecisão, título | fiscalização | as mesmas câmaras |
+  | fiscalizações em andamento e finalizadas há até 90 dias, com registros, respostas, constatações, saídas e as miniaturas das fotos | fiscalização | as da equipe do usuário |
+  | dados dos apps das câmaras (ex.: contratos rodoviários e o pacote do traçado vigente das rodovias das atividades e fiscalizações, CATERF) | app da câmara | as mesmas atividades e fiscalizações |
+
+  As fotos originais e os relatórios são baixados só com rede. O mapa-base guarda as imagens de mapa
+  já vistas; sem elas, os pontos e as camadas aparecem sobre um fundo simples.
+
+  **Conferência de prontidão**: depois de cada sincronização completa, o aparelho confere, para cada
+  atividade de fiscalização escalada nos próximos 7 dias e para cada fiscalização em andamento da
+  equipe, se tem no aparelho:
+  - a entidade e os destinos;
+  - pelo menos um catálogo ativo da câmara para os serviços;
+  - a configuração de fiscalização da câmara;
+  - o que o app da câmara exigir (ex.: o traçado vigente da rodovia, CATERF).
+
+  O aviso de pronto para campo (R-core-027) só fica verde com tudo presente. Senão, mostra, por
+  atividade, o que falta e por quê (ex.: "sem catálogo ativo para Esgotamento Sanitário"). Sem rede,
+  iniciar a fiscalização de uma atividade com dado faltando mostra o que falta, e o fiscal pode
+  seguir com o que tem, com a falta registrada na fiscalização.
+- **Comportamento atual**:
+  - o aparelho baixa tudo o que o usuário vê, de todas as câmaras, inclusive versões antigas de
+    checklist;
+  - não há conferência do que está no aparelho, e o fiscal só descobre a falta em campo;
+  - a marca d'água e o limite de imprecisão estão no código.
+- **Motivo da diferença**: Princípio II; decisão do responsável (2026-10-01): sincronizar antes de ir
+  a campo deve garantir a execução sem rede, e o fiscal precisa saber antes de sair se falta algo.
+- **Objetos do catálogo**: — (aplicativo; os dados são dos apps donos)
+- **Origem**: decisão do responsável, 2026-10-01; constituição, Princípio II.
 
 ## Telas do sistema atual
 

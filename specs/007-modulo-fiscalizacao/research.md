@@ -355,7 +355,18 @@ pede.
   locais das fiscalizações do usuário, gerado no aparelho sem rede e importável pela rota
   `importacoes/fila`.
 
-**Rationale**: R-fiscalizacao-026; decisão do responsável (2026-10-01).
+- **pacote de campo** (R-fiscalizacao-027): o `GET sync/fiscalizacao` passa a trazer também a
+  `ConfiguracaoFiscalizacao` das câmaras alcançadas e as miniaturas das fotos (até 400 px, geradas no
+  servidor no envio da foto); as originais ficam para o pedido com rede;
+- **conferência de prontidão**: função pura `frontend/src/fiscalizacao/campo/prontidao.ts`, que lê o
+  banco local e devolve, por atividade (próximos 7 dias) e fiscalização em andamento, a lista do que
+  falta. Os apps das câmaras acrescentam verificações pelo ponto de extensão "verificação de
+  prontidão" (a CATERF confere o traçado vigente da rodovia da atividade);
+- **mapa-base**: as imagens de mapa ficam no cache do aplicativo quando vistas (limite de 50 MB, as
+  mais antigas saem primeiro); não há download em massa de mapas, que os servidores de mapa públicos
+  não permitem.
+
+**Rationale**: R-fiscalizacao-026 e R-fiscalizacao-027; decisão do responsável (2026-10-01).
 
 **Alternatives considered**: a barra no core, para todas as telas: mostraria sincronização onde não
 há trabalho sem rede; um backup diferente da exportação: dois formatos para a mesma recuperação.

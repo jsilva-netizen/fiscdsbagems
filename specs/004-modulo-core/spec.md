@@ -869,9 +869,9 @@ da spec 003 (`specs/003-base-dados-producao/catalogo/`).
   - **instalação e atualização**: as telas da área de campo ficam guardadas no aparelho; atualizar a
     versão nunca apaga a fila de envio nem os dados locais, e a versão nova entra quando o usuário
     não está no meio de um registro;
-  - **aviso de pronto para campo**: depois da instalação ou de uma atualização, o aplicativo mostra
-    quando as telas da área de campo e os dados de consulta já estão no aparelho; antes disso,
-    avisa que não é seguro ir a campo sem rede;
+  - **aviso de pronto para campo**: o aplicativo mostra quando as telas da área de campo estão no
+    aparelho e a conferência de prontidão da fiscalização (R-fiscalizacao-027) não acusa falta;
+    antes disso, avisa que não é seguro ir a campo sem rede e mostra o que falta;
   - **armazenamento persistente**: pede ao navegador para não apagar os dados locais e avisa se ele
     negar;
   - **registro de telas da área de campo**: cada app diz quais telas suas funcionam sem rede, no

@@ -90,7 +90,7 @@ escrita valem para uso com rede e aplicam as mesmas regras e serviços.
 
 | Método e rota | Descrição |
 |---|---|
-| `GET sync/fiscalizacao?desde=` | fiscalizações em que o usuário está na equipe (em andamento ou finalizadas há até 90 dias), com registros, respostas, constatações, saídas, fotos (metadados) e remoções |
+| `GET sync/fiscalizacao?desde=` | fiscalizações em que o usuário está na equipe (em andamento ou finalizadas há até 90 dias), com registros, respostas, constatações, saídas, fotos (metadados e miniatura) e remoções; e a configuração de fiscalização das câmaras alcançadas (R-fiscalizacao-027) |
 | `POST sync/fiscalizacao` | `{operacoes: [{id, modelo, acao, dados}]}`: criar, alterar e excluir de cada modelo, e `finalizar`; resposta por operação (`aceita`, `recusada` com `erro`: `fiscalizacao_inexistente`, `descartada_pela_reabertura`, `fora_do_alcance`, ...) e o que mudou (consolidação e numeração) |
 
 ## Consultas para outros apps (`fiscalizacao.consultas`)
