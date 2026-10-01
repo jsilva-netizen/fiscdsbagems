@@ -297,8 +297,9 @@ Cada regra segue o molde `formatos/spec-modulo.md` da spec 003. O identificador 
   **Envio**:
   - só o coordenador da CATERF e o administrador enviam;
   - o arquivo é KML até 10 MB, conferido pelo conteúdo;
-  - o sistema extrai os **pontos de KM** (marcadores com KM e rodovia nos dados estendidos do KML
-    ou no nome) e os segmentos do traçado, e mostra quantos pontos leu e a extensão coberta;
+  - o sistema extrai os **pontos de KM** (marcadores de ponto com o KM no campo `km` dos dados
+    estendidos ou, sem ele, no nome; a rodovia, opcional, no campo `rodovia`, para concessões com
+    mais de uma rodovia) e os segmentos do traçado, e mostra quantos pontos leu e a extensão coberta;
   - KML sem nenhum ponto de KM e sem traçado é recusado com o motivo;
   - o envio fica na auditoria.
 

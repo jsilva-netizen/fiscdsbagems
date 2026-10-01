@@ -516,7 +516,8 @@ da spec 003.
 - **Comportamento desejado**: a câmara técnica analisa cada resposta: acatada ou não acatada, com o
   texto da análise. A análise é um registro do processo, separado da resposta: nunca altera a
   manifestação, a data nem a pontualidade da entidade. Determinação sem resposta, com prazo vencido, é
-  analisada como não atendida no prazo.
+  analisada como não atendida no prazo. As determinações são analisadas na ordem (D1, D2...): uma só
+  abre depois de a anterior ter resultado, como hoje.
 
   **Concluir a AM** exige todas as determinações analisadas. Ao concluir, o servidor:
   - atribui o número da AM;
@@ -533,7 +534,8 @@ da spec 003.
   - sem resposta, a equipe cria uma resposta marcada como dentro do prazo;
   - a AM é gerada em PDF no navegador;
   - "excluir a análise" apaga os autos e as respostas da entidade e limpa o número da AM;
-  - a tela de análise também gera autos sem número.
+  - a tela de análise também gera autos sem número;
+  - a ordem das análises é imposta só pela tela.
 - **Motivo da diferença**: a manifestação da entidade é prova do processo e não pode ser alterada
   pela AGEMS (Princípio I); um só caminho de geração de autos.
 - **Objetos do catálogo**: `coluna:respostas_determinacao.descricao_atendimento`,
