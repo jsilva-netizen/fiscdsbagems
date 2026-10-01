@@ -52,6 +52,12 @@ escrita valem para uso com rede e aplicam as mesmas regras e serviços.
 | `POST registros/{id}/recomendacoes` · `PATCH`/`DELETE recomendacoes/{id}` · `POST registros/{id}/recomendacoes/ordem` | recomendação |
 | `POST registros/{id}/consolidar` | devolve NCs, determinações e recomendações consolidadas e numeradas (a mesma regra da sincronização) |
 
+## Endereço sugerido
+
+| Método e rota | Descrição |
+|---|---|
+| `GET enderecos/reverso?lat=&lng=` | endereço sugerido para as coordenadas, pelo serviço de geocodificação consultado pelo servidor, com cache e limite de frequência (F20); **503** com o serviço fora, e o aparelho usa as coordenadas |
+
 ## Fotos
 
 | Método e rota | Descrição |

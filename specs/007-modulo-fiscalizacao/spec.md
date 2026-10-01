@@ -574,7 +574,17 @@ da spec 003.
     KM, sentido, gravidade, KM impreciso) ficam num registro do app da câmara ligado ao registro de
     campo, como o contrato estendido pela CATERF no core (R-core-020).
 
-  Registro finalizado só é alterado em modo de edição da fiscalização reaberta.
+  **Finalizar e editar o registro**:
+  - finalizar uma unidade sem nenhuma foto pede confirmação ("finalizar sem fotos?");
+  - numa fiscalização em andamento, a unidade finalizada volta a "em andamento" pelo botão
+    "Editar", e a equipe a altera e finaliza de novo;
+  - numa fiscalização finalizada, nada muda sem a reabertura (R-fiscalizacao-014).
+
+  **Item livre no registro avulso**: quando o modelo permite (R-checklists-012), o registro avulso
+  pode ter um item que não está no catálogo. O fiscal escolhe os níveis de agrupamento que existem e
+  digita o que falta (na CATERF, a opção "Outros" do item do PER) e a descrição. As saídas usam o que
+  ele digitou, e os campos que viriam do item (ex.: cláusula, prazo) ficam para ele preencher. O
+  registro fica marcado como "item livre", sem versão de item.
 - **Comportamento atual**:
   - unidade de saneamento e ocorrência da DTR são a mesma tabela, com as colunas da DTR juntas;
   - o tipo de unidade não tem chave estrangeira;
@@ -606,13 +616,16 @@ da spec 003.
   de criação dela (R-checklists-005). As versões já respondidas continuam na vistoria reaberta. Cada
   resposta guarda:
   - a versão do item;
-  - a resposta, com as opções que o catálogo declara (hoje, Sim ou Não);
+  - a resposta, com as opções que o catálogo declara (nos modelos da DSB: Sim, Não e Não se
+    aplica, que não gera saída);
   - a observação;
   - o **texto da constatação**, copiado do item e editável pelo fiscal.
 
   Excluir a constatação de uma resposta tira a resposta da contagem de constatações, sem apagar a
   resposta. Uma resposta por item e unidade. Quem lê o texto é o relatório e a contagem; resposta
-  sem texto de constatação não conta.
+  sem texto de constatação não conta. O texto da constatação termina com ponto e vírgula, acrescentado
+  se faltar, como no relatório de hoje. A tela mostra o progresso da unidade (itens respondidos sobre
+  o total, contando "Não se aplica") e guarda as respostas sem travar a digitação.
 - **Comportamento atual**:
   - a resposta guarda a pergunta copiada, que a tela deixa editar como texto da constatação;
   - excluir a constatação apaga a pergunta copiada e a marca de NC;
@@ -635,8 +648,12 @@ da spec 003.
 - **Comportamento desejado**: o fiscal escreve constatações livres na unidade, com:
   - texto (obrigatório);
   - se geram NC;
-  - o dispositivo normativo e a descrição da NC (se vazia, o padrão da R-fiscalizacao-007);
-  - o texto da determinação ou, sem ele, o da recomendação.
+  - o dispositivo normativo, obrigatório quando gera NC, e a descrição da NC (se vazia, o padrão da
+    R-fiscalizacao-007);
+  - o texto da determinação, marcada por padrão, com o prazo de 30 dias, editável; ou, sem
+    determinação, o da recomendação.
+
+  O texto termina com ponto e vírgula, como nas respostas (R-fiscalizacao-005).
 
   As constatações manuais são editáveis, excluíveis e reordenáveis, e entram na mesma numeração C
   das respostas.
@@ -661,7 +678,9 @@ da spec 003.
   Com os modelos de hoje:
   - **NC**: descrição "Constatação C<n>: não cumprimento do <dispositivo>;", com "artigo
     aplicável" quando não há dispositivo; na constatação manual, a descrição de NC dela, se houver;
-  - **determinação**: "Sanar NC<n>. <texto>", com o prazo do item (padrão 30 dias);
+  - **determinação**: "Sanar NC<n>. <texto>", com o prazo do item (padrão 30 dias). Quando o texto do
+    item já começa com "Sanar" ou "Para sanar", ele é usado como está, só com o número da NC
+    ajustado;
   - **recomendação**: quando há texto de recomendação e não há de determinação.
 
   **Regras da consolidação**:
@@ -712,7 +731,8 @@ da spec 003.
   - **NCs** (NC1, NC2...): sequenciais na fiscalização, seguindo a ordem das unidades e, dentro
     delas, a das constatações;
   - **determinações** (D1, D2...) e **recomendações** (R1, R2...): por unidade, na ordem definida
-    pela equipe (reordenáveis);
+    pela equipe (reordenáveis); por padrão, as determinações seguem a ordem das constatações de
+    origem, e as recomendações, a de criação;
   - os textos que citam números ("Sanar NC<n>") acompanham a numeração.
 
   A numeração é recalculada enquanto a fiscalização está em andamento e fica **congelada na
@@ -771,7 +791,8 @@ da spec 003.
 
   O ponto é pego sem rede e **nunca trava a captura** esperando precisão: grava a precisão atual e
   marca como impreciso quando passa do limite (20 m). O fiscal pode corrigir o ponto, e a origem
-  passa a "digitada". O endereço pode ser sugerido pelas coordenadas e é editável.
+  passa a "digitada". O endereço é sugerido pelas coordenadas quando há rede, por um serviço de endereços consultado
+  pelo servidor; sem rede, o campo recebe as coordenadas e o fiscal pode editar depois.
 
   O app de uma câmara pluga o que depende dela sobre o ponto. A CATERF calcula rodovia, KM e sentido
   pelo traçado KML, e guarda esses dados e o "KM impreciso" no app dela. O mapa-base mostra os
@@ -1305,7 +1326,7 @@ Fonte: `src/pages/` e `src/components/fiscalizacao/` do sistema atual.
 | Ação | Regra |
 |---|---|
 | Escolher o tipo de unidade (filtrado pelos serviços) | R-fiscalizacao-004; R-checklists-002 |
-| Código sugerido a partir do código do tipo; nome; endereço | R-fiscalizacao-004 |
+| Código sugerido a partir do código do tipo (`<código>-001`, sequencial por tipo na fiscalização); nome sugerido pelo nome do tipo; endereço sugerido pelas coordenadas | R-fiscalizacao-004, R-fiscalizacao-010 |
 | Coordenadas digitadas (graus, minutos e segundos) ou pelo GPS | R-fiscalizacao-010 |
 
 ### Vistoriar unidade (`src/pages/VistoriarUnidade.jsx` e componentes)
@@ -1313,14 +1334,15 @@ Fonte: `src/pages/` e `src/components/fiscalizacao/` do sistema atual.
 | Ação | Regra |
 |---|---|
 | Editar nome, código, endereço, coordenadas, data e hora da vistoria | R-fiscalizacao-004, R-fiscalizacao-010 |
-| Responder Sim ou Não a cada item, com observação | R-fiscalizacao-005 |
+| Responder Sim, Não ou N/A a cada item, com observação; progresso da unidade | R-fiscalizacao-005 (o N/A passa a ser gravado) |
 | Editar o texto da constatação do checklist; excluir a constatação | R-fiscalizacao-005 |
 | Link "Configurar checklist" | fora: checklists (spec 005) |
 | Adicionar, editar, excluir e reordenar constatação manual; definir NC, dispositivo, texto da NC, determinação ou recomendação (`EditarNCModal`) | R-fiscalizacao-006 |
 | Adicionar determinação ligada a uma constatação; editar o texto; excluir | R-fiscalizacao-007, R-fiscalizacao-009 |
 | Adicionar, editar, excluir e reordenar recomendação | R-fiscalizacao-007, R-fiscalizacao-008 |
 | Tirar ou escolher fotos, legenda, reordenar, excluir; limite de 20 (`PhotoGrid`) | R-fiscalizacao-011 |
-| Finalizar unidade ("Sim, Finalizar") | R-fiscalizacao-012 |
+| Finalizar unidade ("Sim, Finalizar"), com confirmação quando não há foto | R-fiscalizacao-004, R-fiscalizacao-012 |
+| Editar unidade finalizada numa fiscalização em andamento ("Editar") | R-fiscalizacao-004 |
 | Salvar alterações em modo de edição de unidade finalizada | R-fiscalizacao-004, R-fiscalizacao-014 |
 
 ### Relatórios e indicadores (`src/pages/Relatorios.jsx`)

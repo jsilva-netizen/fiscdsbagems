@@ -156,7 +156,7 @@ hoje, e a fila de IA fora do escopo.
 ### R-catesa-002 — Modelo e catálogos de checklist da CATESA
 
 - **Comportamento desejado**: o app entrega, como configuração inicial do motor de checklists, o
-  modelo "Checklist por tipo de unidade" da CATESA (campos, respostas Sim/Não, saídas e planilha
+  modelo "Checklist por tipo de unidade" da CATESA (campos, respostas Sim, Não e Não se aplica, saídas e planilha
   descritos na spec 005, "Modelos de hoje") e os catálogos dos tipos de unidade cujos serviços são
   da CATESA (água, esgoto, drenagem urbana), com os itens migrados. Em produção, são 25 dos 33 tipos
   (14 de água, 8 de esgoto e 3 de água e esgoto). A CATESA mantém o modelo e os catálogos na tela do

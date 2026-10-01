@@ -25,7 +25,8 @@ Cada versão guarda a **definição** num campo JSON (PostgreSQL `jsonb`):
 - modo de aplicação;
 - campos: nome, rótulo, tipo, obrigatório, padrão, valores permitidos, papel;
 - respostas: código, rótulo, tipo (opção fixa, número, texto);
-- saídas por resposta: código da saída registrada, condição, mapa campo do item → dado da saída;
+- saídas por resposta: código da saída registrada, condições (todas precisam valer; o modelo da DSB
+  usa até três, como "gera NC" e "determinação" preenchida), mapa campo do item → dado da saída;
 - formato de planilha: colunas, herança, junção, chave, colunas do catálogo.
 
 A definição é validada em dois passos, num só módulo Python (`checklists/definicao.py`):

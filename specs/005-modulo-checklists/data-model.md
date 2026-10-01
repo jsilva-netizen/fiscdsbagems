@@ -39,9 +39,10 @@ Imutável depois de criada (R-checklists-017).
 | Parte | Conteúdo |
 |---|---|
 | `modo` | código de modo registrado (K6), de tipo `lista` ou `avulso` |
+| `permite_item_livre` | booleano; só no modo `avulso` (R-checklists-012) |
 | `campos[]` | `nome`, `rotulo`, `tipo` (`texto_curto`, `texto_longo`, `inteiro`, `sim_nao`, `lista_valores`, `lista_linhas`), `obrigatorio`, `padrao`, `valores` (para `lista_valores`), `positivo` (para `inteiro`), `papel` (`titulo`, `agrupamento` com `nivel` e `ordem` fixa ou natural, `aplicabilidade` com o código do contexto, `escolha_complementar`) |
 | `respostas[]` | `codigo`, `rotulo`, `tipo` (`opcao`, `numero`, `texto`) |
-| `saidas[]` | `resposta`, `saida` (código registrado), `condicao` (`campo` + `verdadeiro` / `preenchido` / `vazio`, opcional), `dados` (dado da saída → campo do item ou valor fixo) |
+| `saidas[]` | `resposta`, `saida` (código registrado), `condicoes[]` (cada uma `campo` + `verdadeiro` / `preenchido` / `vazio`; todas precisam valer; lista vazia = sempre), `dados` (dado da saída → campo do item ou valor fixo) |
 | `planilha` | `colunas[]` (cabeçalho → campo ou dado do catálogo: nome, código, serviços), `herda[]`, `junta` (campo `lista_linhas`), `chave[]` (campos obrigatórios), `cria_catalogos`, `exemplo[]` |
 
 ## Catálogos e itens

@@ -374,6 +374,19 @@ pede.
 **Alternatives considered**: a barra no core, para todas as telas: mostraria sincronização onde não
 há trabalho sem rede; um backup diferente da exportação: dois formatos para a mesma recuperação.
 
+## F20 — Endereço sugerido pelas coordenadas
+
+**Decision**: a rota `GET enderecos/reverso?lat=&lng=` do app consulta, pelo servidor, um serviço de
+geocodificação reversa (Nominatim do OpenStreetMap, como hoje), com cache por coordenada arredondada
+(cerca de 10 m), limite de uma consulta por segundo e identificação da AGEMS, como a política de uso
+do serviço exige. Só as coordenadas saem do sistema. Sem rede ou com o serviço fora, o aparelho grava
+as coordenadas no campo de endereço. Trocar de serviço muda só o adaptador.
+
+**Rationale**: R-fiscalizacao-010; hoje cada aparelho chama o serviço público direto, sem limite nem
+cache, o que pode bloquear o endereço da agência.
+
+**Alternatives considered**: o aparelho chamar o serviço direto, como hoje: sem controle de uso.
+
 ## F18 — Migração
 
 **Decision**: o comando `migrar_fiscalizacao` lê o dump de produção (nunca a produção), segue o

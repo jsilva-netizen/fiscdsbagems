@@ -95,7 +95,8 @@ A unidade vistoriada ou o registro avulso.
 | id | UUID | do aparelho |
 | fiscalizacao | → Fiscalizacao | protegida |
 | catalogo_id | UUID | catálogo do motor (ativo e da câmara na criação) |
-| item_versao_id | UUID, opcional | modo avulso: versão do item escolhida |
+| item_versao_id | UUID, opcional | modo avulso: versão do item escolhida; vazio no item livre |
+| item_livre | JSON, opcional | modo avulso com item livre: níveis de agrupamento escolhidos ou digitados e a descrição (R-fiscalizacao-004) |
 | resposta | texto, opcional | modo avulso: código da resposta declarada |
 | tipo_avulso | texto, opcional | código registrado pelo app da câmara (F7) |
 | nome | texto | |
@@ -120,7 +121,7 @@ A unidade vistoriada ou o registro avulso.
 | id | UUID | |
 | registro | → RegistroCampo | única por registro e item |
 | item_versao_id | UUID | versão respondida (R-checklists-005) |
-| valor | texto | código de resposta declarado no catálogo (hoje `sim`, `nao`) |
+| valor | texto | código de resposta declarado no catálogo (nos modelos da DSB, `sim`, `nao` e `na`) |
 | observacao | texto, opcional | |
 | texto_constatacao | texto, opcional | copiado do item, editável |
 | constatacao_excluida | booleano | fora da contagem sem apagar a resposta |

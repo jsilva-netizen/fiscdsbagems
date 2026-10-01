@@ -390,8 +390,9 @@ Cada regra segue o molde `formatos/spec-modulo.md` da spec 003. O identificador 
   que funciona sem rede, segue os passos:
   1. fotos (câmera ou galeria), o que fixa o KM (R-dtr-007);
   2. frente;
-  3. item do PER;
-  4. descrição (o tipo);
+  3. item do PER, com a opção "Outros" sempre por último, que deixa o fiscal digitar o item do PER;
+  4. descrição (o tipo); com "Outros", a descrição é digitada (item livre, R-fiscalizacao-004), e a
+     cláusula e o prazo da NC ficam para o fiscal preencher;
   5. etapa de obra, só quando o tipo tem etapas;
   6. constatação ou não conformidade, mostrando a cláusula não atendida e o prazo;
   7. sentido (N, S, N/S);
@@ -411,7 +412,9 @@ Cada regra segue o molde `formatos/spec-modulo.md` da spec 003. O identificador 
   - o tipo é escolhido pelo texto;
   - a gravidade existe como coluna e aparece no modelo de relatório, mas o assistente atual não tem
     o passo de gravidade;
-  - as fotos de uma ocorrência nova ficam numa pasta provisória até o ponto ser salvo.
+  - as fotos de uma ocorrência nova ficam numa pasta provisória até o ponto ser salvo;
+  - "Outros" grava o item do PER e a descrição digitados, sem tipo, e a NC sai sem cláusula nem
+    prazo.
 - **Motivo da diferença**:
   - a ocorrência guarda a versão do tipo (R-checklists-005), e não cópias;
   - os dados da rodovia ficam no app da câmara (constituição v2.6.0);

@@ -530,7 +530,9 @@ da spec 003. As regras descrevem só peças genéricas; o que cada câmara faz h
   - **lista por unidade**: cada registro (ex.: a unidade vistoriada) recebe todos os itens vigentes
     do catálogo, na ordem, para serem respondidos um a um;
   - **registro avulso**: cada registro (ex.: a ocorrência num ponto da rodovia) escolhe um item do
-    catálogo e a resposta.
+    catálogo e a resposta. O modelo pode **permitir item livre**: o fiscal escolhe os níveis de
+    agrupamento existentes e digita o que falta e o título, e o registro fica sem versão de item
+    (R-fiscalizacao-004).
 
   O motor fornece os itens e a versão; não conhece unidade, ponto, KM nem foto, que são do app que
   aplica.
@@ -547,9 +549,9 @@ da spec 003. As regras descrevem só peças genéricas; o que cada câmara faz h
 - **Comportamento desejado**: o modelo declara:
   - as **respostas** possíveis: opções fixas (ex.: Sim/Não, Sim/Não/Não se aplica,
     Constatação/Não conformidade), número ou texto;
-  - para cada resposta, as **saídas**: um identificador de saída, uma condição opcional sobre
-    campos do item (campo sim/não verdadeiro, campo preenchido, campo vazio) e os campos que
-    alimentam a saída.
+  - para cada resposta, as **saídas**: um identificador de saída, condições opcionais sobre campos
+    do item (campo sim/não verdadeiro, campo preenchido, campo vazio), que precisam valer todas ao
+    mesmo tempo, e os campos que alimentam a saída.
 
   Os identificadores de saída (constatação, NC, determinação, recomendação...) são definidos pelo app
   que aplica o catálogo; o motor os guarda e entrega sem interpretar. Assim, o motor não sabe o que é
@@ -732,11 +734,15 @@ implantação, cada câmara a mantém na tela de montagem.
 | prazo (dias) | número inteiro | positivo; padrão 30 | — | `coluna:itens_checklist.prazo_dias` |
 | recomendação | texto longo | — | — | `coluna:itens_checklist.texto_recomendacao` |
 
-- **Respostas e saídas**:
-  - Sim → constatação, com "constatação Sim".
-  - Não → constatação, com "constatação Não"; NC, se "gera NC", descrita por "dispositivo normativo"
-    (ou "artigo aplicável" se vazio); determinação com "determinação" e "prazo", se "determinação"
-    preenchida; recomendação com "recomendação", se "determinação" vazia.
+- **Respostas e saídas** (conferidas no código de hoje, varredura de 2026-10-01):
+  - Sim → constatação, com "constatação Sim", se ela estiver preenchida.
+  - Não → constatação, com "constatação Não", se ela estiver preenchida; NC, se "gera NC" e
+    "constatação Não" preenchida, descrita por "dispositivo normativo" (ou "artigo aplicável" se
+    vazio); determinação com "determinação" e "prazo", se "gera NC" e "determinação" preenchida;
+    recomendação com "recomendação", se "gera NC", "determinação" vazia e "recomendação" preenchida.
+  - Não se aplica → nenhuma saída. A resposta é gravada e conta no progresso da vistoria. Hoje o
+    botão "N/A" existe na tela, mas não é gravado (decisão do responsável, 2026-10-01: passa a ser
+    resposta gravada).
 - **Planilha**: serviço, código do tipo, nome do tipo, ordem, pergunta, constatação Sim, constatação
   Não, dispositivo normativo, determinação, recomendação, texto da NC, prazo. Cria os catálogos que
   não existem (nome ou código, sem diferenciar maiúsculas, com os serviços da planilha). Chave: catálogo
@@ -760,6 +766,8 @@ implantação, cada câmara a mantém na tela de montagem.
 
   "Gera NC" (`coluna:tipos_ocorrencia_dtr.gera_nc`) não vira campo: hoje é derivado da cláusula e só
   aparece como etiqueta; a lista mostra a etiqueta quando a cláusula está preenchida.
+- **Item livre**: permitido. Na escolha do item do PER, a opção "Outros" deixa o fiscal digitar o
+  item do PER e a descrição; cláusula e prazo ficam para ele preencher (varredura de 2026-10-01).
 - **Respostas e saídas**: Constatação → constatação, com "descrição" e "observação-padrão"; Não
   conformidade → NC, com "cláusula não atendida", "prazo padrão" e "observação-padrão". As duas
   respostas valem para qualquer item; a cláusula e o prazo aparecem ao fiscal na escolha.
