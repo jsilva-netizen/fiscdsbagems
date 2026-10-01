@@ -4,7 +4,7 @@
 
 Destino, no sistema novo, de cada coluna de tabela e de cada repositório de arquivos do banco de produção: o campo que recebe o dado (com a transformação, quando há) ou o motivo do descarte. Os mapas ficam em `anotacoes/migracao/<modulo>.toml`; destinos de apps com data-model são conferidos contra ele. Num módulo com mapa, o que não tem destino é **pendente**. Colunas de views não entram (não guardam dado).
 
-Pendentes: 0 · módulos sem mapa: 2 · destinos não verificados: 1.
+Pendentes: 0 · módulos sem mapa: 1 · destinos não verificados: 0.
 
 | Módulo | Mapa | Colunas e repositórios | Com destino | Descartados | Pendentes |
 |---|---|---:|---:|---:|---:|
@@ -13,7 +13,7 @@ Pendentes: 0 · módulos sem mapa: 2 · destinos não verificados: 1.
 | Fiscalização | sim | 115 | 87 | 28 | 0 |
 | DTR | sim | 20 | 20 | 0 | 0 |
 | Processo sancionador | **sem mapa** | 120 | — | — | — |
-| CATERS | **sem mapa** | 81 | — | — | — |
+| CATERS | sim | 81 | 75 | 6 | 0 |
 | fora do escopo | — | 25 | 0 | 25 | 0 |
 
 ## Core
@@ -293,12 +293,103 @@ Mapa: `anotacoes/migracao/dtr.toml` · data-model: `specs/008-modulo-dtr-caterf/
 | `coluna:unidades_fiscalizadas.tipo_ocorrencia` | 402 linhas | `fiscalizacao.RegistroCampo.resposta` | `constatacao` (72) e `nc` (6) viram as respostas do modelo 'Ocorrências do PER'. |
 | `coluna:unidades_fiscalizadas.trecho` | 402 linhas | `caterf.Ocorrencia.trecho` |  |
 
+## CATERS
+
+Mapa: `anotacoes/migracao/caters.toml` · data-model: `specs/010-modulo-caters/data-model.md`
+
+- Ordem de carga: depois de core, fiscalização (recomendações e determinações com os mesmos identificadores) e do comando configurar_caters (research T12).
+- Produção tem 2 processos e 27 recomendações; as demais tabelas estão vazias e são conferidas com 0 linhas.
+- Os 4 arquivos do CATERS no repositório de documentos de entidades viram documentos dos processos, com checksum conferido (mapa do core, bucket documentos-prestadores).
+
+| Objeto | Volume em produção | Destino | Transformação ou motivo do descarte |
+|---|---|---|---|
+| `coluna:caters_analysis_history.action_type` | 0 linhas | `caters.EventoProcesso.tipo` | Os 7 valores de hoje existem na lista nova com o mesmo código. |
+| `coluna:caters_analysis_history.created_at` | 0 linhas | `caters.EventoProcesso.criado_em` |  |
+| `coluna:caters_analysis_history.description` | 0 linhas | `caters.EventoProcesso.descricao` |  |
+| `coluna:caters_analysis_history.id` | 0 linhas | `caters.EventoProcesso.id` |  |
+| `coluna:caters_analysis_history.new_fatal_date` | 0 linhas | `caters.EventoProcesso.novo_prazo` |  |
+| `coluna:caters_analysis_history.performed_by` | 0 linhas | `caters.EventoProcesso.autor` |  |
+| `coluna:caters_analysis_history.process_id` | 0 linhas | `caters.EventoProcesso.processo` |  |
+| `coluna:caters_analysis_history.related_document_url` | 0 linhas | `caters.EventoProcesso.documento` | Endereço ligado ao documento do processo com o mesmo arquivo; sem documento, vira documento `extra`. |
+| `coluna:caters_deadline_extensions.calculated_date` | 0 linhas | `caters.Dilacao.novo_prazo` | Conferido contra referência + dias; divergência vai para o relatório de conferência. |
+| `coluna:caters_deadline_extensions.created_at` | 0 linhas | `caters.Dilacao.criado_em` |  |
+| `coluna:caters_deadline_extensions.created_by` | 0 linhas | `caters.Dilacao.criado_por` |  |
+| `coluna:caters_deadline_extensions.extension_days` | 0 linhas | `caters.Dilacao.dias` |  |
+| `coluna:caters_deadline_extensions.id` | 0 linhas | `caters.Dilacao.id` |  |
+| `coluna:caters_deadline_extensions.municipality_protocol` | 0 linhas | `caters.Dilacao.protocolo_municipio` |  |
+| `coluna:caters_deadline_extensions.municipality_request_at` | 0 linhas | `caters.Dilacao.pedido_em` |  |
+| `coluna:caters_deadline_extensions.notes` | 0 linhas | `caters.Dilacao.observacoes` |  |
+| `coluna:caters_deadline_extensions.process_id` | 0 linhas | `caters.Dilacao.processo` |  |
+| `coluna:caters_deadline_extensions.reference_date` | 0 linhas | `caters.Dilacao.data_referencia` |  |
+| `coluna:caters_deadline_extensions.status` | 0 linhas | `caters.Dilacao.decisao` | `aprovado` → `aprovada`; `negado` → `negada`. |
+| `coluna:caters_deadline_extensions.updated_at` | 0 linhas | descartado | A dilação passa a ser imutável (research T6); a tabela está vazia. |
+| `coluna:caters_extra_documents.created_at` | 0 linhas | `caters.DocumentoProcesso.criado_em` |  |
+| `coluna:caters_extra_documents.created_by` | 0 linhas | `caters.DocumentoProcesso.criado_por` |  |
+| `coluna:caters_extra_documents.description` | 0 linhas | `caters.DocumentoProcesso.descricao` |  |
+| `coluna:caters_extra_documents.file_url` | 0 linhas | `caters.DocumentoProcesso.arquivo` | Como as colunas de endereço do processo, com o tipo `extra`. |
+| `coluna:caters_extra_documents.id` | 0 linhas | `caters.DocumentoProcesso.id` |  |
+| `coluna:caters_extra_documents.process_id` | 0 linhas | `caters.DocumentoProcesso.processo` |  |
+| `coluna:caters_extra_documents.title` | 0 linhas | `caters.DocumentoProcesso.titulo` |  |
+| `coluna:caters_municipality_responses.created_at` | 0 linhas | `caters.RespostaMunicipio.criado_em` |  |
+| `coluna:caters_municipality_responses.created_by` | 0 linhas | `caters.RespostaMunicipio.criado_por` |  |
+| `coluna:caters_municipality_responses.cronograma_status` | 0 linhas | `caters.RespostaMunicipio.situacao_cronograma` |  |
+| `coluna:caters_municipality_responses.id` | 0 linhas | `caters.RespostaMunicipio.id` |  |
+| `coluna:caters_municipality_responses.notes` | 0 linhas | `caters.RespostaMunicipio.observacoes` |  |
+| `coluna:caters_municipality_responses.process_id` | 0 linhas | `caters.RespostaMunicipio.processo` |  |
+| `coluna:caters_municipality_responses.protocol_number` | 0 linhas | `caters.RespostaMunicipio.protocolo` |  |
+| `coluna:caters_municipality_responses.received_at` | 0 linhas | `caters.RespostaMunicipio.recebida_em` |  |
+| `coluna:caters_municipality_responses.updated_at` | 0 linhas | `caters.RespostaMunicipio.atualizado_em` |  |
+| `coluna:caters_notification_reads.created_at` | 0 linhas | descartado | Substituída pela central de avisos do core (R-caters-012); a tabela está vazia. |
+| `coluna:caters_notification_reads.id` | 0 linhas | descartado | Substituída pela central de avisos do core (R-caters-012); a tabela está vazia. |
+| `coluna:caters_notification_reads.key` | 0 linhas | descartado | Substituída pela central de avisos e pelo controle de um aviso por prazo (research T9); a tabela está vazia. |
+| `coluna:caters_notification_reads.read_at` | 0 linhas | descartado | Substituída pela central de avisos do core (R-caters-012); a tabela está vazia. |
+| `coluna:caters_notification_reads.user_id` | 0 linhas | descartado | Substituída pela central de avisos do core (R-caters-012); a tabela está vazia. |
+| `coluna:caters_processes.ar_digitalizado_url` | 2 linhas | `caters.DocumentoProcesso.arquivo`<br>`caters.DocumentoProcesso.tipo` | Como o relatório, com o tipo `ar_digitalizado`. |
+| `coluna:caters_processes.ar_protocol_number` | 2 linhas | `caters.ProcessoAcompanhamento.ar_protocolo` |  |
+| `coluna:caters_processes.ar_received_at` | 2 linhas | `caters.ProcessoAcompanhamento.ar_recebido_em` |  |
+| `coluna:caters_processes.ar_sent_at` | 2 linhas | `caters.ProcessoAcompanhamento.ar_enviado_em` |  |
+| `coluna:caters_processes.ar_tracking_code` | 2 linhas | `caters.ProcessoAcompanhamento.ar_codigo_rastreio` |  |
+| `coluna:caters_processes.created_at` | 2 linhas | `caters.ProcessoAcompanhamento.criado_em` |  |
+| `coluna:caters_processes.created_by` | 2 linhas | `caters.ProcessoAcompanhamento.criado_por` |  |
+| `coluna:caters_processes.cronograma_url` | 2 linhas | `caters.DocumentoProcesso.arquivo`<br>`caters.DocumentoProcesso.tipo` | Como o relatório, com o tipo `cronograma`. |
+| `coluna:caters_processes.fatal_date` | 2 linhas | `caters.ProcessoAcompanhamento.data_fatal` |  |
+| `coluna:caters_processes.fiscalizacao_id` | 2 linhas | `caters.ProcessoAcompanhamento.fiscalizacao` |  |
+| `coluna:caters_processes.id` | 2 linhas | `caters.ProcessoAcompanhamento.id` |  |
+| `coluna:caters_processes.municipality` | 2 linhas | `caters.ProcessoAcompanhamento.municipio`<br>`caters.ProcessoAcompanhamento.municipio_texto_original` | Ligado ao município do core pelo nome, sem diferenciar maiúsculas e acentos; o texto fica guardado. Sem correspondência, o município fica vazio e o caso vai para `legado` e para o relatório de conferência. |
+| `coluna:caters_processes.object` | 2 linhas | `caters.ProcessoAcompanhamento.objeto` |  |
+| `coluna:caters_processes.observations` | 2 linhas | `caters.ProcessoAcompanhamento.observacoes` |  |
+| `coluna:caters_processes.oficio_resposta_url` | 2 linhas | `caters.DocumentoProcesso.arquivo`<br>`caters.DocumentoProcesso.tipo` | Como o relatório, com o tipo `oficio_resposta`. |
+| `coluna:caters_processes.process_number` | 2 linhas | `caters.ProcessoAcompanhamento.numero_processo` |  |
+| `coluna:caters_processes.relatorio_url` | 2 linhas | `caters.DocumentoProcesso.arquivo`<br>`caters.DocumentoProcesso.tipo` | Endereço vira documento do tipo `relatorio`: o caminho é extraído do endereço público ou assinado, o arquivo é copiado para o repositório privado e o checksum conferido. |
+| `coluna:caters_processes.report_sent_at` | 2 linhas | `caters.ProcessoAcompanhamento.relatorio_enviado_em` |  |
+| `coluna:caters_processes.status` | 2 linhas | `caters.ProcessoAcompanhamento.situacao` |  |
+| `coluna:caters_processes.technician_name` | 2 linhas | `caters.ProcessoAcompanhamento.tecnico`<br>`caters.ProcessoAcompanhamento.tecnico_texto_original` | Ligado ao usuário pelo nome, só entre usuários da CATERS; o texto fica guardado. Sem correspondência única, o técnico fica vazio e o caso vai para `legado`. |
+| `coluna:caters_processes.termo_notificacao_url` | 2 linhas | `caters.DocumentoProcesso.arquivo`<br>`caters.DocumentoProcesso.tipo` | Como o relatório, com o tipo `termo_notificacao`. |
+| `coluna:caters_processes.titular_response_due_at` | 2 linhas | `caters.ProcessoAcompanhamento.prazo_resposta_informado` | Vazio continua vazio: o prazo efetivo passa a ser calculado (research T5). |
+| `coluna:caters_processes.updated_at` | 2 linhas | `caters.ProcessoAcompanhamento.atualizado_em` |  |
+| `coluna:caters_recommendations.category` | 27 linhas | `caters.RecomendacaoAcompanhada.categoria` |  |
+| `coluna:caters_recommendations.created_at` | 27 linhas | `caters.RecomendacaoAcompanhada.criado_em` |  |
+| `coluna:caters_recommendations.created_by` | 27 linhas | `caters.RecomendacaoAcompanhada.criado_por` |  |
+| `coluna:caters_recommendations.description` | 27 linhas | `caters.RecomendacaoAcompanhada.descricao` |  |
+| `coluna:caters_recommendations.determinacao_id` | 27 linhas | `caters.RecomendacaoAcompanhada.origem_tipo`<br>`caters.RecomendacaoAcompanhada.origem_id` | Preenchido: origem `determinacao` com o mesmo identificador. |
+| `coluna:caters_recommendations.evidence_url` | 27 linhas | `caters.RecomendacaoAcompanhada.evidencia`<br>`caters.DocumentoProcesso.arquivo` | Endereço de arquivo do repositório vira documento do processo do tipo `evidencia`, ligado à recomendação; outro texto vai para `observacoes`, com a marca da origem. |
+| `coluna:caters_recommendations.fulfilled_at` | 27 linhas | `caters.RecomendacaoAcompanhada.cumprida_em` |  |
+| `coluna:caters_recommendations.id` | 27 linhas | `caters.RecomendacaoAcompanhada.id` |  |
+| `coluna:caters_recommendations.item_code` | 27 linhas | `caters.RecomendacaoAcompanhada.codigo_item` |  |
+| `coluna:caters_recommendations.notes` | 27 linhas | `caters.RecomendacaoAcompanhada.observacoes` |  |
+| `coluna:caters_recommendations.priority` | 27 linhas | `caters.RecomendacaoAcompanhada.prioridade` |  |
+| `coluna:caters_recommendations.process_id` | 27 linhas | `caters.RecomendacaoAcompanhada.processo` |  |
+| `coluna:caters_recommendations.promised_due_at` | 27 linhas | `caters.RecomendacaoAcompanhada.prazo_prometido` | Migrado como está, mesmo vazio nas determinações importadas: não é recalculado (research T12). |
+| `coluna:caters_recommendations.recomendacao_id` | 27 linhas | `caters.RecomendacaoAcompanhada.origem_tipo`<br>`caters.RecomendacaoAcompanhada.origem_id` | Preenchido: origem `recomendacao` com o mesmo identificador (a fiscalização migra as recomendações com os identificadores de produção). Vazio nas duas colunas de origem: `manual`. |
+| `coluna:caters_recommendations.status` | 27 linhas | `caters.RecomendacaoAcompanhada.em_andamento`<br>`caters.RecomendacaoAcompanhada.situacao_legado` | `em_andamento` vira a marca da equipe; o valor gravado fica em `situacao_legado`. A conferência lista as recomendações cuja situação calculada difere da gravada (ex.: vencidas gravadas como pendentes). |
+| `coluna:caters_recommendations.titular_response` | 27 linhas | `caters.RecomendacaoAcompanhada.resposta_titular` |  |
+| `coluna:caters_recommendations.updated_at` | 27 linhas | `caters.RecomendacaoAcompanhada.atualizado_em` |  |
+
 ## Módulos sem mapa
 
 Ainda sem `anotacoes/migracao/<modulo>.toml`; o mapa entra com a spec do módulo.
 
 - **Processo sancionador**: 120 colunas e repositórios
-- **CATERS**: 81 colunas e repositórios
 
 ## Fora do escopo
 
@@ -331,9 +422,3 @@ Descartados junto com o objeto, pelo motivo da anotação (spec 003).
 | `coluna:catesa_ai_jobs.status` | 0 linhas | Análise por IA não será refeita no sistema novo (decisão do responsável, 2026-09-30). |
 | `coluna:catesa_ai_jobs.termo_id` | 0 linhas | Análise por IA não será refeita no sistema novo (decisão do responsável, 2026-09-30). |
 | `coluna:catesa_ai_jobs.updated_at` | 0 linhas | Análise por IA não será refeita no sistema novo (decisão do responsável, 2026-09-30). |
-
-## Destinos não verificados
-
-Destinos em app que ainda não tem data-model; são conferidos quando ele existir.
-
-- `bucket:documentos-prestadores` → `caters.DocumentoProcesso.arquivo`

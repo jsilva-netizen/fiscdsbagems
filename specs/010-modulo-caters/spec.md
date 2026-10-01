@@ -701,8 +701,8 @@ da spec 003.
 
 ## Migração
 
-O mapa `specs/003-base-dados-producao/anotacoes/migracao/caters.toml` é criado com o data-model do
-plano desta spec (passo 7 do molde).
+Mapa: `specs/003-base-dados-producao/anotacoes/migracao/caters.toml` (81 itens: 75 com destino e 6
+descartados; 0 pendentes), conferido contra o data-model do plano.
 
 ### Volumes de produção
 

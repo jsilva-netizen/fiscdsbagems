@@ -1,0 +1,283 @@
+# Mapa de migração do módulo caters (spec 010). Destinos conferidos contra o data-model.
+modulo = "caters"
+data_model = "specs/010-modulo-caters/data-model.md"
+notas = [
+  "Ordem de carga: depois de core, fiscalização (recomendações e determinações com os mesmos identificadores) e do comando configurar_caters (research T12).",
+  "Produção tem 2 processos e 27 recomendações; as demais tabelas estão vazias e são conferidas com 0 linhas.",
+  "Os 4 arquivos do CATERS no repositório de documentos de entidades viram documentos dos processos, com checksum conferido (mapa do core, bucket documentos-prestadores).",
+]
+
+# --- processos ---------------------------------------------------------------------------
+
+[destino."coluna:caters_processes.id"]
+para = "caters.ProcessoAcompanhamento.id"
+
+[destino."coluna:caters_processes.process_number"]
+para = "caters.ProcessoAcompanhamento.numero_processo"
+
+[destino."coluna:caters_processes.municipality"]
+para = ["caters.ProcessoAcompanhamento.municipio", "caters.ProcessoAcompanhamento.municipio_texto_original"]
+transformacao = "Ligado ao município do core pelo nome, sem diferenciar maiúsculas e acentos; o texto fica guardado. Sem correspondência, o município fica vazio e o caso vai para `legado` e para o relatório de conferência."
+
+[destino."coluna:caters_processes.object"]
+para = "caters.ProcessoAcompanhamento.objeto"
+
+[destino."coluna:caters_processes.technician_name"]
+para = ["caters.ProcessoAcompanhamento.tecnico", "caters.ProcessoAcompanhamento.tecnico_texto_original"]
+transformacao = "Ligado ao usuário pelo nome, só entre usuários da CATERS; o texto fica guardado. Sem correspondência única, o técnico fica vazio e o caso vai para `legado`."
+
+[destino."coluna:caters_processes.status"]
+para = "caters.ProcessoAcompanhamento.situacao"
+
+[destino."coluna:caters_processes.observations"]
+para = "caters.ProcessoAcompanhamento.observacoes"
+
+[destino."coluna:caters_processes.report_sent_at"]
+para = "caters.ProcessoAcompanhamento.relatorio_enviado_em"
+
+[destino."coluna:caters_processes.ar_sent_at"]
+para = "caters.ProcessoAcompanhamento.ar_enviado_em"
+
+[destino."coluna:caters_processes.ar_received_at"]
+para = "caters.ProcessoAcompanhamento.ar_recebido_em"
+
+[destino."coluna:caters_processes.ar_tracking_code"]
+para = "caters.ProcessoAcompanhamento.ar_codigo_rastreio"
+
+[destino."coluna:caters_processes.ar_protocol_number"]
+para = "caters.ProcessoAcompanhamento.ar_protocolo"
+
+[destino."coluna:caters_processes.fatal_date"]
+para = "caters.ProcessoAcompanhamento.data_fatal"
+
+[destino."coluna:caters_processes.titular_response_due_at"]
+para = "caters.ProcessoAcompanhamento.prazo_resposta_informado"
+transformacao = "Vazio continua vazio: o prazo efetivo passa a ser calculado (research T5)."
+
+[destino."coluna:caters_processes.fiscalizacao_id"]
+para = "caters.ProcessoAcompanhamento.fiscalizacao"
+
+[destino."coluna:caters_processes.created_by"]
+para = "caters.ProcessoAcompanhamento.criado_por"
+
+[destino."coluna:caters_processes.created_at"]
+para = "caters.ProcessoAcompanhamento.criado_em"
+
+[destino."coluna:caters_processes.updated_at"]
+para = "caters.ProcessoAcompanhamento.atualizado_em"
+
+[destino."coluna:caters_processes.relatorio_url"]
+para = ["caters.DocumentoProcesso.arquivo", "caters.DocumentoProcesso.tipo"]
+transformacao = "Endereço vira documento do tipo `relatorio`: o caminho é extraído do endereço público ou assinado, o arquivo é copiado para o repositório privado e o checksum conferido."
+
+[destino."coluna:caters_processes.termo_notificacao_url"]
+para = ["caters.DocumentoProcesso.arquivo", "caters.DocumentoProcesso.tipo"]
+transformacao = "Como o relatório, com o tipo `termo_notificacao`."
+
+[destino."coluna:caters_processes.ar_digitalizado_url"]
+para = ["caters.DocumentoProcesso.arquivo", "caters.DocumentoProcesso.tipo"]
+transformacao = "Como o relatório, com o tipo `ar_digitalizado`."
+
+[destino."coluna:caters_processes.oficio_resposta_url"]
+para = ["caters.DocumentoProcesso.arquivo", "caters.DocumentoProcesso.tipo"]
+transformacao = "Como o relatório, com o tipo `oficio_resposta`."
+
+[destino."coluna:caters_processes.cronograma_url"]
+para = ["caters.DocumentoProcesso.arquivo", "caters.DocumentoProcesso.tipo"]
+transformacao = "Como o relatório, com o tipo `cronograma`."
+
+# --- recomendações acompanhadas ----------------------------------------------------------
+
+[destino."coluna:caters_recommendations.id"]
+para = "caters.RecomendacaoAcompanhada.id"
+
+[destino."coluna:caters_recommendations.process_id"]
+para = "caters.RecomendacaoAcompanhada.processo"
+
+[destino."coluna:caters_recommendations.item_code"]
+para = "caters.RecomendacaoAcompanhada.codigo_item"
+
+[destino."coluna:caters_recommendations.description"]
+para = "caters.RecomendacaoAcompanhada.descricao"
+
+[destino."coluna:caters_recommendations.category"]
+para = "caters.RecomendacaoAcompanhada.categoria"
+
+[destino."coluna:caters_recommendations.priority"]
+para = "caters.RecomendacaoAcompanhada.prioridade"
+
+[destino."coluna:caters_recommendations.promised_due_at"]
+para = "caters.RecomendacaoAcompanhada.prazo_prometido"
+transformacao = "Migrado como está, mesmo vazio nas determinações importadas: não é recalculado (research T12)."
+
+[destino."coluna:caters_recommendations.status"]
+para = ["caters.RecomendacaoAcompanhada.em_andamento", "caters.RecomendacaoAcompanhada.situacao_legado"]
+transformacao = "`em_andamento` vira a marca da equipe; o valor gravado fica em `situacao_legado`. A conferência lista as recomendações cuja situação calculada difere da gravada (ex.: vencidas gravadas como pendentes)."
+
+[destino."coluna:caters_recommendations.fulfilled_at"]
+para = "caters.RecomendacaoAcompanhada.cumprida_em"
+
+[destino."coluna:caters_recommendations.evidence_url"]
+para = ["caters.RecomendacaoAcompanhada.evidencia", "caters.DocumentoProcesso.arquivo"]
+transformacao = "Endereço de arquivo do repositório vira documento do processo do tipo `evidencia`, ligado à recomendação; outro texto vai para `observacoes`, com a marca da origem."
+
+[destino."coluna:caters_recommendations.notes"]
+para = "caters.RecomendacaoAcompanhada.observacoes"
+
+[destino."coluna:caters_recommendations.titular_response"]
+para = "caters.RecomendacaoAcompanhada.resposta_titular"
+
+[destino."coluna:caters_recommendations.recomendacao_id"]
+para = ["caters.RecomendacaoAcompanhada.origem_tipo", "caters.RecomendacaoAcompanhada.origem_id"]
+transformacao = "Preenchido: origem `recomendacao` com o mesmo identificador (a fiscalização migra as recomendações com os identificadores de produção). Vazio nas duas colunas de origem: `manual`."
+
+[destino."coluna:caters_recommendations.determinacao_id"]
+para = ["caters.RecomendacaoAcompanhada.origem_tipo", "caters.RecomendacaoAcompanhada.origem_id"]
+transformacao = "Preenchido: origem `determinacao` com o mesmo identificador."
+
+[destino."coluna:caters_recommendations.created_by"]
+para = "caters.RecomendacaoAcompanhada.criado_por"
+
+[destino."coluna:caters_recommendations.created_at"]
+para = "caters.RecomendacaoAcompanhada.criado_em"
+
+[destino."coluna:caters_recommendations.updated_at"]
+para = "caters.RecomendacaoAcompanhada.atualizado_em"
+
+# --- linha do tempo (0 linhas) -----------------------------------------------------------
+
+[destino."coluna:caters_analysis_history.id"]
+para = "caters.EventoProcesso.id"
+
+[destino."coluna:caters_analysis_history.process_id"]
+para = "caters.EventoProcesso.processo"
+
+[destino."coluna:caters_analysis_history.action_type"]
+para = "caters.EventoProcesso.tipo"
+transformacao = "Os 7 valores de hoje existem na lista nova com o mesmo código."
+
+[destino."coluna:caters_analysis_history.description"]
+para = "caters.EventoProcesso.descricao"
+
+[destino."coluna:caters_analysis_history.new_fatal_date"]
+para = "caters.EventoProcesso.novo_prazo"
+
+[destino."coluna:caters_analysis_history.related_document_url"]
+para = "caters.EventoProcesso.documento"
+transformacao = "Endereço ligado ao documento do processo com o mesmo arquivo; sem documento, vira documento `extra`."
+
+[destino."coluna:caters_analysis_history.performed_by"]
+para = "caters.EventoProcesso.autor"
+
+[destino."coluna:caters_analysis_history.created_at"]
+para = "caters.EventoProcesso.criado_em"
+
+# --- dilações (0 linhas) -----------------------------------------------------------------
+
+[destino."coluna:caters_deadline_extensions.id"]
+para = "caters.Dilacao.id"
+
+[destino."coluna:caters_deadline_extensions.process_id"]
+para = "caters.Dilacao.processo"
+
+[destino."coluna:caters_deadline_extensions.reference_date"]
+para = "caters.Dilacao.data_referencia"
+
+[destino."coluna:caters_deadline_extensions.extension_days"]
+para = "caters.Dilacao.dias"
+
+[destino."coluna:caters_deadline_extensions.calculated_date"]
+para = "caters.Dilacao.novo_prazo"
+transformacao = "Conferido contra referência + dias; divergência vai para o relatório de conferência."
+
+[destino."coluna:caters_deadline_extensions.municipality_request_at"]
+para = "caters.Dilacao.pedido_em"
+
+[destino."coluna:caters_deadline_extensions.municipality_protocol"]
+para = "caters.Dilacao.protocolo_municipio"
+
+[destino."coluna:caters_deadline_extensions.status"]
+para = "caters.Dilacao.decisao"
+transformacao = "`aprovado` → `aprovada`; `negado` → `negada`."
+
+[destino."coluna:caters_deadline_extensions.notes"]
+para = "caters.Dilacao.observacoes"
+
+[destino."coluna:caters_deadline_extensions.created_by"]
+para = "caters.Dilacao.criado_por"
+
+[destino."coluna:caters_deadline_extensions.created_at"]
+para = "caters.Dilacao.criado_em"
+
+[destino."coluna:caters_deadline_extensions.updated_at"]
+descarte = "A dilação passa a ser imutável (research T6); a tabela está vazia."
+
+# --- documentos extras (0 linhas) --------------------------------------------------------
+
+[destino."coluna:caters_extra_documents.id"]
+para = "caters.DocumentoProcesso.id"
+
+[destino."coluna:caters_extra_documents.process_id"]
+para = "caters.DocumentoProcesso.processo"
+
+[destino."coluna:caters_extra_documents.title"]
+para = "caters.DocumentoProcesso.titulo"
+
+[destino."coluna:caters_extra_documents.description"]
+para = "caters.DocumentoProcesso.descricao"
+
+[destino."coluna:caters_extra_documents.file_url"]
+para = "caters.DocumentoProcesso.arquivo"
+transformacao = "Como as colunas de endereço do processo, com o tipo `extra`."
+
+[destino."coluna:caters_extra_documents.created_by"]
+para = "caters.DocumentoProcesso.criado_por"
+
+[destino."coluna:caters_extra_documents.created_at"]
+para = "caters.DocumentoProcesso.criado_em"
+
+# --- resposta do município (0 linhas) ----------------------------------------------------
+
+[destino."coluna:caters_municipality_responses.id"]
+para = "caters.RespostaMunicipio.id"
+
+[destino."coluna:caters_municipality_responses.process_id"]
+para = "caters.RespostaMunicipio.processo"
+
+[destino."coluna:caters_municipality_responses.received_at"]
+para = "caters.RespostaMunicipio.recebida_em"
+
+[destino."coluna:caters_municipality_responses.protocol_number"]
+para = "caters.RespostaMunicipio.protocolo"
+
+[destino."coluna:caters_municipality_responses.cronograma_status"]
+para = "caters.RespostaMunicipio.situacao_cronograma"
+
+[destino."coluna:caters_municipality_responses.notes"]
+para = "caters.RespostaMunicipio.observacoes"
+
+[destino."coluna:caters_municipality_responses.created_by"]
+para = "caters.RespostaMunicipio.criado_por"
+
+[destino."coluna:caters_municipality_responses.created_at"]
+para = "caters.RespostaMunicipio.criado_em"
+
+[destino."coluna:caters_municipality_responses.updated_at"]
+para = "caters.RespostaMunicipio.atualizado_em"
+
+# --- leituras de aviso (0 linhas) --------------------------------------------------------
+
+[destino."coluna:caters_notification_reads.id"]
+descarte = "Substituída pela central de avisos do core (R-caters-012); a tabela está vazia."
+
+[destino."coluna:caters_notification_reads.user_id"]
+descarte = "Substituída pela central de avisos do core (R-caters-012); a tabela está vazia."
+
+[destino."coluna:caters_notification_reads.key"]
+descarte = "Substituída pela central de avisos e pelo controle de um aviso por prazo (research T9); a tabela está vazia."
+
+[destino."coluna:caters_notification_reads.read_at"]
+descarte = "Substituída pela central de avisos do core (R-caters-012); a tabela está vazia."
+
+[destino."coluna:caters_notification_reads.created_at"]
+descarte = "Substituída pela central de avisos do core (R-caters-012); a tabela está vazia."

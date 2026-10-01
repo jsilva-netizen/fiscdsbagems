@@ -47,5 +47,6 @@
   - situação do processo escolhida pela equipe, como hoje; prazo e dias restantes calculados;
   - tamanho máximo de arquivo definido no plano;
   - acompanhamento só com rede.
-- **Mapa de migração**: criado no plano, com o data-model (passo 7 do molde).
+- **Mapa de migração (plano, 2026-10-01)**: 81 itens, 75 com destino e 6 descartados, 0 pendentes;
+  o destino do bucket no mapa do core também ficou conferido.
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`.
