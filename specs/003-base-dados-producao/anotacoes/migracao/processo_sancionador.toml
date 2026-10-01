@@ -1,0 +1,432 @@
+# Mapa de migração do módulo processo_sancionador (spec 011). Destinos conferidos contra o data-model.
+modulo = "processo_sancionador"
+data_model = "specs/011-modulo-processo-sancionador/data-model.md"
+notas = [
+  "Ordem de carga: depois de core e fiscalização (as determinações, já migradas com os identificadores de produção, viram os retratos notificados) (research N16).",
+  "O comando exige a lista de identificadores de teste fechada com o responsável (A-002): as 34 respostas e as 20 evidências de produção são de teste.",
+  "Cada termo vira um processo e um termo com o mesmo identificador; a etapa é deduzida dos dados, e a situação gravada fica em `situacao_legado`.",
+  "Autos, remessas, itens e pareceres estão vazios; as tabelas de manifestações e de julgamentos não são levadas (A-030).",
+]
+
+# --- termos de notificação → processo e termo --------------------------------------------
+
+[destino."coluna:termos_notificacao.id"]
+para = ["processo_sancionador.ProcessoSancionador.id", "processo_sancionador.TermoNotificacao.id"]
+transformacao = "O mesmo identificador no processo e no termo."
+
+[destino."coluna:termos_notificacao.numero_processo"]
+para = "processo_sancionador.ProcessoSancionador.numero_processo"
+
+[destino."coluna:termos_notificacao.fiscalizacao_id"]
+para = "processo_sancionador.ProcessoSancionador.fiscalizacao"
+transformacao = "As determinações da fiscalização viram os retratos notificados (`DeterminacaoNotificada`), na ordem do número."
+
+[destino."coluna:termos_notificacao.prestador_servico_id"]
+para = "processo_sancionador.ProcessoSancionador.entidade"
+
+[destino."coluna:termos_notificacao.municipio_id"]
+para = "processo_sancionador.ProcessoSancionador.municipio"
+
+[destino."coluna:termos_notificacao.camara_tecnica"]
+para = ["processo_sancionador.ProcessoSancionador.camara", "processo_sancionador.TermoNotificacao.camara"]
+transformacao = "Texto em maiúsculas (`CATESA`, `CATERS`) ligado à câmara do core pela sigla; conferido contra a câmara da fiscalização, e divergência vai para `legado`."
+
+[destino."coluna:termos_notificacao.numero_termo_notificacao"]
+para = "processo_sancionador.TermoNotificacao.numero"
+transformacao = "Migrado como está; número repetido ou fora do formato vai para o relatório de conferência. A sequência de TN de cada diretoria e ano começa no maior número migrado."
+
+[destino."coluna:termos_notificacao.tipo_relatorio"]
+para = "processo_sancionador.TermoNotificacao.tipo_relatorio"
+
+[destino."coluna:termos_notificacao.numero_rfp"]
+para = "processo_sancionador.TermoNotificacao.numero_relatorio"
+
+[destino."coluna:termos_notificacao.ano_geracao"]
+para = "processo_sancionador.TermoNotificacao.ano_relatorio"
+
+[destino."coluna:termos_notificacao.data_geracao"]
+para = ["processo_sancionador.TermoNotificacao.criado_em", "processo_sancionador.TermoNotificacao.emitido_em"]
+transformacao = "`emitido_em` só quando o termo tem o TN e o relatório assinados; senão fica vazio (pendente de emissão)."
+
+[destino."coluna:termos_notificacao.fluxo_manual"]
+para = "processo_sancionador.TermoNotificacao.fluxo"
+transformacao = "`true` → `manual`; `false` → `portal`."
+
+[destino."coluna:termos_notificacao.prazo_resposta_dias"]
+para = "processo_sancionador.TermoNotificacao.prazo_resposta_dias"
+
+[destino."coluna:termos_notificacao.observacoes"]
+para = "processo_sancionador.TermoNotificacao.observacoes"
+
+[destino."coluna:termos_notificacao.data_protocolo"]
+para = "processo_sancionador.TermoNotificacao.data_protocolo"
+
+[destino."coluna:termos_notificacao.data_inicio_prazo"]
+para = "processo_sancionador.TermoNotificacao.inicio_prazo"
+
+[destino."coluna:termos_notificacao.data_maxima_resposta"]
+para = "processo_sancionador.TermoNotificacao.data_limite"
+transformacao = "Migrada como está; a conferência compara com início + prazo e lista as diferenças, sem recalcular."
+
+[destino."coluna:termos_notificacao.data_assinatura_prestador"]
+para = "processo_sancionador.TermoNotificacao.assinatura_entidade_em"
+
+[destino."coluna:termos_notificacao.assinatura_prestador_valida"]
+para = "processo_sancionador.TermoNotificacao.assinatura_aceita"
+
+[destino."coluna:termos_notificacao.data_recebimento_resposta"]
+para = "processo_sancionador.TermoNotificacao.resposta_recebida_em"
+
+[destino."coluna:termos_notificacao.recebida_no_prazo"]
+para = "processo_sancionador.TermoNotificacao.resposta_no_prazo"
+
+[destino."coluna:termos_notificacao.status"]
+para = ["processo_sancionador.TermoNotificacao.situacao_legado", "processo_sancionador.ProcessoSancionador.etapa"]
+transformacao = "O valor gravado fica em `situacao_legado`; a etapa é deduzida dos dados (AM concluída → autos e defesa ou encerrado; resposta recebida → análise da manifestação; senão notificação). A conferência lista a situação calculada que difere da gravada."
+
+[destino."coluna:termos_notificacao.numero_am"]
+para = "processo_sancionador.AnaliseManifestacao.numero"
+transformacao = "Termo com número de AM ganha a AM versão 1, concluída, com as análises das respostas; a sequência de AM começa no maior número migrado."
+
+[destino."coluna:termos_notificacao.am_concluida_em"]
+para = "processo_sancionador.AnaliseManifestacao.concluida_em"
+
+[destino."coluna:termos_notificacao.created_at"]
+para = "processo_sancionador.ProcessoSancionador.criado_em"
+
+[destino."coluna:termos_notificacao.updated_at"]
+para = ["processo_sancionador.ProcessoSancionador.atualizado_em", "processo_sancionador.TermoNotificacao.atualizado_em"]
+
+[destino."coluna:termos_notificacao.arquivo_url"]
+para = ["processo_sancionador.DocumentoProcesso.arquivo", "processo_sancionador.DocumentoProcesso.tipo"]
+transformacao = "Documento `tn_agems` do termo: caminho extraído do endereço, arquivo copiado para o repositório privado, checksum conferido."
+
+[destino."coluna:termos_notificacao.arquivo_rfp_url"]
+para = ["processo_sancionador.DocumentoProcesso.arquivo", "processo_sancionador.DocumentoProcesso.tipo"]
+transformacao = "Como o TN, com o tipo `relatorio`."
+
+[destino."coluna:termos_notificacao.arquivo_protocolo_url"]
+para = ["processo_sancionador.DocumentoProcesso.arquivo", "processo_sancionador.DocumentoProcesso.tipo"]
+transformacao = "Como o TN, com o tipo `protocolo`."
+
+[destino."coluna:termos_notificacao.arquivo_oficio_protocolo"]
+para = ["processo_sancionador.DocumentoProcesso.arquivo", "processo_sancionador.DocumentoProcesso.tipo"]
+transformacao = "Como o TN, com o tipo `oficio_protocolo`."
+
+[destino."coluna:termos_notificacao.arquivo_tn_prestador_url"]
+para = ["processo_sancionador.DocumentoProcesso.arquivo", "processo_sancionador.DocumentoProcesso.tipo"]
+transformacao = "Como o TN, com o tipo `tn_entidade` e `pela_entidade` verdadeiro."
+
+[destino."coluna:termos_notificacao.arquivos_resposta"]
+para = ["processo_sancionador.DocumentoProcesso.arquivo", "processo_sancionador.DocumentoProcesso.nome_original"]
+transformacao = "Cada item da lista vira um documento do termo: categoria `termo_envio` → tipo `termo_envio`; demais → `resposta_manual`; nome, tamanho e data do item conferidos com o arquivo."
+
+[destino."coluna:termos_notificacao.arquivo_resposta_url"]
+para = ["processo_sancionador.DocumentoProcesso.arquivo", "processo_sancionador.DocumentoProcesso.tipo"]
+transformacao = "Como o TN, com o tipo `resposta_manual`."
+
+[destino."coluna:termos_notificacao.arquivo_oficio_resposta"]
+para = ["processo_sancionador.DocumentoProcesso.arquivo", "processo_sancionador.DocumentoProcesso.tipo"]
+transformacao = "Como o TN, com o tipo `oficio_resposta`."
+
+[destino."coluna:termos_notificacao.arquivo_am_assinada_url"]
+para = ["processo_sancionador.DocumentoProcesso.arquivo", "processo_sancionador.DocumentoProcesso.tipo"]
+transformacao = "Documento `am_assinada` da AM versão 1."
+
+# --- respostas às determinações (34, de teste) ------------------------------------------
+
+[destino."coluna:respostas_determinacao.id"]
+para = "processo_sancionador.RespostaDeterminacao.id"
+transformacao = "Só as que não estão na lista de teste (A-002); hoje, nenhuma."
+
+[destino."coluna:respostas_determinacao.determinacao_id"]
+para = "processo_sancionador.RespostaDeterminacao.determinacao"
+transformacao = "Ligada ao retrato notificado da mesma determinação (`DeterminacaoNotificada.determinacao_id`)."
+
+[destino."coluna:respostas_determinacao.unidade_fiscalizada_id"]
+para = "processo_sancionador.DeterminacaoNotificada.registro_id"
+transformacao = "Conferido contra a unidade da determinação; divergência vai para `legado` do processo."
+
+[destino."coluna:respostas_determinacao.fiscalizacao_id"]
+descarte = "Derivado do processo; conferido contra a fiscalização do termo antes do descarte."
+
+[destino."coluna:respostas_determinacao.prestador_servico_id"]
+descarte = "Derivado do processo; conferido contra a entidade do termo antes do descarte."
+
+[destino."coluna:respostas_determinacao.manifestacao_prestador"]
+para = "processo_sancionador.RespostaDeterminacao.manifestacao"
+
+[destino."coluna:respostas_determinacao.status"]
+para = ["processo_sancionador.RespostaDeterminacao.situacao", "processo_sancionador.AnaliseResposta.resultado"]
+transformacao = "`rascunho` → rascunho; `aguardando_analise` → enviada; `atendida` → enviada, com análise `acatada`; `nao_atendida` → enviada, com análise `nao_acatada` (na AM do termo)."
+
+[destino."coluna:respostas_determinacao.descricao_atendimento"]
+para = "processo_sancionador.AnaliseResposta.texto"
+
+[destino."coluna:respostas_determinacao.dentro_prazo"]
+para = "processo_sancionador.RespostaDeterminacao.no_prazo"
+
+[destino."coluna:respostas_determinacao.data_resposta"]
+para = "processo_sancionador.RespostaDeterminacao.enviada_em"
+transformacao = "Migrada como está; a análise da equipe sobrescrevia esta data, e a conferência marca as respostas analisadas cuja data coincide com a da análise."
+
+[destino."coluna:respostas_determinacao.created_at"]
+para = "processo_sancionador.RespostaDeterminacao.criado_em"
+
+[destino."coluna:respostas_determinacao.evidencias"]
+para = ["processo_sancionador.DocumentoProcesso.arquivo", "processo_sancionador.DocumentoProcesso.nome_original"]
+transformacao = "Cada item vira documento `evidencia` da resposta, com `pela_entidade` verdadeiro."
+
+[destino."coluna:respostas_determinacao.resposta"]
+descarte = "Sem uso: nenhuma tela grava (R-sancionador-022)."
+
+[destino."coluna:respostas_determinacao.tipo_resposta"]
+descarte = "Sem uso: nenhuma tela lê nem grava (R-sancionador-022)."
+
+# --- autos de infração (0 linhas) --------------------------------------------------------
+
+[destino."coluna:autos_infracao.id"]
+para = "processo_sancionador.AutoInfracao.id"
+
+[destino."coluna:autos_infracao.fiscalizacao_id"]
+para = "processo_sancionador.AutoInfracao.processo"
+transformacao = "O processo da fiscalização."
+
+[destino."coluna:autos_infracao.determinacao_id"]
+para = "processo_sancionador.AutoInfracao.determinacao"
+transformacao = "O retrato notificado da determinação; a AM concluída do termo é a `analise`."
+
+[destino."coluna:autos_infracao.unidade_fiscalizada_id"]
+descarte = "Derivado da determinação notificada (`registro_id`); conferido antes do descarte."
+
+[destino."coluna:autos_infracao.prestador_servico_id"]
+descarte = "Derivado do processo; conferido antes do descarte."
+
+[destino."coluna:autos_infracao.camara_tecnica_id"]
+descarte = "Derivado do processo; conferido antes do descarte."
+
+[destino."coluna:autos_infracao.numero_auto"]
+para = "processo_sancionador.AutoInfracao.numero"
+
+[destino."coluna:autos_infracao.descricao"]
+para = "processo_sancionador.AutoInfracao.descricao"
+
+[destino."coluna:autos_infracao.status"]
+para = "processo_sancionador.AutoInfracao.situacao"
+transformacao = "`pendente` e `gerado` → gerado; `enviado` → enviado; `em_analise` → defesa_recebida; `finalizado` → com_parecer."
+
+[destino."coluna:autos_infracao.data_emissao"]
+para = "processo_sancionador.AutoInfracao.emitido_em"
+
+[destino."coluna:autos_infracao.pena_base_uferms"]
+para = "processo_sancionador.AutoInfracao.pena_base_uferms"
+
+[destino."coluna:autos_infracao.pena_base_rs"]
+para = "processo_sancionador.AutoInfracao.pena_base_rs"
+
+[destino."coluna:autos_infracao.created_at"]
+para = "processo_sancionador.AutoInfracao.criado_em"
+
+[destino."coluna:autos_infracao.arquivo_url"]
+para = ["processo_sancionador.DocumentoProcesso.arquivo", "processo_sancionador.DocumentoProcesso.tipo"]
+transformacao = "Documento `ai_agems` do auto."
+
+[destino."coluna:autos_infracao.arquivo_protocolo_oficio"]
+para = ["processo_sancionador.DocumentoProcesso.arquivo", "processo_sancionador.DocumentoProcesso.tipo"]
+transformacao = "Documento `protocolo_oficio_ai` do auto."
+
+[destino."coluna:autos_infracao.arquivo_protocolo_ai_recebido"]
+para = ["processo_sancionador.DocumentoProcesso.arquivo", "processo_sancionador.DocumentoProcesso.tipo"]
+transformacao = "Documento `protocolo_recebimento_ai` do auto."
+
+[destino."coluna:autos_infracao.defesa_texto"]
+para = "processo_sancionador.Defesa.texto"
+transformacao = "Cria a defesa do auto, enviada."
+
+[destino."coluna:autos_infracao.defesa_arquivos"]
+para = ["processo_sancionador.DocumentoProcesso.arquivo", "processo_sancionador.DocumentoProcesso.nome_original"]
+transformacao = "Cada item vira documento `defesa_anexo` da defesa."
+
+[destino."coluna:autos_infracao.arquivo_defesa"]
+para = ["processo_sancionador.DocumentoProcesso.arquivo", "processo_sancionador.DocumentoProcesso.tipo"]
+transformacao = "Documento `defesa_anexo` da defesa."
+
+[destino."coluna:autos_infracao.arquivo_defesa_oficio"]
+para = ["processo_sancionador.DocumentoProcesso.arquivo", "processo_sancionador.DocumentoProcesso.tipo"]
+transformacao = "Documento `defesa_oficio` da defesa."
+
+[destino."coluna:autos_infracao.valor"]
+descarte = "Sem uso; as telas usam a pena base (R-sancionador-022)."
+
+[destino."coluna:autos_infracao.resposta_determinacao_id"]
+descarte = "Não é gravado pelas telas (R-sancionador-022); o auto aponta para a determinação notificada."
+
+# --- remessas e itens (0 linhas) ---------------------------------------------------------
+
+[destino."coluna:remessas_ai.id"]
+para = "processo_sancionador.Remessa.id"
+
+[destino."coluna:remessas_ai.termo_id"]
+para = "processo_sancionador.Remessa.processo"
+transformacao = "O processo do termo (mesmo identificador)."
+
+[destino."coluna:remessas_ai.fiscalizacao_id"]
+descarte = "Derivado do processo; conferido antes do descarte."
+
+[destino."coluna:remessas_ai.prestador_servico_id"]
+descarte = "Derivado do processo; conferido antes do descarte."
+
+[destino."coluna:remessas_ai.camara_tecnica_id"]
+descarte = "Derivado do processo; conferido antes do descarte."
+
+[destino."coluna:remessas_ai.numero_rfp"]
+descarte = "Derivado do termo (tipo e número do relatório)."
+
+[destino."coluna:remessas_ai.numero_tn"]
+descarte = "Sempre vazio: a tela lia um campo inexistente (R-sancionador-022)."
+
+[destino."coluna:remessas_ai.status"]
+para = "processo_sancionador.Remessa.situacao"
+transformacao = "`defesa_enviada` → defesa_recebida; `parecer_enviado` → defesa_recebida, com evento de encaminhamento; demais iguais."
+
+[destino."coluna:remessas_ai.criada_em"]
+para = "processo_sancionador.Remessa.criada_em"
+
+[destino."coluna:remessas_ai.enviada_em"]
+para = "processo_sancionador.Remessa.enviada_em"
+
+[destino."coluna:remessas_ai.recebida_em"]
+para = "processo_sancionador.Remessa.recebida_em"
+transformacao = "Hora do aparelho do prestador; marcada como tal no `legado` do processo."
+
+[destino."coluna:remessas_ai.defesa_enviada_em"]
+para = "processo_sancionador.Defesa.enviada_em"
+transformacao = "Aplicada às defesas dos autos da remessa sem data própria."
+
+[destino."coluna:remessas_ai.parecer_enviado_em"]
+para = "processo_sancionador.EventoProcesso.criado_em"
+transformacao = "Evento de envio dos pareceres à entidade, como era no sistema atual."
+
+[destino."coluna:remessas_ai.updated_at"]
+para = "processo_sancionador.Remessa.atualizado_em"
+
+[destino."coluna:remessas_ai.arquivo_lista_pdf_url"]
+para = ["processo_sancionador.DocumentoProcesso.arquivo", "processo_sancionador.DocumentoProcesso.tipo"]
+transformacao = "Documento `lista_remessa` da remessa."
+
+[destino."coluna:remessas_ai.arquivo_recebimento_assinado_url"]
+para = ["processo_sancionador.DocumentoProcesso.arquivo", "processo_sancionador.DocumentoProcesso.tipo"]
+transformacao = "Documento `recebimento_remessa` da remessa, `pela_entidade` verdadeiro."
+
+[destino."coluna:remessas_ai.arquivo_oficio_defesa_url"]
+para = ["processo_sancionador.DocumentoProcesso.arquivo", "processo_sancionador.DocumentoProcesso.tipo"]
+transformacao = "Documento `defesa_oficio` da remessa."
+
+[destino."coluna:remessas_ai.arquivo_parecer_assinado_url"]
+para = ["processo_sancionador.DocumentoProcesso.arquivo", "processo_sancionador.DocumentoProcesso.tipo"]
+transformacao = "Documento `parecer_assinado` da remessa."
+
+[destino."coluna:remessas_ai_itens.id"]
+para = "processo_sancionador.RemessaItem.id"
+
+[destino."coluna:remessas_ai_itens.remessa_ai_id"]
+para = "processo_sancionador.RemessaItem.remessa"
+
+[destino."coluna:remessas_ai_itens.auto_infracao_id"]
+para = "processo_sancionador.RemessaItem.auto"
+
+[destino."coluna:remessas_ai_itens.created_at"]
+para = "processo_sancionador.RemessaItem.criado_em"
+
+# --- pareceres técnicos (0 linhas) -------------------------------------------------------
+
+[destino."coluna:pareceres_tecnicos.id"]
+para = "processo_sancionador.ParecerTecnico.id"
+
+[destino."coluna:pareceres_tecnicos.auto_id"]
+para = "processo_sancionador.ParecerTecnico.auto"
+
+[destino."coluna:pareceres_tecnicos.analise_tecnica"]
+para = "processo_sancionador.ParecerTecnico.analise_tecnica"
+
+[destino."coluna:pareceres_tecnicos.recomendacao"]
+para = "processo_sancionador.ParecerTecnico.recomendacao"
+transformacao = "\"Aplicar multa\" → mantem; \"Arquivar\" → cancela."
+
+[destino."coluna:pareceres_tecnicos.valor_multa_sugerido"]
+para = "processo_sancionador.ParecerTecnico.multa_sugerida_rs"
+
+[destino."coluna:pareceres_tecnicos.status"]
+para = "processo_sancionador.ParecerTecnico.situacao"
+transformacao = "`pendente` e `rascunho` → rascunho; `finalizado` e `parecer_enviado` → finalizado."
+
+[destino."coluna:pareceres_tecnicos.created_at"]
+para = "processo_sancionador.ParecerTecnico.criado_em"
+
+[destino."coluna:pareceres_tecnicos.arquivo_parecer_assinado_url"]
+para = ["processo_sancionador.DocumentoProcesso.arquivo", "processo_sancionador.DocumentoProcesso.tipo"]
+transformacao = "Documento `parecer_assinado` do parecer."
+
+# --- tabelas sem uso (A-030) -------------------------------------------------------------
+
+[destino."coluna:manifestacoes_auto.id"]
+descarte = "Tabela sem uso e vazia; a defesa é registro próprio (A-030, R-sancionador-011)."
+
+[destino."coluna:manifestacoes_auto.auto_infracao_id"]
+descarte = "Tabela sem uso e vazia (A-030)."
+
+[destino."coluna:manifestacoes_auto.descricao"]
+descarte = "Tabela sem uso e vazia (A-030)."
+
+[destino."coluna:manifestacoes_auto.data_manifestacao"]
+descarte = "Tabela sem uso e vazia (A-030)."
+
+[destino."coluna:manifestacoes_auto.arquivo_url"]
+descarte = "Tabela sem uso e vazia (A-030)."
+
+[destino."coluna:manifestacoes_auto.created_at"]
+descarte = "Tabela sem uso e vazia (A-030)."
+
+[destino."coluna:julgamentos.id"]
+descarte = "Tabela sem uso e vazia; o julgamento é a etapa nova da R-sancionador-013 (A-030)."
+
+[destino."coluna:julgamentos.parecer_tecnico_id"]
+descarte = "Tabela sem uso e vazia (A-030)."
+
+[destino."coluna:julgamentos.auto_id"]
+descarte = "Tabela sem uso e vazia (A-030)."
+
+[destino."coluna:julgamentos.prestador_servico_id"]
+descarte = "Tabela sem uso e vazia (A-030)."
+
+[destino."coluna:julgamentos.decisao"]
+descarte = "Tabela sem uso e vazia (A-030)."
+
+[destino."coluna:julgamentos.valor_multa_final"]
+descarte = "Tabela sem uso e vazia (A-030)."
+
+[destino."coluna:julgamentos.justificativa_decisao"]
+descarte = "Tabela sem uso e vazia (A-030)."
+
+[destino."coluna:julgamentos.data_julgamento"]
+descarte = "Tabela sem uso e vazia (A-030)."
+
+[destino."coluna:julgamentos.status"]
+descarte = "Tabela sem uso e vazia (A-030)."
+
+[destino."coluna:julgamentos.created_at"]
+descarte = "Tabela sem uso e vazia (A-030)."
+
+# --- repositórios de arquivos ------------------------------------------------------------
+
+[destino."bucket:documentos-termos"]
+para = "processo_sancionador.DocumentoProcesso.arquivo"
+transformacao = "Os 28 arquivos: os referenciados pelos termos viram documentos, com checksum conferido; os sem referência são listados para decisão do responsável."
+
+[destino."bucket:documentos-autos"]
+para = "processo_sancionador.DocumentoProcesso.arquivo"
+transformacao = "Os 5 arquivos de produção não têm registro que aponte para eles (A-018): são listados, com caminho, tamanho e data, e não migrados sem decisão do responsável."
+
+[destino."bucket:evidencias-determinacoes"]
+para = "processo_sancionador.DocumentoProcesso.arquivo"
+transformacao = "Os 20 arquivos são das respostas de teste (A-002) e não migram se confirmados na lista; os demais viram documentos `evidencia`."

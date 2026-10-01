@@ -4,7 +4,7 @@
 
 Destino, no sistema novo, de cada coluna de tabela e de cada repositório de arquivos do banco de produção: o campo que recebe o dado (com a transformação, quando há) ou o motivo do descarte. Os mapas ficam em `anotacoes/migracao/<modulo>.toml`; destinos de apps com data-model são conferidos contra ele. Num módulo com mapa, o que não tem destino é **pendente**. Colunas de views não entram (não guardam dado).
 
-Pendentes: 0 · módulos sem mapa: 1 · destinos não verificados: 0.
+Pendentes: 0 · módulos sem mapa: 0 · destinos não verificados: 0.
 
 | Módulo | Mapa | Colunas e repositórios | Com destino | Descartados | Pendentes |
 |---|---|---:|---:|---:|---:|
@@ -12,7 +12,7 @@ Pendentes: 0 · módulos sem mapa: 1 · destinos não verificados: 0.
 | Checklists | sim | 35 | 29 | 6 | 0 |
 | Fiscalização | sim | 115 | 87 | 28 | 0 |
 | DTR | sim | 20 | 20 | 0 | 0 |
-| Processo sancionador | **sem mapa** | 120 | — | — | — |
+| Processo sancionador | sim | 120 | 90 | 30 | 0 |
 | CATERS | sim | 81 | 75 | 6 | 0 |
 | fora do escopo | — | 25 | 0 | 25 | 0 |
 
@@ -293,6 +293,138 @@ Mapa: `anotacoes/migracao/dtr.toml` · data-model: `specs/008-modulo-dtr-caterf/
 | `coluna:unidades_fiscalizadas.tipo_ocorrencia` | 402 linhas | `fiscalizacao.RegistroCampo.resposta` | `constatacao` (72) e `nc` (6) viram as respostas do modelo 'Ocorrências do PER'. |
 | `coluna:unidades_fiscalizadas.trecho` | 402 linhas | `caterf.Ocorrencia.trecho` |  |
 
+## Processo sancionador
+
+Mapa: `anotacoes/migracao/processo_sancionador.toml` · data-model: `specs/011-modulo-processo-sancionador/data-model.md`
+
+- Ordem de carga: depois de core e fiscalização (as determinações, já migradas com os identificadores de produção, viram os retratos notificados) (research N16).
+- O comando exige a lista de identificadores de teste fechada com o responsável (A-002): as 34 respostas e as 20 evidências de produção são de teste.
+- Cada termo vira um processo e um termo com o mesmo identificador; a etapa é deduzida dos dados, e a situação gravada fica em `situacao_legado`.
+- Autos, remessas, itens e pareceres estão vazios; as tabelas de manifestações e de julgamentos não são levadas (A-030).
+
+| Objeto | Volume em produção | Destino | Transformação ou motivo do descarte |
+|---|---|---|---|
+| `bucket:documentos-autos` | 5 arquivos | `processo_sancionador.DocumentoProcesso.arquivo` | Os 5 arquivos de produção não têm registro que aponte para eles (A-018): são listados, com caminho, tamanho e data, e não migrados sem decisão do responsável. |
+| `bucket:documentos-termos` | 28 arquivos | `processo_sancionador.DocumentoProcesso.arquivo` | Os 28 arquivos: os referenciados pelos termos viram documentos, com checksum conferido; os sem referência são listados para decisão do responsável. |
+| `bucket:evidencias-determinacoes` | 20 arquivos | `processo_sancionador.DocumentoProcesso.arquivo` | Os 20 arquivos são das respostas de teste (A-002) e não migram se confirmados na lista; os demais viram documentos `evidencia`. |
+| `coluna:autos_infracao.arquivo_defesa` | 0 linhas | `processo_sancionador.DocumentoProcesso.arquivo`<br>`processo_sancionador.DocumentoProcesso.tipo` | Documento `defesa_anexo` da defesa. |
+| `coluna:autos_infracao.arquivo_defesa_oficio` | 0 linhas | `processo_sancionador.DocumentoProcesso.arquivo`<br>`processo_sancionador.DocumentoProcesso.tipo` | Documento `defesa_oficio` da defesa. |
+| `coluna:autos_infracao.arquivo_protocolo_ai_recebido` | 0 linhas | `processo_sancionador.DocumentoProcesso.arquivo`<br>`processo_sancionador.DocumentoProcesso.tipo` | Documento `protocolo_recebimento_ai` do auto. |
+| `coluna:autos_infracao.arquivo_protocolo_oficio` | 0 linhas | `processo_sancionador.DocumentoProcesso.arquivo`<br>`processo_sancionador.DocumentoProcesso.tipo` | Documento `protocolo_oficio_ai` do auto. |
+| `coluna:autos_infracao.arquivo_url` | 0 linhas | `processo_sancionador.DocumentoProcesso.arquivo`<br>`processo_sancionador.DocumentoProcesso.tipo` | Documento `ai_agems` do auto. |
+| `coluna:autos_infracao.camara_tecnica_id` | 0 linhas | descartado | Derivado do processo; conferido antes do descarte. |
+| `coluna:autos_infracao.created_at` | 0 linhas | `processo_sancionador.AutoInfracao.criado_em` |  |
+| `coluna:autos_infracao.data_emissao` | 0 linhas | `processo_sancionador.AutoInfracao.emitido_em` |  |
+| `coluna:autos_infracao.defesa_arquivos` | 0 linhas | `processo_sancionador.DocumentoProcesso.arquivo`<br>`processo_sancionador.DocumentoProcesso.nome_original` | Cada item vira documento `defesa_anexo` da defesa. |
+| `coluna:autos_infracao.defesa_texto` | 0 linhas | `processo_sancionador.Defesa.texto` | Cria a defesa do auto, enviada. |
+| `coluna:autos_infracao.descricao` | 0 linhas | `processo_sancionador.AutoInfracao.descricao` |  |
+| `coluna:autos_infracao.determinacao_id` | 0 linhas | `processo_sancionador.AutoInfracao.determinacao` | O retrato notificado da determinação; a AM concluída do termo é a `analise`. |
+| `coluna:autos_infracao.fiscalizacao_id` | 0 linhas | `processo_sancionador.AutoInfracao.processo` | O processo da fiscalização. |
+| `coluna:autos_infracao.id` | 0 linhas | `processo_sancionador.AutoInfracao.id` |  |
+| `coluna:autos_infracao.numero_auto` | 0 linhas | `processo_sancionador.AutoInfracao.numero` |  |
+| `coluna:autos_infracao.pena_base_rs` | 0 linhas | `processo_sancionador.AutoInfracao.pena_base_rs` |  |
+| `coluna:autos_infracao.pena_base_uferms` | 0 linhas | `processo_sancionador.AutoInfracao.pena_base_uferms` |  |
+| `coluna:autos_infracao.prestador_servico_id` | 0 linhas | descartado | Derivado do processo; conferido antes do descarte. |
+| `coluna:autos_infracao.resposta_determinacao_id` | 0 linhas | descartado | Não é gravado pelas telas (R-sancionador-022); o auto aponta para a determinação notificada. |
+| `coluna:autos_infracao.status` | 0 linhas | `processo_sancionador.AutoInfracao.situacao` | `pendente` e `gerado` → gerado; `enviado` → enviado; `em_analise` → defesa_recebida; `finalizado` → com_parecer. |
+| `coluna:autos_infracao.unidade_fiscalizada_id` | 0 linhas | descartado | Derivado da determinação notificada (`registro_id`); conferido antes do descarte. |
+| `coluna:autos_infracao.valor` | 0 linhas | descartado | Sem uso; as telas usam a pena base (R-sancionador-022). |
+| `coluna:julgamentos.auto_id` | 0 linhas | descartado | Tabela sem uso e vazia (A-030). |
+| `coluna:julgamentos.created_at` | 0 linhas | descartado | Tabela sem uso e vazia (A-030). |
+| `coluna:julgamentos.data_julgamento` | 0 linhas | descartado | Tabela sem uso e vazia (A-030). |
+| `coluna:julgamentos.decisao` | 0 linhas | descartado | Tabela sem uso e vazia (A-030). |
+| `coluna:julgamentos.id` | 0 linhas | descartado | Tabela sem uso e vazia; o julgamento é a etapa nova da R-sancionador-013 (A-030). |
+| `coluna:julgamentos.justificativa_decisao` | 0 linhas | descartado | Tabela sem uso e vazia (A-030). |
+| `coluna:julgamentos.parecer_tecnico_id` | 0 linhas | descartado | Tabela sem uso e vazia (A-030). |
+| `coluna:julgamentos.prestador_servico_id` | 0 linhas | descartado | Tabela sem uso e vazia (A-030). |
+| `coluna:julgamentos.status` | 0 linhas | descartado | Tabela sem uso e vazia (A-030). |
+| `coluna:julgamentos.valor_multa_final` | 0 linhas | descartado | Tabela sem uso e vazia (A-030). |
+| `coluna:manifestacoes_auto.arquivo_url` | 0 linhas | descartado | Tabela sem uso e vazia (A-030). |
+| `coluna:manifestacoes_auto.auto_infracao_id` | 0 linhas | descartado | Tabela sem uso e vazia (A-030). |
+| `coluna:manifestacoes_auto.created_at` | 0 linhas | descartado | Tabela sem uso e vazia (A-030). |
+| `coluna:manifestacoes_auto.data_manifestacao` | 0 linhas | descartado | Tabela sem uso e vazia (A-030). |
+| `coluna:manifestacoes_auto.descricao` | 0 linhas | descartado | Tabela sem uso e vazia (A-030). |
+| `coluna:manifestacoes_auto.id` | 0 linhas | descartado | Tabela sem uso e vazia; a defesa é registro próprio (A-030, R-sancionador-011). |
+| `coluna:pareceres_tecnicos.analise_tecnica` | 0 linhas | `processo_sancionador.ParecerTecnico.analise_tecnica` |  |
+| `coluna:pareceres_tecnicos.arquivo_parecer_assinado_url` | 0 linhas | `processo_sancionador.DocumentoProcesso.arquivo`<br>`processo_sancionador.DocumentoProcesso.tipo` | Documento `parecer_assinado` do parecer. |
+| `coluna:pareceres_tecnicos.auto_id` | 0 linhas | `processo_sancionador.ParecerTecnico.auto` |  |
+| `coluna:pareceres_tecnicos.created_at` | 0 linhas | `processo_sancionador.ParecerTecnico.criado_em` |  |
+| `coluna:pareceres_tecnicos.id` | 0 linhas | `processo_sancionador.ParecerTecnico.id` |  |
+| `coluna:pareceres_tecnicos.recomendacao` | 0 linhas | `processo_sancionador.ParecerTecnico.recomendacao` | "Aplicar multa" → mantem; "Arquivar" → cancela. |
+| `coluna:pareceres_tecnicos.status` | 0 linhas | `processo_sancionador.ParecerTecnico.situacao` | `pendente` e `rascunho` → rascunho; `finalizado` e `parecer_enviado` → finalizado. |
+| `coluna:pareceres_tecnicos.valor_multa_sugerido` | 0 linhas | `processo_sancionador.ParecerTecnico.multa_sugerida_rs` |  |
+| `coluna:remessas_ai.arquivo_lista_pdf_url` | 0 linhas | `processo_sancionador.DocumentoProcesso.arquivo`<br>`processo_sancionador.DocumentoProcesso.tipo` | Documento `lista_remessa` da remessa. |
+| `coluna:remessas_ai.arquivo_oficio_defesa_url` | 0 linhas | `processo_sancionador.DocumentoProcesso.arquivo`<br>`processo_sancionador.DocumentoProcesso.tipo` | Documento `defesa_oficio` da remessa. |
+| `coluna:remessas_ai.arquivo_parecer_assinado_url` | 0 linhas | `processo_sancionador.DocumentoProcesso.arquivo`<br>`processo_sancionador.DocumentoProcesso.tipo` | Documento `parecer_assinado` da remessa. |
+| `coluna:remessas_ai.arquivo_recebimento_assinado_url` | 0 linhas | `processo_sancionador.DocumentoProcesso.arquivo`<br>`processo_sancionador.DocumentoProcesso.tipo` | Documento `recebimento_remessa` da remessa, `pela_entidade` verdadeiro. |
+| `coluna:remessas_ai.camara_tecnica_id` | 0 linhas | descartado | Derivado do processo; conferido antes do descarte. |
+| `coluna:remessas_ai.criada_em` | 0 linhas | `processo_sancionador.Remessa.criada_em` |  |
+| `coluna:remessas_ai.defesa_enviada_em` | 0 linhas | `processo_sancionador.Defesa.enviada_em` | Aplicada às defesas dos autos da remessa sem data própria. |
+| `coluna:remessas_ai.enviada_em` | 0 linhas | `processo_sancionador.Remessa.enviada_em` |  |
+| `coluna:remessas_ai.fiscalizacao_id` | 0 linhas | descartado | Derivado do processo; conferido antes do descarte. |
+| `coluna:remessas_ai.id` | 0 linhas | `processo_sancionador.Remessa.id` |  |
+| `coluna:remessas_ai.numero_rfp` | 0 linhas | descartado | Derivado do termo (tipo e número do relatório). |
+| `coluna:remessas_ai.numero_tn` | 0 linhas | descartado | Sempre vazio: a tela lia um campo inexistente (R-sancionador-022). |
+| `coluna:remessas_ai.parecer_enviado_em` | 0 linhas | `processo_sancionador.EventoProcesso.criado_em` | Evento de envio dos pareceres à entidade, como era no sistema atual. |
+| `coluna:remessas_ai.prestador_servico_id` | 0 linhas | descartado | Derivado do processo; conferido antes do descarte. |
+| `coluna:remessas_ai.recebida_em` | 0 linhas | `processo_sancionador.Remessa.recebida_em` | Hora do aparelho do prestador; marcada como tal no `legado` do processo. |
+| `coluna:remessas_ai.status` | 0 linhas | `processo_sancionador.Remessa.situacao` | `defesa_enviada` → defesa_recebida; `parecer_enviado` → defesa_recebida, com evento de encaminhamento; demais iguais. |
+| `coluna:remessas_ai.termo_id` | 0 linhas | `processo_sancionador.Remessa.processo` | O processo do termo (mesmo identificador). |
+| `coluna:remessas_ai.updated_at` | 0 linhas | `processo_sancionador.Remessa.atualizado_em` |  |
+| `coluna:remessas_ai_itens.auto_infracao_id` | 0 linhas | `processo_sancionador.RemessaItem.auto` |  |
+| `coluna:remessas_ai_itens.created_at` | 0 linhas | `processo_sancionador.RemessaItem.criado_em` |  |
+| `coluna:remessas_ai_itens.id` | 0 linhas | `processo_sancionador.RemessaItem.id` |  |
+| `coluna:remessas_ai_itens.remessa_ai_id` | 0 linhas | `processo_sancionador.RemessaItem.remessa` |  |
+| `coluna:respostas_determinacao.created_at` | 34 linhas | `processo_sancionador.RespostaDeterminacao.criado_em` |  |
+| `coluna:respostas_determinacao.data_resposta` | 34 linhas | `processo_sancionador.RespostaDeterminacao.enviada_em` | Migrada como está; a análise da equipe sobrescrevia esta data, e a conferência marca as respostas analisadas cuja data coincide com a da análise. |
+| `coluna:respostas_determinacao.dentro_prazo` | 34 linhas | `processo_sancionador.RespostaDeterminacao.no_prazo` |  |
+| `coluna:respostas_determinacao.descricao_atendimento` | 34 linhas | `processo_sancionador.AnaliseResposta.texto` |  |
+| `coluna:respostas_determinacao.determinacao_id` | 34 linhas | `processo_sancionador.RespostaDeterminacao.determinacao` | Ligada ao retrato notificado da mesma determinação (`DeterminacaoNotificada.determinacao_id`). |
+| `coluna:respostas_determinacao.evidencias` | 34 linhas | `processo_sancionador.DocumentoProcesso.arquivo`<br>`processo_sancionador.DocumentoProcesso.nome_original` | Cada item vira documento `evidencia` da resposta, com `pela_entidade` verdadeiro. |
+| `coluna:respostas_determinacao.fiscalizacao_id` | 34 linhas | descartado | Derivado do processo; conferido contra a fiscalização do termo antes do descarte. |
+| `coluna:respostas_determinacao.id` | 34 linhas | `processo_sancionador.RespostaDeterminacao.id` | Só as que não estão na lista de teste (A-002); hoje, nenhuma. |
+| `coluna:respostas_determinacao.manifestacao_prestador` | 34 linhas | `processo_sancionador.RespostaDeterminacao.manifestacao` |  |
+| `coluna:respostas_determinacao.prestador_servico_id` | 34 linhas | descartado | Derivado do processo; conferido contra a entidade do termo antes do descarte. |
+| `coluna:respostas_determinacao.resposta` | 34 linhas | descartado | Sem uso: nenhuma tela grava (R-sancionador-022). |
+| `coluna:respostas_determinacao.status` | 34 linhas | `processo_sancionador.RespostaDeterminacao.situacao`<br>`processo_sancionador.AnaliseResposta.resultado` | `rascunho` → rascunho; `aguardando_analise` → enviada; `atendida` → enviada, com análise `acatada`; `nao_atendida` → enviada, com análise `nao_acatada` (na AM do termo). |
+| `coluna:respostas_determinacao.tipo_resposta` | 34 linhas | descartado | Sem uso: nenhuma tela lê nem grava (R-sancionador-022). |
+| `coluna:respostas_determinacao.unidade_fiscalizada_id` | 34 linhas | `processo_sancionador.DeterminacaoNotificada.registro_id` | Conferido contra a unidade da determinação; divergência vai para `legado` do processo. |
+| `coluna:termos_notificacao.am_concluida_em` | 5 linhas | `processo_sancionador.AnaliseManifestacao.concluida_em` |  |
+| `coluna:termos_notificacao.ano_geracao` | 5 linhas | `processo_sancionador.TermoNotificacao.ano_relatorio` |  |
+| `coluna:termos_notificacao.arquivo_am_assinada_url` | 5 linhas | `processo_sancionador.DocumentoProcesso.arquivo`<br>`processo_sancionador.DocumentoProcesso.tipo` | Documento `am_assinada` da AM versão 1. |
+| `coluna:termos_notificacao.arquivo_oficio_protocolo` | 5 linhas | `processo_sancionador.DocumentoProcesso.arquivo`<br>`processo_sancionador.DocumentoProcesso.tipo` | Como o TN, com o tipo `oficio_protocolo`. |
+| `coluna:termos_notificacao.arquivo_oficio_resposta` | 5 linhas | `processo_sancionador.DocumentoProcesso.arquivo`<br>`processo_sancionador.DocumentoProcesso.tipo` | Como o TN, com o tipo `oficio_resposta`. |
+| `coluna:termos_notificacao.arquivo_protocolo_url` | 5 linhas | `processo_sancionador.DocumentoProcesso.arquivo`<br>`processo_sancionador.DocumentoProcesso.tipo` | Como o TN, com o tipo `protocolo`. |
+| `coluna:termos_notificacao.arquivo_resposta_url` | 5 linhas | `processo_sancionador.DocumentoProcesso.arquivo`<br>`processo_sancionador.DocumentoProcesso.tipo` | Como o TN, com o tipo `resposta_manual`. |
+| `coluna:termos_notificacao.arquivo_rfp_url` | 5 linhas | `processo_sancionador.DocumentoProcesso.arquivo`<br>`processo_sancionador.DocumentoProcesso.tipo` | Como o TN, com o tipo `relatorio`. |
+| `coluna:termos_notificacao.arquivo_tn_prestador_url` | 5 linhas | `processo_sancionador.DocumentoProcesso.arquivo`<br>`processo_sancionador.DocumentoProcesso.tipo` | Como o TN, com o tipo `tn_entidade` e `pela_entidade` verdadeiro. |
+| `coluna:termos_notificacao.arquivo_url` | 5 linhas | `processo_sancionador.DocumentoProcesso.arquivo`<br>`processo_sancionador.DocumentoProcesso.tipo` | Documento `tn_agems` do termo: caminho extraído do endereço, arquivo copiado para o repositório privado, checksum conferido. |
+| `coluna:termos_notificacao.arquivos_resposta` | 5 linhas | `processo_sancionador.DocumentoProcesso.arquivo`<br>`processo_sancionador.DocumentoProcesso.nome_original` | Cada item da lista vira um documento do termo: categoria `termo_envio` → tipo `termo_envio`; demais → `resposta_manual`; nome, tamanho e data do item conferidos com o arquivo. |
+| `coluna:termos_notificacao.assinatura_prestador_valida` | 5 linhas | `processo_sancionador.TermoNotificacao.assinatura_aceita` |  |
+| `coluna:termos_notificacao.camara_tecnica` | 5 linhas | `processo_sancionador.ProcessoSancionador.camara`<br>`processo_sancionador.TermoNotificacao.camara` | Texto em maiúsculas (`CATESA`, `CATERS`) ligado à câmara do core pela sigla; conferido contra a câmara da fiscalização, e divergência vai para `legado`. |
+| `coluna:termos_notificacao.created_at` | 5 linhas | `processo_sancionador.ProcessoSancionador.criado_em` |  |
+| `coluna:termos_notificacao.data_assinatura_prestador` | 5 linhas | `processo_sancionador.TermoNotificacao.assinatura_entidade_em` |  |
+| `coluna:termos_notificacao.data_geracao` | 5 linhas | `processo_sancionador.TermoNotificacao.criado_em`<br>`processo_sancionador.TermoNotificacao.emitido_em` | `emitido_em` só quando o termo tem o TN e o relatório assinados; senão fica vazio (pendente de emissão). |
+| `coluna:termos_notificacao.data_inicio_prazo` | 5 linhas | `processo_sancionador.TermoNotificacao.inicio_prazo` |  |
+| `coluna:termos_notificacao.data_maxima_resposta` | 5 linhas | `processo_sancionador.TermoNotificacao.data_limite` | Migrada como está; a conferência compara com início + prazo e lista as diferenças, sem recalcular. |
+| `coluna:termos_notificacao.data_protocolo` | 5 linhas | `processo_sancionador.TermoNotificacao.data_protocolo` |  |
+| `coluna:termos_notificacao.data_recebimento_resposta` | 5 linhas | `processo_sancionador.TermoNotificacao.resposta_recebida_em` |  |
+| `coluna:termos_notificacao.fiscalizacao_id` | 5 linhas | `processo_sancionador.ProcessoSancionador.fiscalizacao` | As determinações da fiscalização viram os retratos notificados (`DeterminacaoNotificada`), na ordem do número. |
+| `coluna:termos_notificacao.fluxo_manual` | 5 linhas | `processo_sancionador.TermoNotificacao.fluxo` | `true` → `manual`; `false` → `portal`. |
+| `coluna:termos_notificacao.id` | 5 linhas | `processo_sancionador.ProcessoSancionador.id`<br>`processo_sancionador.TermoNotificacao.id` | O mesmo identificador no processo e no termo. |
+| `coluna:termos_notificacao.municipio_id` | 5 linhas | `processo_sancionador.ProcessoSancionador.municipio` |  |
+| `coluna:termos_notificacao.numero_am` | 5 linhas | `processo_sancionador.AnaliseManifestacao.numero` | Termo com número de AM ganha a AM versão 1, concluída, com as análises das respostas; a sequência de AM começa no maior número migrado. |
+| `coluna:termos_notificacao.numero_processo` | 5 linhas | `processo_sancionador.ProcessoSancionador.numero_processo` |  |
+| `coluna:termos_notificacao.numero_rfp` | 5 linhas | `processo_sancionador.TermoNotificacao.numero_relatorio` |  |
+| `coluna:termos_notificacao.numero_termo_notificacao` | 5 linhas | `processo_sancionador.TermoNotificacao.numero` | Migrado como está; número repetido ou fora do formato vai para o relatório de conferência. A sequência de TN de cada diretoria e ano começa no maior número migrado. |
+| `coluna:termos_notificacao.observacoes` | 5 linhas | `processo_sancionador.TermoNotificacao.observacoes` |  |
+| `coluna:termos_notificacao.prazo_resposta_dias` | 5 linhas | `processo_sancionador.TermoNotificacao.prazo_resposta_dias` |  |
+| `coluna:termos_notificacao.prestador_servico_id` | 5 linhas | `processo_sancionador.ProcessoSancionador.entidade` |  |
+| `coluna:termos_notificacao.recebida_no_prazo` | 5 linhas | `processo_sancionador.TermoNotificacao.resposta_no_prazo` |  |
+| `coluna:termos_notificacao.status` | 5 linhas | `processo_sancionador.TermoNotificacao.situacao_legado`<br>`processo_sancionador.ProcessoSancionador.etapa` | O valor gravado fica em `situacao_legado`; a etapa é deduzida dos dados (AM concluída → autos e defesa ou encerrado; resposta recebida → análise da manifestação; senão notificação). A conferência lista a situação calculada que difere da gravada. |
+| `coluna:termos_notificacao.tipo_relatorio` | 5 linhas | `processo_sancionador.TermoNotificacao.tipo_relatorio` |  |
+| `coluna:termos_notificacao.updated_at` | 5 linhas | `processo_sancionador.ProcessoSancionador.atualizado_em`<br>`processo_sancionador.TermoNotificacao.atualizado_em` |  |
+
 ## CATERS
 
 Mapa: `anotacoes/migracao/caters.toml` · data-model: `specs/010-modulo-caters/data-model.md`
@@ -384,12 +516,6 @@ Mapa: `anotacoes/migracao/caters.toml` · data-model: `specs/010-modulo-caters/d
 | `coluna:caters_recommendations.status` | 27 linhas | `caters.RecomendacaoAcompanhada.em_andamento`<br>`caters.RecomendacaoAcompanhada.situacao_legado` | `em_andamento` vira a marca da equipe; o valor gravado fica em `situacao_legado`. A conferência lista as recomendações cuja situação calculada difere da gravada (ex.: vencidas gravadas como pendentes). |
 | `coluna:caters_recommendations.titular_response` | 27 linhas | `caters.RecomendacaoAcompanhada.resposta_titular` |  |
 | `coluna:caters_recommendations.updated_at` | 27 linhas | `caters.RecomendacaoAcompanhada.atualizado_em` |  |
-
-## Módulos sem mapa
-
-Ainda sem `anotacoes/migracao/<modulo>.toml`; o mapa entra com a spec do módulo.
-
-- **Processo sancionador**: 120 colunas e repositórios
 
 ## Fora do escopo
 

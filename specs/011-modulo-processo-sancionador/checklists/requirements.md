@@ -49,5 +49,7 @@
   `processo_sancionador` estão citados.
 - **Premissas**: documentos assinados fora do sistema; prazos padrão de 30 dias configuráveis por
   câmara; fuso de MS; sem uso sem rede.
-- **Mapa de migração**: criado no plano, com o data-model (passo 7 do molde).
+- **Plano (2026-10-01)**: research N1 a N16; mapa com 120 itens (90 com destino, 30 descartados),
+  0 pendentes; todos os módulos da spec 003 passam a ter mapa. Julgamento e deliberação com desenho
+  provisório (N11) até a Q1.
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`.

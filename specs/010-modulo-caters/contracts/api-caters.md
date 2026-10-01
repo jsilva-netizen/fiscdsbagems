@@ -71,4 +71,4 @@ pode chamar cada rota está em [matriz-acesso.md](./matriz-acesso.md). O app é 
 | App | Consulta |
 |---|---|
 | fiscalização | `fiscalizacoes_finalizadas(camara, desde, ate)`, `fiscalizacao(id, usuario)`, `saidas(fiscalizacao_id)`, `relatorio_vigente(fiscalizacao_id)` |
-| processo sancionador | contagem de termos por situação, com o alcance; a definir na spec dele |
+| processo sancionador | `consultas.contagem_termos(usuario, camara)` ([API da 011](../../011-modulo-processo-sancionador/contracts/api-sancionador.md)) |

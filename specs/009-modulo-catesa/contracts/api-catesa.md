@@ -32,7 +32,7 @@ não tem sincronização (o painel é online).
 | App | Consulta |
 |---|---|
 | fiscalização | `consultas.contagem_por_situacao(usuario, camara)` ([API da 007](../../007-modulo-fiscalizacao/contracts/api-fiscalizacao.md)) |
-| processo sancionador | contagem de termos e de autos por situação, com o alcance; a definir na spec do processo sancionador |
+| processo sancionador | `consultas.contagem_termos(usuario, camara)` e `consultas.contagem_autos(usuario, camara)` ([API da 011](../../011-modulo-processo-sancionador/contracts/api-sancionador.md)) |
 
 ## Registros nos apps comuns (no `AppConfig.ready` e no módulo do frontend)
 

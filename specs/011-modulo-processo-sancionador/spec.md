@@ -983,8 +983,8 @@ da spec 003.
 
 ## Migração
 
-Mapa: `specs/003-base-dados-producao/anotacoes/migracao/processo_sancionador.toml`, criado com o
-data-model do plano desta spec (passo 7 do molde).
+Mapa: `specs/003-base-dados-producao/anotacoes/migracao/processo_sancionador.toml` (120 itens: 90
+com destino e 30 descartados; 0 pendentes), conferido contra o data-model do plano.
 
 ### Volumes de produção
 
