@@ -98,6 +98,12 @@ Não são rotas: são as funções que os apps posteriores importam ([research P
 | `atividade(atividade_id)` | a fiscalização mostra a atividade ligada, inclusive retirada ou de viagem cancelada (marcada) |
 | `viagens_aprovadas(camara, desde, ate)` | RH, financeiro e frotas, nos apps deles |
 
+## Configuração inicial entregue pelo app da câmara
+
+| Serviço | Regra |
+|---|---|
+| `servicos.aplicar_configuracao_inicial(camara, pacote, app)` | valida o pacote e cria a `ConfiguracaoPlanejamento` e os tipos de atividade da câmara só se ela não tiver configuração; nunca altera a existente; registra na auditoria o app de origem. Usado pelo comando de configuração de cada app de câmara, na implantação ([research S4 da spec 009](../../009-modulo-catesa/research.md)) |
+
 ## Ponto de extensão (`planejamento.destinos`)
 
 O registro não grava dados: é configuração carregada quando o app inicia ([research P2](../research.md)).

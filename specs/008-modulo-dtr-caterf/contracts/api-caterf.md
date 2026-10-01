@@ -55,7 +55,7 @@ serializadores registrados pela CATERF ([research C6](../research.md)).
 |---|---|---|
 | planejamento | `registrar_tipo_destino("concessao", ...)`, `registrar_tipo_destino("rodovia", ...)` | busca e resolução pelos contratos rodoviários vigentes, com o alcance |
 | checklists | valor de contexto `rodovia_fiscalizacao` | a rodovia principal da fiscalização rodoviária |
-| checklists | configuração inicial | modelo "Ocorrências do PER" da CATERF (spec 005) |
+| checklists | configuração inicial, por `servicos.aplicar_configuracao_inicial` ([research S4 da spec 009](../../009-modulo-catesa/research.md)) | modelo "Ocorrências do PER" da CATERF (spec 005) |
 | fiscalização | `registrar_extensao_fiscalizacao("caterf", ...)` | serializador de `FiscalizacaoRodoviaria` |
 | fiscalização | `registrar_tipo_registro_avulso("caterf.ocorrencia", ...)` | serializador e remoção de `Ocorrencia` |
 | fiscalização | `registrar_campos_marca_dagua("caterf", ["rodovia", "km", "sentido"])` | campos da marca d'água |

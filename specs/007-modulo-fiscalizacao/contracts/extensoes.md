@@ -24,6 +24,12 @@ câmara.
 | telas do registro avulso | as telas de captura (ex.: frente → item do PER → descrição → etapa → constatação ou NC → sentido → observação) | abertas no lugar da vistoria por unidade quando o catálogo é do modo avulso do tipo registrado |
 | camadas do mapa | camadas sobre o mapa-base (ex.: traçado KML) | mapa da fiscalização |
 
+## Configuração inicial entregue pelo app da câmara
+
+| Serviço | Regra |
+|---|---|
+| `servicos.aplicar_configuracao_inicial(camara, pacote, app)` | valida o pacote como a tela de configuração e cria a `ConfiguracaoFiscalizacao` da câmara só se ela não existir; nunca altera a existente; registra na auditoria o app de origem; devolve o que criou e o que já existia. Usado pelo comando de configuração de cada app de câmara, na implantação ([research S4 da spec 009](../../009-modulo-catesa/research.md)) |
+
 ## Garantias
 
 - Um app de câmara de teste (`backend/tests/apps/camara_teste/` e o módulo correspondente no

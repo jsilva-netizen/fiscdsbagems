@@ -102,6 +102,7 @@ escrita valem para uso com rede e aplicam as mesmas regras e serviços.
 | `registros(fiscalizacao_id)` · `saidas(fiscalizacao_id)` | NCs, determinações (texto, prazo, data-limite) e recomendações |
 | `relatorio_vigente(fiscalizacao_id)` | anexar ao termo |
 | `fiscalizacoes_por_atividade(atividade_ids)` | painel planejado × executado |
+| `contagem_por_situacao(usuario, camara)` | painéis dos apps de câmara (em andamento, finalizadas), com o alcance do usuário |
 | `tem_documento_ligado` | ponto de extensão: os apps que ligam documentos à fiscalização (termo, auto, remessa) registram uma verificação, usada na exclusão |
 
 A escrita do registro avulso pelos apps de câmara está em [extensoes.md](./extensoes.md).

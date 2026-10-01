@@ -38,4 +38,8 @@
   configuração inicial (modelo e catálogos de checklist, fiscalização, planejamento) e registra o
   painel. Os blocos de termos e autos do painel dependem da spec do processo sancionador.
 - **Sem mapa de migração**: não há dado próprio a migrar.
+- **Plano (2026-10-01)**: o app não tem modelo; o pacote de configuração inicial é aplicado pelo
+  serviço `aplicar_configuracao_inicial` de cada app comum, sem sobrescrever o que a câmara mudou.
+  Os catálogos e itens vêm da migração dos checklists, que roda depois da configuração das câmaras.
+  Ajustes nos contratos das specs 006, 007 e 008.
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`.
