@@ -102,7 +102,7 @@ O que a entidade lê no portal sai das consultas abaixo.
 | App | Registro | O que o app fornece |
 |---|---|---|
 | fiscalização | `registrar_verificacao_documento("processo_sancionador", funcao)` | fiscalização com processo não é excluída |
-| core | `core.avisos.registrar_tipo` | tipos `sancionador.*` (N13) |
+| core | `core.avisos.registrar_tipo` | tipos `sancionador.*` (N13), inclusive `sancionador.prazo_proximo` (spec 012) |
 | core | papel `julgador` (migração de dados, R4) | membro da câmara de julgamento sem outro papel |
 | core (frontend) | menu, início por papel, abas da entidade (R-core-025) | processos, acompanhamento, "aguardando minha etapa" |
 

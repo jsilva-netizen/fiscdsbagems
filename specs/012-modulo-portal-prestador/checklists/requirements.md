@@ -42,4 +42,6 @@
 - **Premissas**: mesmas permissões para todos os usuários da entidade; assinatura fora do sistema;
   sem uso sem rede.
 - **Sem mapa de migração**: o módulo não tem colunas.
+- **Plano (2026-10-01)**: research V1 a V9; app sem modelos; consultas novas na spec 007 e aviso novo
+  na spec 011.
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`.

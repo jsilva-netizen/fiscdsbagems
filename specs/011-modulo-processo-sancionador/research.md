@@ -236,7 +236,8 @@ emitidos.
 ## N13 — Avisos
 
 **Decision**: tipos registrados na central de avisos do core:
-- `sancionador.termo_emitido`, `sancionador.remessa_enviada`, `sancionador.decisao_final`: à
+- `sancionador.termo_emitido`, `sancionador.remessa_enviada`, `sancionador.decisao_final` e
+  `sancionador.prazo_proximo` (5 dias antes da data-limite do termo e do prazo de defesa): à
   entidade;
 - `sancionador.resposta_concluida`, `sancionador.prazo_vencido`, `sancionador.defesa_enviada`: à
   câmara técnica;

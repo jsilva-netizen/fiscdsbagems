@@ -102,6 +102,7 @@ escrita valem para uso com rede e aplicam as mesmas regras e serviços.
 | `registros(fiscalizacao_id)` · `saidas(fiscalizacao_id)` | NCs, determinações (texto, prazo, data-limite) e recomendações |
 | `relatorio_vigente(fiscalizacao_id)` | anexar ao termo |
 | `fiscalizacoes_por_atividade(atividade_ids)` | painel planejado × executado |
+| `resumo_para_entidade(fiscalizacao_id)` · `endereco_foto_para_entidade(fiscalizacao_id, foto_id)` | portal do prestador, depois da regra do termo: unidades (nome, endereço, coordenadas), recomendações, fotos com marca d'água e relatório anexado; sem alcance de usuário; importáveis só pelo `portal_prestador` (import-linter; research V2 da spec 012) |
 | `contagem_por_situacao(usuario, camara)` | painéis dos apps de câmara (em andamento, finalizadas), com o alcance do usuário |
 | `tem_documento_ligado` | ponto de extensão: os apps que ligam documentos à fiscalização (termo, auto, remessa) registram uma verificação, usada na exclusão |
 
