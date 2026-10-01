@@ -134,8 +134,9 @@ uma entidade com processos não pode ser excluída, só desativada.
 **Acceptance Scenarios**:
 
 1. **Given** um fiscal ativo sem rede, **When** ele tenta cadastrar ou alterar uma entidade,
-   **Then** o aplicativo avisa que precisa de internet e não grava nada; na área de campo, as
-   entidades já baixadas continuam disponíveis para consulta (R-core-021, R-core-027).
+   **Then** o item de entidades fica desabilitado, marcado "precisa de internet", e a tela não
+   abre; na área de campo, as entidades já baixadas continuam disponíveis para consulta (R-core-021,
+   R-core-027).
 2. **Given** uma entidade com termos, autos ou respostas registrados, **When** alguém tenta
    excluí-la, **Then** o sistema recusa e oferece desativar.
 3. **Given** um documento anexo a uma entidade, **When** um usuário sem acesso tenta abri-lo pelo
@@ -235,8 +236,9 @@ Sem uma central comum, cada app faria a sua, como o painel da CATERS faz hoje.
    e-mail, a menos que tenha desligado o e-mail desse tipo e o tipo não seja obrigatório.
 3. **Given** um aviso de um registro que o usuário deixou de alcançar, **When** ele abre o aviso,
    **Then** o registro responde como inexistente.
-4. **Given** um usuário sem rede, **When** abre a central de avisos, **Then** o aplicativo avisa
-   que ela precisa de internet (R-core-027); os e-mails já recebidos continuam com ele.
+4. **Given** um usuário sem rede, **When** procura a central de avisos, **Then** o acesso fica
+   desabilitado, marcado "precisa de internet" (R-core-027); os e-mails já recebidos continuam com
+   ele.
 
 ---
 
@@ -318,8 +320,8 @@ Sem uma central comum, cada app faria a sua, como o painel da CATERS faz hoje.
   com o que cada app registra, sem o core depender desses apps, e cada contribuição MUST respeitar o
   acesso do app dono do dado (R-core-025).
 - **FR-023**: Só a área de campo (a fiscalização de qualquer câmara e o que os apps das câmaras
-  acrescentam a ela) MUST funcionar sem rede; as demais telas MUST avisar que precisam de internet
-  (R-core-027).
+  acrescentam a ela) MUST funcionar sem rede; sem rede, o usuário MUST NOT conseguir abrir as demais
+  telas nem acionar o que depende do servidor (R-core-027).
 - **FR-022**: O core MUST oferecer uma central de avisos comum a todos os apps: cada app registra os
   seus tipos de aviso e manda avisos a usuários, a papéis de uma câmara ou a papéis de uma
   diretoria; cada usuário MUST ver só os próprios avisos, na tela e, conforme o tipo, por e-mail
@@ -850,8 +852,20 @@ da spec 003 (`specs/003-base-dados-producao/catalogo/`).
   - elaborar e aprovar o planejamento;
   - tramitação, cadastros, avisos, configurações e administração.
 
-  Sem rede, essas telas mostram que precisam de internet e não iniciam nenhuma ação. O core
-  oferece:
+  **Sem rede, o usuário não chega a essas telas**:
+  - os itens de menu, os atalhos e os botões que levam a telas fora da área de campo ficam
+    desabilitados, marcados "precisa de internet", e não respondem ao toque;
+  - abrir uma dessas telas pelo endereço, pelo histórico do navegador ou por um aviso leva ao início
+    da área de campo, com a explicação;
+  - nas telas da área de campo, as ações que precisam do servidor (ex.: gerar o relatório) também
+    ficam desabilitadas e marcadas;
+  - se a rede cair com o usuário numa tela fora da área de campo, as ações dela são bloqueadas na
+    hora, o que ele digitou continua na tela até a rede voltar, e ele pode ir à área de campo;
+  - quando a rede volta, tudo é liberado sem recarregar o aplicativo.
+
+  O aplicativo considera que está sem rede quando o navegador diz que está desconectado ou quando o
+  servidor não responde a uma verificação curta, porque o aviso do navegador sozinho não basta. O
+  core oferece:
   - **instalação e atualização**: as telas da área de campo ficam guardadas no aparelho; atualizar a
     versão nunca apaga a fila de envio nem os dados locais, e a versão nova entra quando o usuário
     não está no meio de um registro;
@@ -965,7 +979,8 @@ Ações das telas atuais que pertencem ao core, no molde `formatos/spec-modulo.m
 | Criar e revogar credenciais de sistema | R-core-024 |
 | Ver os avisos, com o contador de não lidos; marcar como lido; abrir o registro do aviso | R-core-026 |
 | Ligar ou desligar o e-mail dos tipos de aviso não obrigatórios | R-core-026 |
-| Aviso de "pronto para campo" e de armazenamento não persistente; aviso de tela que precisa de internet | R-core-027 |
+| Aviso de "pronto para campo" e de armazenamento não persistente | R-core-027 |
+| Sem rede: menu, atalhos e botões de telas fora da área de campo desabilitados; endereço dessas telas leva ao início da área de campo | R-core-027 |
 
 ### Aplicativo (sem tela própria)
 
@@ -1027,8 +1042,8 @@ pendentes, destinos conferidos contra o data-model).
   recuperação de acesso.
 - **SC-004**: Um usuário novo completa o primeiro acesso (senha e código) em até 3 minutos.
 - **SC-005**: Um usuário num aparelho confirmado sem rede abre o app e, na área de campo, consulta
-  os cadastros do core sem nenhum erro de acesso; nas demais telas, vê o aviso de que precisam de
-  internet.
+  os cadastros do core sem nenhum erro de acesso; 0 telas fora da área de campo podem ser abertas
+  sem rede, por menu, atalho, botão, endereço ou histórico.
 - **SC-006**: Desativar um usuário com registros funciona em 100% dos casos, e 100% dos registros
   dele continuam com a autoria.
 - **SC-007**: Todos os usuários, entidades, contratos, municípios, diretorias e câmaras de produção

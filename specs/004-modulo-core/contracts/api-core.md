@@ -17,6 +17,7 @@ Erros: `{"erro": "<codigo>", "mensagem": "<texto para o usuário>", "campos": {.
 | `POST auth/primeiro-acesso` | `token` (do e-mail), `senha` | **204**; depois o usuário usa `auth/entrar` |
 | `POST auth/recuperar` | `email` | **202** sempre (existindo ou não o e-mail) |
 | `POST auth/redefinir` | `token`, `senha` | **204**; revoga os aparelhos confirmados |
+| `GET saude` | — | **200** `{}`; sem dados; usada pelo aplicativo para saber se o servidor responde (R-core-027); limite de frequência por endereço |
 
 ## Sessão (com login)
 

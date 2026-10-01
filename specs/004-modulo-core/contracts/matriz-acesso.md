@@ -1,7 +1,8 @@
 # Contrato: matriz de acesso do core
 
 Fonte dos testes de autorização ([research R8](../research.md)): cada linha vira casos de teste
-para cada papel, e um caso a mais "sem login" (sempre **401**, exceto nas rotas de entrada). Uma
+para cada papel, e um caso a mais "sem login" (sempre **401**, exceto nas rotas de entrada e em
+`GET saude`, que responde sem login e sem dados). Uma
 regra removida ou enfraquecida no código faz algum caso falhar (constituição, Princípio III).
 
 Legenda: **T** tudo; **P** próprio (o próprio usuário, a própria entidade); **E** escopo (câmara

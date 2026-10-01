@@ -276,7 +276,18 @@ atualiza ao abrir e na sincronização.
 **Decision**: aplicativo web instalável com `vite-plugin-pwa` (Workbox):
 - **guardado no aparelho**: só a casca do aplicativo e os pedaços (chunks) das telas registradas como
   área de campo (R-core-027), pré-carregados na instalação e em cada atualização;
-- **demais telas**: carregadas da rede; sem rede, mostram a página "precisa de internet";
+- **demais telas**: carregadas da rede, e inalcançáveis sem rede:
+  - o estado de conexão é um sinal único no aplicativo (`frontend/src/core/conexao/`), que junta o
+    `navigator.onLine` e uma verificação curta (`GET saude`, a cada 30 segundos e logo depois de uma
+    falha de chamada), porque o aviso do navegador sozinho dá falso "conectado";
+  - o menu, os atalhos e os botões leem do registro de contribuições se o destino é da área de
+    campo; os outros ficam desabilitados, com o rótulo "precisa de internet";
+  - uma guarda de rotas leva ao início da área de campo qualquer navegação, sem rede, para tela fora
+    dela (endereço, histórico, link de aviso);
+  - ações da área de campo que dependem do servidor (gerar relatório, por exemplo) declaram
+    `exigeRede` e são desabilitadas do mesmo jeito;
+  - a rede caindo numa tela fora da área de campo bloqueia as ações dela e guarda o formulário em
+    memória até a rede voltar;
 - **atualização**: no modo "perguntar". A versão nova é baixada em segundo plano e aplicada quando
   o usuário não tem registro aberto, ou quando ele aceita. Nunca limpa o IndexedDB;
 - **pronto para campo**: um indicador que só fica verde com os pedaços da área de campo
