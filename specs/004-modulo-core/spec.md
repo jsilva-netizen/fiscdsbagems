@@ -613,15 +613,18 @@ da spec 003 (`specs/003-base-dados-producao/catalogo/`).
 
 - **Comportamento desejado**: a equipe (administrador, coordenador e fiscal) cadastra e altera
   entidades reguladas, com rede (R-core-027). Dados: nome de
-  exibição, razão social e CNPJ (obrigatórios; CNPJ único), natureza (concessionária ou órgão/
+  exibição, razão social, CNPJ (único) e endereço com cidade, UF e CEP (obrigatórios, na criação e
+  na edição), natureza (concessionária ou órgão/
   entidade pública), serviços prestados (que definem em que diretoria a entidade aparece), endereço,
   contato, responsável e cargo, site, observações e situação (ativa ou desativada, num campo só).
   Todo usuário ativo da equipe lê as entidades; o prestador, só a própria (R-core-013).
 - **Comportamento atual**: a mesma equipe cria, edita e exclui pela fila offline. A situação está
   em dois campos que dizem a mesma coisa (`ativo` e `status`); há um campo de classificação que
-  nenhuma tela usa (`tipo`); o CNPJ não é único; o prestador lê todas as entidades.
+  nenhuma tela usa (`tipo`); o CNPJ não é único; o prestador lê todas as entidades. A criação exige
+  nome, razão social, CNPJ, endereço, cidade, UF e CEP; a edição no detalhe exige só os três
+  primeiros.
 - **Motivo da diferença**: campos duplicados e sem uso confundem; CNPJ repetido gera entidade
-  duplicada; o prestador não precisa ver outras entidades; só a fiscalização funciona sem rede
+  duplicada; a mesma exigência na criação e na edição evita apagar o endereço depois; o prestador não precisa ver outras entidades; só a fiscalização funciona sem rede
   (decisão do responsável, 2026-10-01).
 - **Objetos do catálogo**: `tabela:prestadores_servico`, `coluna:prestadores_servico.nome`,
   `coluna:prestadores_servico.razao_social`, `coluna:prestadores_servico.cnpj`,

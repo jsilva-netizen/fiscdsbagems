@@ -430,7 +430,9 @@ da spec 003. As regras descrevem só peças genéricas; o que cada câmara faz h
 - **Comportamento atual**:
   - DSB: grava direto, sem prévia; cria uma versão nova para toda linha, mesmo igual à vigente (origem
     das 81 chaves duplicadas); marca todo item como gerador de NC; ignora linhas sem pergunta ou
-    tipo; não há modelo para baixar.
+    tipo; não há modelo para baixar. A chave é o tipo e a ordem (sem ordem, a pergunta); o tipo é
+    casado por nome ou código, e o que não existe é criado; os itens vigentes do tipo ausentes da
+    planilha são retirados sem perguntar (gravados como inativos).
   - DTR: há modelo para baixar e prévia com confirmação; altera no próprio registro o tipo que casa
     com a chave, ou insere; tipos ausentes continuam, e para tirá-los o caminho é "Limpar base" e
     reimportar.

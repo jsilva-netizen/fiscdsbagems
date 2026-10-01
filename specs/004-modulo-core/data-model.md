@@ -117,7 +117,7 @@ na lista de bloqueio e revoga os aparelhos confirmados.
 | cnpj | texto | obrigatório, 14 dígitos com dígitos verificadores válidos, único |
 | natureza | concessionária / órgão ou entidade pública | (`tipo_entidade`) |
 | servicos | → Servico (vários) | define as diretorias em que aparece (`tipo_servico`) |
-| endereco, cidade, estado, cep | textos | estado padrão `MS` |
+| endereco, cidade, estado, cep | textos | obrigatórios no serviço (R-core-016); estado padrão `MS`; entidade migrada sem algum deles é aceita, e a tela pede o preenchimento na próxima edição |
 | responsavel, cargo | textos | dado pessoal do responsável |
 | email_contato, telefone, website, observacoes | textos | opcionais |
 | logotipo | chave de arquivo no repositório público, opcional | nunca imagem embutida (R-core-019) |
