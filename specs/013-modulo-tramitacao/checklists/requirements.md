@@ -46,4 +46,6 @@
   Elas não impedem o plano da troca com as entidades nem dos pedidos de dados; precisam de resposta
   antes do desenho da integração com o e-MS (US5).
 - **Sem mapa de migração**: o módulo não existe no sistema atual.
+- **Plano (2026-10-01)**: research X1 a X15; integração com o e-MS como porta e adaptador, com
+  adaptador falso até a Q1; unidades próprias até o core ter áreas.
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`.
