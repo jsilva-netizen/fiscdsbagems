@@ -340,6 +340,26 @@ pede.
 
 **Alternatives considered**: importar gravando direto, como hoje, sem as validações.
 
+## F19 — Área de campo, barra de sincronização e backup local
+
+**Decision**: o módulo `frontend/src/fiscalizacao/campo/` tem:
+- **barra**: aparece só nas telas registradas como área de campo (R-core-027), lendo do banco local
+  o estado da fila (operações não concluídas e fotos não enviadas) e a última sincronização completa;
+- **sincronização completa**: um orquestrador que, em ordem, envia a fila da fiscalização e depois
+  as dos participantes registrados, e baixa `sync/core`, `sync/checklists`, `sync/planejamento`,
+  `sync/fiscalizacao` e os dos participantes. Roda ao tocar em "Sincronizar", ao voltar a rede e
+  a cada 15 minutos com rede;
+- **participantes**: os apps das câmaras registram-se no ponto de extensão "participante da
+  sincronização" (rota de baixar, fila de envio, ordem), como a CATERF com `sync/caterf`;
+- **backup local**: o mesmo arquivo da exportação de trabalho pendente (F12), acrescido dos dados
+  locais das fiscalizações do usuário, gerado no aparelho sem rede e importável pela rota
+  `importacoes/fila`.
+
+**Rationale**: R-fiscalizacao-026; decisão do responsável (2026-10-01).
+
+**Alternatives considered**: a barra no core, para todas as telas: mostraria sincronização onde não
+há trabalho sem rede; um backup diferente da exportação: dois formatos para a mesma recuperação.
+
 ## F18 — Migração
 
 **Decision**: o comando `migrar_fiscalizacao` lê o dump de produção (nunca a produção), segue o

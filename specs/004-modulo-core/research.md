@@ -192,9 +192,11 @@ core), usado por todos os apps:
   aparelho;
 - **enviar**: lote de operações com o UUID gerado no aparelho; cada operação é idempotente
   (repetir não duplica) e passa pelos mesmos serviços e regras da API comum; o resultado volta por
-  operação (aceita, recusada com motivo);
+  operação (aceita, recusada com motivo). Só os apps da área de campo (fiscalização e apps de
+  câmara) recebem envio; o core só oferece o baixar (`GET sync/core`), porque os cadastros são
+  alterados com rede (R-core-021, decisão de 2026-10-01);
 - conflito de alteração simultânea: vence a última recebida pelo servidor, como hoje, e as duas
-  versões ficam na auditoria; duplicidade de CNPJ é recusada com motivo, para a equipe resolver.
+  versões ficam na auditoria.
 
 Os detalhes da fila no aparelho são da spec de fiscalização; o core define o protocolo.
 
@@ -253,7 +255,7 @@ sistema institucional; reavaliar se o servidor institucional não atender).
   - cria um aviso por destinatário numa transação;
   - agenda o e-mail pela tarefa de envio (R14) depois do commit, respeitando a preferência;
 - as rotas de leitura, só do próprio usuário;
-- a inclusão dos avisos do usuário no `sync/core`, com a marcação de lido aceita no envio;
+- a central só com rede (R-core-027, decisão de 2026-10-01): os avisos não vão para o aparelho;
 - uma tarefa diária que apaga os avisos lidos há mais de um ano.
 
 O frontend mostra o contador de não lidos no cabeçalho, com a central numa tela do core. Aviso não é
@@ -268,3 +270,24 @@ atualiza ao abrir e na sincronização.
   preferências nem sincronização offline; a adaptação seria maior que a peça;
 - avisos em tempo real (WebSocket, Django Channels): infraestrutura a mais sem necessidade hoje;
 - uma central em cada app: repetição e divergência.
+
+## R16 — Aplicativo instalado e área de campo
+
+**Decision**: aplicativo web instalável com `vite-plugin-pwa` (Workbox):
+- **guardado no aparelho**: só a casca do aplicativo e os pedaços (chunks) das telas registradas como
+  área de campo (R-core-027), pré-carregados na instalação e em cada atualização;
+- **demais telas**: carregadas da rede; sem rede, mostram a página "precisa de internet";
+- **atualização**: no modo "perguntar". A versão nova é baixada em segundo plano e aplicada quando
+  o usuário não tem registro aberto, ou quando ele aceita. Nunca limpa o IndexedDB;
+- **pronto para campo**: um indicador que só fica verde com os pedaços da área de campo
+  pré-carregados e a primeira sincronização dos dados de consulta concluída;
+- **persistência**: `navigator.storage.persist()` no primeiro acesso, com aviso se negado;
+- **registro**: cada app marca as suas telas da área de campo no registro de contribuições
+  (`frontend/src/shared/extensoes.ts`), e a configuração do Workbox é gerada a partir dele no build.
+
+**Rationale**: R-core-027; decisão do responsável (2026-10-01); hoje o `vite-plugin-pwa` já é usado.
+
+**Alternatives considered**:
+- guardar todas as telas, como hoje: mais download e telas que não funcionariam sem os dados de
+  qualquer jeito;
+- aplicativo nativo: outra base de código para manter (Princípio V).

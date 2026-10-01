@@ -100,7 +100,7 @@ auditoria e sincronização, e a base do cliente offline. Nenhuma história come
 
 ### Cliente offline (base)
 
-- [ ] T031 [P] Criar o banco local em `frontend/src/offline/db.ts` (Dexie) com as tabelas dos cadastros do core, a fila de envio e a marca da última sincronização
+- [ ] T031 [P] Criar o banco local em `frontend/src/offline/db.ts` (Dexie) com as tabelas dos cadastros do core (só leitura, para a área de campo), a fila de envio dos apps da área de campo e a marca da última sincronização
 - [ ] T032 [P] Criar o cliente da API em `frontend/src/shared/api.ts`: token de acesso em memória, renovação automática, e, se a renovação for recusada, encerrar a sessão **sem apagar** a fila local (research R6)
 - [ ] T033 Criar o motor de sincronização em `frontend/src/offline/sincronizacao.ts`: envia a fila pelo `POST sync/<app>`, marca cada operação conforme o resultado, e baixa pelo `GET sync/<app>?desde=`
 
@@ -191,7 +191,7 @@ entrada.
 
 ## Phase 6: User Story 4 - Equipe mantém o cadastro das entidades reguladas (Priority: P2)
 
-**Goal**: cadastro completo das entidades, inclusive sem rede, com documentos privados, logotipo
+**Goal**: cadastro completo das entidades, com rede, com documentos privados, logotipo
 público e desativação em vez de exclusão (R-core-016 a R-core-019, R-core-021).
 
 **Independent Test**: [quickstart](./quickstart.md), passo 5, itens 1 a 4.
@@ -209,15 +209,15 @@ público e desativação em vez de exclusão (R-core-016 a R-core-019, R-core-02
 - [ ] T065 [US4] Implementar em `C/servicos.py` criar, alterar, desativar, reativar e excluir entidade (409 com registro vinculado, consultando os apps registrados), logotipo e documentos, todos auditados, e registrar `Entidade` no registro de sincronização (T028)
 - [ ] T066 [US4] Implementar as views `entidades*` em `C/api/entidades.py` com escopo (equipe lê todas; prestador só a própria) e matriz declarada
 - [ ] T067 [US4] Expor em `C/consultas.py` a consulta de entidades para outros apps (dados de exibição, serviços, situação)
-- [ ] T068 [P] [US4] Criar as telas de entidades em `frontend/src/core/entidades/` (lista por diretoria e serviço, detalhe, formulário, logotipo, documentos), gravando pela fila offline
+- [ ] T068 [P] [US4] Criar as telas de entidades em `frontend/src/core/entidades/` (lista por diretoria e serviço, detalhe, formulário, logotipo, documentos), gravando pela API, com o aviso de que precisa de internet quando sem rede (R-core-027)
 
-**Checkpoint**: entidades completas, inclusive offline.
+**Checkpoint**: entidades completas; consulta sem rede na área de campo.
 
 ---
 
 ## Phase 7: User Story 5 - Equipe mantém os contratos das entidades (Priority: P2)
 
-**Goal**: contratos com número, entidade e vigência, inclusive sem rede, estendíveis por apps de
+**Goal**: contratos com número, entidade e vigência, com rede, estendíveis por apps de
 diretoria (R-core-020).
 
 **Independent Test**: [quickstart](./quickstart.md), passo 5, item 1 (contrato) e item 4.
@@ -290,9 +290,12 @@ v2.4.0 e v2.5.0)
 - [ ] T093 Criar o registro de contribuições de tela em `frontend/src/shared/extensoes.ts`: cada app do frontend registra itens de menu, painéis do início por papel, contadores da lista de entidades, abas do detalhe da entidade e entradas das Definições, cada um com os papéis que o veem; o menu e as telas `frontend/src/core/inicio/`, `frontend/src/core/entidades/` e `frontend/src/core/definicoes/` montam só o que está registrado, sem importar nenhum app (R-core-025)
 - [ ] T095 [US8] Criar `Aviso` (`usuario`, `tipo`, `app`, `titulo` obrigatório, `texto`, `referencia_app`, `referencia_modelo`, `referencia_id`, `criado_em`, `lido_em`, `email_enviado_em`) e `PreferenciaAviso` (`usuario`, `tipo`, `email`; único por usuário e tipo) em `C/avisos/models.py`, e o registro de tipos em `C/avisos/registro.py` (`registrar_tipo(codigo, nome, app, email_padrao, email_obrigatorio)`; código único, prefixado pelo app) (R-core-026)
 - [ ] T096 [US8] Implementar `enviar_aviso(tipo, destinatarios, titulo, texto, referencia)` em `C/servicos.py`: resolve usuários, `(papel, camara)` e `(papel, diretoria)` só entre ativos; cria um aviso por destinatário numa transação; agenda o e-mail em `C/tasks.py` depois do commit, respeitando a preferência e o `email_obrigatorio`; tarefa diária que apaga avisos lidos há mais de um ano
-- [ ] T097 [US8] Views `avisos`, `avisos/{id}/lido`, `avisos/lidos`, `avisos/tipos` e `eu/preferencias-avisos` em `C/api/avisos.py`, com a matriz declarada (só o próprio usuário); incluir os avisos do usuário no `GET sync/core` e a marcação de lido no `POST sync/core` em `C/sincronizacao/`
+- [ ] T097 [US8] Views `avisos`, `avisos/{id}/lido`, `avisos/lidos`, `avisos/tipos` e `eu/preferencias-avisos` em `C/api/avisos.py`, com a matriz declarada (só o próprio usuário); a central é só com rede (R-core-027)
 - [ ] T098 [P] [US8] Testes em `T/test_avisos.py`: app de teste registra um tipo e manda aviso para os coordenadores de uma câmara; só eles veem; marcar como lido não afeta o outro; administrador não lê aviso alheio; e-mail respeita preferência e tipo obrigatório (Mailpit); aviso de registro fora do alcance abre como 404; marcação de lido sem rede chega pela sincronização (SC-011)
-- [ ] T099 [P] [US8] Criar a central de avisos e o contador de não lidos no cabeçalho em `frontend/src/core/avisos/`, lendo do banco local, com a tela de preferências
+- [ ] T099 [P] [US8] Criar a central de avisos e o contador de não lidos no cabeçalho em `frontend/src/core/avisos/`, lendo da API, com a tela de preferências e o aviso de que precisa de internet
+- [ ] T100 Configurar o aplicativo instalável em `frontend/vite.config.ts` (`vite-plugin-pwa`, modo "perguntar"): pré-carregar só a casca e as telas marcadas como área de campo no registro de contribuições; página "precisa de internet" para as demais; atualização que nunca limpa o IndexedDB nem a fila (R-core-027, research R16)
+- [ ] T101 [P] Criar em `frontend/src/core/aparelho/` o indicador "pronto para campo" (telas da área de campo pré-carregadas e primeira sincronização dos dados de consulta concluída), o pedido de armazenamento persistente com aviso se negado e o aviso de versão nova (R-core-027)
+- [ ] T102 [P] Testes em `frontend/src/core/aparelho/aparelho.test.ts`: sem rede, tela fora da área de campo mostra "precisa de internet" e não envia nada; atualização simulada mantém a fila; indicador só fica pronto com os dois requisitos (R-core-027)
 - [ ] T094 Testes em `frontend/src/shared/extensoes.test.ts` e regra de importação do lint do frontend: um app de teste registra uma aba no detalhe da entidade e uma entrada nas Definições, que aparecem só para os papéis declarados; retirá-lo não quebra as telas do core; `frontend/src/core/` importar `frontend/src/<app posterior>/` reprova o lint (SC-010)
 
 ---

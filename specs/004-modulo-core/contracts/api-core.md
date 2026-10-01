@@ -99,8 +99,10 @@ os tipos por `core.avisos.registrar_tipo(codigo, nome, app, email_padrao, email_
 
 | Método e rota | Descrição |
 |---|---|
-| `GET sync/core?desde=<marca>` | alterações e remoções no escopo do usuário desde a marca do servidor: `{marca, diretorias, camaras, servicos, municipios, entidades, contratos, avisos, remocoes}`; `avisos` só do próprio usuário |
-| `POST sync/core` | `{operacoes: [{id, modelo, acao, dados}]}` idempotente; resposta por operação: `aceita` ou `recusada` com `erro`; inclui marcar aviso como lido feito sem rede |
+| `GET sync/core?desde=<marca>` | para a área de campo, só leitura: alterações e remoções no escopo do usuário desde a marca do servidor: `{marca, diretorias, camaras, servicos, municipios, entidades, contratos, remocoes}` |
+
+Não há `POST sync/core`: os cadastros do core e os avisos são alterados só com rede (R-core-021,
+R-core-027). O envio em lote do protocolo (R11) é usado pelos apps da área de campo.
 
 ## Integrações
 

@@ -56,7 +56,7 @@ entidades e novas áreas da agência
 | Regra (constituição v2.5.0) | Situação | Como o plano atende |
 |---|---|---|
 | I. Preservação integral | Passa | Migração dos dados do core com os mesmos UUIDs e conferência registro a registro, incluindo os 19.966 registros de auditoria (R13, SC-007); desativar em vez de excluir preserva a autoria (R-core-007) |
-| II. Operação offline | Passa | Aparelho confirmado dispensa código e rede; fila local nunca é apagada quando a sessão cai; protocolo de sincronização com UUID do aparelho e operações idempotentes (R6, R11) |
+| II. Operação offline | Passa | Aparelho confirmado dispensa código e rede; fila local nunca é apagada quando a sessão cai; protocolo de sincronização com UUID do aparelho e operações idempotentes (R6, R11); só a área de campo funciona sem rede, com o aplicativo instalável e o aviso de pronto para campo (R16, decisão de 2026-10-01) |
 | III. Autorização verificável | Passa | Escopo declarado por rota; matriz papel × câmara × operação testada caso a caso; varredura que reprova rota sem entrada na matriz (R7, R8, [matriz-acesso.md](./contracts/matriz-acesso.md)) |
 | IV. Produção intocada | Passa | Código num repositório novo; a migração lê só um dump, nunca a produção (R1, R13) |
 | V. Manutenibilidade | Passa com justificativa | Tudo mainstream do ecossistema Django; duas peças próprias (verificação em duas etapas e auditoria) justificadas em Complexity Tracking |

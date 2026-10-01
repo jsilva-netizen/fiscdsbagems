@@ -60,8 +60,9 @@ Esperado: tudo em até 3 minutos no primeiro acesso (SC-004).
 
 ## 5. Entidades, documentos e contratos (User Stories 4 e 5)
 
-1. Com o frontend sem rede (modo avião do navegador), cadastrar uma entidade e um contrato; voltar
-   a rede e sincronizar: os dois aparecem para os demais com os mesmos identificadores.
+1. Com o frontend sem rede (modo avião do navegador), abrir o cadastro de entidades: a tela avisa
+   que precisa de internet e não grava; abrir a área de campo: as entidades baixadas aparecem para
+   consulta. Com rede, cadastrar uma entidade e um contrato: aparecem para os demais.
 2. Anexar um PDF à entidade; pedir o endereço com um prestador de outra entidade: 404.
 3. Enviar um arquivo de texto como logotipo: recusado.
 4. Tentar excluir uma entidade com contrato: 409; desativá-la: o contrato continua consultável.

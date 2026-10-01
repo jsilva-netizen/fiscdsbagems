@@ -126,14 +126,16 @@ das fiscalizações e dos processos de todos os módulos.
 **Why this priority**: todos os módulos seguintes apontam para as entidades; sem elas não há
 fiscalização nem processo.
 
-**Independent Test**: um fiscal cadastra uma entidade sem rede, com logotipo e um documento
-anexo; ao voltar a rede, a entidade aparece para os demais; um documento anexo só abre para quem
-tem acesso à entidade; uma entidade com processos não pode ser excluída, só desativada.
+**Independent Test**: um fiscal cadastra uma entidade, com logotipo e um documento anexo, e ela
+aparece para os demais; sem rede, a tela avisa que precisa de internet, e a fiscalização continua
+consultando as entidades já baixadas; um documento anexo só abre para quem tem acesso à entidade;
+uma entidade com processos não pode ser excluída, só desativada.
 
 **Acceptance Scenarios**:
 
-1. **Given** um fiscal ativo sem rede, **When** ele cadastra uma entidade, **Then** ela fica
-   disponível no aparelho e é enviada ao servidor quando a rede voltar, com o mesmo identificador.
+1. **Given** um fiscal ativo sem rede, **When** ele tenta cadastrar ou alterar uma entidade,
+   **Then** o aplicativo avisa que precisa de internet e não grava nada; na área de campo, as
+   entidades já baixadas continuam disponíveis para consulta (R-core-021, R-core-027).
 2. **Given** uma entidade com termos, autos ou respostas registrados, **When** alguém tenta
    excluí-la, **Then** o sistema recusa e oferece desativar.
 3. **Given** um documento anexo a uma entidade, **When** um usuário sem acesso tenta abri-lo pelo
@@ -233,8 +235,8 @@ Sem uma central comum, cada app faria a sua, como o painel da CATERS faz hoje.
    e-mail, a menos que tenha desligado o e-mail desse tipo e o tipo não seja obrigatório.
 3. **Given** um aviso de um registro que o usuário deixou de alcançar, **When** ele abre o aviso,
    **Then** o registro responde como inexistente.
-4. **Given** um usuário sem rede, **When** abre o aplicativo, **Then** vê os avisos já recebidos e
-   pode marcá-los como lidos; a marcação vai ao servidor quando a rede voltar.
+4. **Given** um usuário sem rede, **When** abre a central de avisos, **Then** o aplicativo avisa
+   que ela precisa de internet (R-core-027); os e-mails já recebidos continuam com ele.
 
 ---
 
@@ -251,8 +253,6 @@ Sem uma central comum, cada app faria a sua, como o painel da CATERS faz hoje.
   ao voltar a rede, se o usuário tiver sido desativado nesse meio tempo, a sessão é encerrada e o
   que estava pendente no aparelho não é descartado (Princípio II; a fila offline é da spec de
   fiscalização).
-- Entidade criada offline em dois aparelhos com o mesmo CNPJ: o servidor aceita a primeira e
-  sinaliza a segunda como duplicada para a equipe resolver.
 - Envio do logotipo falha: a entidade é salva sem logotipo e o envio pode ser refeito; a imagem
   nunca é gravada dentro do cadastro.
 - Registro legado sem câmara (produção tem registros assim): recebe câmara na migração de dados;
@@ -291,8 +291,8 @@ Sem uma central comum, cada app faria a sua, como o painel da CATERS faz hoje.
   diretoria, mantidas só pelo administrador (R-core-014).
 - **FR-011**: O sistema MUST ter os 79 municípios de MS com código IBGE, legíveis por todo usuário
   ativo e mantidos só pelo administrador (R-core-015).
-- **FR-012**: A equipe MUST poder cadastrar e manter entidades reguladas, inclusive sem rede
-  (R-core-016, R-core-017, R-core-021).
+- **FR-012**: A equipe MUST poder cadastrar e manter entidades reguladas, com rede (R-core-016,
+  R-core-017, R-core-021).
 - **FR-013**: Entidade com registros vinculados MUST poder ser desativada e MUST NOT poder ser
   excluída (R-core-017).
 - **FR-014**: Documentos anexos às entidades MUST ser entregues só a quem tem acesso à entidade
@@ -317,6 +317,9 @@ Sem uma central comum, cada app faria a sua, como o painel da CATERS faz hoje.
 - **FR-021**: O menu, o início, a lista e o detalhe das entidades e as Definições MUST ser montados
   com o que cada app registra, sem o core depender desses apps, e cada contribuição MUST respeitar o
   acesso do app dono do dado (R-core-025).
+- **FR-023**: Só a área de campo (a fiscalização de qualquer câmara e o que os apps das câmaras
+  acrescentam a ela) MUST funcionar sem rede; as demais telas MUST avisar que precisam de internet
+  (R-core-027).
 - **FR-022**: O core MUST oferecer uma central de avisos comum a todos os apps: cada app registra os
   seus tipos de aviso e manda avisos a usuários, a papéis de uma câmara ou a papéis de uma
   diretoria; cada usuário MUST ver só os próprios avisos, na tela e, conforme o tipo, por e-mail
@@ -607,7 +610,7 @@ da spec 003 (`specs/003-base-dados-producao/catalogo/`).
 ### R-core-016 — Cadastro de entidades reguladas
 
 - **Comportamento desejado**: a equipe (administrador, coordenador e fiscal) cadastra e altera
-  entidades reguladas, inclusive sem rede, com identificador gerado no aparelho. Dados: nome de
+  entidades reguladas, com rede (R-core-027). Dados: nome de
   exibição, razão social e CNPJ (obrigatórios; CNPJ único), natureza (concessionária ou órgão/
   entidade pública), serviços prestados (que definem em que diretoria a entidade aparece), endereço,
   contato, responsável e cargo, site, observações e situação (ativa ou desativada, num campo só).
@@ -616,7 +619,8 @@ da spec 003 (`specs/003-base-dados-producao/catalogo/`).
   em dois campos que dizem a mesma coisa (`ativo` e `status`); há um campo de classificação que
   nenhuma tela usa (`tipo`); o CNPJ não é único; o prestador lê todas as entidades.
 - **Motivo da diferença**: campos duplicados e sem uso confundem; CNPJ repetido gera entidade
-  duplicada; o prestador não precisa ver outras entidades.
+  duplicada; o prestador não precisa ver outras entidades; só a fiscalização funciona sem rede
+  (decisão do responsável, 2026-10-01).
 - **Objetos do catálogo**: `tabela:prestadores_servico`, `coluna:prestadores_servico.nome`,
   `coluna:prestadores_servico.razao_social`, `coluna:prestadores_servico.cnpj`,
   `coluna:prestadores_servico.tipo_entidade`, `coluna:prestadores_servico.tipo_servico`,
@@ -686,7 +690,7 @@ da spec 003 (`specs/003-base-dados-producao/catalogo/`).
 
 ### R-core-020 — Contratos (instrumentos)
 
-- **Comportamento desejado**: a equipe registra contratos de uma entidade, inclusive sem rede: número
+- **Comportamento desejado**: a equipe registra contratos de uma entidade, com rede: número
   (obrigatório), entidade e vigência (vigente ou encerrado). Os apps das câmaras acrescentam dados
   próprios ao contrato (o da CATERF, a rodovia, o traçado KML e os pontos de KM). O prestador não alcança
   contratos por este módulo. Desativar a entidade não apaga os contratos. Contrato sem nenhum
@@ -703,15 +707,17 @@ da spec 003 (`specs/003-base-dados-producao/catalogo/`).
   `politica:public.contratos.Acesso total autenticado (DEV)`
 - **Origem**: —
 
-### R-core-021 — Cadastros do core funcionam sem rede
+### R-core-021 — Cadastros do core para consulta sem rede na área de campo
 
-- **Comportamento desejado**: o aplicativo baixa e mantém no aparelho diretorias, câmaras,
-  municípios, entidades e contratos que o usuário alcança, e baixa depois só o que mudou. Entidades e
-  contratos criados ou alterados sem rede entram na fila local e são enviados quando a rede volta,
-  com o identificador gerado no aparelho.
-- **Comportamento atual**: igual ao desejado; a data de alteração de entidades e contratos é gravada
-  pelo aparelho e por gatilhos, e a sincronização incremental a usa.
-- **Motivo da diferença**: —
+- **Comportamento desejado**: para a área de campo (R-core-027), o aplicativo baixa e mantém no
+  aparelho, só para consulta, as diretorias, câmaras, serviços, municípios, entidades e contratos que
+  o usuário alcança, e baixa depois só o que mudou. Cadastrar e alterar esses registros exige rede:
+  sem rede, as telas de cadastro avisam que precisam de internet e não gravam nada.
+- **Comportamento atual**: o aplicativo baixa os cadastros e permite criar e alterar entidades e
+  contratos sem rede, pela fila local; a data de alteração é gravada pelo aparelho e por gatilhos, e
+  a sincronização incremental a usa.
+- **Motivo da diferença**: decisão do responsável (2026-10-01): só a fiscalização funciona sem rede;
+  cadastro é trabalho com internet, e sem fila não há conflito de CNPJ entre aparelhos.
 - **Objetos do catálogo**: `funcao:update_updated_at_column()`,
   `gatilho:public.prestadores_servico.update_prestadores_updated_at`,
   `gatilho:public.contratos.update_contratos_updated_at`, `coluna:prestadores_servico.updated_at`,
@@ -817,8 +823,8 @@ da spec 003 (`specs/003-base-dados-producao/catalogo/`).
     alcança mais o registro, ele responde como inexistente.
   - **E-mail**: mandado em segundo plano, com novas tentativas, para os tipos com e-mail. O usuário
     desliga o e-mail de um tipo não obrigatório nas preferências dele.
-  - **Sem rede**: os avisos já recebidos vão para o aparelho pela sincronização do core
-    (R-core-021), e marcar como lido sem rede é enviado depois.
+  - **Sem rede**: a central de avisos exige internet (R-core-027); o e-mail continua chegando
+    pelo canal dele.
   - **Guarda**: avisos lidos há mais de um ano são apagados. O aviso não é o registro do ato; o
     ato fica no app dono e na auditoria.
 - **Comportamento atual**: não há central. Só o painel da CATERS mostra avisos (resposta ou
@@ -831,6 +837,43 @@ da spec 003 (`specs/003-base-dados-producao/catalogo/`).
 - **Objetos do catálogo**: `tabela:caters_notification_reads`,
   `coluna:caters_notification_reads.key`, `coluna:caters_notification_reads.read_at`
 - **Origem**: decisão do responsável, 2026-09-30.
+
+### R-core-027 — Aplicativo instalado, área de campo e telas que exigem rede
+
+- **Comportamento desejado**: o sistema é um aplicativo web instalável no celular e no computador.
+  Só a **área de campo** funciona sem rede: a fiscalização de qualquer câmara (spec 007) e o que os
+  apps das câmaras acrescentam a ela (ex.: ocorrências na rodovia da CATERF), com os dados de
+  consulta de que ela precisa (cadastros do core, R-core-021; catálogos de checklists; viagens em que
+  o fiscal está escalado). O resto do sistema exige rede:
+  - processo sancionador e portal;
+  - acompanhamento das câmaras (ex.: processos da CATERS);
+  - elaborar e aprovar o planejamento;
+  - tramitação, cadastros, avisos, configurações e administração.
+
+  Sem rede, essas telas mostram que precisam de internet e não iniciam nenhuma ação. O core
+  oferece:
+  - **instalação e atualização**: as telas da área de campo ficam guardadas no aparelho; atualizar a
+    versão nunca apaga a fila de envio nem os dados locais, e a versão nova entra quando o usuário
+    não está no meio de um registro;
+  - **aviso de pronto para campo**: depois da instalação ou de uma atualização, o aplicativo mostra
+    quando as telas da área de campo e os dados de consulta já estão no aparelho; antes disso,
+    avisa que não é seguro ir a campo sem rede;
+  - **armazenamento persistente**: pede ao navegador para não apagar os dados locais e avisa se ele
+    negar;
+  - **registro de telas da área de campo**: cada app diz quais telas suas funcionam sem rede, no
+    mesmo registro de contribuições de tela (R-core-025).
+
+  A barra de sincronização aparece só na área de campo (R-fiscalizacao-026).
+- **Comportamento atual**:
+  - o aplicativo é instalável e guarda todas as telas no aparelho;
+  - na primeira instalação, espera os arquivos antes de liberar as páginas não visitadas;
+  - quase todos os módulos tentam funcionar sem rede, inclusive o cadastro de entidades e contratos;
+  - a barra de sincronização aparece nos painéis das câmaras.
+- **Motivo da diferença**: decisão do responsável (2026-10-01): o que funciona sem rede é a
+  fiscalização de qualquer câmara, e os demais módulos funcionam só com internet. Menos telas e
+  dados no aparelho, menos conflitos.
+- **Objetos do catálogo**: — (aplicativo; não há objeto no banco)
+- **Origem**: decisão do responsável, 2026-10-01; constituição, Princípio II.
 
 ## Telas do sistema atual
 
@@ -922,6 +965,14 @@ Ações das telas atuais que pertencem ao core, no molde `formatos/spec-modulo.m
 | Criar e revogar credenciais de sistema | R-core-024 |
 | Ver os avisos, com o contador de não lidos; marcar como lido; abrir o registro do aviso | R-core-026 |
 | Ligar ou desligar o e-mail dos tipos de aviso não obrigatórios | R-core-026 |
+| Aviso de "pronto para campo" e de armazenamento não persistente; aviso de tela que precisa de internet | R-core-027 |
+
+### Aplicativo (sem tela própria)
+
+| Item | Regra |
+|---|---|
+| Aplicativo instalável; na primeira instalação, espera os arquivos das páginas antes de liberar o uso sem rede (`src/lib/offlineReady.js`, `src/main.jsx`) | R-core-027 (só as telas da área de campo) |
+| Editor visual e rastreador de navegação da plataforma onde o sistema foi criado (`src/lib/VisualEditAgent.jsx`, `src/lib/NavigationTracker.jsx`) | não levados: ferramentas da plataforma de origem, sem uso pelos usuários; o registro de navegação já está desligado |
 
 ## Migração
 
@@ -975,8 +1026,9 @@ pendentes, destinos conferidos contra o data-model).
 - **SC-003**: 0 recursos respondem sem login além da entrada, da verificação do código e da
   recuperação de acesso.
 - **SC-004**: Um usuário novo completa o primeiro acesso (senha e código) em até 3 minutos.
-- **SC-005**: Um usuário num aparelho confirmado sem rede abre o app e trabalha com os cadastros do
-  core sem nenhum erro de acesso.
+- **SC-005**: Um usuário num aparelho confirmado sem rede abre o app e, na área de campo, consulta
+  os cadastros do core sem nenhum erro de acesso; nas demais telas, vê o aviso de que precisam de
+  internet.
 - **SC-006**: Desativar um usuário com registros funciona em 100% dos casos, e 100% dos registros
   dele continuam com a autoria.
 - **SC-007**: Todos os usuários, entidades, contratos, municípios, diretorias e câmaras de produção

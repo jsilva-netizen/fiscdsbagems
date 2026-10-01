@@ -373,6 +373,9 @@ origem. Um arquivo com unidade de tipo inexistente é recusado com o motivo da l
   (R-fiscalizacao-022).
 - **FR-015**: O app MUST NOT conter layout, marca d'água, campo ou regra de uma câmara específica
   (R-fiscalizacao-025).
+- **FR-017**: A barra de sincronização MUST aparecer só na área de campo, sincronizar todos os dados
+  dela de uma vez e oferecer a qualquer usuário o backup local com a fila e as fotos pendentes
+  (R-fiscalizacao-026).
 - **FR-016**: Toda regra de acesso deste módulo MUST ter teste automatizado que falhe quando a regra
   for violada (constituição, Princípio III).
 
@@ -913,15 +916,18 @@ da spec 003.
     servidor consolida (sem finalizar) e gera um **único PDF**, em segundo plano, no **layout do
     relatório da câmara**. Quem pediu vê o andamento (unidades e fotos processadas) e é avisado
     quando fica pronto ou dá erro.
-  - **Layout padrão da DSB** (o de hoje):
-    - cabeçalho "TERMO DE VISTORIA AGEMS/DSB Nº <termo>";
+  - **Layout genérico do app** ("vistoria por registro de campo"), que reproduz o relatório de hoje
+    da DSB, com o título e o cabeçalho vindos da configuração da câmara (R-fiscalizacao-025):
+    - cabeçalho "<título da câmara> Nº <termo>" (nas câmaras da DSB, "TERMO DE VISTORIA AGEMS/DSB");
     - informações da fiscalização (município, entidade, serviços, fiscal, datas);
     - resumo executivo;
     - uma seção por unidade (identificação, endereço, coordenadas, data e hora; constatações, NCs,
       determinações com prazo, recomendações; registros fotográficos numerados "Figura n –
       legenda");
     - paginação.
-  - **Layouts de outras câmaras**: fornecidos pelo app da câmara (a CATERF traz o laudo de rodovia).
+  - **Layouts próprios**: o app de uma câmara pode registrar o seu layout (a CATERF traz o laudo de
+    rodovia), e cada câmara escolhe o seu na configuração; câmara sem layout próprio usa o genérico
+    com o título dela.
   - **Versões**: cada relatório gerado fica guardado, com versão, data e quem pediu. O mais recente
     pronto é o **vigente**, e os anteriores ficam **substituídos**. A reabertura marca o vigente como
     **desatualizado**. Nenhum relatório é apagado.
@@ -1157,6 +1163,43 @@ da spec 003.
   `coluna:unidades_fiscalizadas.tipo_ocorrencia`
 - **Origem**: constituição v2.6.2.
 
+### R-fiscalizacao-026 — Área de campo, barra de sincronização e backup local
+
+- **Comportamento desejado**: a fiscalização é dona da **área de campo**, a parte do sistema que
+  funciona sem rede (R-core-027). Ela reúne as telas da fiscalização e as que os apps das câmaras
+  acrescentam a ela (ex.: ocorrências na rodovia da CATERF). A **barra de sincronização** aparece
+  só nessas telas, para qualquer câmara, e mostra:
+  - com rede ou sem rede;
+  - a hora da última sincronização completa;
+  - quantas operações e fotos faltam enviar, com o detalhe por fiscalização;
+  - o aviso de pronto para campo (R-core-027).
+
+  "Sincronizar" envia a fila e baixa, de uma vez, tudo de que a área de campo precisa:
+  - os cadastros do core, para consulta;
+  - os catálogos de checklists;
+  - as viagens em que o fiscal está escalado;
+  - as fiscalizações;
+  - os dados dos apps das câmaras que se registram na sincronização.
+
+  A sincronização também roda sozinha quando a rede volta.
+
+  **Backup local**: qualquer usuário da área de campo baixa, a qualquer momento, um arquivo com a
+  fila de envio, as fotos pendentes e os dados das suas fiscalizações no aparelho, com o
+  identificador do usuário e do aparelho e o checksum de cada parte. O formato é o mesmo da
+  exportação de trabalho pendente (R-fiscalizacao-017), então o administrador pode importar o
+  arquivo em nome do autor quando o aparelho não consegue enviar. Telas fora da área de campo não
+  mostram a barra.
+- **Comportamento atual**:
+  - a barra aparece nos painéis das câmaras, com "Sincronizar" e "Baixar backup local";
+  - o backup leva a fila e as fotos pendentes, filtrados pela diretoria, sem identificar usuário
+    nem aparelho;
+  - não há contagem do que falta enviar na barra.
+- **Motivo da diferença**: decisão do responsável (2026-10-01): só a fiscalização funciona sem rede, e
+  a barra aparece só onde há trabalho sem rede; o backup identificado serve de prova e de caminho
+  de recuperação (Princípio II).
+- **Objetos do catálogo**: — (aplicativo; não há objeto no banco)
+- **Origem**: decisão do responsável, 2026-10-01.
+
 ## Telas do sistema atual
 
 Ações das telas atuais que pertencem ao módulo, no molde `formatos/spec-modulo.md` da spec 003.
@@ -1177,6 +1220,14 @@ Fonte: `src/pages/` e `src/components/fiscalizacao/` do sistema atual.
 | "Reabrir Edição" | R-fiscalizacao-014 (com motivo) |
 | Excluir permanentemente, digitando "EXCLUIR" | R-fiscalizacao-015 (só nunca finalizada e sem documentos) |
 | Separar DSB e DTR pelo tipo de módulo; administrador escolhe a câmara pelo endereço | R-fiscalizacao-003, R-fiscalizacao-025 |
+
+### Barra de sincronização (`src/components/camaras/SyncBar.jsx`)
+
+| Ação | Regra |
+|---|---|
+| Com rede ou sem rede; última sincronização | R-fiscalizacao-026 (só na área de campo) |
+| "Sincronizar" (sincronização completa, com progresso) | R-fiscalizacao-026 |
+| "Baixar backup local" (dados, fila de envio e fotos pendentes, em ZIP) | R-fiscalizacao-026 (identificado e importável) |
 
 ### Nova fiscalização (`src/pages/NovaFiscalizacao.jsx`)
 

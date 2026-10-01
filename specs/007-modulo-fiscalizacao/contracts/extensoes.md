@@ -23,6 +23,8 @@ câmara.
 | valores dos campos da marca d'água | função que devolve os valores dos campos registrados, para a foto | desenhados com as linhas da configuração da câmara |
 | telas do registro avulso | as telas de captura (ex.: frente → item do PER → descrição → etapa → constatação ou NC → sentido → observação) | abertas no lugar da vistoria por unidade quando o catálogo é do modo avulso do tipo registrado |
 | camadas do mapa | camadas sobre o mapa-base (ex.: traçado KML) | mapa da fiscalização |
+| participante da sincronização | rota de baixar (`sync/<app>`), fila de envio e ordem | a sincronização completa da área de campo envia e baixa os dados do app junto com os da fiscalização (F19) |
+| telas da área de campo | as telas do app que funcionam sem rede | marcadas no registro de contribuições do core (R-core-027); só nelas aparece a barra de sincronização |
 
 ## Configuração inicial entregue pelo app da câmara
 
