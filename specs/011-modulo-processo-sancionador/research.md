@@ -110,9 +110,11 @@ telas são do portal, que as chama. Cada rota:
 - confere a etapa e a situação (ex.: resposta só antes da análise; defesa só depois do recebimento);
 - grava as datas do servidor.
 
-Ações: enviar o TN assinado; salvar ou enviar a resposta de uma determinação; concluir a resposta
-com o termo de envio; registrar o recebimento da remessa com os AIs assinados; salvar ou enviar a
-defesa de um auto.
+Ações: enviar o TN assinado; salvar ou enviar a resposta de uma determinação (enviada não muda
+mais); baixar o modelo do termo de envio e anexá-lo assinado (só com todas as determinações com
+manifestação ou evidência); concluir a resposta, que envia os rascunhos com conteúdo; enviar o AI
+assinado de cada auto da remessa (o último registra o recebimento); salvar o rascunho da defesa de
+um auto; anexar o ofício de defesa e enviar a defesa da remessa.
 
 **Rationale**: R-sancionador-005, R-sancionador-006, R-sancionador-010, R-sancionador-011; A-014,
 A-034; o dono do dado é quem grava (constituição).
@@ -138,10 +140,12 @@ A-034; o dono do dado é quem grava (constituição).
 
 ## N8 — Documentos gerados pelo sistema
 
-**Decision**: a AM e a lista de autos da remessa são geradas no servidor pelo motor de documentos
-(HTML e CSS para PDF com WeasyPrint, como F10 e P9), numa tarefa Celery. Os layouts são registrados
-pelo próprio app (`layouts/am_padrao`, `layouts/remessa_padrao`), e a configuração da câmara
-escolhe o layout e dá o texto da base legal. O documento gerado vira um `DocumentoProcesso` do tipo
+**Decision**: a AM, a lista de autos da remessa e o modelo do termo de envio são gerados no servidor
+pelo motor de documentos (HTML e CSS para PDF com WeasyPrint, como F10 e P9), numa tarefa Celery. Os
+layouts são registrados pelo próprio app (`layouts/am_padrao`, `layouts/remessa_padrao`,
+`layouts/termo_envio_padrao`), e a configuração da câmara escolhe o layout e dá o texto da base legal
+e o da declaração do termo de envio. O modelo do termo de envio não é guardado: é gerado a cada
+pedido, e o documento do processo é o assinado que a entidade anexa. O documento gerado vira um `DocumentoProcesso` do tipo
 correspondente. A versão assinada é anexada à parte.
 
 **Rationale**: R-sancionador-001, R-sancionador-008, R-sancionador-010; hoje o PDF é montado no
@@ -177,16 +181,18 @@ nem versões.
     `cancelado`) mudada só pelos serviços;
   - pena base: UFERMS inteiro > 0 e R$ ≥ 0, informadas pela câmara técnica enquanto `gerado`;
   - documentos ligados: AI assinado pela AGEMS e pela entidade (A-018), protocolos.
-- **Remessa**: só autos `gerado` com pena base e AI assinado pela AGEMS. Uma remessa não cancelada
-  por processo (índice parcial). O envio gera a lista (N8) e passa os autos a `enviado`.
-- **Recebimento pela entidade** (N6): exige o AI assinado pela entidade em cada auto; grava o
-  recebimento e o prazo de defesa de cada auto. No fluxo manual, a equipe registra os protocolos e a
-  data de recebimento.
-- **Defesa**: registro próprio, um por auto (A-029), com rascunho e envio. O envio grava a data e a
-  pontualidade e passa o auto a `defesa_recebida`. A equipe pode registrar a defesa recebida em
-  papel.
-- **Passagem a "parecer técnico"**: quando todos os autos não cancelados têm defesa enviada ou prazo
-  vencido.
+- **Remessa**: todos os autos não cancelados do processo, todos `gerado` com pena base (UFERMS > 0 e
+  R$ > 0) e AI assinado pela AGEMS. Uma remessa não cancelada por processo (índice parcial). O envio
+  gera a lista (N8) e passa os autos a `enviado`.
+- **Recebimento pela entidade** (N6): a entidade envia o AI assinado de cada auto; o envio do último
+  grava, numa transação, o recebimento da remessa e o prazo de defesa de cada auto. No fluxo manual,
+  a equipe anexa por auto o ofício de protocolo e o AI recebido e informa a data de recebimento.
+- **Defesa**: registro próprio, um por auto (A-029), com rascunho. O **envio é da remessa**: exige o
+  documento `defesa_oficio` da remessa e todos os autos com texto ou anexo; numa transação, grava em
+  `Remessa.defesa_enviada_em` e `defesa_no_prazo` a data e a pontualidade, passa as defesas a
+  `enviada`, os autos a `defesa_recebida` e a remessa a `defesa_recebida`. A equipe pode registrar a
+  defesa recebida em papel, por auto.
+- **Passagem a "parecer técnico"**: com a defesa da remessa enviada ou o prazo de defesa vencido.
 
 **Rationale**: R-sancionador-009 a R-sancionador-011; A-018, A-029, A-034.
 

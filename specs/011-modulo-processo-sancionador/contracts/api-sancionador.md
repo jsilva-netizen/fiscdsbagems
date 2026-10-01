@@ -44,8 +44,8 @@ responde **409** com a lista do que falta.
 |---|---|
 | `PATCH sancionador/autos/{id}` | `{pena_base_uferms, pena_base_rs}`; só em `gerado` |
 | `POST sancionador/autos/{id}/cancelar` | `{motivo}`; só antes do envio |
-| `POST sancionador/processos/{id}/remessa` | monta e envia a remessa com os autos prontos; gera a lista (N8) |
-| `POST sancionador/remessas/{id}/recebimento-manual` | `{recebida_em}`: com os protocolos anexados |
+| `POST sancionador/processos/{id}/remessa` | monta e envia a remessa com todos os autos não cancelados; **409** com a lista do que falta se algum não estiver pronto; gera a lista (N8) |
+| `POST sancionador/autos/{id}/recebimento-manual` | `{recebida_em}`: fluxo manual, com o ofício de protocolo e o AI recebido anexados |
 | `POST sancionador/autos/{id}/defesa-manual` | `{texto?}`: defesa recebida em papel |
 | `PUT sancionador/autos/{id}/parecer` | `{analise_tecnica, recomendacao, multa_sugerida_uferms?, multa_sugerida_rs?}`; só em rascunho |
 | `POST sancionador/pareceres/{id}/finalizar` | exige o parecer assinado anexado |
@@ -73,12 +73,14 @@ termo emitido pelo portal.
 | Método e rota | Descrição |
 |---|---|
 | `POST portal/sancionador/termos/{id}/tn-assinado` (multipart) | primeiro envio grava a ciência e o prazo (N5); reenvio troca o arquivo |
-| `PUT portal/sancionador/determinacoes/{id}/resposta` | `{manifestacao, enviar}`; **409** depois da análise |
-| `POST portal/sancionador/determinacoes/{id}/evidencias` (multipart) | até 20 por resposta |
-| `POST portal/sancionador/termos/{id}/concluir-resposta` | exige o termo de envio anexado; grava o recebimento e a pontualidade |
-| `POST portal/sancionador/remessas/{id}/recebimento` | exige o AI assinado pela entidade em cada auto; grava o recebimento e o prazo de defesa |
-| `PUT portal/sancionador/autos/{id}/defesa` | `{texto, enviar}`; com anexos e ofício enviados como documentos; **409** depois de enviada |
-| `POST portal/sancionador/{registro}/{id}/documentos` (multipart) | documentos da entidade: TN assinado, termo de envio, AI assinado, defesa |
+| `PUT portal/sancionador/determinacoes/{id}/resposta` | `{manifestacao, enviar}`; **409** depois de enviada |
+| `POST portal/sancionador/determinacoes/{id}/evidencias` (multipart) | até 20 por resposta; **409** depois de enviada |
+| `GET portal/sancionador/termos/{id}/termo-envio-modelo` | PDF do modelo do termo de envio (N8); **409** se alguma determinação não tem manifestação nem evidência |
+| `POST portal/sancionador/termos/{id}/concluir-resposta` | exige o termo de envio anexado; envia os rascunhos com conteúdo; grava o recebimento e a pontualidade |
+| `POST portal/sancionador/autos/{id}/ai-assinado` (multipart) | AI assinado pela entidade; o do último auto da remessa grava o recebimento e o prazo de defesa |
+| `PUT portal/sancionador/autos/{id}/defesa` | `{texto}`: rascunho da defesa do auto; **409** depois de enviada |
+| `POST portal/sancionador/remessas/{id}/enviar-defesa` | exige o ofício de defesa da remessa e todos os autos com texto ou anexo; grava a data e a pontualidade; **409** depois de enviada |
+| `POST portal/sancionador/{registro}/{id}/documentos` (multipart) | documentos da entidade: TN assinado, termo de envio (só com o modelo liberado), anexos da defesa, ofício de defesa |
 
 O que a entidade lê no portal sai das consultas abaixo.
 

@@ -96,8 +96,8 @@ prazo". Criar um segundo TN para a mesma fiscalização é recusado.
    o próximo da sequência do tipo, da diretoria e do ano, sem repetição.
 2. **Given** o TN assinado pela entidade pela primeira vez, **When** ele chega, **Then** o servidor
    grava o início do prazo e a data-limite pela data de MS; um reenvio não reinicia o prazo.
-3. **Given** uma resposta enviada, **When** a entidade tenta alterá-la depois da análise, **Then** o
-   sistema recusa.
+3. **Given** uma resposta enviada, **When** a entidade tenta alterá-la, mesmo antes da análise,
+   **Then** o sistema recusa.
 4. **Given** um termo de outra câmara, **When** o fiscal da CATERS tenta abri-lo, **Then** ele não
    aparece.
 
@@ -131,14 +131,16 @@ cancelado com motivo.
 ### User Story 3 - Autos, remessa e defesa (Priority: P1)
 
 A câmara técnica informa a pena base de cada auto (UFERMS e R$), anexa o AI assinado e monta a
-remessa dos autos do termo. A entidade registra no portal o recebimento, com o AI assinado por ela,
-e apresenta a defesa de cada auto (texto, anexos e ofício). O prazo de defesa fica registrado.
+remessa com todos os autos do termo. A entidade envia no portal o AI assinado por ela em cada auto,
+escreve a defesa de cada auto (texto e anexos) e a envia de uma vez para a remessa, com o ofício de
+envio. O prazo de defesa fica registrado.
 
 **Why this priority**: hoje a defesa se perde e o prazo de defesa não existe (A-029).
 
 **Independent Test**: a remessa com 2 autos é enviada; a entidade assina o recebimento em 05/05, e o
-prazo de defesa vai a 04/06. Ela envia a defesa do primeiro auto com 2 anexos: a defesa fica
-registrada no auto e na linha do tempo. Outra entidade não alcança a remessa.
+prazo de defesa vai a 04/06. Ela escreve a defesa dos 2 autos, um com 2 anexos, anexa o ofício e
+envia: as defesas ficam registradas nos autos e na linha do tempo. Outra entidade não alcança a
+remessa.
 
 **Acceptance Scenarios**:
 
@@ -148,6 +150,8 @@ registrada no auto e na linha do tempo. Outra entidade não alcança a remessa.
    chegou no prazo.
 3. **Given** um prestador de outra entidade, **When** tenta registrar recebimento ou defesa, **Then**
    o sistema recusa (A-034).
+4. **Given** uma remessa recebida com um auto sem texto nem anexo, ou sem o ofício de defesa,
+   **When** a entidade tenta enviar a defesa, **Then** o sistema mostra o que falta.
 
 ---
 
@@ -277,7 +281,8 @@ etapa e do seu alcance.
 - **Auto de infração**: número, determinação, descrição, pena base (UFERMS e R$), documentos (AI
   assinado pela AGEMS e pela entidade, protocolos), prazo de defesa, situação.
 - **Remessa**: os autos de um termo enviados juntos, com o recebimento pela entidade.
-- **Defesa**: por auto, com texto, anexos, ofício, data e pontualidade.
+- **Defesa**: por auto, com texto e anexos; enviada de uma vez para a remessa, com o ofício de
+  envio, a data e a pontualidade.
 - **Parecer técnico**: por auto, com análise, recomendação, valor sugerido e documento assinado.
 - **Colegiado**: câmara de julgamento ou diretoria executiva, com os membros e a vigência.
 - **Decisão** e **deliberação**: por auto, com resultado, multa e documento (forma de registro em
@@ -377,7 +382,8 @@ da spec 003.
   finalizada da sua câmara**, escolhida pela consulta da fiscalização. Município, entidade e
   determinações vêm da fiscalização. O termo tem:
   - tipo e número do relatório;
-  - número do processo administrativo;
+  - número do processo administrativo, no formato de hoje (`NN.NNN.NNN-AAAA`), conferido pelo
+    servidor;
   - prazo de resposta (padrão da câmara);
   - observações;
   - fluxo: pelo portal ou manual.
@@ -441,17 +447,28 @@ da spec 003.
 ### R-sancionador-006 — Resposta da entidade às determinações
 
 - **Comportamento desejado**: a entidade responde, pelo portal, cada determinação do termo, com
-  manifestação escrita e evidências (PDF ou imagem). Pode salvar rascunho e enviar. Ela conclui a
-  resposta do termo com o termo de envio, e o servidor grava a data de recebimento e a pontualidade
-  (último dia incluído, fuso de MS). Também pelo servidor:
-  - a data e a pontualidade de cada resposta enviada;
-  - a recusa de alteração depois que a equipe analisou.
+  manifestação escrita e evidências (PDF ou imagem). Pode salvar rascunho e enviar cada resposta.
+  Depois de enviada, a resposta não é alterada pela entidade.
+
+  **Termo de envio**: quando todas as determinações têm manifestação ou evidência, o portal oferece
+  o modelo do termo de envio, gerado pelo sistema com o layout e o texto de declaração da câmara
+  (número do TN, relatório, município, entidade, local e data, campo de assinatura). A entidade o
+  assina fora do sistema e o anexa. Antes disso, o anexo não é aceito.
+
+  **Concluir a resposta** exige o termo de envio anexado. Ao concluir, o servidor envia os rascunhos
+  com conteúdo que ainda não foram enviados e grava a data de recebimento e a pontualidade (último
+  dia incluído, fuso de MS). Também pelo servidor, a data e a pontualidade de cada resposta enviada.
 
   A entidade não grava a análise, a situação analisada nem os vínculos da determinação. No fluxo
   manual, a equipe registra a data de recebimento, o arquivo da resposta e o ofício.
 - **Comportamento atual**:
   - desde a migration 139, um gatilho do banco aplica essas restrições ao prestador;
+  - a tela trava a resposta enviada, e o gatilho só recusa a alteração depois da análise;
+  - o modelo do termo de envio é montado em PDF no navegador, com texto fixo, e só é oferecido com
+    todas as determinações respondidas; o anexo é marcado como "assinatura válida" sem verificação;
+  - concluir envia os rascunhos com conteúdo e marca o termo como respondido;
   - a lista de arquivos da resposta e as evidências ficam em listas dentro do termo e da resposta;
+    as evidências enviadas pela tela de resposta entram nas duas listas;
   - há colunas sem uso ("resposta", "tipo de resposta");
   - em produção: 34 respostas, todas de teste (A-002).
 - **Motivo da diferença**: A-014; regras no serviço do app, não em função do banco (A-005); arquivos
@@ -531,7 +548,8 @@ da spec 003.
   - determinação de origem e descrição ("Determinação D<n> não atendida: <texto>");
   - unidade, fiscalização e entidade;
   - data de emissão;
-  - pena base em UFERMS (inteiro positivo) e em R$ (não negativo), informadas pela câmara técnica;
+  - pena base em UFERMS (inteiro positivo) e em R$ (positivo para entrar na remessa), informadas
+    pela câmara técnica;
   - AI assinado pela AGEMS;
   - AI assinado pela entidade (campo do auto, A-018);
   - protocolos de envio e de recebimento;
@@ -562,18 +580,26 @@ da spec 003.
 
 ### R-sancionador-010 — Remessa dos autos
 
-- **Comportamento desejado**: a câmara técnica monta a remessa com os autos prontos de um termo (pena
-  base informada e AI assinado). O servidor gera a lista dos autos em PDF, e a remessa é enviada. Um
-  termo tem no máximo uma remessa ativa, garantido pelo banco. A entidade registra, pelo portal e só
-  nas próprias remessas, o recebimento, com o AI assinado por ela em cada auto. O servidor grava a
-  data de recebimento e o prazo de defesa de cada auto (recebimento + prazo de defesa da câmara). No
-  envio manual, a equipe registra os protocolos de envio e de recebimento.
+- **Comportamento desejado**: a câmara técnica monta a remessa com **todos** os autos não cancelados
+  do termo, e só quando todos estão prontos (pena base em UFERMS e em R$ e AI assinado pela AGEMS).
+  O servidor gera a lista dos autos em PDF, e a remessa é enviada. Um termo tem no máximo uma remessa
+  ativa, garantido pelo banco.
+
+  A entidade envia, pelo portal e só nas próprias remessas, o AI assinado por ela em cada auto, um a
+  um. Com o último, a remessa passa a recebida, e o servidor grava a data de recebimento e o prazo de
+  defesa de cada auto (recebimento + prazo de defesa da câmara).
+
+  No fluxo manual, sem remessa pelo portal, a equipe anexa, por auto, o ofício de protocolo e o AI
+  recebido; com os dois, o auto passa a enviado, e a data de recebimento informada conta o prazo de
+  defesa.
 - **Comportamento atual**:
   - a lista em PDF é gerada no navegador;
   - o número do TN na remessa fica sempre vazio, porque a tela lê um campo inexistente;
   - a unicidade é verificada só pela tela;
   - qualquer usuário ativo lê, cria, altera e exclui qualquer remessa;
-  - as datas de recebimento e de defesa vêm do relógio do aparelho do prestador.
+  - as datas de recebimento e de defesa vêm do relógio do aparelho do prestador;
+  - o prazo de defesa é contado do envio (30 dias fixos), não do recebimento, e se perde
+    (R-sancionador-009).
 - **Motivo da diferença**: A-034; datas no servidor (A-014).
 - **Objetos do catálogo**: `tabela:remessas_ai`, `coluna:remessas_ai.id`, `coluna:remessas_ai.termo_id`,
   `coluna:remessas_ai.fiscalizacao_id`, `coluna:remessas_ai.prestador_servico_id`,
@@ -594,19 +620,25 @@ da spec 003.
 ### R-sancionador-011 — Defesa
 
 - **Comportamento desejado**: a defesa é um **registro próprio** do processo, um por auto (A-029). A
-  entidade grava pelo portal, só nos próprios autos:
-  - texto;
-  - anexos (PDF ou imagem);
-  - ofício de defesa.
+  entidade grava pelo portal, só nos próprios autos, o texto e os anexos (PDF ou imagem) de cada
+  auto, e pode salvar rascunho.
 
-  Pode salvar rascunho e enviar. O servidor grava a data do envio e se chegou no prazo de defesa.
-  Depois de enviada, a defesa não é alterada pela entidade. No envio por papel, a equipe registra a
-  defesa recebida. A remessa passa a "defesa recebida" quando todos os autos têm defesa ou prazo
-  vencido.
+  O **envio é da remessa inteira**, como hoje: com a remessa recebida, a entidade anexa um ofício de
+  envio da defesa, que vale para todos os autos da remessa. O envio exige o ofício e todos os autos
+  da remessa com texto ou anexo, pede confirmação e não pode ser desfeito. O servidor grava a data do
+  envio e se chegou no prazo de defesa, e a remessa passa a "defesa recebida". Depois de enviada, a
+  defesa não é alterada pela entidade.
+
+  No fluxo manual, a equipe anexa, por auto, o ofício de defesa e o arquivo da defesa recebidos em
+  papel. Sem envio até o fim do prazo, a remessa fica com prazo de defesa vencido, e o processo segue
+  para o parecer.
 - **Comportamento atual**:
   - o portal grava a defesa no auto, onde o prestador não tem permissão de alteração: a gravação
     não afeta nenhuma linha e não dá erro, e a defesa se perde;
+  - o rascunho é salvo por auto, e o envio é da remessa, com duas confirmações, só com o ofício
+    anexado e todos os autos com texto ou anexo;
   - o ofício de defesa fica na remessa, com a data do aparelho;
+  - no fluxo manual, o ofício e o arquivo de defesa de um auto o passam a "em análise";
   - a tabela de manifestações sobre autos existe e não é usada (A-030).
 - **Motivo da diferença**: A-029.
 - **Objetos do catálogo**: `coluna:autos_infracao.defesa_texto`, `coluna:autos_infracao.defesa_arquivos`,
@@ -625,7 +657,10 @@ da spec 003.
   todos os autos não cancelados têm parecer assinado. Depois do encaminhamento, a câmara técnica não
   altera os pareceres. A entidade vê o parecer no portal depois do encaminhamento.
 - **Comportamento atual**:
-  - a recomendação tem duas opções na tela ("Aplicar multa" e "Arquivar"), sem atenuar;
+  - a recomendação tem duas opções na tela de pareceres ("Aplicar multa" e "Arquivar"), sem atenuar,
+    e é texto livre na tela de autos;
+  - o parecer tem rascunho; anexar o assinado o finaliza; encaminhar exige todos os autos da remessa
+    com parecer assinado e só aparece com a defesa enviada;
   - o parecer assinado é enviado à entidade pela remessa ("parecer enviado"), e o processo termina
     aí;
   - em produção: nenhum parecer.
@@ -961,7 +996,7 @@ da spec 003.
 | Ver termos, assinar o TN | fora: portal_prestador (tela); regra: R-sancionador-005 |
 | Responder determinações com manifestação e evidências; termo de envio | fora: portal_prestador (tela); regra: R-sancionador-006 |
 | Enviar AI assinado; registrar recebimento da remessa | fora: portal_prestador (tela); regra: R-sancionador-010 |
-| Defesa: texto, anexos e ofício | fora: portal_prestador (tela); regra: R-sancionador-011 |
+| Defesa: texto e anexos por auto; ofício e envio da remessa | fora: portal_prestador (tela); regra: R-sancionador-011 |
 
 ### Painel da CATESA (`src/pages/CatesaDashboard.jsx`)
 

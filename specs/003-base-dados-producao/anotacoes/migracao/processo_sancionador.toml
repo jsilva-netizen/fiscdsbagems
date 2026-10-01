@@ -119,7 +119,7 @@ transformacao = "Como o TN, com o tipo `tn_entidade` e `pela_entidade` verdadeir
 
 [destino."coluna:termos_notificacao.arquivos_resposta"]
 para = ["processo_sancionador.DocumentoProcesso.arquivo", "processo_sancionador.DocumentoProcesso.nome_original"]
-transformacao = "Cada item da lista vira um documento do termo: categoria `termo_envio` → tipo `termo_envio`; demais → `resposta_manual`; nome, tamanho e data do item conferidos com o arquivo."
+transformacao = "Cada item da lista vira um documento: categoria `termo_envio` → tipo `termo_envio` do termo; categoria `evidencia_determinacao` → tipo `evidencia` da resposta da determinação indicada em `determinacao_id`, sem repetir o arquivo que já veio de `respostas_determinacao.evidencias` (mesmo caminho); demais → `resposta_manual` do termo; nome, tamanho e data do item conferidos com o arquivo."
 
 [destino."coluna:termos_notificacao.arquivo_resposta_url"]
 para = ["processo_sancionador.DocumentoProcesso.arquivo", "processo_sancionador.DocumentoProcesso.tipo"]
@@ -241,7 +241,7 @@ transformacao = "Documento `protocolo_recebimento_ai` do auto."
 
 [destino."coluna:autos_infracao.defesa_texto"]
 para = "processo_sancionador.Defesa.texto"
-transformacao = "Cria a defesa do auto, enviada."
+transformacao = "Cria a defesa do auto: `enviada` se a remessa do auto tem `defesa_enviada_em`; senão, `rascunho`."
 
 [destino."coluna:autos_infracao.defesa_arquivos"]
 para = ["processo_sancionador.DocumentoProcesso.arquivo", "processo_sancionador.DocumentoProcesso.nome_original"]
@@ -300,8 +300,8 @@ para = "processo_sancionador.Remessa.recebida_em"
 transformacao = "Hora do aparelho do prestador; marcada como tal no `legado` do processo."
 
 [destino."coluna:remessas_ai.defesa_enviada_em"]
-para = "processo_sancionador.Defesa.enviada_em"
-transformacao = "Aplicada às defesas dos autos da remessa sem data própria."
+para = "processo_sancionador.Remessa.defesa_enviada_em"
+transformacao = "Hora do aparelho do prestador; marcada como tal no `legado` do processo. `defesa_no_prazo` é calculado contra o prazo de defesa dos autos."
 
 [destino."coluna:remessas_ai.parecer_enviado_em"]
 para = "processo_sancionador.EventoProcesso.criado_em"

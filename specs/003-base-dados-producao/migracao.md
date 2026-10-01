@@ -316,7 +316,7 @@ Mapa: `anotacoes/migracao/processo_sancionador.toml` · data-model: `specs/011-m
 | `coluna:autos_infracao.created_at` | 0 linhas | `processo_sancionador.AutoInfracao.criado_em` |  |
 | `coluna:autos_infracao.data_emissao` | 0 linhas | `processo_sancionador.AutoInfracao.emitido_em` |  |
 | `coluna:autos_infracao.defesa_arquivos` | 0 linhas | `processo_sancionador.DocumentoProcesso.arquivo`<br>`processo_sancionador.DocumentoProcesso.nome_original` | Cada item vira documento `defesa_anexo` da defesa. |
-| `coluna:autos_infracao.defesa_texto` | 0 linhas | `processo_sancionador.Defesa.texto` | Cria a defesa do auto, enviada. |
+| `coluna:autos_infracao.defesa_texto` | 0 linhas | `processo_sancionador.Defesa.texto` | Cria a defesa do auto: `enviada` se a remessa do auto tem `defesa_enviada_em`; senão, `rascunho`. |
 | `coluna:autos_infracao.descricao` | 0 linhas | `processo_sancionador.AutoInfracao.descricao` |  |
 | `coluna:autos_infracao.determinacao_id` | 0 linhas | `processo_sancionador.AutoInfracao.determinacao` | O retrato notificado da determinação; a AM concluída do termo é a `analise`. |
 | `coluna:autos_infracao.fiscalizacao_id` | 0 linhas | `processo_sancionador.AutoInfracao.processo` | O processo da fiscalização. |
@@ -359,7 +359,7 @@ Mapa: `anotacoes/migracao/processo_sancionador.toml` · data-model: `specs/011-m
 | `coluna:remessas_ai.arquivo_recebimento_assinado_url` | 0 linhas | `processo_sancionador.DocumentoProcesso.arquivo`<br>`processo_sancionador.DocumentoProcesso.tipo` | Documento `recebimento_remessa` da remessa, `pela_entidade` verdadeiro. |
 | `coluna:remessas_ai.camara_tecnica_id` | 0 linhas | descartado | Derivado do processo; conferido antes do descarte. |
 | `coluna:remessas_ai.criada_em` | 0 linhas | `processo_sancionador.Remessa.criada_em` |  |
-| `coluna:remessas_ai.defesa_enviada_em` | 0 linhas | `processo_sancionador.Defesa.enviada_em` | Aplicada às defesas dos autos da remessa sem data própria. |
+| `coluna:remessas_ai.defesa_enviada_em` | 0 linhas | `processo_sancionador.Remessa.defesa_enviada_em` | Hora do aparelho do prestador; marcada como tal no `legado` do processo. `defesa_no_prazo` é calculado contra o prazo de defesa dos autos. |
 | `coluna:remessas_ai.enviada_em` | 0 linhas | `processo_sancionador.Remessa.enviada_em` |  |
 | `coluna:remessas_ai.fiscalizacao_id` | 0 linhas | descartado | Derivado do processo; conferido antes do descarte. |
 | `coluna:remessas_ai.id` | 0 linhas | `processo_sancionador.Remessa.id` |  |
@@ -399,7 +399,7 @@ Mapa: `anotacoes/migracao/processo_sancionador.toml` · data-model: `specs/011-m
 | `coluna:termos_notificacao.arquivo_rfp_url` | 5 linhas | `processo_sancionador.DocumentoProcesso.arquivo`<br>`processo_sancionador.DocumentoProcesso.tipo` | Como o TN, com o tipo `relatorio`. |
 | `coluna:termos_notificacao.arquivo_tn_prestador_url` | 5 linhas | `processo_sancionador.DocumentoProcesso.arquivo`<br>`processo_sancionador.DocumentoProcesso.tipo` | Como o TN, com o tipo `tn_entidade` e `pela_entidade` verdadeiro. |
 | `coluna:termos_notificacao.arquivo_url` | 5 linhas | `processo_sancionador.DocumentoProcesso.arquivo`<br>`processo_sancionador.DocumentoProcesso.tipo` | Documento `tn_agems` do termo: caminho extraído do endereço, arquivo copiado para o repositório privado, checksum conferido. |
-| `coluna:termos_notificacao.arquivos_resposta` | 5 linhas | `processo_sancionador.DocumentoProcesso.arquivo`<br>`processo_sancionador.DocumentoProcesso.nome_original` | Cada item da lista vira um documento do termo: categoria `termo_envio` → tipo `termo_envio`; demais → `resposta_manual`; nome, tamanho e data do item conferidos com o arquivo. |
+| `coluna:termos_notificacao.arquivos_resposta` | 5 linhas | `processo_sancionador.DocumentoProcesso.arquivo`<br>`processo_sancionador.DocumentoProcesso.nome_original` | Cada item da lista vira um documento: categoria `termo_envio` → tipo `termo_envio` do termo; categoria `evidencia_determinacao` → tipo `evidencia` da resposta da determinação indicada em `determinacao_id`, sem repetir o arquivo que já veio de `respostas_determinacao.evidencias` (mesmo caminho); demais → `resposta_manual` do termo; nome, tamanho e data do item conferidos com o arquivo. |
 | `coluna:termos_notificacao.assinatura_prestador_valida` | 5 linhas | `processo_sancionador.TermoNotificacao.assinatura_aceita` |  |
 | `coluna:termos_notificacao.camara_tecnica` | 5 linhas | `processo_sancionador.ProcessoSancionador.camara`<br>`processo_sancionador.TermoNotificacao.camara` | Texto em maiúsculas (`CATESA`, `CATERS`) ligado à câmara do core pela sigla; conferido contra a câmara da fiscalização, e divergência vai para `legado`. |
 | `coluna:termos_notificacao.created_at` | 5 linhas | `processo_sancionador.ProcessoSancionador.criado_em` |  |

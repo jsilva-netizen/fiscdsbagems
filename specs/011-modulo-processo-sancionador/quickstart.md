@@ -29,7 +29,9 @@ Esperado:
 
 1. Criar o processo da fiscalização, anexar TN e relatório assinados, emitir.
 2. Como prestador da entidade, enviar o TN assinado; reenviar outro arquivo.
-3. Responder as 4 determinações, com evidências, e concluir com o termo de envio.
+3. Responder 3 das 4 determinações e pedir o modelo do termo de envio (esperado: 409); responder a
+   quarta, baixar o modelo, anexá-lo assinado e concluir com uma resposta ainda em rascunho
+   (esperado: o rascunho é enviado na conclusão); tentar alterar uma resposta enviada (esperado: 409).
 4. Tentar criar outro processo para a mesma fiscalização; como fiscal da CATERS, abrir o processo.
 
 Esperado: número "TN 001/AAAA/DSB/AGEMS"; ciência e data-limite gravadas no primeiro envio, sem
@@ -48,7 +50,9 @@ entidade continuam iguais.
 ## 4. Autos, remessa e defesa (US3)
 
 1. Informar a pena base, anexar o AI assinado e enviar a remessa.
-2. Como prestador, registrar o recebimento com o AI assinado e enviar a defesa com 2 anexos.
+2. Como prestador, enviar o AI assinado de cada auto (o último registra o recebimento), salvar o
+   rascunho da defesa de cada auto, tentar enviar sem o ofício (esperado: 409), anexar o ofício e
+   enviar a defesa da remessa, com 2 anexos.
 3. Como prestador da outra entidade, tentar registrar o recebimento.
 
 Esperado: lista da remessa gerada; prazo de defesa = recebimento + 30 dias; defesa registrada e no

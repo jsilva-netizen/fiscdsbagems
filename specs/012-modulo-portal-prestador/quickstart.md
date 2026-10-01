@@ -37,15 +37,17 @@ início inclui as fiscalizações sem termo.
 3. Responder as 4, anexar evidências (tentar um arquivo de 25 MB) e concluir com o termo de envio.
 
 Esperado: prazo calculado pelo servidor; o arquivo de 25 MB é barrado antes do envio; "respondido no
-prazo"; depois da análise, a resposta fica sem a ação de alterar.
+prazo"; a resposta enviada fica sem a ação de alterar; o modelo do termo de envio só é liberado
+com as 4 respondidas.
 
 ## 4. Autos e defesa (US3)
 
-Com a remessa de 2 autos: tentar registrar o recebimento com um só AI assinado; depois com os dois;
-enviar a defesa do primeiro.
+Com a remessa de 2 autos: enviar o AI assinado de um só; depois do outro; salvar a defesa do
+primeiro; tentar enviar a defesa da remessa; escrever a do segundo, anexar o ofício e enviar.
 
-Esperado: o portal lista o AI que falta; recebimento e prazo de defesa mostrados; defesa registrada
-e no prazo.
+Esperado: com um só AI, a remessa segue aguardando recebimento; com os dois, recebimento e prazo de
+defesa mostrados; o primeiro envio da defesa mostra o auto que falta; o segundo registra a defesa
+dos 2 autos, no prazo; os contadores da aba passam de "aguardando defesa" a "defesa enviada".
 
 ## 5. Avisos e previstas (US4)
 

@@ -15,8 +15,9 @@ Uma por câmara (R-sancionador-001).
 | camara | → CamaraTecnica | única |
 | prazo_resposta_dias | inteiro | > 0; padrão 30 |
 | prazo_defesa_dias | inteiro | > 0; padrão 30 |
-| layout_am, layout_remessa | texto | códigos de layout registrados (N8) |
+| layout_am, layout_remessa, layout_termo_envio | texto | códigos de layout registrados (N8) |
 | base_legal_am | texto | citado na AM |
+| declaracao_termo_envio | texto | texto de declaração do modelo do termo de envio (R-sancionador-006) |
 | copiada_de | → ConfiguracaoSancionador, opcional | cópia sem vínculo |
 
 ### SequenciaDocumento
@@ -57,6 +58,7 @@ Um por processo.
 | processo | → ProcessoSancionador | único |
 | numero | texto, opcional | atribuído na emissão (N3); único |
 | tipo_relatorio | `RFP` / `RFE` / `RAO` | padrão `RFP` |
+| numero_processo | texto | formato `NN.NNN.NNN-AAAA`, conferido pelo servidor |
 | numero_relatorio | texto | só dígitos |
 | ano_relatorio | inteiro | ano da emissão; único com tipo, câmara e número |
 | camara | → CamaraTecnica | igual à do processo; parte da unicidade do relatório |
@@ -109,7 +111,8 @@ O prazo de cumprimento (início do prazo + `prazo_dias`) e `alterada_depois` sã
 | criado_por | → Usuario | |
 | criado_em, atualizado_em | data e hora | |
 
-Não muda depois de existir análise concluída que a cite.
+A entidade não altera a resposta enviada; a equipe não altera resposta citada por análise
+concluída.
 
 ## Análise da Manifestação
 
@@ -149,7 +152,7 @@ Não muda depois de existir análise concluída que a cite.
 | descricao | texto | "Determinação D<n> não atendida: <texto>" |
 | emitido_em | data e hora | |
 | pena_base_uferms | inteiro, opcional | > 0 |
-| pena_base_rs | decimal, opcional | ≥ 0 |
+| pena_base_rs | decimal, opcional | ≥ 0; > 0 para entrar na remessa |
 | situacao | `gerado` / `enviado` / `defesa_recebida` / `com_parecer` / `julgado` / `deliberado` / `cancelado` | só pelos serviços |
 | recebido_em | data, opcional | recebimento da remessa |
 | prazo_defesa | data, opcional | recebimento + prazo de defesa |
@@ -164,7 +167,9 @@ Não muda depois de existir análise concluída que a cite.
 | processo | → ProcessoSancionador | uma não cancelada por processo |
 | situacao | `preparada` / `enviada` / `recebida` / `defesa_recebida` / `cancelada` | |
 | criada_em | data e hora | |
-| enviada_em, recebida_em | data e hora, opcional | servidor |
+| enviada_em, recebida_em | data e hora, opcional | servidor; `recebida_em` com o AI assinado do último auto |
+| defesa_enviada_em | data e hora, opcional | servidor; envio da defesa da remessa (N10) |
+| defesa_no_prazo | booleano, opcional | servidor |
 | atualizado_em | data e hora | |
 
 ### RemessaItem
@@ -180,10 +185,8 @@ Não muda depois de existir análise concluída que a cite.
 |---|---|---|
 | id | UUID | |
 | auto | → AutoInfracao | única |
-| texto | texto, opcional | texto ou anexo obrigatório no envio |
-| situacao | `rascunho` / `enviada` | |
-| enviada_em | data e hora, opcional | servidor |
-| no_prazo | booleano, opcional | servidor |
+| texto | texto, opcional | texto ou anexo obrigatório no envio da remessa |
+| situacao | `rascunho` / `enviada` | passa a `enviada` com o envio da remessa (N10) |
 | registrada_por_equipe | booleano | recebida em papel |
 | criado_em, atualizado_em | data e hora | |
 

@@ -97,14 +97,15 @@ prazo" e, depois, a AM com o resultado de cada determinação.
 ### User Story 3 - Autos e defesa (Priority: P1)
 
 O usuário vê os autos da remessa, com número, descrição, pena base e prazo de defesa. Ele registra o
-recebimento enviando o AI assinado de cada auto e apresenta a defesa (texto, anexos, ofício) até o
+recebimento enviando o AI assinado de cada auto e apresenta a defesa de cada auto (texto, anexos),
+enviada de uma vez para a remessa com o ofício de envio, até o
 prazo.
 
 **Why this priority**: hoje a defesa se perde (A-029).
 
 **Independent Test**: com uma remessa de 2 autos, o usuário envia os 2 AIs assinados, e o portal
-mostra "recebida em 05/05, defesa até 04/06". Ele envia a defesa do primeiro auto; o portal mostra
-"defesa enviada em 20/05, no prazo".
+mostra "recebida em 05/05, defesa até 04/06". Ele escreve a defesa dos 2 autos, anexa o ofício e
+envia; o portal mostra "defesa enviada em 20/05, no prazo".
 
 **Acceptance Scenarios**:
 
@@ -112,6 +113,8 @@ mostra "recebida em 05/05, defesa até 04/06". Ele envia a defesa do primeiro au
    assinados, **Then** o portal mostra quais faltam.
 2. **Given** uma remessa de outra entidade, **When** o usuário pede o endereço dela, **Then** o
    sistema responde "não encontrado".
+3. **Given** uma remessa recebida com um auto sem defesa, **When** o usuário tenta enviar a defesa,
+   **Then** o portal mostra o auto que falta e não envia.
 
 ---
 
@@ -268,9 +271,11 @@ da spec 003.
   - envia o TN assinado;
   - responde cada determinação, vendo a unidade (endereço e coordenadas), a NC, a constatação, o
     prazo de cumprimento e as fotos;
-  - salva rascunho ou envia a resposta;
+  - salva rascunho ou envia a resposta; a enviada fica só para leitura;
   - anexa evidências;
-  - conclui a resposta com o termo de envio.
+  - baixa o modelo do termo de envio, liberado quando todas as determinações têm manifestação ou
+    evidência, e anexa o termo assinado;
+  - conclui a resposta, com confirmação; os rascunhos com conteúdo são enviados junto.
 
   A tela mostra o que falta para cada passo, e quem fez cada ação e quando. As ações seguem as
   regras do processo sancionador (R-sancionador-005, R-sancionador-006): o portal só as oferece
@@ -278,6 +283,7 @@ da spec 003.
 - **Comportamento atual**:
   - a lista e a tela calculam a situação no navegador;
   - a resposta grava direto na tabela, com as restrições do gatilho do banco;
+  - o modelo do termo de envio é montado no navegador, com texto fixo;
   - a identificação do relatório é montada com "DSB" fixo.
 - **Motivo da diferença**: situação e prazos do servidor (A-014); nada de câmara no portal.
 - **Objetos do catálogo**: `politica:public.respostas_determinacao.respostas_det_prestador_update`
@@ -290,12 +296,15 @@ da spec 003.
   - a AM (número e documento assinado);
   - a remessa.
 
-  O usuário registra o recebimento com o AI assinado de cada auto e apresenta a defesa (texto,
-  anexos, ofício), com rascunho e envio (R-sancionador-010, R-sancionador-011). Depois do
+  O usuário envia o AI assinado de cada auto (o último registra o recebimento da remessa), salva o
+  rascunho da defesa de cada auto (texto e anexos) e, com o ofício de envio anexado e todos os autos
+  com defesa, envia a defesa da remessa inteira, com confirmação (R-sancionador-010,
+  R-sancionador-011). O topo da aba mostra os autos por situação: total, aguardando recebimento
+  (remessa enviada sem o AI assinado), aguardando defesa (remessa recebida) e defesa enviada. Depois do
   encaminhamento ao julgamento, ele vê o parecer técnico de cada auto. Depois da deliberação, vê a
   decisão final e a multa (R-sancionador-015).
 - **Comportamento atual**:
-  - a aba de autos lê as remessas e os itens;
+  - a aba de autos lê as remessas e os itens e tem os mesmos contadores, calculados no navegador;
   - o envio do AI assinado procura um campo inexistente (A-018);
   - a defesa é gravada onde o prestador não tem permissão e se perde (A-029);
   - o recebimento e a defesa usam o relógio do aparelho.
