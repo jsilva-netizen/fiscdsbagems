@@ -4,7 +4,7 @@ data_model = "specs/007-modulo-fiscalizacao/data-model.md"
 notas = [
   "Ordem de carga: depois de core, checklists (versões dos itens) e do app da CATERF (catálogo e dados da rodovia), porque respostas e registros avulsos apontam para eles (research F18).",
   "Toda fiscalização migrada recebe `origem = migrada`, sem atividade planejada e sem contar como pendência de ligação (spec, 'Casos conhecidos').",
-  "Os números (termo, C, NC, D, R) migram como estão e não são recalculados; a sequência de termos de cada ano continua do maior número migrado (R-fiscalizacao-013). A numeração das fiscalizações migradas e finalizadas fica congelada.",
+  "O número do termo migra como está; os de C, NC, D e R são recalculados, contínuos na fiscalização, pela regra do relatório de hoje (a dos documentos emitidos; R-fiscalizacao-008), e os gravados (por unidade) ficam no legado; a sequência de termos de cada ano continua do maior número migrado (R-fiscalizacao-013). A numeração das fiscalizações migradas e finalizadas fica congelada.",
   "Registros que as regras novas recusariam são carregados e marcados em `legado`, com o motivo no relatório de conferência (MIG-4).",
   "As colunas da DTR nas tabelas deste módulo (rodovia, km, sentido, frente, per, não atendimento, prazo da NC, gravidade, trecho, tipo de ocorrência, KM impreciso) são do módulo dtr e entram no mapa dele.",
 ]
@@ -126,6 +126,7 @@ para = "fiscalizacao.RegistroCampo.data_hora_vistoria"
 
 [destino."coluna:unidades_fiscalizadas.ordem"]
 para = "fiscalizacao.RegistroCampo.ordem"
+transformacao = "Vazia → posição pela criação, como o relatório de hoje ordena (ordem, depois criação); define a numeração contínua recalculada."
 
 [destino."coluna:unidades_fiscalizadas.status"]
 para = "fiscalizacao.RegistroCampo.situacao"
@@ -179,7 +180,7 @@ para = "fiscalizacao.Resposta.observacao"
 
 [destino."coluna:respostas_checklist.numero_constatacao"]
 para = ["fiscalizacao.Resposta.numero_constatacao", "fiscalizacao.Resposta.ordem_constatacao"]
-transformacao = "O número vira também a ordem, junto com o das constatações manuais da unidade."
+transformacao = "O número gravado (por unidade) vira a ordem, junto com o das constatações manuais da unidade, e fica no `legado`; o número é recalculado, contínuo na fiscalização, pela regra do relatório de hoje (F18 da spec 007)."
 
 [destino."coluna:respostas_checklist.gera_nc"]
 descarte = "Derivado do catálogo e da resposta (R-fiscalizacao-005); a migração confere, antes, que a marca bate com a declaração do item e a resposta (355 respostas com NC)."
@@ -221,6 +222,7 @@ para = "fiscalizacao.ConstatacaoManual.texto_recomendacao"
 
 [destino."coluna:constatacoes_manuais.numero_constatacao"]
 para = ["fiscalizacao.ConstatacaoManual.numero_constatacao", "fiscalizacao.ConstatacaoManual.ordem_constatacao"]
+transformacao = "Como o das respostas: o gravado vira a ordem e fica no `legado`; o número é recalculado, contínuo na fiscalização."
 
 [destino."coluna:constatacoes_manuais.ordem"]
 descarte = "Posição que a numeração não usa (padrão 0 em produção); a ordem vem do número da constatação."
@@ -246,12 +248,14 @@ transformacao = "Com resposta: origem `resposta:<id>`. Sem resposta: a constata�
 
 [destino."coluna:nao_conformidades.descricao"]
 para = "fiscalizacao.NaoConformidade.descricao"
+transformacao = "Texto como está, com o número da constatação citado (\"Constatação C<n>\") reescrito pela numeração recalculada, como o relatório de hoje faz."
 
 [destino."coluna:nao_conformidades.artigo_portaria"]
 para = "fiscalizacao.NaoConformidade.dispositivo"
 
 [destino."coluna:nao_conformidades.numero_nc"]
 para = "fiscalizacao.NaoConformidade.numero"
+transformacao = "Recalculado na ordem das constatações, contínuo na fiscalização (regra do relatório de hoje); o gravado (ordem de finalização) fica no `legado`."
 
 [destino."coluna:nao_conformidades.created_at"]
 para = ["fiscalizacao.NaoConformidade.criado_em", "fiscalizacao.NaoConformidade.atualizado_em"]
@@ -282,10 +286,11 @@ transformacao = "`checklist:<item>` → `resposta:<id da resposta daquele item n
 
 [destino."coluna:determinacoes.nao_conformidade_id"]
 para = "fiscalizacao.Determinacao.nao_conformidade"
+transformacao = "Vazio → religada pela origem (a NC da mesma resposta ou constatação manual) ou, sem ela, pelo número de NC citado no texto, como o relatório de hoje; sem nenhum dos dois, a determinação é carregada como legado e listada na conferência."
 
 [destino."coluna:determinacoes.descricao"]
 para = ["fiscalizacao.Determinacao.descricao", "fiscalizacao.Determinacao.texto_editado"]
-transformacao = "Texto como está, marcado como editado, para a consolidação nunca reescrever o texto migrado."
+transformacao = "Texto como está, marcado como editado, para a consolidação nunca reescrever o texto migrado; só o número de NC citado (\"Sanar NC<n>\") é reescrito pela numeração recalculada, como o relatório de hoje faz."
 
 [destino."coluna:determinacoes.prazo_dias"]
 para = "fiscalizacao.Determinacao.prazo_dias"
@@ -296,6 +301,7 @@ para = "fiscalizacao.Determinacao.data_limite"
 
 [destino."coluna:determinacoes.numero_determinacao"]
 para = ["fiscalizacao.Determinacao.numero", "fiscalizacao.Determinacao.ordem"]
+transformacao = "O gravado (por unidade) vira a ordem entre as da mesma NC e fica no `legado`; o número é recalculado na ordem das NCs, contínuo na fiscalização."
 
 [destino."coluna:determinacoes.prazo"]
 descarte = "Coluna antiga que ninguém grava (A-025)."
@@ -327,6 +333,7 @@ transformacao = "Texto como está, marcado como editado."
 
 [destino."coluna:recomendacoes.numero_recomendacao"]
 para = ["fiscalizacao.Recomendacao.numero", "fiscalizacao.Recomendacao.ordem"]
+transformacao = "O gravado (por unidade) vira a ordem dentro do registro e fica no `legado`; o número é recalculado, contínuo na fiscalização."
 
 [destino."coluna:recomendacoes.created_at"]
 para = "fiscalizacao.Recomendacao.criado_em"

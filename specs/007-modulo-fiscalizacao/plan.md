@@ -77,7 +77,7 @@ dezenas de milhares de fotos.
 
 | Regra (constituição v2.6.2) | Situação | Como o plano atende |
 |---|---|---|
-| I. Preservação integral | Passa | Mapa de migração com 115 destinos conferidos contra o data-model, 0 pendentes; números migram como estão; fotos e relatórios por checksum; relatórios nunca apagados (F10, F18) |
+| I. Preservação integral | Passa | Mapa de migração com 115 destinos conferidos contra o data-model, 0 pendentes; número do termo migra como está, e os de C, NC, D e R são recalculados pela regra dos relatórios emitidos; fotos e relatórios por checksum; relatórios nunca apagados (F10, F18) |
 | II. Operação offline | Passa | Vistoria e finalização sem rede; consolidação no aparelho (F4); fila nunca apagada; fila de usuário desativado recuperável (F12); fiscalização excluída no servidor não descarta o trabalho (F11) |
 | III. Autorização verificável | Passa | Matriz por câmara, equipe, diretoria e papel, testada caso a caso; tudo o que pende herda o escopo (F14, [matriz-acesso.md](./contracts/matriz-acesso.md)) |
 | IV. Produção intocada | Passa | Código no repositório novo; migração lê só dump |

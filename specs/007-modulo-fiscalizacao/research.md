@@ -100,19 +100,23 @@ acontecer com contas feitas à parte.
 
 ## F5 — Numeração
 
-**Decision**: a função `numerar(fiscalizacao)` atribui:
-- as constatações, por registro, pela `ordem_constatacao` (respostas com texto de constatação e
+**Decision**: a função `numerar(fiscalizacao)` percorre os registros pela `ordem` (depois pela
+criação) com quatro contadores que **não recomeçam** a cada registro, e atribui:
+- as constatações, pela `ordem_constatacao` dentro do registro (respostas com texto de constatação e
   constatações manuais juntas);
-- as NCs, sequenciais na fiscalização, pela `ordem` dos registros e, dentro de cada um, pela ordem
-  das constatações;
-- as determinações e as recomendações, por registro, pela `ordem` delas.
+- as NCs, na ordem das constatações que as originaram;
+- as determinações, na ordem das NCs que mandam sanar e, na mesma NC, pela `ordem` delas;
+- as recomendações, pela `ordem` delas dentro do registro.
 
-Os textos que citam números ("Sanar NC<n>") são reescritos só na parte do número. A função roda
+Os textos que citam números ("Constatação C<n>", "Sanar NC<n>") são reescritos só na parte do
+número. As referências são vínculos: NC → resposta ou constatação manual; determinação → NC
+(obrigatória); recomendação → origem. A função roda
 junto com a consolidação enquanto `numeracao_congelada` é falso. A finalização a liga, e a
 reabertura a desliga.
 
-**Rationale**: R-fiscalizacao-008; a regra de hoje (ordem de finalização das unidades) não é
-reproduzível.
+**Rationale**: R-fiscalizacao-008; é a numeração dos relatórios emitidos hoje, que passa a ser
+gravada; a das NCs gravadas hoje (ordem de finalização das unidades) não é reproduzível, e a de C,
+D e R gravada pelo aparelho recomeça em cada unidade.
 
 **Alternatives considered**: numerar só no relatório, como hoje. A tela e o termo mostrariam
 números diferentes.
@@ -393,7 +397,10 @@ cache, o que pode bloquear o endereço da agência.
 mapa `anotacoes/migracao/fiscalizacao.toml` e carrega com os mesmos identificadores, depois de core,
 checklists e o app da CATERF. Regras:
 - as fiscalizações ganham `origem = migrada`, sem atividade;
-- os números (termo, C, NC, D, R) migram como estão;
+- o número do termo migra como está; os de C, NC, D e R são recalculados por `numerar`, que
+  reproduz a conta do relatório de hoje (registros por ordem e criação; constatações pelo número
+  gravado e pela criação; NCs pela constatação; determinações pela NC), e os gravados ficam no
+  `legado`; a numeração das finalizadas fica congelada;
 - a origem das NCs é reconstruída: com `resposta_checklist_id`, `resposta:<id>`; sem ela, pela
   constatação manual da mesma unidade com NC, na ordem do número;
 - a lista de fotos vira linhas de `Foto`, na mesma ordem, com o checksum calculado na cópia;
@@ -404,4 +411,5 @@ checklists e o app da CATERF. Regras:
 
 **Rationale**: seção "Migração" da spec; Princípio I.
 
-**Alternatives considered**: recalcular a numeração na migração. Mudaria documentos já emitidos.
+**Alternatives considered**: migrar os números gravados como estão: são por unidade e diferem dos
+documentos já emitidos a partir da segunda unidade.

@@ -141,7 +141,7 @@ Mapa: `anotacoes/migracao/fiscalizacao.toml` · data-model: `specs/007-modulo-fi
 
 - Ordem de carga: depois de core, checklists (versões dos itens) e do app da CATERF (catálogo e dados da rodovia), porque respostas e registros avulsos apontam para eles (research F18).
 - Toda fiscalização migrada recebe `origem = migrada`, sem atividade planejada e sem contar como pendência de ligação (spec, 'Casos conhecidos').
-- Os números (termo, C, NC, D, R) migram como estão e não são recalculados; a sequência de termos de cada ano continua do maior número migrado (R-fiscalizacao-013). A numeração das fiscalizações migradas e finalizadas fica congelada.
+- O número do termo migra como está; os de C, NC, D e R são recalculados, contínuos na fiscalização, pela regra do relatório de hoje (a dos documentos emitidos; R-fiscalizacao-008), e os gravados (por unidade) ficam no legado; a sequência de termos de cada ano continua do maior número migrado (R-fiscalizacao-013). A numeração das fiscalizações migradas e finalizadas fica congelada.
 - Registros que as regras novas recusariam são carregados e marcados em `legado`, com o motivo no relatório de conferência (MIG-4).
 - As colunas da DTR nas tabelas deste módulo (rodovia, km, sentido, frente, per, não atendimento, prazo da NC, gravidade, trecho, tipo de ocorrência, KM impreciso) são do módulo dtr e entram no mapa dele.
 
@@ -155,7 +155,7 @@ Mapa: `anotacoes/migracao/fiscalizacao.toml` · data-model: `specs/007-modulo-fi
 | `coluna:constatacoes_manuais.descricao_nc` | 299 linhas | `fiscalizacao.ConstatacaoManual.descricao_nc` |  |
 | `coluna:constatacoes_manuais.gera_nc` | 299 linhas | `fiscalizacao.ConstatacaoManual.gera_nc` |  |
 | `coluna:constatacoes_manuais.id` | 299 linhas | `fiscalizacao.ConstatacaoManual.id` |  |
-| `coluna:constatacoes_manuais.numero_constatacao` | 299 linhas | `fiscalizacao.ConstatacaoManual.numero_constatacao`<br>`fiscalizacao.ConstatacaoManual.ordem_constatacao` |  |
+| `coluna:constatacoes_manuais.numero_constatacao` | 299 linhas | `fiscalizacao.ConstatacaoManual.numero_constatacao`<br>`fiscalizacao.ConstatacaoManual.ordem_constatacao` | Como o das respostas: o gravado vira a ordem e fica no `legado`; o número é recalculado, contínuo na fiscalização. |
 | `coluna:constatacoes_manuais.ordem` | 299 linhas | descartado | Posição que a numeração não usa (padrão 0 em produção); a ordem vem do número da constatação. |
 | `coluna:constatacoes_manuais.texto_determinacao` | 299 linhas | `fiscalizacao.ConstatacaoManual.texto_determinacao` |  |
 | `coluna:constatacoes_manuais.texto_recomendacao` | 299 linhas | `fiscalizacao.ConstatacaoManual.texto_recomendacao` |  |
@@ -163,10 +163,10 @@ Mapa: `anotacoes/migracao/fiscalizacao.toml` · data-model: `specs/007-modulo-fi
 | `coluna:constatacoes_manuais.updated_at` | 299 linhas | `fiscalizacao.ConstatacaoManual.atualizado_em` |  |
 | `coluna:determinacoes.created_at` | 183 linhas | `fiscalizacao.Determinacao.criado_em` |  |
 | `coluna:determinacoes.data_limite` | 183 linhas | `fiscalizacao.Determinacao.data_limite` |  |
-| `coluna:determinacoes.descricao` | 183 linhas | `fiscalizacao.Determinacao.descricao`<br>`fiscalizacao.Determinacao.texto_editado` | Texto como está, marcado como editado, para a consolidação nunca reescrever o texto migrado. |
+| `coluna:determinacoes.descricao` | 183 linhas | `fiscalizacao.Determinacao.descricao`<br>`fiscalizacao.Determinacao.texto_editado` | Texto como está, marcado como editado, para a consolidação nunca reescrever o texto migrado; só o número de NC citado ("Sanar NC<n>") é reescrito pela numeração recalculada, como o relatório de hoje faz. |
 | `coluna:determinacoes.id` | 183 linhas | `fiscalizacao.Determinacao.id` |  |
-| `coluna:determinacoes.nao_conformidade_id` | 183 linhas | `fiscalizacao.Determinacao.nao_conformidade` |  |
-| `coluna:determinacoes.numero_determinacao` | 183 linhas | `fiscalizacao.Determinacao.numero`<br>`fiscalizacao.Determinacao.ordem` |  |
+| `coluna:determinacoes.nao_conformidade_id` | 183 linhas | `fiscalizacao.Determinacao.nao_conformidade` | Vazio → religada pela origem (a NC da mesma resposta ou constatação manual) ou, sem ela, pelo número de NC citado no texto, como o relatório de hoje; sem nenhum dos dois, a determinação é carregada como legado e listada na conferência. |
+| `coluna:determinacoes.numero_determinacao` | 183 linhas | `fiscalizacao.Determinacao.numero`<br>`fiscalizacao.Determinacao.ordem` | O gravado (por unidade) vira a ordem entre as da mesma NC e fica no `legado`; o número é recalculado na ordem das NCs, contínuo na fiscalização. |
 | `coluna:determinacoes.origem` | 183 linhas | `fiscalizacao.Determinacao.origem` | `checklist:<item>` → `resposta:<id da resposta daquele item na unidade>`; `manual_constatacao:<id>` → `constatacao:<id>`; `legacy:<id>` fica e vira legado. |
 | `coluna:determinacoes.prazo` | 183 linhas | descartado | Coluna antiga que ninguém grava (A-025). |
 | `coluna:determinacoes.prazo_dias` | 183 linhas | `fiscalizacao.Determinacao.prazo_dias` | Vazio (1 em produção) vira 30, com a marca de legado. |
@@ -203,19 +203,19 @@ Mapa: `anotacoes/migracao/fiscalizacao.toml` · data-model: `specs/007-modulo-fi
 | `coluna:fotos_evidencia.url` | 0 linhas | descartado | Tabela sem uso, vazia (A-030). |
 | `coluna:nao_conformidades.artigo_portaria` | 478 linhas | `fiscalizacao.NaoConformidade.dispositivo` |  |
 | `coluna:nao_conformidades.created_at` | 478 linhas | `fiscalizacao.NaoConformidade.criado_em`<br>`fiscalizacao.NaoConformidade.atualizado_em` |  |
-| `coluna:nao_conformidades.descricao` | 478 linhas | `fiscalizacao.NaoConformidade.descricao` |  |
+| `coluna:nao_conformidades.descricao` | 478 linhas | `fiscalizacao.NaoConformidade.descricao` | Texto como está, com o número da constatação citado ("Constatação C<n>") reescrito pela numeração recalculada, como o relatório de hoje faz. |
 | `coluna:nao_conformidades.fotos` | 478 linhas | descartado | Vazia em produção; as fotos são do registro (R-fiscalizacao-024). |
 | `coluna:nao_conformidades.gravidade` | 478 linhas | descartado | Valor fixo 'Média' nas 478 linhas (R-fiscalizacao-024). |
 | `coluna:nao_conformidades.id` | 478 linhas | `fiscalizacao.NaoConformidade.id` | Mesmo identificador da última regeneração; passa a ser estável. |
 | `coluna:nao_conformidades.latitude_foto` | 478 linhas | descartado | Sem uso (R-fiscalizacao-024). |
 | `coluna:nao_conformidades.longitude_foto` | 478 linhas | descartado | Sem uso (R-fiscalizacao-024). |
-| `coluna:nao_conformidades.numero_nc` | 478 linhas | `fiscalizacao.NaoConformidade.numero` |  |
+| `coluna:nao_conformidades.numero_nc` | 478 linhas | `fiscalizacao.NaoConformidade.numero` | Recalculado na ordem das constatações, contínuo na fiscalização (regra do relatório de hoje); o gravado (ordem de finalização) fica no `legado`. |
 | `coluna:nao_conformidades.resposta_checklist_id` | 478 linhas | `fiscalizacao.NaoConformidade.resposta`<br>`fiscalizacao.NaoConformidade.origem`<br>`fiscalizacao.NaoConformidade.constatacao_manual` | Com resposta: origem `resposta:<id>`. Sem resposta: a constatação manual com NC da mesma unidade, na ordem do número, dá a origem `constatacao:<id>`. NC sem origem reconhecível vira legado (research F18). |
 | `coluna:nao_conformidades.unidade_fiscalizada_id` | 478 linhas | `fiscalizacao.NaoConformidade.registro` |  |
 | `coluna:recomendacoes.created_at` | 350 linhas | `fiscalizacao.Recomendacao.criado_em` |  |
 | `coluna:recomendacoes.descricao` | 350 linhas | `fiscalizacao.Recomendacao.descricao`<br>`fiscalizacao.Recomendacao.texto_editado` | Texto como está, marcado como editado. |
 | `coluna:recomendacoes.id` | 350 linhas | `fiscalizacao.Recomendacao.id` |  |
-| `coluna:recomendacoes.numero_recomendacao` | 350 linhas | `fiscalizacao.Recomendacao.numero`<br>`fiscalizacao.Recomendacao.ordem` |  |
+| `coluna:recomendacoes.numero_recomendacao` | 350 linhas | `fiscalizacao.Recomendacao.numero`<br>`fiscalizacao.Recomendacao.ordem` | O gravado (por unidade) vira a ordem dentro do registro e fica no `legado`; o número é recalculado, contínuo na fiscalização. |
 | `coluna:recomendacoes.origem` | 350 linhas | `fiscalizacao.Recomendacao.origem` | Como nas determinações; `checklist` sem id e `legacy_rec:<id>` viram legado. |
 | `coluna:recomendacoes.unidade_fiscalizada_id` | 350 linhas | `fiscalizacao.Recomendacao.registro` |  |
 | `coluna:recomendacoes.updated_at` | 350 linhas | `fiscalizacao.Recomendacao.atualizado_em` |  |
@@ -235,7 +235,7 @@ Mapa: `anotacoes/migracao/fiscalizacao.toml` · data-model: `specs/007-modulo-fi
 | `coluna:respostas_checklist.gera_nc` | 3454 linhas | descartado | Derivado do catálogo e da resposta (R-fiscalizacao-005); a migração confere, antes, que a marca bate com a declaração do item e a resposta (355 respostas com NC). |
 | `coluna:respostas_checklist.id` | 3454 linhas | `fiscalizacao.Resposta.id` |  |
 | `coluna:respostas_checklist.item_checklist_id` | 3454 linhas | `fiscalizacao.Resposta.item_versao_id` | Mesmo identificador da versão migrada (spec 005); 100% das respostas precisam encontrar a versão, e a que não encontrar vira legado. |
-| `coluna:respostas_checklist.numero_constatacao` | 3454 linhas | `fiscalizacao.Resposta.numero_constatacao`<br>`fiscalizacao.Resposta.ordem_constatacao` | O número vira também a ordem, junto com o das constatações manuais da unidade. |
+| `coluna:respostas_checklist.numero_constatacao` | 3454 linhas | `fiscalizacao.Resposta.numero_constatacao`<br>`fiscalizacao.Resposta.ordem_constatacao` | O número gravado (por unidade) vira a ordem, junto com o das constatações manuais da unidade, e fica no `legado`; o número é recalculado, contínuo na fiscalização, pela regra do relatório de hoje (F18 da spec 007). |
 | `coluna:respostas_checklist.observacao` | 3454 linhas | `fiscalizacao.Resposta.observacao` |  |
 | `coluna:respostas_checklist.pergunta` | 3454 linhas | `fiscalizacao.Resposta.texto_constatacao`<br>`fiscalizacao.Resposta.constatacao_excluida` | Texto da constatação como está (inclusive o editado); pergunta vazia com resposta preenchida marca a constatação como excluída. |
 | `coluna:respostas_checklist.resposta` | 3454 linhas | `fiscalizacao.Resposta.valor` | `SIM` → `sim`; `NAO` e `NÃO` → `nao`; vazio ou outro valor vira legado. |
@@ -253,7 +253,7 @@ Mapa: `anotacoes/migracao/fiscalizacao.toml` · data-model: `specs/007-modulo-fi
 | `coluna:unidades_fiscalizadas.latitude` | 402 linhas | `fiscalizacao.RegistroCampo.latitude`<br>`fiscalizacao.RegistroCampo.origem_ponto` | Origem do ponto 'gps' quando há coordenada numérica. |
 | `coluna:unidades_fiscalizadas.longitude` | 402 linhas | `fiscalizacao.RegistroCampo.longitude` |  |
 | `coluna:unidades_fiscalizadas.nome_unidade` | 402 linhas | `fiscalizacao.RegistroCampo.nome` |  |
-| `coluna:unidades_fiscalizadas.ordem` | 402 linhas | `fiscalizacao.RegistroCampo.ordem` |  |
+| `coluna:unidades_fiscalizadas.ordem` | 402 linhas | `fiscalizacao.RegistroCampo.ordem` | Vazia → posição pela criação, como o relatório de hoje ordena (ordem, depois criação); define a numeração contínua recalculada. |
 | `coluna:unidades_fiscalizadas.status` | 402 linhas | `fiscalizacao.RegistroCampo.situacao` | `finalizada` vira finalizado; `em_andamento` fica; `pendente` (4 em produção) vira em andamento com a marca de legado. |
 | `coluna:unidades_fiscalizadas.tipo_unidade_id` | 402 linhas | `fiscalizacao.RegistroCampo.catalogo_id`<br>`fiscalizacao.RegistroCampo.item_versao_id`<br>`fiscalizacao.RegistroCampo.tipo_avulso` | Unidade de saneamento: o tipo vira o catálogo (mesmo identificador, spec 005). Ocorrência da DTR (tipo vazio): catálogo da CATERF, com o item e a versão ligados pelo app da CATERF (frente, PER e descrição) e o tipo avulso registrado por ele. Tipo inexistente vira legado. |
 | `coluna:unidades_fiscalizadas.tipo_unidade_nome` | 402 linhas | descartado | Cópia do nome do tipo que o app não grava (A-025). |

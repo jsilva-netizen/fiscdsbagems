@@ -109,7 +109,7 @@ A unidade vistoriada ou o registro avulso.
 | ponto_em | data e hora, opcional | |
 | impreciso | booleano | precisão acima do limite da câmara |
 | data_hora_vistoria | data e hora | padrão: a criação |
-| ordem | inteiro | reordenável |
+| ordem | inteiro | reordenável; ordem da numeração contínua (F5); padrão: a de criação |
 | situacao | `em_andamento` / `finalizado` | |
 | legado | lista de textos | |
 | criado_por | → Usuario | |
@@ -126,7 +126,7 @@ A unidade vistoriada ou o registro avulso.
 | texto_constatacao | texto, opcional | copiado do item, editável |
 | constatacao_excluida | booleano | fora da contagem sem apagar a resposta |
 | ordem_constatacao | inteiro | |
-| numero_constatacao | inteiro, opcional | C<n>; calculado (F5) |
+| numero_constatacao | inteiro, opcional | C<n> na fiscalização; calculado (F5) |
 | criado_em, atualizado_em | data e hora | |
 
 ### ConstatacaoManual
@@ -141,7 +141,7 @@ A unidade vistoriada ou o registro avulso.
 | texto_determinacao | texto, opcional | |
 | texto_recomendacao | texto, opcional | usado sem determinação |
 | ordem_constatacao | inteiro | |
-| numero_constatacao | inteiro, opcional | |
+| numero_constatacao | inteiro, opcional | C<n> na fiscalização; calculado (F5) |
 | criado_em, atualizado_em | data e hora | |
 
 ### NaoConformidade
@@ -150,9 +150,9 @@ A unidade vistoriada ou o registro avulso.
 | id | UUID | estável enquanto a origem existir (F4) |
 | registro | → RegistroCampo | |
 | origem | texto | `resposta:<id>` ou `constatacao:<id>`; única por registro |
-| resposta | → Resposta, opcional | |
+| resposta | → Resposta, opcional | uma das duas obrigatória: a constatação que a NC referencia |
 | constatacao_manual | → ConstatacaoManual, opcional | |
-| descricao | texto | |
+| descricao | texto | "Constatação C<n>: ..."; o número acompanha a numeração |
 | dispositivo | texto, opcional | |
 | numero | inteiro, opcional | NC<n> na fiscalização |
 | criado_em, atualizado_em | data e hora | |
@@ -163,13 +163,13 @@ A unidade vistoriada ou o registro avulso.
 | id | UUID | |
 | registro | → RegistroCampo | |
 | origem | texto | única por registro |
-| nao_conformidade | → NaoConformidade, opcional | religada na consolidação |
-| descricao | texto | "Sanar NC<n>. <texto>" |
+| nao_conformidade | → NaoConformidade | obrigatória: a NC que a determinação manda sanar; religada na consolidação |
+| descricao | texto | "Sanar NC<n>. <texto>"; o número acompanha a numeração |
 | texto_editado | booleano | a consolidação preserva |
 | prazo_dias | inteiro | > 0; padrão do item ou 30 |
 | data_limite | data | criação + prazo |
-| ordem | inteiro | |
-| numero | inteiro, opcional | D<n> |
+| ordem | inteiro | entre as determinações da mesma NC |
+| numero | inteiro, opcional | D<n> na fiscalização |
 | criado_em, atualizado_em | data e hora | |
 
 ### Recomendacao
@@ -177,11 +177,11 @@ A unidade vistoriada ou o registro avulso.
 |---|---|---|
 | id | UUID | |
 | registro | → RegistroCampo | |
-| origem | texto | única por registro |
+| origem | texto | única por registro; a constatação que a recomendação referencia |
 | descricao | texto | |
 | texto_editado | booleano | |
-| ordem | inteiro | |
-| numero | inteiro, opcional | R<n> |
+| ordem | inteiro | dentro do registro |
+| numero | inteiro, opcional | R<n> na fiscalização |
 | criado_em, atualizado_em | data e hora | |
 
 ### Foto

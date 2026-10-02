@@ -138,7 +138,11 @@ recomendação, e a numeração continua certa. Tudo sem rede.
    **Then** a edição é preservada.
 4. **Given** uma resposta que volta de Não para Sim, **When** a unidade é consolidada, **Then** a NC
    e a determinação ligadas somem, e a numeração se ajusta.
-5. **Given** uma unidade finalizada, **When** alguém tenta alterá-la fora do modo de edição,
+5. **Given** uma unidade 1 com C1 a C5, NC1 a NC3 e D1 a D3, **When** o fiscal registra uma
+   constatação com NC e determinação na unidade 2, **Then** elas recebem C6, NC4 e D4, com a NC4
+   citando a C6 e a D4 mandando sanar a NC4; trocar a ordem das unidades renumera tudo enquanto a
+   fiscalização está em andamento.
+6. **Given** uma unidade finalizada, **When** alguém tenta alterá-la fora do modo de edição,
    **Then** o sistema recusa.
 
 ---
@@ -688,16 +692,23 @@ da spec 003.
   - cada NC, determinação e recomendação é identificada pela **origem** (a resposta ou a
     constatação manual) e mantém o identificador enquanto a origem existir;
   - textos editados pela equipe e a ordem definida são preservados;
-  - registro cuja origem deixou de gerar a saída (resposta voltou para Sim) é removido;
-  - a determinação aponta para a NC que manda sanar.
+  - registro cuja origem deixou de gerar a saída (resposta voltou para Sim) é removido.
+
+  **Referências** (gravadas como vínculo e citadas no texto pelo número):
+  - toda **NC** referencia a constatação que a originou ("Constatação C<n>: ...");
+  - toda **determinação** referencia a NC que manda sanar ("Sanar NC<n>. ..."); não existe
+    determinação sem NC;
+  - toda **recomendação** referencia a constatação de origem.
 
   A consolidação roda no servidor ao receber mudanças da unidade, na finalização e antes do
   relatório. O aparelho mostra o mesmo resultado pela mesma regra, para o trabalho sem rede. A
-  equipe também acrescenta determinações e recomendações ligadas a uma constatação, que ficam com
-  a origem dela.
+  equipe também acrescenta recomendações ligadas a uma constatação e determinações ligadas a uma NC,
+  que ficam com a origem delas.
 - **Comportamento atual**:
   - a função do banco apaga e recria todas as NCs a cada execução, com identificador novo;
-  - as determinações perdem e recebem de novo o vínculo com a NC;
+  - as determinações perdem e recebem de novo o vínculo com a NC, e o relatório, sem vínculo, acha
+    a NC pela origem ou pelo número citado no texto;
+  - a NC de constatação manual é achada pelo número da constatação citado na descrição;
   - determinações e recomendações já são preservadas pela origem;
   - a gravidade da NC é fixa em "Média";
   - as fotos e a localização da NC não são usadas;
@@ -725,25 +736,37 @@ da spec 003.
 
 ### R-fiscalizacao-008 — Numeração
 
-- **Comportamento desejado**:
-  - **constatações** (C1, C2...): por unidade, na ordem definida pelo fiscal, juntando as
-    respostas com texto de constatação e as constatações manuais;
-  - **NCs** (NC1, NC2...): sequenciais na fiscalização, seguindo a ordem das unidades e, dentro
-    delas, a das constatações;
-  - **determinações** (D1, D2...) e **recomendações** (R1, R2...): por unidade, na ordem definida
-    pela equipe (reordenáveis); por padrão, as determinações seguem a ordem das constatações de
-    origem, e as recomendações, a de criação;
-  - os textos que citam números ("Sanar NC<n>") acompanham a numeração.
+- **Comportamento desejado**: constatações (C), NCs, determinações (D) e recomendações (R) têm
+  numeração **contínua e sequencial em toda a fiscalização**, da primeira à última unidade: cada
+  sequência começa em 1 e não recomeça a cada unidade (ex.: se a unidade 1 termina em C5, NC3, D3 e
+  R1, a unidade 2 começa em C6, NC4, D4 e R2). Vale para todas as câmaras; a DSB usa hoje, e as
+  outras usarão quando tiverem fiscalização no sistema.
+
+  **Ordem**:
+  - das **unidades** (e dos registros avulsos): a definida pela equipe, reordenável; por padrão, a de
+    criação;
+  - dentro da unidade, das **constatações**: a definida pelo fiscal, juntando as respostas com texto
+    de constatação e as constatações manuais;
+  - das **NCs**: a das constatações que as originaram;
+  - das **determinações**: a das NCs que mandam sanar; várias da mesma NC, na ordem definida pela
+    equipe;
+  - das **recomendações**: a definida pela equipe dentro da unidade; por padrão, a de criação.
+
+  Os textos que citam números ("Constatação C<n>", "Sanar NC<n>") acompanham a numeração.
 
   A numeração é recalculada enquanto a fiscalização está em andamento e fica **congelada na
   finalização**. A reabertura permite recalcular, e a nova finalização congela de novo. O relatório
   usa a numeração gravada.
 - **Comportamento atual**:
-  - C, D e R são numeradas no aparelho;
-  - as NCs seguem a ordem em que as unidades foram finalizadas;
-  - o relatório refaz a numeração na montagem.
-- **Motivo da diferença**: numeração previsível, que não depende da ordem de finalização, e igual
-  na tela, no relatório e no termo.
+  - o aparelho grava C, D e R numeradas **por unidade** (cada unidade recomeça em 1);
+  - a função do banco grava as NCs na ordem em que as unidades foram finalizadas;
+  - o relatório, a tela do termo e a análise refazem cada um a numeração na montagem, contínua na
+    fiscalização, pela ordem das unidades (ordem e criação), com as determinações na ordem das NCs;
+    é essa numeração que aparece nos documentos emitidos;
+  - por isso o número gravado no banco difere do número do relatório a partir da segunda unidade.
+- **Motivo da diferença**: uma só numeração, contínua como nos documentos de hoje, gravada e igual
+  na tela, no relatório, no termo, na AM e no auto ("Determinação D<n> não atendida"), sem depender
+  da ordem de finalização nem de cada tela refazer a conta.
 - **Objetos do catálogo**: `coluna:respostas_checklist.numero_constatacao`,
   `coluna:constatacoes_manuais.numero_constatacao`, `coluna:nao_conformidades.numero_nc`,
   `coluna:determinacoes.numero_determinacao`, `coluna:recomendacoes.numero_recomendacao`
@@ -1408,7 +1431,7 @@ do plano).
 | Critério | Meta |
 |---|---|
 | MIG-1 Registros | 100% dos registros acima chegam com o mesmo identificador (exceto os de teste do A-002, com o motivo no relatório) |
-| MIG-2 Valores | Em 100% dos registros, cada campo migrado é igual ao da origem depois da transformação do mapa; os números de termo, NC, C, D e R migram como estão e não são recalculados |
+| MIG-2 Valores | Em 100% dos registros, cada campo migrado é igual ao da origem depois da transformação do mapa; o número do termo migra como está; os números de C, NC, D e R são recalculados pela regra do relatório de hoje (a dos documentos emitidos, R-fiscalizacao-008), e os gravados (por unidade) ficam no legado; a amostra lado a lado confere os números com o último relatório emitido |
 | MIG-3 Arquivos | Os 1.445 arquivos de fotos e os 43 relatórios chegam com o mesmo checksum, ligados ao mesmo registro; a ordem e as legendas das fotos são mantidas |
 | MIG-4 Legados | Fiscalização sem câmara, com município ou entidade inexistentes, unidade com tipo inexistente, resposta sem versão de item e NC sem origem reconhecível são carregadas e marcadas, nunca recusadas, e listadas no relatório |
 | MIG-5 Descartes | Os campos da R-fiscalizacao-024 descartados com volume listado |
