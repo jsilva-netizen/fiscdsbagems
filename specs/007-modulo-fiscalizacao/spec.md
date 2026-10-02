@@ -982,6 +982,9 @@ da spec 003.
     - uma seção por unidade (identificação, endereço, coordenadas, data e hora; constatações, NCs,
       determinações com prazo, recomendações; registros fotográficos numerados "Figura n –
       legenda");
+    - o **quadro de respostas**, quando o modelo liga respostas à saída "resposta no relatório": por
+      unidade, cada item com a resposta dada no rótulo definido pela câmara (ex.: "Regular", "nota
+      4") e a observação; com valores ou notas, a soma e a média da unidade e da fiscalização;
     - paginação.
   - **Layouts próprios**: o app de uma câmara pode registrar o seu layout (a CATERF traz o laudo de
     rodovia), e cada câmara escolhe o seu na configuração; câmara sem layout próprio usa o genérico
@@ -1209,7 +1212,9 @@ da spec 003.
   - painéis de indicadores.
 
   O padrão de hoje da DSB é entregue como configuração inicial das câmaras da DSB, e não como
-  código. Um teste automatizado falha se o app citar uma câmara, e outro prova que um app de câmara
+  código. As telas do app (fiscalizações, vistoria, relatórios e a configuração da câmara) aparecem
+  na área de cada câmara (R-core-025), com a câmara fixada pela área; o usuário não vê "app de
+  fiscalização". Um teste automatizado falha se o app citar uma câmara, e outro prova que um app de câmara
   de teste pluga layout, marca d'água e registro avulso sem alterar o app de fiscalização.
 - **Comportamento atual**:
   - o código separa DSB e DTR por `tipo_modulo`;

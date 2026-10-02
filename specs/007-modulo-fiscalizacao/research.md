@@ -58,7 +58,10 @@ interpreta (R-checklists-019), cada um com os dados que recebe:
 - `fiscalizacao.constatacao` (texto);
 - `fiscalizacao.nc` (dispositivo, descrição);
 - `fiscalizacao.determinacao` (texto, prazo em dias), `depende_de` = `fiscalizacao.nc`;
-- `fiscalizacao.recomendacao` (texto), `depende_de` = `fiscalizacao.constatacao`.
+- `fiscalizacao.recomendacao` (texto), `depende_de` = `fiscalizacao.constatacao`;
+- `fiscalizacao.resposta_relatorio` (texto do item, resposta dada: rótulo, valor ou nota): põe a
+  resposta no quadro de respostas do relatório (R-fiscalizacao-016); não é numerada nem consolidada
+  como registro, é lida das respostas na montagem do relatório.
 
 Cada um tem a sua sequência de numeração e o seu prefixo (C, NC, D, R), definidos aqui, no app, e
 não no motor (F5).

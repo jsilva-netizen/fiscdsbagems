@@ -792,8 +792,13 @@ da spec 003 (`specs/003-base-dados-producao/catalogo/`).
     registrados pelos apps);
   - a lista de entidades reguladas (contadores, como fiscalizações e recomendações) e o detalhe da
     entidade (abas, como fiscalizações, determinações e autos);
-  - as Definições (entradas de configuração, como tipos de unidade, checklists e as definições da
-    DTR).
+  - a **área de cada câmara** (decisão do responsável, 2026-10-02): o usuário interage com o app da
+    sua câmara (painel, planejamento, fiscalizações, processos, configuração), e as telas dos apps
+    comuns aparecem dentro dela, com a câmara fixada pela área. O app da câmara registra a área e
+    diz quais seções dos apps comuns ela usa (ex.: na configuração, checklists, fiscalização e
+    planejamento) e acrescenta as suas (ex.: na CATERF, contratos rodoviários e traçados). Os nomes
+    dos apps comuns não aparecem ao usuário;
+  - as Definições gerais, só com o que não é de câmara (ex.: municípios, diretorias).
 
   Cada contribuição declara quais papéis a veem e usa as regras de acesso do app dono do dado
   (R-core-011, R-core-012, R-core-013): o que o usuário não alcança não aparece, nem como contador.

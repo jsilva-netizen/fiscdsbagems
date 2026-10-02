@@ -117,7 +117,7 @@ frontend/src/checklists/
 ├── catalogos/, itens/, importacao/, historico/
 ├── formulario/        # formulário gerado pela definição
 ├── aplicacao.ts       # escolha do item sem rede (K12)
-└── registros.ts       # entradas nas Definições do core (R-core-025)
+└── registros.ts       # telas oferecidas à área de configuração de cada câmara (R-core-025, R-checklists-021)
 ```
 
 **Structure Decision**: o `checklists` é o segundo app em `backend/apps/` e `frontend/src/`, depende

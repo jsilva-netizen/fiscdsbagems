@@ -29,7 +29,7 @@ Esperado:
 1. `--conferir` lista o modelo de checklist, a configuração de fiscalização e a de planejamento como
    "a criar", sem gravar.
 2. A primeira aplicação cria os três; a segunda informa que já existiam e não cria nada.
-3. Como coordenador da CATESA, abrir as Definições: o modelo "Checklist por tipo de unidade", o
+3. Como coordenador da CATESA, abrir CATESA › Configuração: o modelo "Checklist por tipo de unidade", o
    título "TERMO DE VISTORIA AGEMS/DSB", as três linhas da marca d'água, o limite de 20 m e os três
    tipos de atividade.
 4. Mudar o título na tela e rodar `configurar_catesa` de novo: o título mudado continua. A

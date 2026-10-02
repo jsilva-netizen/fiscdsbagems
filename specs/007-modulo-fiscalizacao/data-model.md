@@ -122,7 +122,8 @@ A unidade vistoriada ou o registro avulso.
 | id | UUID | |
 | registro | → RegistroCampo | única por registro e item |
 | item_versao_id | UUID | versão respondida (R-checklists-005) |
-| valor | texto | código de resposta declarado no catálogo (nos modelos da DSB, `sim`, `nao` e `na`) |
+| valor | texto | código da opção declarada no catálogo (nos modelos da DSB, `sim`, `nao` e `na`), a nota ou o texto |
+| valor_numerico | decimal, opcional | o valor da opção ou a nota, para soma e média no quadro de respostas |
 | observacao | texto, opcional | |
 | texto_constatacao | texto, opcional | copiado do item, editável |
 | constatacao_excluida | booleano | fora da contagem sem apagar a resposta |

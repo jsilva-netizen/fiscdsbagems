@@ -271,6 +271,11 @@ prestador não alcança nenhum catálogo.
 - **FR-019**: O motor MUST oferecer aos apps de câmara um serviço de configuração inicial que valida
   os modelos como a tela de montagem, cria só os que a câmara ainda não tem e nunca altera um modelo
   existente (R-checklists-020).
+- **FR-020**: O modelo MUST aceitar respostas definidas pela câmara: opções com rótulo livre e valor
+  numérico opcional, nota com mínimo, máximo e passo, e texto, com saídas por opção ou por faixa de
+  nota (R-checklists-013).
+- **FR-021**: As telas do motor MUST aparecer na área de configuração de cada câmara, com a câmara
+  fixada pela área, sem o usuário ver o nome do motor (R-checklists-021).
 
 ### Key Entities
 
@@ -549,11 +554,22 @@ da spec 003. As regras descrevem só peças genéricas; o que cada câmara faz h
 ### R-checklists-013 — Respostas e saídas declaradas no modelo
 
 - **Comportamento desejado**: o modelo declara:
-  - as **respostas** possíveis: opções fixas (ex.: Sim/Não, Sim/Não/Não se aplica,
-    Constatação/Não conformidade), número ou texto;
-  - para cada resposta, as **saídas**: um identificador de saída, condições opcionais sobre campos
-    do item (campo sim/não verdadeiro, campo preenchido, campo vazio), que precisam valer todas ao
-    mesmo tempo, e os campos que alimentam a saída.
+  - as **respostas** possíveis, **definidas livremente pela câmara** (decisão do responsável,
+    2026-10-02):
+    - **opções**, com o rótulo que a câmara quiser e na ordem dela (ex.: Sim/Não/Não se aplica;
+      Constatação/Não conformidade; Bom/Regular/Ruim/Péssimo), cada uma com um **valor numérico**
+      opcional, para somar e tirar média (ex.: Bom = 3, Ruim = 1);
+    - **nota**: número com mínimo, máximo e passo (ex.: 0 a 10; 1 a 5);
+    - **texto**;
+  - para cada opção, ou para cada **faixa** de nota (ex.: nota até 4), as **saídas**: um
+    identificador de saída, condições opcionais sobre campos do item (campo sim/não verdadeiro, campo
+    preenchido, campo vazio), que precisam valer todas ao mesmo tempo, e os campos que alimentam a
+    saída. A saída pode receber também a própria resposta (rótulo, valor ou nota).
+
+  Assim, um checklist de avaliação de qualidade ("Bom, Regular, Ruim, Péssimo" ou nota de 1 a 5) é
+  só outro modelo: a câmara define as respostas, liga "Ruim" e "Péssimo" (ou nota até 2) a uma
+  constatação ou NC, se quiser, e liga todas à saída que põe a resposta no quadro do relatório
+  (R-fiscalizacao-016).
 
   Os identificadores de saída (constatação, NC, determinação, recomendação...) são definidos pelo app
   que aplica o catálogo; o motor os guarda e entrega sem interpretar. Assim, o motor não sabe o que é
@@ -733,6 +749,21 @@ da spec 003. As regras descrevem só peças genéricas; o que cada câmara faz h
   (research S3 a S5).
 - **Objetos do catálogo**: — (conceito novo)
 - **Origem**: plano da spec 009 (2026-10-01).
+
+### R-checklists-021 — A câmara configura no app dela
+
+- **Comportamento desejado**: o usuário não vê "motor de checklists" nem "app de fiscalização". Ele
+  configura os checklists na **área da sua câmara** (ex.: "CATESA › Configuração › Checklists"):
+  modelos (o editor visual da R-checklists-015), catálogos, itens, importação e histórico. As telas
+  são do motor, genéricas, e aparecem dentro da área de cada câmara que as usa, com a câmara já
+  definida pela área: não há escolha de câmara nem lista de outras câmaras, a não ser na cópia de
+  modelo (R-checklists-018). O administrador entra na área de qualquer câmara.
+- **Comportamento atual**: os checklists da DSB ficam nas Definições gerais, e os tipos de ocorrência
+  da DTR, nas Definições da DTR.
+- **Motivo da diferença**: decisão do responsável (2026-10-02): o usuário interage com o app da
+  câmara; os apps comuns ficam por baixo.
+- **Objetos do catálogo**: — (composição de telas; não há objeto no banco)
+- **Origem**: decisão do responsável, 2026-10-02.
 
 ## Modelos de hoje
 

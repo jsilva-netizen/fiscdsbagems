@@ -28,7 +28,7 @@ Esperado:
 
 ## 2. Montar um modelo pela tela (US1)
 
-1. Como coordenador da CATESA, abrir Definições → Checklists → Modelos e montar um modelo com um
+1. Como coordenador da CATESA, abrir CATESA › Configuração › Checklists › Modelos e montar um modelo com um
    campo de texto obrigatório, respostas Sim / Não / Não se aplica e a saída de teste em "Não".
 2. Tentar salvar com uma saída que cita um campo inexistente.
 3. Salvar o modelo correto.

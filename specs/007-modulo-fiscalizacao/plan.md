@@ -157,8 +157,8 @@ frontend/
 ```
 
 **Structure Decision**: o app `fiscalizacao` fica ao lado de `core`, `checklists` e
-`planejamento`. As telas entram pelo registro do core (R-core-025): menu, painéis do início e
-Definições (configuração da câmara). O app da CATERF, na spec dele, pluga layout, marca d'água,
+`planejamento`. As telas entram pelo registro do core (R-core-025), dentro da área de cada câmara:
+fiscalizações, vistoria, relatórios, painéis e a configuração da câmara. O app da CATERF, na spec dele, pluga layout, marca d'água,
 enriquecedor do ponto e registro avulso pelos contratos de
 [extensoes.md](./contracts/extensoes.md).
 

@@ -127,7 +127,8 @@ CATESA.
 
 - **Configuração inicial da CATESA**: o pacote de configuração que o app entrega na implantação —
   modelo de catálogo, catálogos, configuração de fiscalização e de planejamento. Depois da
-  implantação, cada peça é mantida na tela do app comum dono dela.
+  implantação, cada peça é mantida em CATESA › Configuração, nas telas dos apps comuns que aparecem
+  ali (R-core-025).
 - **Painel da CATESA**: contribuição de tela registrada no core, que lê as consultas da
   fiscalização e do processo sancionador.
 

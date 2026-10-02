@@ -4,7 +4,8 @@
 
 O app `catesa` **não tem modelo de dados** ([research S2](./research.md)). Este documento descreve o
 **pacote de configuração inicial** ([research S3](./research.md)) e onde cada parte fica nos apps
-comuns. Depois de aplicado, cada parte é mantida na tela do app comum dono dela.
+comuns. Depois de aplicado, cada parte é mantida em CATESA › Configuração, nas telas dos apps
+comuns que aparecem ali (R-core-025).
 
 ## Modelos
 

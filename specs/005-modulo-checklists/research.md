@@ -226,8 +226,9 @@ Tudo numa transação, auditado.
   exemplo.
 - **Itens**: lista arrastável para mudar a ordem (sem criar versão); com agrupamento, uma árvore pelos
   níveis (ex.: frente → item do PER → descrição), com os itens arrastáveis dentro do seu nível. O formulário é montado por um
-componente que lê a definição e escolhe o controle pelo tipo do campo. As telas entram nas
-Definições pelo registro de contribuições do core (R-core-025). A escolha do item na aplicação
+componente que lê a definição e escolhe o controle pelo tipo do campo. As telas entram na
+área de configuração de cada câmara, pelo registro de contribuições do core (R-core-025), com a
+câmara fixada pela área (R-checklists-021). A escolha do item na aplicação
 (agrupamento, aplicabilidade, escolha complementar) é feita no aparelho por funções puras de
 `frontend/src/checklists/aplicacao.ts`, sobre os dados sincronizados, com os mesmos casos de teste da
 consulta `versoes_vigentes` do servidor (JSON compartilhado entre pytest e Vitest).
