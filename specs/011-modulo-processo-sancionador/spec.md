@@ -379,8 +379,10 @@ da spec 003.
 ### R-sancionador-004 — Termo de notificação
 
 - **Comportamento desejado**: a câmara técnica cria o termo a partir de uma **fiscalização
-  finalizada da sua câmara**, escolhida pela consulta da fiscalização. Município, entidade e
-  determinações vêm da fiscalização. O termo tem:
+  finalizada da sua câmara**, escolhida pela consulta da fiscalização. Município e entidade vêm da
+  fiscalização, e os **registros notificados** são os registros gerados dos tipos que a câmara
+  marcou com o papel "notificado no termo, com prazo" (R-checklists-019; na DSB, as
+  determinações). O termo tem:
   - tipo e número do relatório;
   - número do processo administrativo, no formato de hoje (`NN.NNN.NNN-AAAA`), conferido pelo
     servidor;
@@ -521,8 +523,9 @@ da spec 003.
 
   **Concluir a AM** exige todas as determinações analisadas. Ao concluir, o servidor:
   - atribui o número da AM;
-  - gera o documento da AM pelo layout da câmara (para cada determinação: NC, constatação, base
-    legal, manifestação, análise, resultado e número do AI);
+  - gera o documento da AM pelo layout da câmara (para cada registro notificado: a cadeia de
+    referências, que na DSB é a NC e a constatação; base legal, manifestação, análise, resultado e
+    número do AI);
   - cria os autos das não acatadas (R-sancionador-009);
   - registra a movimentação.
 
@@ -547,7 +550,8 @@ da spec 003.
 - **Comportamento desejado**: a AM concluída cria um auto por determinação não acatada, nunca dois
   para a mesma determinação, garantido pelo banco. O auto tem:
   - número (R-sancionador-003);
-  - determinação de origem e descrição ("Determinação D<n> não atendida: <texto>");
+  - registro notificado de origem e descrição ("<nome do tipo> <sigla><n> não atendida: <texto>";
+    na DSB, "Determinação D<n> não atendida: <texto>");
   - unidade, fiscalização e entidade;
   - data de emissão;
   - pena base em UFERMS (inteiro positivo) e em R$ (positivo para entrar na remessa), informadas

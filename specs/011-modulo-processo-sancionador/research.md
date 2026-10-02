@@ -67,8 +67,11 @@ ajustar na migração.
 
 **Decision**: `ProcessoSancionador.fiscalizacao` é chave estrangeira protegida, e o app registra a
 verificação de documento: fiscalização com processo não é excluída. Na **emissão do TN**, o app grava
-um retrato de cada determinação notificada (`DeterminacaoNotificada`): identificador na
-fiscalização, registro de campo, número, texto, prazo em dias, NC e constatação. A partir daí,
+um retrato de cada registro notificado (`DeterminacaoNotificada`), lido pela consulta
+`registros_gerados(fiscalizacao, papel="processo_sancionador.notificado")`: identificador na
+fiscalização, registro de campo, tipo e nome do tipo, número, texto, prazo em dias e a cadeia de
+referências (na DSB, a NC e a constatação). O app registra no motor de checklists o papel
+`processo_sancionador.notificado`, que exige campo de prazo. A partir daí,
 resposta, análise e auto apontam para esse retrato, não para a determinação viva.
 
 Se a fiscalização for reaberta e a determinação mudar, o processo mostra a diferença

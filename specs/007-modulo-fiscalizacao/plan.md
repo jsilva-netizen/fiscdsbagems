@@ -11,13 +11,14 @@ planejamento, ou de uma urgência do coordenador com motivo. A equipe registra, 
 - os registros de campo: unidades no modo "lista por unidade", ou registros avulsos criados pelos
   apps de câmara;
 - as respostas ao checklist, na versão da criação;
-- as constatações manuais;
+- as entradas manuais (na DSB, as constatações manuais);
 - o ponto GPS com precisão, sem travar a captura;
 - as fotos, com e sem marca d'água.
 
 Os registros resultantes são tratados assim:
-- as NCs, determinações e recomendações saem das saídas declaradas no catálogo, por uma
-  consolidação repetível que mantém os identificadores e as edições;
+- os registros gerados (na DSB, constatações, NCs, determinações e recomendações) saem dos tipos e
+  das saídas que a câmara monta no modelo (R-checklists-022), por uma consolidação repetível que
+  mantém os identificadores e as edições, num modelo genérico (`RegistroGerado`);
 - a numeração congela na finalização;
 - o número do termo é atribuído uma vez só;
 - a reabertura exige motivo;

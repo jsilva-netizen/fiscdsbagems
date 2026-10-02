@@ -335,10 +335,12 @@ da spec 003.
 ### R-caters-004 — Ligar a fiscalização e importar as recomendações
 
 - **Comportamento desejado**: o técnico escolhe uma fiscalização finalizada da CATERS, pela consulta
-  da fiscalização, que respeita o alcance dele (R-fiscalizacao-022). O app importa:
-  - cada **recomendação**, com prazo igual à data de fim da fiscalização mais os dias informados
-    (padrão 30), e prioridade média;
-  - cada **determinação**, com prazo igual à data-limite dela (R-fiscalizacao-009).
+  da fiscalização, que respeita o alcance dele (R-fiscalizacao-022). O app importa os registros
+  gerados dos tipos que a CATERS marcou com o papel "acompanhado pela câmara" (R-checklists-019; hoje,
+  as recomendações e as determinações), com prioridade média:
+  - tipo sem prazo (a recomendação): prazo igual à data de fim da fiscalização mais os dias
+    informados (padrão 30);
+  - tipo com prazo (a determinação): prazo igual à data-limite do registro (R-fiscalizacao-009).
 
   No cadastro do processo, escolher a fiscalização preenche o município e o técnico com os dela,
   sugere como prazo de resposta a data de fim da fiscalização mais 30 dias (editável) e põe a

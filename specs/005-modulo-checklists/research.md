@@ -25,15 +25,22 @@ Cada versão guarda a **definição** num campo JSON (PostgreSQL `jsonb`):
 - modo de aplicação;
 - campos: nome, rótulo, tipo, obrigatório, padrão, valores permitidos, papel;
 - respostas: código, rótulo, tipo (opção fixa, número, texto);
-- saídas por resposta: código da saída registrada, condições (todas precisam valer; o modelo da DSB
-  usa até três, como "gera NC" e "determinação" preenchida), mapa campo do item → dado da saída;
+- tipos de registro gerado: sigla, campos, referência, modelo de texto, numeração, ordem, seção do
+  relatório, papéis e edição (R-checklists-022);
+- entrada manual: campos e saídas (R-checklists-023);
+- saídas por resposta: tipo de registro gerado, condições (todas precisam valer; o modelo da DSB usa
+  até três, como "gera NC" e "determinação" preenchida), mapa campo do item ou resposta → campo do
+  registro;
 - formato de planilha: colunas, herança, junção, chave, colunas do catálogo.
 
 A definição é validada em dois passos, num só módulo Python (`checklists/definicao.py`):
 1. **estrutura**, por um JSON Schema versionado no app (`jsonschema`);
 2. **semântica**: campos citados existem, papéis compatíveis com o tipo do campo, chave de importação
    só com campos obrigatórios, peças registradas (K6), nomes de campo únicos e no formato
-   `[a-z][a-z0-9_]*`.
+   `[a-z][a-z0-9_]*`; nos tipos de registro gerado, sigla única, referência a um tipo do modelo sem
+   ciclo, modelo de texto só com campos do tipo e `{ref}`, papéis com as exigências atendidas; nas
+   saídas, quem gera um tipo com referência obrigatória gera também o referenciado, com condições
+   que incluem as dele.
 
 Mudar o modelo cria uma versão nova (R-checklists-017); nenhuma versão é alterada.
 
@@ -102,12 +109,14 @@ da aplicabilidade.
 
 ## K6 — Peças registradas pelos apps
 
-**Decision**: registro em memória `checklists/pecas.py`, carregado no `AppConfig.ready` dos apps:
-- `registrar_saida(codigo, app, nome, dados, depende_de=None)`: `dados` é a lista de (nome, tipo)
-  que a saída recebe (ex.: `fiscalizacao.determinacao`: texto, prazo em dias); `depende_de` é o código
-  de outra saída que precisa sair da mesma resposta junto com ela (ex.: a determinação depende da NC).
-  A validação do modelo (K2) recusa a resposta que declara a dependente sem a outra ou com condições
-  que não incluem as dela (R-checklists-013);
+**Decision**: os tipos de registro gerado não são peças registradas: são montados pela câmara no
+modelo (R-checklists-022). Os apps registram, em memória (`checklists/pecas.py`, carregado no
+`AppConfig.ready`), o que eles sabem fazer com o modelo:
+- `registrar_papel(codigo, app, nome, exigencias)`: o que outro módulo faz com um tipo de registro
+  gerado (ex.: `processo_sancionador.notificado`, que exige campo de prazo;
+  `caters.acompanhado`);
+- `registrar_estilo_secao(codigo, app, nome, colunas)`: como um tipo aparece no relatório (ex.:
+  `fiscalizacao.lista`, `fiscalizacao.quadro_respostas`, `caterf.tabela_laudo`);
 - `registrar_contexto(codigo, app, nome, tipo)` (ex.: `caterf.rodovia_fiscalizacao`);
 - `registrar_modo(codigo, app, nome, tipo)`: `tipo` é um dos dois modos do motor, `lista` ou
   `avulso` (R-checklists-012); a fiscalização registra a vistoria por unidade, a CATERF a ocorrência.

@@ -5,7 +5,7 @@ o ambiente de desenvolvimento do [quickstart do core](../004-modulo-core/quickst
 
 - Usuários: coordenador e fiscal da CATESA, fiscal da CATERS, diretor da DSB, administrador,
   prestador.
-- App de teste: `backend/tests/apps/camara_teste/`, que registra uma saída, um contexto e um modo
+- App de teste: `backend/tests/apps/camara_teste/`, que registra um papel, um estilo de seção, um contexto e um modo
   ([research K13](./research.md)).
 
 ## 1. Testes automáticos
@@ -28,13 +28,18 @@ Esperado:
 
 ## 2. Montar um modelo pela tela (US1)
 
-1. Como coordenador da CATESA, abrir CATESA › Configuração › Checklists › Modelos e montar um modelo com um
-   campo de texto obrigatório, respostas Sim / Não / Não se aplica e a saída de teste em "Não".
-2. Tentar salvar com uma saída que cita um campo inexistente.
-3. Salvar o modelo correto.
+1. Como coordenador da CATESA, abrir CATESA › Configuração › Checklists › Modelos e montar um modelo de
+   avaliação: campo "pergunta" obrigatório; respostas Bom (3), Regular (2), Ruim (1) e Péssimo (0);
+   tipos de registro gerado "Item avaliado" (sem número, estilo quadro de respostas), "Ponto de
+   atenção" (sigla PA, texto) e "Providência" (sigla PV, texto e prazo, referência obrigatória a PA,
+   modelo "Corrigir {ref}. {texto}"); saídas: todas as respostas → Item avaliado; Ruim e Péssimo → PA
+   e PV.
+2. Tentar salvar com Regular → PV sem PA, e depois com PA referenciando PV (ciclo).
+3. Salvar o modelo correto e usar o simulador com "Péssimo".
 
-Esperado: o passo 2 é recusado com o motivo; a prévia mostra o formulário e as colunas da planilha;
-o modelo fica na versão 1 e convive com o "Checklist por tipo de unidade" da CATESA.
+Esperado: os dois casos do passo 2 são recusados com o motivo; o simulador mostra "PA1" e "PV1
+Corrigir PA1. ..." com o prazo; a prévia mostra o formulário, a tela do fiscal e as colunas da
+planilha; o modelo fica na versão 1 e convive com o "Checklist por tipo de unidade" da CATESA.
 
 ## 3. Catálogo, versões e importação (US2, US4)
 

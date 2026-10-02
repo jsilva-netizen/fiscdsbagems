@@ -47,8 +47,9 @@ montar (constituição v2.6.0 a v2.6.2):
 - **Peças do app**:
   - fiscalização e registro de campo (a unidade);
   - execução do modo "lista por unidade" do motor de checklists;
-  - constatações manuais;
-  - geração das NCs, determinações e recomendações a partir das saídas declaradas no catálogo;
+  - entradas manuais (na DSB, as constatações manuais);
+  - geração dos registros (constatações, NCs, determinações, recomendações ou os tipos que a câmara
+    montar) a partir dos tipos e das saídas declarados no modelo (R-checklists-022);
   - numeração;
   - localização (ponto GPS com precisão, sem travar a captura) e fotos;
   - finalização, número do termo e reabertura;
@@ -351,10 +352,11 @@ origem. Um arquivo com unidade de tipo inexistente é recusado com o motivo da l
 - **FR-003**: O app MUST executar o modo "lista por unidade" do motor de checklists e aceitar
   registros avulsos criados por apps de câmara, sem conhecer os dados próprios deles
   (R-fiscalizacao-004, R-fiscalizacao-005).
-- **FR-004**: As NCs, determinações e recomendações MUST ser geradas das saídas declaradas no
-  catálogo e das constatações manuais, de forma repetível, preservando as edições da equipe e
+- **FR-004**: Os registros gerados MUST sair dos tipos e das saídas declarados no modelo da câmara,
+  a partir das respostas e das entradas manuais, de forma repetível, preservando as edições da equipe e
   mantendo o identificador de cada uma enquanto a origem existir (R-fiscalizacao-007).
-- **FR-005**: A numeração de constatações, NCs, determinações e recomendações MUST seguir a
+- **FR-005**: A numeração dos registros gerados (constatações, NCs, determinações, recomendações ou os
+  tipos que a câmara montar) MUST seguir a
   R-fiscalizacao-008 e MUST ficar congelada na finalização.
 - **FR-006**: O app MUST registrar o ponto GPS e as fotos sem rede, com precisão, marca d'água da
   câmara, data e coordenadas, sem travar a captura (R-fiscalizacao-010, R-fiscalizacao-011).
@@ -620,24 +622,25 @@ da spec 003.
   de criação dela (R-checklists-005). As versões já respondidas continuam na vistoria reaberta. Cada
   resposta guarda:
   - a versão do item;
-  - a resposta, com as opções que o catálogo declara (nos modelos da DSB: Sim, Não e Não se
-    aplica, que não gera saída);
-  - a observação;
-  - o **texto da constatação**, copiado do item e editável pelo fiscal.
+  - a resposta, entre as que o modelo declara (opção, nota ou texto; nos modelos da DSB: Sim, Não e
+    Não se aplica, que não gera registro) e, quando há, o valor numérico da opção ou a nota;
+  - a observação.
 
-  Excluir a constatação de uma resposta tira a resposta da contagem de constatações, sem apagar a
-  resposta. Uma resposta por item e unidade. Quem lê o texto é o relatório e a contagem; resposta
-  sem texto de constatação não conta. O texto da constatação termina com ponto e vírgula, acrescentado
-  se faltar, como no relatório de hoje. A tela mostra o progresso da unidade (itens respondidos sobre
-  o total, contando "Não se aplica") e guarda as respostas sem travar a digitação.
+  Uma resposta por item e unidade. Os registros que a resposta gera (R-fiscalizacao-007) aparecem
+  junto do item: o fiscal edita o texto deles (na DSB, o texto da constatação, copiado do item) e
+  pode suprimir um registro, que sai da contagem sem apagar a resposta. A tela mostra o progresso da
+  unidade (itens respondidos sobre o total, contando "Não se aplica") e guarda as respostas sem
+  travar a digitação.
 - **Comportamento atual**:
   - a resposta guarda a pergunta copiada, que a tela deixa editar como texto da constatação;
   - excluir a constatação apaga a pergunta copiada e a marca de NC;
+  - o texto da constatação fica na própria resposta;
   - a resposta é `SIM` ou `NAO` (o servidor aceita `NÃO`);
   - "gera NC" é gravado pela tela a partir do item;
   - há um campo antigo de comentário, que a tela não usa.
 - **Motivo da diferença**: as saídas vêm do catálogo (R-checklists-013), e não de uma marca gravada
-  pela tela; o campo antigo não é levado (divergência classificada).
+  pela tela; o texto da constatação é do registro gerado, e não da resposta (R-checklists-022); o
+  campo antigo não é levado (divergência classificada).
 - **Objetos do catálogo**: `tabela:respostas_checklist`, `coluna:respostas_checklist.id`,
   `coluna:respostas_checklist.unidade_fiscalizada_id`, `coluna:respostas_checklist.item_checklist_id`,
   `coluna:respostas_checklist.resposta`, `coluna:respostas_checklist.pergunta`,
@@ -647,22 +650,25 @@ da spec 003.
 - **Origem**: A-024 (decidido); divergências `coluna:respostas_checklist.comentario`
   (residuo_descartar) e `coluna:respostas_checklist.pergunta` (producao_vale).
 
-### R-fiscalizacao-006 — Constatações manuais
+### R-fiscalizacao-006 — Entradas manuais
 
-- **Comportamento desejado**: o fiscal escreve constatações livres na unidade, com:
+- **Comportamento desejado**: quando o modelo declara uma entrada manual (R-checklists-023), o fiscal
+  cria entradas livres no registro de campo, preenchendo os campos dela, e a fiscalização gera os
+  registros declarados, como faria com uma resposta. As entradas são editáveis, excluíveis e
+  reordenáveis, e os registros que geram entram nas mesmas sequências de numeração.
+
+  Na DSB, a entrada manual é a **constatação manual**:
   - texto (obrigatório);
-  - se geram NC;
-  - o dispositivo normativo, obrigatório quando gera NC, e a descrição da NC (se vazia, o padrão da
-    R-fiscalizacao-007);
+  - se gera NC;
+  - o dispositivo normativo, obrigatório quando gera NC, e a descrição da NC (se vazia, o texto
+    padrão do tipo NC);
   - o texto da determinação, marcada por padrão, com o prazo de 30 dias, editável; ou, sem
     determinação, o da recomendação.
 
-  O texto termina com ponto e vírgula, como nas respostas (R-fiscalizacao-005).
-
-  As constatações manuais são editáveis, excluíveis e reordenáveis, e entram na mesma numeração C
-  das respostas.
-- **Comportamento atual**: igual ao desejado. Produção tem 299, 123 delas gerando NC.
-- **Motivo da diferença**: —
+  O texto da constatação termina com ponto e vírgula, pela regra do tipo (R-checklists-022).
+- **Comportamento atual**: a constatação manual da DSB funciona como descrito, numa tabela fixa.
+  Produção tem 299, 123 delas gerando NC.
+- **Motivo da diferença**: a entrada manual vem do modelo da câmara (R-checklists-023).
 - **Objetos do catálogo**: `tabela:constatacoes_manuais`, `coluna:constatacoes_manuais.id`,
   `coluna:constatacoes_manuais.unidade_fiscalizada_id`, `coluna:constatacoes_manuais.descricao`,
   `coluna:constatacoes_manuais.ordem`, `coluna:constatacoes_manuais.gera_nc`,
@@ -672,44 +678,38 @@ da spec 003.
 - **Origem**: divergências `coluna:constatacoes_manuais.descricao` e
   `coluna:constatacoes_manuais.ordem` (producao_vale).
 
-### R-fiscalizacao-007 — Geração das NCs, determinações e recomendações
+### R-fiscalizacao-007 — Geração dos registros
 
-- **Comportamento desejado**: a consolidação de uma unidade gera os registros a partir de:
-  - as respostas, conforme as **saídas declaradas no catálogo** (R-checklists-013), cujos
-    identificadores (constatação, NC, determinação, recomendação) este app registra no motor;
-  - as constatações manuais, com a mesma lógica.
-
-  Com os modelos de hoje:
-  - **NC**: descrição "Constatação C<n>: não cumprimento do <dispositivo>;", com "artigo
-    aplicável" quando não há dispositivo; na constatação manual, a descrição de NC dela, se houver;
-  - **determinação**: "Sanar NC<n>. <texto>", com o prazo do item (padrão 30 dias). Quando o texto do
-    item já começa com "Sanar" ou "Para sanar", ele é usado como está, só com o número da NC
-    ajustado;
-  - **recomendação**: quando há texto de recomendação e não há de determinação.
+- **Comportamento desejado**: a consolidação de um registro de campo gera os **registros gerados** a
+  partir das respostas e das entradas manuais, conforme as saídas e os tipos que o modelo do catálogo
+  declara (R-checklists-013, R-checklists-022). Cada registro gerado tem o tipo, a origem, os campos
+  do tipo, o texto montado pelo modelo de texto, a referência e o número.
 
   **Regras da consolidação**:
   - é repetível: rodar de novo não duplica nada;
-  - cada NC, determinação e recomendação é identificada pela **origem** (a resposta ou a
-    constatação manual) e mantém o identificador enquanto a origem existir;
-  - textos editados pela equipe e a ordem definida são preservados;
-  - registro cuja origem deixou de gerar a saída (resposta voltou para Sim) é removido.
+  - cada registro é identificado pelo tipo e pela **origem** (a resposta, a entrada manual ou o
+    registro avulso) e mantém o identificador enquanto a origem existir;
+  - textos e prazos editados pela equipe, registros suprimidos e a ordem definida são preservados;
+  - registro cuja origem deixou de gerar o tipo (resposta voltou para Sim) é removido.
 
-  **Referências** (gravadas como vínculo e citadas no texto pelo número): uma saída referencia a
-  outra **da mesma origem**, conforme o que este app registrou no motor (R-checklists-013):
-  - a **NC** referencia a constatação da mesma origem, quando o modelo gera as duas ("Constatação
-    C<n>: ..."); nos modelos da DSB isso sempre acontece; na CATERF, a NC vem da resposta "Não
-    conformidade", sem constatação, e não tem a quem referenciar;
-  - a **determinação** depende da NC: referencia a NC que manda sanar ("Sanar NC<n>. ..."), e não
-    existe determinação sem NC;
-  - a **recomendação** depende da constatação de origem.
+  **Referências**: um registro referencia o registro do tipo referenciado que veio da mesma origem;
+  a referência é gravada como vínculo e citada no texto pelo número (o `{ref}` do modelo de texto).
+  Referência obrigatória sem o referenciado não acontece, porque o modelo não permite
+  (R-checklists-022). Com os modelos de hoje:
+  - **DSB**: a NC referencia a constatação ("Constatação C<n>: não cumprimento do <dispositivo>;",
+    com "artigo aplicável" sem dispositivo; na constatação manual, a descrição de NC dela, se houver);
+    a determinação referencia a NC ("Sanar NC<n>. <texto>", com o prazo do item, padrão 30 dias;
+    texto que já começa com "Sanar" ou "Para sanar" fica como está, só com o número ajustado); a
+    recomendação referencia a constatação e sai quando há texto de recomendação e não de
+    determinação;
+  - **CATERF**: constatação e NC vêm de respostas diferentes e não se referenciam; não há
+    determinação nem recomendação.
 
-  Um modelo que não declara determinação nem recomendação (o da CATERF, hoje) simplesmente não as
-  gera; se passar a declarar, as referências valem sem mudança no app.
-
-  A consolidação roda no servidor ao receber mudanças da unidade, na finalização e antes do
+  A consolidação roda no servidor ao receber mudanças do registro, na finalização e antes do
   relatório. O aparelho mostra o mesmo resultado pela mesma regra, para o trabalho sem rede. A
-  equipe também acrescenta recomendações ligadas a uma constatação e determinações ligadas a uma NC,
-  que ficam com a origem delas.
+  equipe também acrescenta à mão registros de um tipo com referência, ligados a um registro do tipo
+  referenciado (na DSB, determinações ligadas a uma NC e recomendações ligadas a uma constatação),
+  quando o tipo permite.
 - **Comportamento atual**:
   - a função do banco apaga e recria todas as NCs a cada execução, com identificador novo;
   - as determinações perdem e recebem de novo o vínculo com a NC, e o relatório, sem vínculo, acha
@@ -724,7 +724,8 @@ da spec 003.
 - **Motivo da diferença**:
   - NC com identificador estável pode ser citada por outros registros (termo, auto) sem se perder a
     cada finalização;
-  - saídas vindas do catálogo tiram do código a regra de uma câmara (constituição v2.6.0);
+  - saídas e tipos montados pela câmara tiram do código a regra de uma câmara (constituição v2.6.0;
+    R-checklists-022);
   - campos fixos ou sem uso não são levados (A-025, A-035).
 - **Objetos do catálogo**: `funcao:gerar_ncs_unidade(p_unidade_fiscalizada_id uuid, p_fotos jsonb, p_finalizar boolean)`,
   `tabela:nao_conformidades`, `coluna:nao_conformidades.id`,
@@ -742,9 +743,9 @@ da spec 003.
 
 ### R-fiscalizacao-008 — Numeração
 
-- **Comportamento desejado**: cada tipo de saída registrado por este app (constatação, NC,
-  determinação, recomendação) tem a sua **sequência própria, contínua em toda a fiscalização**, do
-  primeiro ao último registro: começa em 1 e não recomeça a cada unidade (ex.: se a unidade 1 termina
+- **Comportamento desejado**: cada tipo de registro gerado numerado (R-checklists-022) tem a sua
+  **sequência, pela sigla, contínua em toda a fiscalização**, do primeiro ao último registro de
+  campo: começa em 1 e não recomeça a cada unidade (ex.: se a unidade 1 termina
   em C5, NC3, D3 e R1, a unidade 2 começa em C6, NC4, D4 e R2). Só existem as sequências dos tipos que
   o modelo gera: na CATERF, hoje, constatações e NCs. A regra é do app e vale para qualquer câmara,
   sem configuração; a forma de mostrar o número é do layout (na DSB, "C6", "NC4"; no laudo da
@@ -754,14 +755,15 @@ da spec 003.
   - dos **registros**: vem do modo do catálogo. Na vistoria por unidade, a definida pela equipe,
     reordenável (por padrão, a de criação). No registro avulso, o critério que o app da câmara
     registra (na CATERF, item do PER, rodovia e KM, como o laudo de hoje), sem reordenação manual;
-  - dentro da unidade, das **constatações**: a definida pelo fiscal, juntando as respostas com texto
-    de constatação e as constatações manuais;
-  - das **NCs**: a das constatações que as originaram ou, sem constatação, a dos registros;
-  - das **determinações**: a das NCs que mandam sanar; várias da mesma NC, na ordem definida pela
-    equipe;
-  - das **recomendações**: a definida pela equipe dentro da unidade; por padrão, a de criação.
+  - dentro do registro de campo, pelo que o tipo define (R-checklists-022): na **ordem do
+    referenciado** (na DSB, as NCs na ordem das constatações e as determinações na ordem das NCs;
+    várias do mesmo referenciado, na ordem da equipe) ou na **ordem da equipe** (na DSB, as
+    constatações, juntando as das respostas e as das entradas manuais, com padrão na ordem dos itens
+    e depois das entradas; e as recomendações, com padrão na ordem de criação); na CATERF, cada
+    registro avulso gera um só registro, e vale a ordem dos registros.
 
-  Os textos que citam números ("Constatação C<n>", "Sanar NC<n>") acompanham a numeração.
+  Os textos que citam números (o `{ref}` dos modelos de texto, como "Constatação C<n>" e "Sanar
+  NC<n>") acompanham a numeração.
 
   A numeração é recalculada enquanto a fiscalização está em andamento e fica **congelada na
   finalização**. A reabertura permite recalcular, e a nova finalização congela de novo. O relatório
@@ -784,19 +786,19 @@ da spec 003.
   `coluna:determinacoes.numero_determinacao`, `coluna:recomendacoes.numero_recomendacao`
 - **Origem**: —
 
-### R-fiscalizacao-009 — Determinações
+### R-fiscalizacao-009 — Registros com prazo
 
-- **Comportamento desejado**: a determinação tem:
-  - texto (editável);
-  - prazo em dias (do item ou da constatação; padrão 30; editável pela equipe);
-  - data-limite, calculada como a criação mais o prazo, como hoje;
-  - número;
-  - origem;
-  - a NC que manda sanar.
+- **Comportamento desejado**: o tipo de registro com campo de **prazo** (R-checklists-022) tem, em
+  cada registro:
+  - prazo em dias (do item ou da entrada manual; padrão do tipo; editável pela equipe, se o tipo
+    permitir);
+  - data-limite, calculada como a criação mais o prazo, como hoje.
 
-  O cumprimento (cumprida, não cumprida, prorrogada) e o acompanhamento são do processo sancionador,
-  que registra a análise nos registros dele e nunca altera a determinação (constituição, "área que
-  consulta não edita").
+  Na DSB, é a determinação (padrão 30 dias); na CATERF, a NC (prazo da cláusula).
+
+  O cumprimento e o acompanhamento são de quem usa o registro pelo papel (R-checklists-019): o
+  processo sancionador, para o tipo "notificado no termo, com prazo". Ele registra a análise nos
+  registros dele e nunca altera o registro gerado (constituição, "área que consulta não edita").
 - **Comportamento atual**:
   - a situação aceita pendente, cumprida, não cumprida e prorrogada, mas nada a muda: as 183 de
     produção estão pendentes;
@@ -979,12 +981,13 @@ da spec 003.
     - cabeçalho "<título da câmara> Nº <termo>" (nas câmaras da DSB, "TERMO DE VISTORIA AGEMS/DSB");
     - informações da fiscalização (município, entidade, serviços, fiscal, datas);
     - resumo executivo;
-    - uma seção por unidade (identificação, endereço, coordenadas, data e hora; constatações, NCs,
-      determinações com prazo, recomendações; registros fotográficos numerados "Figura n –
-      legenda");
-    - o **quadro de respostas**, quando o modelo liga respostas à saída "resposta no relatório": por
-      unidade, cada item com a resposta dada no rótulo definido pela câmara (ex.: "Regular", "nota
-      4") e a observação; com valores ou notas, a soma e a média da unidade e da fiscalização;
+    - uma seção por unidade (identificação, endereço, coordenadas, data e hora; os registros
+      gerados, cada tipo com o título, o estilo e a posição que o modelo define (na DSB:
+      constatações, NCs, determinações com prazo e recomendações); registros fotográficos numerados
+      "Figura n – legenda");
+    - no estilo **quadro de respostas** (ex.: o tipo "Item avaliado" de um checklist de qualidade):
+      por unidade, cada item com a resposta dada no rótulo definido pela câmara (ex.: "Regular",
+      "nota 4") e a observação; com valores ou notas, a soma e a média da unidade e da fiscalização;
     - paginação.
   - **Layouts próprios**: o app de uma câmara pode registrar o seu layout (a CATERF traz o laudo de
     rodovia), e cada câmara escolhe o seu na configuração; câmara sem layout próprio usa o genérico
@@ -1072,10 +1075,10 @@ da spec 003.
   - das finalizadas:
     - unidades;
     - fotos;
-    - constatações (respostas com texto de constatação mais constatações manuais);
-    - NCs;
-    - conformidades (constatações menos NCs);
-    - determinações e recomendações;
+    - registros gerados por tipo, com os nomes da câmara (na DSB: constatações, NCs, determinações
+      e recomendações);
+    - registros de um tipo sem nenhum registro que os referencie (na DSB, as conformidades:
+      constatações sem NC);
   - distribuição por serviço, vistorias por mês e ranking dos 10 municípios com mais
     determinações.
 

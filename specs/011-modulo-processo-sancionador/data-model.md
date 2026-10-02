@@ -82,18 +82,20 @@ A situação (pendente de emissão, aguardando assinatura, aguardando resposta, 
 respondido) é calculada na consulta (N5).
 
 ### DeterminacaoNotificada
-Retrato da determinação na emissão do TN (N4).
+Retrato do registro notificado na emissão do TN (N4): um registro gerado de tipo com o papel
+"notificado no termo, com prazo".
 
 | Campo | Tipo | Regras |
 |---|---|---|
 | id | UUID | |
 | termo | → TermoNotificacao | |
-| determinacao_id | UUID | identificador na fiscalização, sem chave estrangeira; único por termo |
+| determinacao_id | UUID | identificador do registro gerado na fiscalização, sem chave estrangeira; único por termo |
 | registro_id | UUID | registro de campo (unidade) na fiscalização |
-| numero | texto | D<n> |
+| tipo, tipo_nome | texto | tipo de registro gerado e o nome dele na emissão (na DSB, `determinacao`, "Determinação") |
+| numero | texto | <sigla><n> (na DSB, D<n>) |
 | texto | texto | |
 | prazo_dias | inteiro | |
-| nc_texto, constatacao_texto | texto, opcional | |
+| referencias | JSON | cadeia de referências na emissão: sigla, número e texto de cada uma (na DSB, a NC e a constatação) |
 | ordem | inteiro | |
 
 O prazo de cumprimento (início do prazo + `prazo_dias`) e `alterada_depois` são calculados na leitura.
@@ -149,7 +151,7 @@ concluída.
 | analise | → AnaliseManifestacao | a que o gerou |
 | determinacao | → DeterminacaoNotificada | único entre os não cancelados |
 | numero | texto | atribuído na emissão (N3); único |
-| descricao | texto | "Determinação D<n> não atendida: <texto>" |
+| descricao | texto | "<nome do tipo> <sigla><n> não atendida: <texto>" (na DSB, "Determinação D<n> ...") |
 | emitido_em | data e hora | |
 | pena_base_uferms | inteiro, opcional | > 0 |
 | pena_base_rs | decimal, opcional | ≥ 0; > 0 para entrar na remessa |

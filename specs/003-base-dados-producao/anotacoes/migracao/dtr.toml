@@ -68,7 +68,7 @@ transformacao = "Quando houver (o assistente atual não tem o passo): leve, méd
 
 [destino."coluna:unidades_fiscalizadas.tipo_ocorrencia"]
 para = "fiscalizacao.RegistroCampo.resposta"
-transformacao = "`constatacao` (72) e `nc` (6) viram as respostas do modelo 'Ocorrências do PER'."
+transformacao = "`constatacao` (72) e `nc` (6) viram as respostas do modelo 'Ocorrências do PER'; a carga consolida cada ocorrência e cria o registro gerado (C ou NC) com os dados da época (descrição, cláusula, prazo, observação)."
 
 [destino."coluna:unidades_fiscalizadas.frente"]
 para = "caterf.Ocorrencia.frente_epoca"

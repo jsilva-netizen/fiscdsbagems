@@ -29,6 +29,8 @@ da spec.
 | modo de aplicação | lista por unidade |
 | campos do item | pergunta (texto longo, obrigatório, papel título); constatação Sim; constatação Não; gera NC (sim/não, padrão sim); dispositivo normativo; texto da NC; determinação; prazo em dias (inteiro positivo, padrão 30); recomendação |
 | respostas | Sim, Não, Não se aplica (gravada, sem saída; decisão de 2026-10-01) |
+| tipos de registro gerado | constatação (C), não conformidade (NC, referencia a C), determinação (D, referencia a NC, prazo; papel "notificado no termo, com prazo") e recomendação (R, referencia a C), com os textos, a ordem e as seções da spec 005, "Modelos de hoje" |
+| entrada manual | a constatação manual, com os campos e as saídas da spec 005, "Modelos de hoje" |
 | saídas de Sim | constatação com "constatação Sim", se preenchida |
 | saídas de Não | constatação com "constatação Não", se preenchida; NC se "gera NC" e a constatação preenchida, descrita por "dispositivo normativo" (ou "artigo aplicável" se vazio); determinação com "determinação" e "prazo" se "gera NC", "constatação Não" e "determinação" preenchidas; recomendação com "recomendação" se "gera NC", "constatação Não" preenchida, "determinação" vazia e "recomendação" preenchida (R-checklists-013: toda determinação com a sua NC) |
 | saídas de Não se aplica | nenhuma |

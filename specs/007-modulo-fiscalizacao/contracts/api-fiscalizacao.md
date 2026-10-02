@@ -39,18 +39,18 @@ escrita valem para uso com rede e aplicam as mesmas regras e serviços.
 |---|---|
 | `GET fiscalizacoes/{id}/catalogos` | catálogos oferecidos para registro novo (ativos, com item vigente, da câmara, com serviço em comum) |
 | `POST fiscalizacoes/{id}/registros` | `{id?, catalogo_id, nome, codigo?, endereco?, ponto?, data_hora_vistoria?}`; o código é sugerido se vazio |
-| `GET registros/{id}` | registro com os itens na versão da criação, respostas, constatações, NCs, determinações, recomendações e fotos |
+| `GET registros/{id}` | registro com os itens na versão da criação, respostas, entradas manuais, registros gerados (com tipo, sigla, número, referência) e fotos |
 | `PATCH registros/{id}` | nome, código, endereço, ponto, data e hora, ordem; **409** se finalizado fora do modo de edição |
 | `POST fiscalizacoes/{id}/registros/ordem` | `{ordem: [ids]}` |
 | `POST registros/{id}/finalizar` | finaliza o registro |
 | `DELETE registros/{id}` | só com a fiscalização em andamento |
-| `PUT registros/{id}/respostas/{item_versao_id}` | `{valor, observacao?, texto_constatacao?, constatacao_excluida?}` |
-| `POST registros/{id}/constatacoes` · `PATCH`/`DELETE constatacoes/{id}` | constatação manual |
-| `POST registros/{id}/constatacoes/ordem` | reordena respostas e constatações juntas |
-| `POST registros/{id}/determinacoes` | `{origem, descricao, prazo_dias?}`: determinação ligada a uma constatação |
-| `PATCH`/`DELETE determinacoes/{id}` | texto e prazo; editar marca `texto_editado` |
-| `POST registros/{id}/recomendacoes` · `PATCH`/`DELETE recomendacoes/{id}` · `POST registros/{id}/recomendacoes/ordem` | recomendação |
-| `POST registros/{id}/consolidar` | devolve NCs, determinações e recomendações consolidadas e numeradas (a mesma regra da sincronização) |
+| `PUT registros/{id}/respostas/{item_versao_id}` | `{valor, observacao?}` |
+| `POST registros/{id}/entradas` · `PATCH`/`DELETE entradas/{id}` · `POST registros/{id}/entradas/ordem` | entrada manual, com os valores dos campos declarados no modelo |
+| `POST registros/{id}/gerados` | `{tipo, referencia, campos, texto?}`: registro acrescentado à mão, ligado a um registro do tipo referenciado, se o tipo permite |
+| `PATCH registros-gerados/{id}` | texto, prazo, `suprimido`; editar marca `texto_editado`; só o que o tipo permite |
+| `DELETE registros-gerados/{id}` | só os acrescentados à mão |
+| `POST registros/{id}/gerados/ordem` | `{tipo, ids}`: reordena os registros de um tipo com ordem da equipe |
+| `POST registros/{id}/consolidar` | devolve os registros gerados consolidados e numerados (a mesma regra da sincronização) |
 
 ## Endereço sugerido
 
@@ -105,7 +105,7 @@ escrita valem para uso com rede e aplicam as mesmas regras e serviços.
 |---|---|
 | `fiscalizacao(id, usuario)` | processo sancionador, portal e apps de câmara, com o alcance aplicado |
 | `fiscalizacoes_finalizadas(camara, desde, ate)` | processo sancionador (termos) |
-| `registros(fiscalizacao_id)` · `saidas(fiscalizacao_id)` | NCs, determinações (texto, prazo, data-limite) e recomendações |
+| `registros(fiscalizacao_id)` · `registros_gerados(fiscalizacao_id, papel=None, tipos=None)` | registros gerados com tipo, nome e sigla do tipo, número, texto, prazo, data-limite e a cadeia de referências; com `papel`, só os dos tipos que o cumprem (ex.: `processo_sancionador.notificado`, `caters.acompanhado`) |
 | `relatorio_vigente(fiscalizacao_id)` | anexar ao termo |
 | `fiscalizacoes_por_atividade(atividade_ids)` | painel planejado × executado |
 | `resumo_para_entidade(fiscalizacao_id)` · `endereco_foto_para_entidade(fiscalizacao_id, foto_id)` | portal do prestador, depois da regra do termo: unidades (nome, endereço, coordenadas), recomendações, fotos com marca d'água e relatório anexado; sem alcance de usuário; importáveis só pelo `portal_prestador` (import-linter; research V2 da spec 012) |
@@ -118,6 +118,6 @@ A escrita do registro avulso pelos apps de câmara está em [extensoes.md](./ext
 
 | Registro | O que a fiscalização fornece |
 |---|---|
-| `checklists.pecas.registrar_saida` | `fiscalizacao.constatacao`, `fiscalizacao.nc`, `fiscalizacao.determinacao`, `fiscalizacao.recomendacao`, com os dados de cada uma ([research F3](../research.md)) |
+| `checklists.pecas.registrar_estilo_secao` | `fiscalizacao.lista` e `fiscalizacao.quadro_respostas` ([research F3](../research.md)); os tipos de registro gerado vêm do modelo da câmara (R-checklists-022) |
 | `checklists.pecas.registrar_modo` | `fiscalizacao.vistoria_unidade`, do tipo `lista` |
 | `checklists.alcance.registrar_alcance_aparelho` | para um usuário, as câmaras das fiscalizações em que ele está na equipe e as versões de item citadas nas fiscalizações do alcance dele ([research K8 da spec 005](../../005-modulo-checklists/research.md)) |

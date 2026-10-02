@@ -57,11 +57,12 @@ da ligação com a fiscalização (Princípio I).
 
 **Decision**: serviço `importar_da_fiscalizacao(processo, usuario, prazo_dias=30)`, numa transação
 com o processo travado:
-1. lê a fiscalização e as saídas por `fiscalizacao.consultas` (`fiscalizacao`, `saidas`), com o
-   alcance do usuário; recusa fiscalização não finalizada ou de outra câmara;
-2. cria uma recomendação acompanhada para cada saída ainda não importada (chave: tipo + identificador
-   de origem): recomendação com prazo = data de fim da fiscalização + `prazo_dias`, no fuso de MS, e
-   prioridade média; determinação com prazo = `data_limite` dela;
+1. lê a fiscalização e os registros gerados por `fiscalizacao.consultas` (`fiscalizacao`,
+   `registros_gerados(fiscalizacao, papel="caters.acompanhado")`), com o alcance do usuário; recusa
+   fiscalização não finalizada ou de outra câmara;
+2. cria uma recomendação acompanhada para cada registro ainda não importado (chave: tipo +
+   identificador de origem), com prioridade média: tipo sem prazo, prazo = data de fim da
+   fiscalização + `prazo_dias`, no fuso de MS; tipo com prazo, prazo = `data_limite` do registro;
 3. marca `origem_removida_em` nas importadas cuja origem não existe mais, sem apagar;
 4. registra o evento "importação" com as quantidades.
 

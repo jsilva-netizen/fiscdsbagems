@@ -37,7 +37,7 @@ ao da CATESA ([data-model da spec 009](../009-modulo-catesa/data-model.md)), com
 |---|---|---|
 | id | UUID | migrado: o de `caters_recommendations` |
 | processo | → ProcessoAcompanhamento | protegida |
-| origem_tipo | `recomendacao` / `determinacao` / `manual` | |
+| origem_tipo | texto | código do tipo de registro gerado na fiscalização (hoje `recomendacao` ou `determinacao`) ou `manual` |
 | origem_id | UUID, opcional | identificador na fiscalização, sem chave estrangeira (T3); único por processo com o tipo |
 | origem_removida_em | data e hora, opcional | a origem deixou de existir na fiscalização (T4) |
 | codigo_item | texto, opcional | ex.: 3.1.2 |
@@ -139,6 +139,6 @@ ProcessoAcompanhamento.situacao: escolhida pela equipe entre as não encerradas;
 ```text
 core.Municipio ← ProcessoAcompanhamento → core.Usuario (técnico)
 fiscalizacao.Fiscalizacao ← ProcessoAcompanhamento (PROTECT; verificação de documento registrada)
-RecomendacaoAcompanhada ··· origem_id (fiscalizacao.Recomendacao / Determinacao, por consulta)
+RecomendacaoAcompanhada ··· origem_id (fiscalizacao.RegistroGerado com o papel caters.acompanhado, por consulta)
 core.Aviso ← enviado por core.servicos.enviar_aviso (tipos caters.*)
 ```

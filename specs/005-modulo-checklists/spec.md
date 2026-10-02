@@ -266,8 +266,8 @@ prestador não alcança nenhum catálogo.
 - **FR-017**: O coordenador e o fiscal MUST poder copiar para a sua câmara o modelo de outra câmara, gerando uma
   cópia independente; o administrador MUST poder copiar também os catálogos com os itens vigentes
   (R-checklists-018).
-- **FR-018**: As saídas, os valores de contexto e os modos de aplicação oferecidos na montagem MUST
-  ser os registrados pelos apps instalados (R-checklists-019).
+- **FR-018**: Os papéis de registro, os estilos de seção, os valores de contexto e os modos de
+  aplicação oferecidos na montagem MUST ser os registrados pelos apps instalados (R-checklists-019).
 - **FR-019**: O motor MUST oferecer aos apps de câmara um serviço de configuração inicial que valida
   os modelos como a tela de montagem, cria só os que a câmara ainda não tem e nunca altera um modelo
   existente (R-checklists-020).
@@ -276,6 +276,11 @@ prestador não alcança nenhum catálogo.
   nota (R-checklists-013).
 - **FR-021**: As telas do motor MUST aparecer na área de configuração de cada câmara, com a câmara
   fixada pela área, sem o usuário ver o nome do motor (R-checklists-021).
+- **FR-022**: O modelo MUST permitir à câmara montar os tipos de registro gerado, com sigla, campos,
+  referência, modelo de texto, numeração, ordem, seção do relatório e papéis, e o motor MUST recusar
+  referência inválida ou circular (R-checklists-022).
+- **FR-023**: O modelo MUST poder declarar uma entrada manual, com campos e saídas próprios
+  (R-checklists-023).
 
 ### Key Entities
 
@@ -561,26 +566,23 @@ da spec 003. As regras descrevem só peças genéricas; o que cada câmara faz h
       opcional, para somar e tirar média (ex.: Bom = 3, Ruim = 1);
     - **nota**: número com mínimo, máximo e passo (ex.: 0 a 10; 1 a 5);
     - **texto**;
-  - para cada opção, ou para cada **faixa** de nota (ex.: nota até 4), as **saídas**: um
-    identificador de saída, condições opcionais sobre campos do item (campo sim/não verdadeiro, campo
-    preenchido, campo vazio), que precisam valer todas ao mesmo tempo, e os campos que alimentam a
-    saída. A saída pode receber também a própria resposta (rótulo, valor ou nota).
+  - os **tipos de registro gerado**, também montados pela câmara (R-checklists-022);
+  - as **saídas**: para cada opção, ou para cada **faixa** de nota (ex.: nota até 4), os tipos de
+    registro que ela gera, cada um com condições opcionais sobre campos do item (campo sim/não
+    verdadeiro, campo preenchido, campo vazio), que precisam valer todas ao mesmo tempo, e de onde vem
+    cada campo do registro: um campo do item, a resposta dada (rótulo, valor ou nota), um valor fixo
+    ou o que o fiscal digitar.
+
+  O motor guarda e entrega essa declaração sem interpretar: não sabe o que é uma constatação ou uma
+  NC. Quem cria os registros, os numera e os liga uns aos outros é a fiscalização, a partir do que o
+  modelo declarou. O motor só confere a coerência: a resposta que gera um tipo com referência
+  obrigatória precisa gerar também o tipo referenciado, com condições que incluam as dele; senão o
+  registro sairia sem ter a quem se referir.
 
   Assim, um checklist de avaliação de qualidade ("Bom, Regular, Ruim, Péssimo" ou nota de 1 a 5) é
-  só outro modelo: a câmara define as respostas, liga "Ruim" e "Péssimo" (ou nota até 2) a uma
-  constatação ou NC, se quiser, e liga todas à saída que põe a resposta no quadro do relatório
-  (R-fiscalizacao-016).
-
-  Os identificadores de saída (constatação, NC, determinação, recomendação...) são definidos pelo app
-  que aplica o catálogo; o motor os guarda e entrega sem interpretar. Assim, o motor não sabe o que é
-  uma NC: quem gera os registros, os numera e os liga uns aos outros é a fiscalização, a partir do que
-  o modelo declarou.
-
-  **Dependência entre saídas**: o app que registra uma saída pode dizer que ela **depende** de outra
-  (ex.: a fiscalização registra que a determinação depende da NC). O motor só confere a declaração:
-  recusa o modelo em que uma resposta declara a saída dependente sem a outra, ou com condições que não
-  incluem as da outra (a dependente poderia sair sozinha). Um modelo que não declara a saída
-  dependente (ex.: o da CATERF, sem determinação) não é afetado.
+  só outro modelo: a câmara define as respostas e um tipo "Item avaliado", sem número, que aparece no
+  relatório como quadro de respostas com a média; liga todas as respostas a ele e, se quiser, liga
+  "Ruim" e "Péssimo" (ou nota até 2) a uma constatação.
 - **Comportamento atual**: as regras estão fixas no código de telas diferentes. Na DSB, as respostas
   são `SIM` e `NAO` (o servidor aceita também `NÃO`), e a regra "Não gera NC se o item gera NC;
   determinação se houver texto, senão recomendação" está no código. Na DTR, a ocorrência grava
@@ -625,19 +627,24 @@ da spec 003. As regras descrevem só peças genéricas; o que cada câmara faz h
   saídas (R-checklists-013), papéis de campo (R-checklists-014) e formato de planilha
   (R-checklists-006). O coordenador e o fiscal da câmara e o administrador montam e alteram o modelo numa tela
   do motor, **visual, de arrastar e soltar** (decisão do responsável, 2026-10-02):
-  - uma paleta com as peças: tipos de campo do motor e as saídas, os contextos e os modos registrados
-    pelos apps instalados;
+  - uma paleta com as peças: tipos de campo e de resposta do motor, e os papéis, os estilos de seção
+    do relatório, os contextos e os modos registrados pelos apps instalados (R-checklists-019);
   - o **item**: os campos arrastados da paleta, na ordem em que aparecem no formulário, cada um com as
     suas propriedades (rótulo, obrigatório, padrão, valores permitidos, papel na aplicação);
-  - as **respostas**: cada resposta recebe as saídas arrastadas da paleta; em cada saída, os dados são
-    ligados arrastando os campos do item (ex.: o texto da determinação ← campo "determinação") e as
-    condições são escolhidas entre os campos (ex.: "gera NC" verdadeiro, "constatação Não"
-    preenchida);
+  - os **registros gerados**: cada tipo montado como um bloco, com nome, sigla, campos, referência
+    (ligada arrastando até o bloco de outro tipo), modelo de texto, numeração, ordem, seção do
+    relatório e papéis (R-checklists-022);
+  - as **respostas**: cada resposta recebe os tipos de registro arrastados; em cada um, os campos do
+    registro são ligados arrastando os campos do item (ex.: o texto da determinação ← campo
+    "determinação") e as condições são escolhidas entre os campos (ex.: "gera NC" verdadeiro,
+    "constatação Não" preenchida);
+  - a **entrada manual**, se houver: os campos dela e os registros que ela gera (R-checklists-023);
   - a **planilha**: as colunas ligadas aos campos, também arrastando;
   - a **prévia ao vivo** do formulário de item (como a equipe vai preencher os textos), da tela do
     fiscal (como vai responder ou escolher o item) e da planilha modelo;
-  - o **simulador**: com um item de exemplo, escolher uma resposta e ver as saídas que sairiam, com os
-    textos, e o que faltaria (ex.: "determinação sem NC: falta a condição da constatação").
+  - o **simulador**: com um item de exemplo, escolher uma resposta e ver os registros que sairiam,
+    numerados e com os textos montados, e o que faltaria (ex.: "determinação sem NC: falta a
+    condição da constatação").
 
   Todo arrasto tem equivalente por teclado e botão (acessibilidade). Os problemas aparecem durante a
   montagem, e o servidor confere de novo ao salvar. O motor valida ao
@@ -708,9 +715,14 @@ da spec 003. As regras descrevem só peças genéricas; o que cada câmara faz h
 ### R-checklists-019 — Peças registradas pelos apps
 
 - **Comportamento desejado**: a tela de montagem oferece as peças do próprio motor (tipos de campo,
-  papéis, tipos de resposta, recursos de planilha) e as que os apps instalados registram:
-  - **saídas**: o que uma resposta pode gerar e quais dados cada saída recebe (a fiscalização
-    registra constatação, NC, determinação e recomendação);
+  papéis de campo, tipos de resposta, tipos de registro gerado, recursos de planilha) e as que os
+  apps instalados registram:
+  - **papéis de registro**: o que outro módulo faz com um tipo de registro gerado e o que exige dele
+    (o processo sancionador registra "notificado no termo, com prazo", que exige campo de prazo; a
+    CATERS, "acompanhado pela câmara"). A câmara marca, no tipo, os papéis que ele cumpre;
+  - **estilos de seção do relatório**: como um tipo aparece no relatório (a fiscalização registra
+    "lista por registro de campo" e "quadro de respostas", com soma e média; o app da CATERF, a
+    "tabela do laudo");
   - **valores de contexto**: o que o app que aplica o catálogo informa para filtrar itens pela
     aplicabilidade (o app da CATERF registra "rodovia da fiscalização");
   - **modos de aplicação**: qual app executa cada modo (a fiscalização executa "lista por unidade";
@@ -765,6 +777,60 @@ da spec 003. As regras descrevem só peças genéricas; o que cada câmara faz h
 - **Objetos do catálogo**: — (composição de telas; não há objeto no banco)
 - **Origem**: decisão do responsável, 2026-10-02.
 
+### R-checklists-022 — Tipos de registro gerado, montados pela câmara
+
+- **Comportamento desejado**: cada modelo define os tipos de registro que as respostas e as entradas
+  manuais geram, como peças de lego (decisão do responsável, 2026-10-02). Cada tipo tem:
+  - **código, nome e sigla** (ex.: Constatação "C", Não conformidade "NC", Determinação "D",
+    Recomendação "R", ou outro, como Ponto de atenção "PA");
+  - **campos do registro** (ex.: texto, dispositivo, observação, prazo em dias), com o tipo de cada
+    um; no máximo um campo com o papel **prazo**, que dá a data-limite;
+  - **referência**: o tipo a que ele se refere (ex.: a NC à constatação, a determinação à NC),
+    obrigatória ou opcional; cada registro referencia o registro desse tipo que veio da mesma origem;
+  - **modelo de texto**: como o texto do registro é montado com os campos e o número da referência
+    (ex.: "Constatação {ref}: não cumprimento do {dispositivo};", "Sanar {ref}. {texto}"), um texto
+    para quando um campo está vazio (ex.: "artigo aplicável"), a pontuação final (ex.: ";") e os
+    começos de texto que dispensam o modelo (ex.: texto do item que já começa com "Sanar" ou "Para
+    sanar" é usado como está, com o número ajustado);
+  - **numeração**: pela sigla, em sequência contínua na fiscalização (R-fiscalizacao-008), ou sem
+    número;
+  - **ordem** dentro do registro de campo: a do registro referenciado ou a definida pela equipe;
+  - **no relatório**: se aparece, com que título, em que estilo (R-checklists-019), em que posição e
+    com quais colunas;
+  - **papéis** em outros módulos, entre os registrados (R-checklists-019), com as exigências
+    atendidas;
+  - o que a equipe pode fazer: **editar** o texto e o prazo, **suprimir** o registro (sai da contagem
+    e do relatório sem apagar a origem) e **acrescentar** um registro à mão, ligado a um registro do
+    tipo referenciado.
+
+  O editor confere ao montar: sigla única no modelo; referência a um tipo do mesmo modelo, sem ciclo;
+  modelo de texto que cita só campos do tipo e a referência; papéis com as exigências atendidas.
+  Mudar um tipo cria versão do modelo (R-checklists-017) e vale para registros novos. Tipos de modelos
+  diferentes com a mesma sigla compartilham a sequência numa fiscalização, que pode ter unidades de
+  catálogos de modelos diferentes.
+- **Comportamento atual**: não há tipos. Constatação, NC, determinação e recomendação são colunas,
+  tabelas e regras fixas no código, com os textos "Constatação C<n>: não cumprimento do ..." e "Sanar
+  NC<n>." montados pela função do banco e pelo relatório; a DTR grava constatação ou NC na própria
+  ocorrência.
+- **Motivo da diferença**: decisão do responsável (2026-10-02): a montagem é um lego em que a câmara
+  define também o que é gerado e quem referencia quem; um checklist novo (ex.: avaliação de
+  qualidade) ou uma câmara nova não exige código.
+- **Objetos do catálogo**: — (conceito novo; as tabelas de hoje estão nas regras da spec 007)
+- **Origem**: decisão do responsável, 2026-10-02.
+
+### R-checklists-023 — Entrada manual declarada no modelo
+
+- **Comportamento desejado**: o modelo pode declarar uma **entrada manual**: um formulário com campos
+  próprios, montados como os do item, e as saídas que ele gera, com condições, como uma resposta. O
+  fiscal cria quantas entradas quiser num registro de campo, e a fiscalização gera os registros como
+  faria com uma resposta (R-fiscalizacao-006). Na DSB, a entrada manual é a constatação manual de
+  hoje.
+- **Comportamento atual**: a constatação manual é uma tabela fixa, com os campos da DSB.
+- **Motivo da diferença**: lego (decisão do responsável, 2026-10-02): a entrada manual de uma câmara
+  não fica presa ao formato da DSB.
+- **Objetos do catálogo**: — (conceito novo; a tabela de hoje está na R-fiscalizacao-006)
+- **Origem**: decisão do responsável, 2026-10-02.
+
 ## Modelos de hoje
 
 Configuração inicial que preserva o que o sistema atual faz, entregue na implantação pelo app de
@@ -788,6 +854,22 @@ implantação, cada câmara a mantém na tela de montagem.
 | prazo (dias) | número inteiro | positivo; padrão 30 | — | `coluna:itens_checklist.prazo_dias` |
 | recomendação | texto longo | — | — | `coluna:itens_checklist.texto_recomendacao` |
 
+- **Registros gerados** (todos numerados pela sigla, contínuos na fiscalização):
+
+| Tipo | Sigla | Campos | Referência | Modelo de texto | Ordem | Relatório | Papéis |
+|---|---|---|---|---|---|---|---|
+| Constatação | C | texto (editável; suprimível) | — | o texto, terminado em ";" | a do fiscal; padrão: itens, depois entradas manuais | "Constatações", lista por unidade | — |
+| Não conformidade | NC | dispositivo, descrição | Constatação, obrigatória | "Constatação {ref}: não cumprimento do {dispositivo};" ("artigo aplicável" sem dispositivo); com descrição preenchida, a descrição | a da constatação | "Não conformidades", lista por unidade | — |
+| Determinação | D | texto, prazo em dias (papel prazo; padrão 30; editáveis) | NC, obrigatória | "Sanar {ref}. {texto}"; texto que começa com "Sanar" ou "Para sanar" fica como está, com o número ajustado | a da NC; várias da mesma NC, a da equipe | "Determinações", lista por unidade, com prazo | notificado no termo, com prazo; na CATERS, também acompanhado pela câmara |
+| Recomendação | R | texto (editável) | Constatação, obrigatória | o texto | a da equipe; padrão: a de criação | "Recomendações", lista por unidade | na CATERS, acompanhado pela câmara |
+
+  A equipe acrescenta à mão determinações ligadas a uma NC e recomendações ligadas a uma
+  constatação.
+- **Entrada manual** (a constatação manual): descrição (obrigatória), gera NC (sim/não), dispositivo
+  normativo (obrigatório com "gera NC"), descrição da NC, determinação (marcada por padrão), prazo
+  (padrão 30), recomendação. Saídas: constatação com a descrição; NC com o dispositivo e a descrição
+  da NC, se "gera NC"; determinação com o texto e o prazo, se "gera NC" e determinação marcada;
+  recomendação, se "gera NC", sem determinação e com recomendação.
 - **Respostas e saídas** (conferidas no código de hoje, varredura de 2026-10-01):
   - Sim → constatação, com "constatação Sim", se ela estiver preenchida.
   - Não → constatação, com "constatação Não", se ela estiver preenchida; NC, se "gera NC" e
@@ -827,9 +909,18 @@ implantação, cada câmara a mantém na tela de montagem.
   aparece como etiqueta; a lista mostra a etiqueta quando a cláusula está preenchida.
 - **Item livre**: permitido. Na escolha do item do PER, a opção "Outros" deixa o fiscal digitar o
   item do PER e a descrição; cláusula e prazo ficam para ele preencher (varredura de 2026-10-01).
+- **Registros gerados** (numerados pela sigla, contínuos na fiscalização, na ordem de item do PER,
+  rodovia e KM que o app da CATERF registra):
+
+| Tipo | Sigla | Campos | Referência | Modelo de texto | Relatório | Papéis |
+|---|---|---|---|---|---|---|
+| Constatação | C | descrição, observação | — | a descrição | tabela "Constatações" do laudo | — |
+| Não conformidade | NC | descrição, cláusula não atendida, prazo em dias (papel prazo), observação | — | a descrição | tabela "Não conformidades" do laudo | — |
+
+  Sem determinação, recomendação nem entrada manual (o registro avulso já é a entrada do fiscal).
 - **Respostas e saídas**: Constatação → constatação, com "descrição" e "observação-padrão"; Não
-  conformidade → NC, com "cláusula não atendida", "prazo padrão" e "observação-padrão". As duas
-  respostas valem para qualquer item; a cláusula e o prazo aparecem ao fiscal na escolha.
+  conformidade → NC, com "descrição", "cláusula não atendida", "prazo padrão" e "observação-padrão".
+  As duas respostas valem para qualquer item; a cláusula e o prazo aparecem ao fiscal na escolha.
 - **Planilha**: rodovia, frente, item do PER, descrição, cláusula não atendida, prazo, etapa de obra.
   Herança de células vazias em rodovia, frente, item do PER e descrição; junção de linhas com a mesma
   chave em "etapas de obra". Chave: rodovias + frente + item do PER + descrição. Arquivo modelo com as

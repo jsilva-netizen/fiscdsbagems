@@ -62,6 +62,7 @@ pode chamar cada rota está em [matriz-acesso.md](./matriz-acesso.md). O app é 
 | App | Registro | O que a CATERS fornece |
 |---|---|---|
 | fiscalização | `registrar_verificacao_documento("caters", funcao)` | a fiscalização com processo da CATERS não é excluída (T3) |
+| checklists | `registrar_papel("caters.acompanhado")` | "acompanhado pela câmara": a CATERS marca os tipos de registro gerado que entram no acompanhamento (hoje, recomendação e determinação) |
 | core | `core.avisos.registrar_tipo` | `caters.resposta_atrasada`, `caters.recomendacao_vencida`, `caters.aguardando_analise` (T9) |
 | core (frontend) | menu, início e painel (R-core-025) | Processos, Recomendações e o painel da CATERS, para a CATERS, o diretor da DSB e o administrador |
 | checklists, fiscalização, planejamento | configuração inicial | o pacote, pelo comando |
@@ -70,5 +71,5 @@ pode chamar cada rota está em [matriz-acesso.md](./matriz-acesso.md). O app é 
 
 | App | Consulta |
 |---|---|
-| fiscalização | `fiscalizacoes_finalizadas(camara, desde, ate)`, `fiscalizacao(id, usuario)`, `saidas(fiscalizacao_id)`, `relatorio_vigente(fiscalizacao_id)` |
+| fiscalização | `fiscalizacoes_finalizadas(camara, desde, ate)`, `fiscalizacao(id, usuario)`, `registros_gerados(fiscalizacao_id, papel="caters.acompanhado")`, `relatorio_vigente(fiscalizacao_id)` |
 | processo sancionador | `consultas.contagem_termos(usuario, camara)` ([API da 011](../../011-modulo-processo-sancionador/contracts/api-sancionador.md)) |

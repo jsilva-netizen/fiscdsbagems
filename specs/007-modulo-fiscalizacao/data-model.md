@@ -99,7 +99,6 @@ A unidade vistoriada ou o registro avulso.
 | item_livre | JSON, opcional | modo avulso com item livre: níveis de agrupamento escolhidos ou digitados e a descrição (R-fiscalizacao-004) |
 | resposta | texto, opcional | modo avulso: código da resposta declarada |
 | tipo_avulso | texto, opcional | código registrado pelo app da câmara (F7); define o critério de ordem dos registros avulsos (F5) |
-| numero_constatacao | inteiro, opcional | modo avulso, quando a resposta gera constatação: C<n> na fiscalização (F5) |
 | nome | texto | |
 | codigo | texto | único na fiscalização quando preenchido |
 | endereco | texto, opcional | |
@@ -125,65 +124,43 @@ A unidade vistoriada ou o registro avulso.
 | valor | texto | código da opção declarada no catálogo (nos modelos da DSB, `sim`, `nao` e `na`), a nota ou o texto |
 | valor_numerico | decimal, opcional | o valor da opção ou a nota, para soma e média no quadro de respostas |
 | observacao | texto, opcional | |
-| texto_constatacao | texto, opcional | copiado do item, editável |
-| constatacao_excluida | booleano | fora da contagem sem apagar a resposta |
-| ordem_constatacao | inteiro | |
-| numero_constatacao | inteiro, opcional | C<n> na fiscalização; calculado (F5) |
 | criado_em, atualizado_em | data e hora | |
 
-### ConstatacaoManual
+### EntradaManual
+A entrada livre do fiscal declarada no modelo (R-checklists-023); na DSB, a constatação manual.
+
 | Campo | Tipo | Regras |
 |---|---|---|
-| id | UUID | |
+| id | UUID | migrado: o de `constatacoes_manuais` |
 | registro | → RegistroCampo | |
-| descricao | texto | obrigatória |
-| gera_nc | booleano | |
-| dispositivo | texto, opcional | |
-| descricao_nc | texto, opcional | se vazia, a padrão (R-fiscalizacao-007) |
-| texto_determinacao | texto, opcional | |
-| texto_recomendacao | texto, opcional | usado sem determinação |
-| ordem_constatacao | inteiro | |
-| numero_constatacao | inteiro, opcional | C<n> na fiscalização; calculado (F5) |
+| versao_modelo_id | UUID | versão do modelo do catálogo que define o formulário |
+| valores | JSON | um valor por campo da entrada, validado pela definição |
+| ordem | inteiro | reordenável |
 | criado_em, atualizado_em | data e hora | |
 
-### NaoConformidade
-| Campo | Tipo | Regras |
-|---|---|---|
-| id | UUID | estável enquanto a origem existir (F4) |
-| registro | → RegistroCampo | |
-| origem | texto | `resposta:<id>`, `constatacao:<id>` ou, no modo avulso, `registro:<id>`; única por registro |
-| resposta | → Resposta, opcional | a constatação da mesma origem que a NC referencia, quando o modelo gera as duas |
-| constatacao_manual | → ConstatacaoManual, opcional | |
-| descricao | texto | "Constatação C<n>: ..."; o número acompanha a numeração |
-| dispositivo | texto, opcional | |
-| numero | inteiro, opcional | NC<n> na fiscalização |
-| criado_em, atualizado_em | data e hora | |
+### RegistroGerado
+Constatações, NCs, determinações, recomendações e qualquer tipo que a câmara montar
+(R-checklists-022, F3).
 
-### Determinacao
 | Campo | Tipo | Regras |
 |---|---|---|
-| id | UUID | |
+| id | UUID | estável enquanto a origem existir (F4); migrado: o da NC, da determinação ou da recomendação de produção |
 | registro | → RegistroCampo | |
-| origem | texto | única por registro |
-| nao_conformidade | → NaoConformidade | obrigatória (a determinação depende da NC, R-checklists-013): a NC da mesma origem que ela manda sanar; religada na consolidação |
-| descricao | texto | "Sanar NC<n>. <texto>"; o número acompanha a numeração |
-| texto_editado | booleano | a consolidação preserva |
-| prazo_dias | inteiro | > 0; padrão do item ou 30 |
-| data_limite | data | criação + prazo |
-| ordem | inteiro | entre as determinações da mesma NC |
-| numero | inteiro, opcional | D<n> na fiscalização |
-| criado_em, atualizado_em | data e hora | |
-
-### Recomendacao
-| Campo | Tipo | Regras |
-|---|---|---|
-| id | UUID | |
-| registro | → RegistroCampo | |
-| origem | texto | única por registro; a constatação que a recomendação referencia |
-| descricao | texto | |
-| texto_editado | booleano | |
-| ordem | inteiro | dentro do registro |
-| numero | inteiro, opcional | R<n> na fiscalização |
+| tipo | texto | código do tipo no modelo |
+| versao_modelo_id | UUID | versão do modelo que define o tipo |
+| sigla | texto | copiada do tipo; define a sequência (F5) |
+| origem | texto | `resposta:<id>`, `manual:<id>` ou, no modo avulso, `registro:<id>`; único com registro e tipo, salvo nos acrescentados à mão |
+| referencia | → RegistroGerado, opcional | o registro do tipo referenciado, da mesma origem ou escolhido pela equipe; obrigatória quando o tipo exige; religada na consolidação |
+| campos | JSON | valores dos campos do tipo (ex.: dispositivo, observação) |
+| texto | texto | montado pelo modelo de texto; o número da referência acompanha a numeração |
+| prazo_dias | inteiro, opcional | quando o tipo tem campo de prazo; > 0 |
+| data_limite | data, opcional | criação + prazo |
+| texto_editado | booleano | a consolidação preserva texto e prazo |
+| suprimido | booleano | fora da contagem e do relatório sem apagar a origem |
+| acrescentado | booleano | criado à mão pela equipe, ligado a um referenciado |
+| ordem | inteiro | |
+| numero | inteiro, opcional | <sigla><n> na fiscalização (F5); vazio quando o tipo não é numerado |
+| legado | lista de textos | |
 | criado_em, atualizado_em | data e hora | |
 
 ### Foto
@@ -243,8 +220,9 @@ Uma linha por versão (F10).
 CamaraTecnica 1──1 ConfiguracaoFiscalizacao
 Fiscalizacao 1──* MembroEquipe *──1 Usuario
 Fiscalizacao 1──* Reabertura; 1──* Relatorio; 1──* RegistroCampo
-RegistroCampo 1──* Resposta, ConstatacaoManual, NaoConformidade, Determinacao, Recomendacao, Foto
-Determinacao *──0..1 NaoConformidade
+RegistroCampo 1──* Resposta, EntradaManual, RegistroGerado, Foto
+RegistroGerado *──0..1 RegistroGerado (referência)
+RegistroGerado ··· tipo, versao_modelo_id (checklists, por consulta)
 Fiscalizacao ··· atividade_id (planejamento, por consulta)
 RegistroCampo ··· catalogo_id, item_versao_id (checklists, por consulta)
 RegistroCampo ←── registro próprio do app da câmara (ex.: ocorrência da CATERF)

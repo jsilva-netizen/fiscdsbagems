@@ -505,6 +505,8 @@ Cada regra segue o molde `formatos/spec-modulo.md` da spec 003. O identificador 
     referência às fotos;
   - a seção **"Não conformidades"**, com a tabela: item, rodovia, KM, sentido, não conformidade,
     cláusula não atendida, prazo e observação;
+  - cada tabela é a seção de um tipo de registro gerado do modelo da CATERF (constatação e NC), no
+    estilo "tabela do laudo" que o app registra no motor (R-checklists-019, R-checklists-022);
   - o "item" de cada tabela é o número da constatação e o da NC na numeração contínua da fiscalização
     (R-fiscalizacao-008), com os registros na ordem que o app registra: item do PER, rodovia e KM;
     o modelo não declara determinação nem recomendação, e o laudo não tem essas seções;

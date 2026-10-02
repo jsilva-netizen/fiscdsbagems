@@ -53,18 +53,18 @@ arquivo).
 
 ## F3 — Execução do catálogo e das saídas
 
-**Decision**: a fiscalização registra no motor de checklists os identificadores de saída que ela
-interpreta (R-checklists-019), cada um com os dados que recebe:
-- `fiscalizacao.constatacao` (texto);
-- `fiscalizacao.nc` (dispositivo, descrição);
-- `fiscalizacao.determinacao` (texto, prazo em dias), `depende_de` = `fiscalizacao.nc`;
-- `fiscalizacao.recomendacao` (texto), `depende_de` = `fiscalizacao.constatacao`;
-- `fiscalizacao.resposta_relatorio` (texto do item, resposta dada: rótulo, valor ou nota): põe a
-  resposta no quadro de respostas do relatório (R-fiscalizacao-016); não é numerada nem consolidada
-  como registro, é lida das respostas na montagem do relatório.
+**Decision**: a fiscalização não tem tipos de saída próprios: os tipos de registro gerado vêm do
+modelo da câmara (R-checklists-022), e ela interpreta qualquer tipo montado. O que ela registra no
+motor (R-checklists-019):
+- o modo "lista por unidade";
+- os estilos de seção do relatório `fiscalizacao.lista` (lista por registro de campo) e
+  `fiscalizacao.quadro_respostas` (item, resposta no rótulo da câmara, observação; soma e média
+  quando há valor ou nota).
 
-Cada um tem a sua sequência de numeração e o seu prefixo (C, NC, D, R), definidos aqui, no app, e
-não no motor (F5).
+Ela guarda tudo num modelo genérico, `RegistroGerado` (tipo, sigla, origem, referência, campos,
+texto, prazo, número), e monta o texto pelo modelo de texto do tipo. Os papéis (R-checklists-019)
+dizem a outros apps quais tipos eles consomem: as consultas `registros_gerados(fiscalizacao, papel)`
+devolvem os registros dos tipos com o papel pedido.
 
 O registro do modo "lista por unidade" também é dela. Para montar a unidade, ela pede ao motor as
 versões vigentes do catálogo na data de criação da unidade e guarda, em cada resposta, a versão
@@ -73,19 +73,25 @@ respondida. As regras de cada resposta vêm da declaração do modelo, lida pelo
 **Rationale**: R-fiscalizacao-005 e R-fiscalizacao-007; o motor não sabe o que é uma NC
 (R-checklists-013).
 
-**Alternatives considered**: a regra "Não com NC gera determinação ou recomendação" no código da
-fiscalização. Descartada porque chumba o modelo da DSB no app comum.
+**Alternatives considered**:
+- a regra "Não com NC gera determinação ou recomendação" no código da fiscalização: chumba o modelo
+  da DSB no app comum;
+- quatro tipos fixos (constatação, NC, determinação, recomendação) registrados pela fiscalização,
+  com só as referências e os textos configuráveis: não atende à montagem completa pela câmara
+  (decisão do responsável, 2026-10-02).
 
 ## F4 — Consolidação: um algoritmo puro, o mesmo no servidor e no aparelho
 
 **Decision**: a consolidação é uma função pura em `fiscalizacao/consolidacao.py`:
-- **entradas**: as respostas e constatações manuais do registro, as declarações de saída das versões
-  respondidas e os registros já existentes (NCs, determinações, recomendações);
-- **saída**: o conjunto desejado, indexado pela `origem` (`resposta:<id>` ou `constatacao:<id>`).
+- **entradas**: as respostas e as entradas manuais do registro (ou o registro avulso), as
+  declarações de saída e de tipos das versões do modelo e os registros gerados já existentes;
+- **saída**: o conjunto desejado, indexado por tipo e `origem` (`resposta:<id>`, `manual:<id>`,
+  `registro:<id>`), com os textos montados pelos modelos de texto.
 
 Aplicar o resultado cria o que falta, atualiza os textos não editados (`texto_editado` falso),
 preserva os editados e a ordem, e remove o que perdeu a origem. O identificador de cada registro
-existente é mantido, e a determinação é religada à NC da mesma origem.
+existente é mantido, e cada registro é religado ao referenciado da mesma origem. Os acrescentados
+à mão e os suprimidos são preservados.
 
 A mesma função existe em TypeScript no aparelho, para o trabalho sem rede. As duas implementações
 rodam **os mesmos casos de teste**, num arquivo JSON compartilhado (pytest e Vitest). O servidor
@@ -106,21 +112,18 @@ acontecer com contas feitas à parte.
 
 ## F5 — Numeração
 
-**Decision**: a função `numerar(fiscalizacao)` percorre os registros com um contador por tipo de
-saída registrado, que **não recomeça** a cada registro. A ordem dos registros vem do modo: na lista
+**Decision**: a função `numerar(fiscalizacao)` percorre os registros de campo com um contador por
+sigla dos tipos numerados, que **não recomeça** a cada registro. A ordem dos registros vem do modo: na lista
 por unidade, a `ordem` (depois a criação); no avulso, a chave de ordenação que o app da câmara
 registrou para o `tipo_avulso` (`registrar_ordem_registros`, contrato de extensões; a CATERF registra
-item do PER, rodovia e KM). Ela atribui:
-- as constatações, pela `ordem_constatacao` dentro do registro (respostas com texto de constatação e
-  constatações manuais juntas);
-- as NCs, na ordem das constatações que as originaram ou, sem constatação na origem (modo avulso
-  da CATERF), na ordem dos registros;
-- as determinações, na ordem das NCs que mandam sanar e, na mesma NC, pela `ordem` delas;
-- as recomendações, pela `ordem` delas dentro do registro.
+item do PER, rodovia e KM). Dentro de cada registro de campo, numera primeiro os tipos sem referência e depois os que
+referenciam, cada registro pela ordem que o tipo define: a `ordem` da equipe, ou a do referenciado
+e, no mesmo referenciado, a `ordem`. Na DSB, isso dá C pela ordem do fiscal, NC pela da constatação,
+D pela da NC e R pela da equipe; na CATERF, um registro gerado por registro avulso, na ordem dos
+registros.
 
-Os textos que citam números ("Constatação C<n>", "Sanar NC<n>") são reescritos só na parte do
-número. As referências são vínculos: NC → resposta ou constatação manual; determinação → NC
-(obrigatória); recomendação → origem. A função roda
+Os textos que citam números (o `{ref}` dos modelos de texto) são reescritos só na parte do número.
+As referências são vínculos entre registros gerados (R-checklists-022). A função roda
 junto com a consolidação enquanto `numeracao_congelada` é falso. A finalização a liga, e a
 reabertura a desliga.
 
@@ -411,8 +414,14 @@ checklists e o app da CATERF. Regras:
   reproduz a conta do relatório de hoje (registros por ordem e criação; constatações pelo número
   gravado e pela criação; NCs pela constatação; determinações pela NC; nos registros avulsos da CATERF, item do PER, rodovia e KM, como o laudo), e os gravados ficam no
   `legado`; a numeração das finalizadas fica congelada;
-- a origem das NCs é reconstruída: com `resposta_checklist_id`, `resposta:<id>`; sem ela, pela
-  constatação manual da mesma unidade com NC, na ordem do número;
+- NCs, determinações e recomendações viram `RegistroGerado` dos tipos `nc`, `determinacao` e
+  `recomendacao` do modelo da câmara, com os mesmos identificadores; as constatações (respostas com
+  texto e constatações manuais) viram `RegistroGerado` do tipo `constatacao`, com identificador novo;
+  as constatações manuais viram `EntradaManual`; as ocorrências da DTR geram, na carga, a
+  constatação ou a NC com os dados da época (spec 008);
+- a origem e a referência das NCs são reconstruídas: com `resposta_checklist_id`, `resposta:<id>`;
+  sem ela, pela constatação manual da mesma unidade com NC, na ordem do número; a NC referencia a
+  constatação da mesma origem, e a determinação, a NC;
 - a lista de fotos vira linhas de `Foto`, na mesma ordem, com o checksum calculado na cópia;
 - os relatórios em partes viram versões com `partes_legado`;
 - registros que as regras novas recusariam são carregados e marcados como legado.

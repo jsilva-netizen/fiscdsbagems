@@ -42,7 +42,9 @@ Imutável depois de criada (R-checklists-017).
 | `permite_item_livre` | booleano; só no modo `avulso` (R-checklists-012) |
 | `campos[]` | `nome`, `rotulo`, `tipo` (`texto_curto`, `texto_longo`, `inteiro`, `sim_nao`, `lista_valores`, `lista_linhas`), `obrigatorio`, `padrao`, `valores` (para `lista_valores`), `positivo` (para `inteiro`), `papel` (`titulo`, `agrupamento` com `nivel` e `ordem` fixa ou natural, `aplicabilidade` com o código do contexto, `escolha_complementar`) |
 | `respostas[]` | `codigo`, `rotulo`, `tipo` (`opcao`, `numero`, `texto`), `ordem`; opção: `valor` (número, opcional); número: `minimo`, `maximo`, `passo` |
-| `saidas[]` | `resposta` (código da opção, ou faixa `{resposta, de, ate}` para a nota), `saida` (código registrado), `condicoes[]` (cada uma `campo` + `verdadeiro` / `preenchido` / `vazio`; todas precisam valer; lista vazia = sempre), `dados` (dado da saída → campo do item, a resposta dada (rótulo, valor ou nota) ou valor fixo) |
+| `tipos_gerados[]` | `codigo`, `nome`, `sigla`, `campos[]` (nome, rótulo, tipo, `papel_prazo`), `referencia` (`tipo`, `obrigatoria`), `texto` (modelo com `{campo}` e `{ref}`, texto para campo vazio, pontuação final, começos que dispensam o modelo), `numerado`, `ordem` (`referencia` / `equipe`), `relatorio` (estilo registrado, título, posição, colunas), `papeis[]` (códigos registrados), `edicao` (texto, prazo, suprimir, acrescentar) (R-checklists-022) |
+| `entrada_manual` | opcional: `campos[]` (como os do item) e `saidas[]` (como as das respostas, com a origem na entrada) (R-checklists-023) |
+| `saidas[]` | `resposta` (código da opção, ou faixa `{resposta, de, ate}` para a nota), `tipo` (código de `tipos_gerados[]`), `condicoes[]` (cada uma `campo` + `verdadeiro` / `preenchido` / `vazio`; todas precisam valer; lista vazia = sempre), `dados` (dado da saída → campo do item, a resposta dada (rótulo, valor ou nota) ou valor fixo) |
 | `planilha` | `colunas[]` (cabeçalho → campo ou dado do catálogo: nome, código, serviços), `herda[]`, `junta` (campo `lista_linhas`), `chave[]` (campos obrigatórios), `cria_catalogos`, `exemplo[]` |
 
 ## Catálogos e itens
@@ -110,7 +112,8 @@ Imutável depois de criada, exceto o preenchimento único de `vigente_ate` (K4).
 
 | Registro | Conteúdo | Quem registra |
 |---|---|---|
-| Saída | código, app, nome, dados (nome, tipo), depende de (código de outra saída, opcional) | fiscalização: constatação, NC, determinação (depende da NC), recomendação (depende da constatação) |
+| Papel de registro | código, app, nome, exigências (ex.: campo de prazo) | processo sancionador: notificado no termo, com prazo; CATERS: acompanhado pela câmara |
+| Estilo de seção | código, app, nome, colunas disponíveis | fiscalização: lista por registro de campo, quadro de respostas (soma e média); CATERF: tabela do laudo |
 | Contexto | código, app, nome, tipo | CATERF: rodovia da fiscalização |
 | Modo | código, app, nome, tipo (`lista` / `avulso`) | fiscalização: vistoria por unidade; CATERF: ocorrência |
 | Alcance do aparelho | app, função (usuário → câmaras e versões a mais) | fiscalização (K8) |

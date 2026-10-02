@@ -172,16 +172,14 @@ para = "fiscalizacao.Resposta.valor"
 transformacao = "`SIM` → `sim`; `NAO` e `NÃO` → `nao`; vazio ou outro valor vira legado."
 
 [destino."coluna:respostas_checklist.pergunta"]
-para = ["fiscalizacao.Resposta.texto_constatacao", "fiscalizacao.Resposta.constatacao_excluida"]
-transformacao = "Texto da constatação como está (inclusive o editado); pergunta vazia com resposta preenchida marca a constatação como excluída."
-
+para = ["fiscalizacao.RegistroGerado.texto", "fiscalizacao.RegistroGerado.suprimido"]
+transformacao = "Cria o registro gerado do tipo `constatacao` da resposta (origem `resposta:<id>`, identificador novo), com o texto como está (inclusive o editado); pergunta vazia com resposta preenchida, num item que gera constatação, cria o registro suprimido."
 [destino."coluna:respostas_checklist.observacao"]
 para = "fiscalizacao.Resposta.observacao"
 
 [destino."coluna:respostas_checklist.numero_constatacao"]
-para = ["fiscalizacao.Resposta.numero_constatacao", "fiscalizacao.Resposta.ordem_constatacao"]
-transformacao = "O número gravado (por unidade) vira a ordem, junto com o das constatações manuais da unidade, e fica no `legado`; o número é recalculado, contínuo na fiscalização, pela regra do relatório de hoje (F18 da spec 007)."
-
+para = ["fiscalizacao.RegistroGerado.numero", "fiscalizacao.RegistroGerado.ordem"]
+transformacao = "Na constatação da resposta: o número gravado (por unidade) vira a ordem, junto com o das constatações manuais da unidade, e fica no `legado`; o número é recalculado, contínuo na fiscalização, pela regra do relatório de hoje (F18 da spec 007)."
 [destino."coluna:respostas_checklist.gera_nc"]
 descarte = "Derivado do catálogo e da resposta (R-fiscalizacao-005); a migração confere, antes, que a marca bate com a declaração do item e a resposta (355 respostas com NC)."
 
@@ -197,69 +195,58 @@ para = "fiscalizacao.Resposta.atualizado_em"
 # --- constatacoes_manuais (299) ----------------------------------------------------------
 
 [destino."coluna:constatacoes_manuais.id"]
-para = "fiscalizacao.ConstatacaoManual.id"
-
+para = "fiscalizacao.EntradaManual.id"
 [destino."coluna:constatacoes_manuais.unidade_fiscalizada_id"]
-para = "fiscalizacao.ConstatacaoManual.registro"
-
+para = "fiscalizacao.EntradaManual.registro"
 [destino."coluna:constatacoes_manuais.descricao"]
-para = "fiscalizacao.ConstatacaoManual.descricao"
-
+para = "fiscalizacao.EntradaManual.valores"
+transformacao = "Campo `descricao` da entrada manual (modelo da câmara, spec 005). Cria também o registro gerado do tipo `constatacao` da entrada (origem `manual:<id>`, identificador novo), com o texto."
 [destino."coluna:constatacoes_manuais.gera_nc"]
-para = "fiscalizacao.ConstatacaoManual.gera_nc"
-
+para = "fiscalizacao.EntradaManual.valores"
+transformacao = "Campo `gera_nc` da entrada manual (modelo da câmara, spec 005)."
 [destino."coluna:constatacoes_manuais.artigo_portaria"]
-para = "fiscalizacao.ConstatacaoManual.dispositivo"
-
+para = "fiscalizacao.EntradaManual.valores"
+transformacao = "Campo `dispositivo` da entrada manual (modelo da câmara, spec 005)."
 [destino."coluna:constatacoes_manuais.descricao_nc"]
-para = "fiscalizacao.ConstatacaoManual.descricao_nc"
-
+para = "fiscalizacao.EntradaManual.valores"
+transformacao = "Campo `descricao_nc` da entrada manual (modelo da câmara, spec 005)."
 [destino."coluna:constatacoes_manuais.texto_determinacao"]
-para = "fiscalizacao.ConstatacaoManual.texto_determinacao"
-
+para = "fiscalizacao.EntradaManual.valores"
+transformacao = "Campo `determinacao` da entrada manual (modelo da câmara, spec 005)."
 [destino."coluna:constatacoes_manuais.texto_recomendacao"]
-para = "fiscalizacao.ConstatacaoManual.texto_recomendacao"
-
+para = "fiscalizacao.EntradaManual.valores"
+transformacao = "Campo `recomendacao` da entrada manual (modelo da câmara, spec 005)."
 [destino."coluna:constatacoes_manuais.numero_constatacao"]
-para = ["fiscalizacao.ConstatacaoManual.numero_constatacao", "fiscalizacao.ConstatacaoManual.ordem_constatacao"]
-transformacao = "Como o das respostas: o gravado vira a ordem e fica no `legado`; o número é recalculado, contínuo na fiscalização."
-
+para = ["fiscalizacao.EntradaManual.ordem", "fiscalizacao.RegistroGerado.numero", "fiscalizacao.RegistroGerado.ordem"]
+transformacao = "O gravado vira a ordem da entrada e da constatação dela e fica no `legado`; o número da constatação é recalculado, contínuo na fiscalização."
 [destino."coluna:constatacoes_manuais.ordem"]
 descarte = "Posição que a numeração não usa (padrão 0 em produção); a ordem vem do número da constatação."
 
 [destino."coluna:constatacoes_manuais.created_at"]
-para = "fiscalizacao.ConstatacaoManual.criado_em"
-
+para = "fiscalizacao.EntradaManual.criado_em"
 [destino."coluna:constatacoes_manuais.updated_at"]
-para = "fiscalizacao.ConstatacaoManual.atualizado_em"
-
+para = "fiscalizacao.EntradaManual.atualizado_em"
 # --- nao_conformidades (478) -------------------------------------------------------------
 
 [destino."coluna:nao_conformidades.id"]
-para = "fiscalizacao.NaoConformidade.id"
-transformacao = "Mesmo identificador da última regeneração; passa a ser estável."
-
+para = ["fiscalizacao.RegistroGerado.id", "fiscalizacao.RegistroGerado.tipo"]
+transformacao = "Registro gerado do tipo `nc`, com o mesmo identificador da última regeneração; passa a ser estável."
 [destino."coluna:nao_conformidades.unidade_fiscalizada_id"]
-para = "fiscalizacao.NaoConformidade.registro"
-
+para = "fiscalizacao.RegistroGerado.registro"
 [destino."coluna:nao_conformidades.resposta_checklist_id"]
-para = ["fiscalizacao.NaoConformidade.resposta", "fiscalizacao.NaoConformidade.origem", "fiscalizacao.NaoConformidade.constatacao_manual"]
-transformacao = "Com resposta: origem `resposta:<id>`. Sem resposta: a constatação manual com NC da mesma unidade, na ordem do número, dá a origem `constatacao:<id>`. NC sem origem reconhecível vira legado (research F18)."
-
+para = ["fiscalizacao.RegistroGerado.origem", "fiscalizacao.RegistroGerado.referencia"]
+transformacao = "Com resposta: origem `resposta:<id>`. Sem resposta: a constatação manual com NC da mesma unidade, na ordem do número, dá a origem `manual:<id>`. A referência é a constatação da mesma origem. NC sem origem reconhecível vira legado (research F18)."
 [destino."coluna:nao_conformidades.descricao"]
-para = "fiscalizacao.NaoConformidade.descricao"
+para = "fiscalizacao.RegistroGerado.texto"
 transformacao = "Texto como está, com o número da constatação citado (\"Constatação C<n>\") reescrito pela numeração recalculada, como o relatório de hoje faz."
-
 [destino."coluna:nao_conformidades.artigo_portaria"]
-para = "fiscalizacao.NaoConformidade.dispositivo"
-
+para = "fiscalizacao.RegistroGerado.campos"
+transformacao = "Campo `dispositivo` do tipo `nc`."
 [destino."coluna:nao_conformidades.numero_nc"]
-para = "fiscalizacao.NaoConformidade.numero"
+para = "fiscalizacao.RegistroGerado.numero"
 transformacao = "Recalculado na ordem das constatações, contínuo na fiscalização (regra do relatório de hoje); o gravado (ordem de finalização) fica no `legado`."
-
 [destino."coluna:nao_conformidades.created_at"]
-para = ["fiscalizacao.NaoConformidade.criado_em", "fiscalizacao.NaoConformidade.atualizado_em"]
-
+para = ["fiscalizacao.RegistroGerado.criado_em", "fiscalizacao.RegistroGerado.atualizado_em"]
 [destino."coluna:nao_conformidades.gravidade"]
 descarte = "Valor fixo 'Média' nas 478 linhas (R-fiscalizacao-024)."
 
@@ -275,34 +262,27 @@ descarte = "Sem uso (R-fiscalizacao-024)."
 # --- determinacoes (183) -----------------------------------------------------------------
 
 [destino."coluna:determinacoes.id"]
-para = "fiscalizacao.Determinacao.id"
-
+para = ["fiscalizacao.RegistroGerado.id", "fiscalizacao.RegistroGerado.tipo"]
+transformacao = "Registro gerado do tipo `determinacao`, com o mesmo identificador."
 [destino."coluna:determinacoes.unidade_fiscalizada_id"]
-para = "fiscalizacao.Determinacao.registro"
-
+para = "fiscalizacao.RegistroGerado.registro"
 [destino."coluna:determinacoes.origem"]
-para = "fiscalizacao.Determinacao.origem"
-transformacao = "`checklist:<item>` → `resposta:<id da resposta daquele item na unidade>`; `manual_constatacao:<id>` → `constatacao:<id>`; `legacy:<id>` fica e vira legado."
-
+para = ["fiscalizacao.RegistroGerado.origem", "fiscalizacao.RegistroGerado.acrescentado"]
+transformacao = "`checklist:<item>` → `resposta:<id da resposta daquele item na unidade>`; `manual_constatacao:<id>` → `manual:<id>`; `legacy:<id>` fica e vira legado. Determinação criada à mão pela equipe fica `acrescentado`."
 [destino."coluna:determinacoes.nao_conformidade_id"]
-para = "fiscalizacao.Determinacao.nao_conformidade"
-transformacao = "Vazio → religada pela origem (a NC da mesma resposta ou constatação manual) ou, sem ela, pelo número de NC citado no texto, como o relatório de hoje; sem nenhum dos dois, a determinação é carregada como legado e listada na conferência."
-
+para = "fiscalizacao.RegistroGerado.referencia"
+transformacao = "A NC referenciada. Vazio → religada pela origem (a NC da mesma resposta ou entrada manual) ou, sem ela, pelo número de NC citado no texto, como o relatório de hoje; sem nenhum dos dois, a determinação é carregada como legado e listada na conferência."
 [destino."coluna:determinacoes.descricao"]
-para = ["fiscalizacao.Determinacao.descricao", "fiscalizacao.Determinacao.texto_editado"]
+para = ["fiscalizacao.RegistroGerado.texto", "fiscalizacao.RegistroGerado.texto_editado"]
 transformacao = "Texto como está, marcado como editado, para a consolidação nunca reescrever o texto migrado; só o número de NC citado (\"Sanar NC<n>\") é reescrito pela numeração recalculada, como o relatório de hoje faz."
-
 [destino."coluna:determinacoes.prazo_dias"]
-para = "fiscalizacao.Determinacao.prazo_dias"
+para = "fiscalizacao.RegistroGerado.prazo_dias"
 transformacao = "Vazio (1 em produção) vira 30, com a marca de legado."
-
 [destino."coluna:determinacoes.data_limite"]
-para = "fiscalizacao.Determinacao.data_limite"
-
+para = "fiscalizacao.RegistroGerado.data_limite"
 [destino."coluna:determinacoes.numero_determinacao"]
-para = ["fiscalizacao.Determinacao.numero", "fiscalizacao.Determinacao.ordem"]
+para = ["fiscalizacao.RegistroGerado.numero", "fiscalizacao.RegistroGerado.ordem"]
 transformacao = "O gravado (por unidade) vira a ordem entre as da mesma NC e fica no `legado`; o número é recalculado na ordem das NCs, contínuo na fiscalização."
-
 [destino."coluna:determinacoes.prazo"]
 descarte = "Coluna antiga que ninguém grava (A-025)."
 
@@ -310,37 +290,29 @@ descarte = "Coluna antiga que ninguém grava (A-025)."
 descarte = "Nada muda a situação (as 183 estão pendentes); o cumprimento é do processo sancionador (R-fiscalizacao-009). A migração confere que todas estão pendentes."
 
 [destino."coluna:determinacoes.created_at"]
-para = "fiscalizacao.Determinacao.criado_em"
-
+para = "fiscalizacao.RegistroGerado.criado_em"
 [destino."coluna:determinacoes.updated_at"]
-para = "fiscalizacao.Determinacao.atualizado_em"
-
+para = "fiscalizacao.RegistroGerado.atualizado_em"
 # --- recomendacoes (350) -----------------------------------------------------------------
 
 [destino."coluna:recomendacoes.id"]
-para = "fiscalizacao.Recomendacao.id"
-
+para = ["fiscalizacao.RegistroGerado.id", "fiscalizacao.RegistroGerado.tipo"]
+transformacao = "Registro gerado do tipo `recomendacao`, com o mesmo identificador."
 [destino."coluna:recomendacoes.unidade_fiscalizada_id"]
-para = "fiscalizacao.Recomendacao.registro"
-
+para = "fiscalizacao.RegistroGerado.registro"
 [destino."coluna:recomendacoes.origem"]
-para = "fiscalizacao.Recomendacao.origem"
-transformacao = "Como nas determinações; `checklist` sem id e `legacy_rec:<id>` viram legado."
-
+para = ["fiscalizacao.RegistroGerado.origem", "fiscalizacao.RegistroGerado.referencia", "fiscalizacao.RegistroGerado.acrescentado"]
+transformacao = "Como nas determinações; a referência é a constatação da mesma origem; `checklist` sem id e `legacy_rec:<id>` viram legado."
 [destino."coluna:recomendacoes.descricao"]
-para = ["fiscalizacao.Recomendacao.descricao", "fiscalizacao.Recomendacao.texto_editado"]
+para = ["fiscalizacao.RegistroGerado.texto", "fiscalizacao.RegistroGerado.texto_editado"]
 transformacao = "Texto como está, marcado como editado."
-
 [destino."coluna:recomendacoes.numero_recomendacao"]
-para = ["fiscalizacao.Recomendacao.numero", "fiscalizacao.Recomendacao.ordem"]
+para = ["fiscalizacao.RegistroGerado.numero", "fiscalizacao.RegistroGerado.ordem"]
 transformacao = "O gravado (por unidade) vira a ordem dentro do registro e fica no `legado`; o número é recalculado, contínuo na fiscalização."
-
 [destino."coluna:recomendacoes.created_at"]
-para = "fiscalizacao.Recomendacao.criado_em"
-
+para = "fiscalizacao.RegistroGerado.criado_em"
 [destino."coluna:recomendacoes.updated_at"]
-para = "fiscalizacao.Recomendacao.atualizado_em"
-
+para = "fiscalizacao.RegistroGerado.atualizado_em"
 # --- relatorios_jobs (18) ----------------------------------------------------------------
 
 [destino."coluna:relatorios_jobs.id"]

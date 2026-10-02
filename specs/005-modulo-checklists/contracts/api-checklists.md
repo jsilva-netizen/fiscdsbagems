@@ -63,7 +63,8 @@ Registros sem dados, feitos no `AppConfig.ready` dos apps ([research K6, K8](../
 
 | Função | Uso |
 |---|---|
-| `registrar_saida(codigo, app, nome, dados)` | fiscalização: constatação, NC, determinação, recomendação |
+| `registrar_papel(codigo, app, nome, exigencias)` | processo sancionador: notificado no termo, com prazo; CATERS: acompanhado pela câmara |
+| `registrar_estilo_secao(codigo, app, nome, colunas)` | fiscalização: lista por registro de campo, quadro de respostas; CATERF: tabela do laudo |
 | `registrar_contexto(codigo, app, nome, tipo)` | CATERF: rodovia da fiscalização |
 | `registrar_modo(codigo, app, nome, tipo)` | fiscalização: vistoria por unidade (`lista`); CATERF: ocorrência (`avulso`) |
 | `registrar_alcance_aparelho(app, funcao)` | fiscalização: câmaras das fiscalizações em que o usuário está na equipe e versões citadas nelas |

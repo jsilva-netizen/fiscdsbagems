@@ -60,6 +60,7 @@ serializadores registrados pela CATERF ([research C6](../research.md)).
 | fiscalização | `registrar_tipo_registro_avulso("caterf.ocorrencia", ...)` | serializador e remoção de `Ocorrencia` |
 | fiscalização | `registrar_campos_marca_dagua("caterf", ["rodovia", "km", "sentido"])` | campos da marca d'água |
 | fiscalização | `registrar_layout_relatorio("caterf.laudo_rodovia", ...)` | template e contexto do laudo |
+| checklists | `registrar_estilo_secao("caterf.tabela_laudo", colunas)` | estilo de seção "tabela do laudo" (item, rodovia, KM, sentido e os campos do tipo), usado pelos tipos C e NC do modelo da CATERF |
 | fiscalização (aparelho) | enriquecedor do ponto; valores da marca d'água; telas do registro avulso; camada do traçado no mapa | C5, C6, C7 |
 | fiscalização (aparelho) | participante da sincronização (`sync/caterf`, depois da fiscalização) e telas da área de campo (registro de ocorrência, mapa do traçado) | F19 da spec 007; R-core-027 |
 | fiscalização (servidor e aparelho) | ordem dos registros avulsos: item do PER, rodovia e KM, para a numeração contínua de constatações e NCs | R-fiscalizacao-008, R-dtr-011 |
