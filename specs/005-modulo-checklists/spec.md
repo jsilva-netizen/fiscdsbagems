@@ -608,9 +608,23 @@ da spec 003. As regras descrevem só peças genéricas; o que cada câmara faz h
   câmara dona, modo de aplicação (R-checklists-012), campos do item (R-checklists-003), respostas e
   saídas (R-checklists-013), papéis de campo (R-checklists-014) e formato de planilha
   (R-checklists-006). O coordenador e o fiscal da câmara e o administrador montam e alteram o modelo numa tela
-  do motor, escolhendo as peças: acrescentar, ordenar e configurar campos; definir respostas; ligar
-  cada resposta às saídas, com condição e campos; dar papéis aos campos; mapear as colunas da
-  planilha. A tela mostra uma prévia do formulário de item e da planilha modelo. O motor valida ao
+  do motor, **visual, de arrastar e soltar** (decisão do responsável, 2026-10-02):
+  - uma paleta com as peças: tipos de campo do motor e as saídas, os contextos e os modos registrados
+    pelos apps instalados;
+  - o **item**: os campos arrastados da paleta, na ordem em que aparecem no formulário, cada um com as
+    suas propriedades (rótulo, obrigatório, padrão, valores permitidos, papel na aplicação);
+  - as **respostas**: cada resposta recebe as saídas arrastadas da paleta; em cada saída, os dados são
+    ligados arrastando os campos do item (ex.: o texto da determinação ← campo "determinação") e as
+    condições são escolhidas entre os campos (ex.: "gera NC" verdadeiro, "constatação Não"
+    preenchida);
+  - a **planilha**: as colunas ligadas aos campos, também arrastando;
+  - a **prévia ao vivo** do formulário de item (como a equipe vai preencher os textos), da tela do
+    fiscal (como vai responder ou escolher o item) e da planilha modelo;
+  - o **simulador**: com um item de exemplo, escolher uma resposta e ver as saídas que sairiam, com os
+    textos, e o que faltaria (ex.: "determinação sem NC: falta a condição da constatação").
+
+  Todo arrasto tem equivalente por teclado e botão (acessibilidade). Os problemas aparecem durante a
+  montagem, e o servidor confere de novo ao salvar. O motor valida ao
   salvar (campos citados existem, papéis compatíveis com o tipo do campo, chave de importação feita de
   campos obrigatórios, só peças registradas pelos apps, R-checklists-019) e recusa o inválido,
   mostrando o motivo. Uma câmara tem quantos modelos quiser, lado a lado, cada um com os seus campos
@@ -856,7 +870,8 @@ modelo (R-checklists-016).
 
 | Ação | Regra |
 |---|---|
-| Montar e alterar o modelo de catálogo da câmara, com prévia do formulário e da planilha | R-checklists-015, R-checklists-017 |
+| Montar e alterar o modelo de catálogo da câmara num editor visual de arrastar e soltar, com prévia do formulário, da tela do fiscal e da planilha, e simulador das saídas | R-checklists-015, R-checklists-017 |
+| Reordenar itens arrastando, na lista ou na árvore dos agrupamentos | R-checklists-001, R-checklists-014 |
 | Copiar o modelo de outra câmara; o administrador, também os catálogos com itens | R-checklists-018 |
 | Ver as peças disponíveis (saídas, valores de contexto, modos) e os modelos incompletos | R-checklists-019 |
 

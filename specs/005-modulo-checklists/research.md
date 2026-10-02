@@ -214,9 +214,18 @@ Tudo numa transação, auditado.
 
 ## K12 — Telas geradas pela definição
 
-**Decision**: o frontend do motor tem cinco telas genéricas: montagem do modelo (com prévia do
-formulário e da planilha, validada pela rota de validação do servidor), catálogos, itens (formulário
-gerado pela definição), importação (prévia e confirmação) e histórico. O formulário é montado por um
+**Decision**: o frontend do motor tem cinco telas genéricas: montagem do modelo, catálogos, itens
+(formulário gerado pela definição), importação (prévia e confirmação) e histórico.
+
+- **Montagem**: editor visual de arrastar e soltar (paleta de peças, item, respostas com saídas,
+  planilha), com biblioteca de arrastar acessível por teclado (dnd-kit) e painel de propriedades. A
+  definição é editada em memória e conferida a cada mudança pela rota de validação do servidor
+  (`POST checklists/modelos/validar`, sem gravar), que devolve os problemas por peça. A prévia
+  usa o mesmo componente que gera o formulário de item e a tela do fiscal. O simulador roda a mesma
+  interpretação de saídas da fiscalização (casos compartilhados, F4 da spec 007) sobre um item de
+  exemplo.
+- **Itens**: lista arrastável para mudar a ordem (sem criar versão); com agrupamento, uma árvore pelos
+  níveis (ex.: frente → item do PER → descrição), com os itens arrastáveis dentro do seu nível. O formulário é montado por um
 componente que lê a definição e escolhe o controle pelo tipo do campo. As telas entram nas
 Definições pelo registro de contribuições do core (R-core-025). A escolha do item na aplicação
 (agrupamento, aplicabilidade, escolha complementar) é feita no aparelho por funções puras de
