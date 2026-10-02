@@ -110,7 +110,7 @@ Imutável depois de criada, exceto o preenchimento único de `vigente_ate` (K4).
 
 | Registro | Conteúdo | Quem registra |
 |---|---|---|
-| Saída | código, app, nome, dados (nome, tipo) | fiscalização: constatação, NC, determinação, recomendação |
+| Saída | código, app, nome, dados (nome, tipo), depende de (código de outra saída, opcional) | fiscalização: constatação, NC, determinação (depende da NC), recomendação (depende da constatação) |
 | Contexto | código, app, nome, tipo | CATERF: rodovia da fiscalização |
 | Modo | código, app, nome, tipo (`lista` / `avulso`) | fiscalização: vistoria por unidade; CATERF: ocorrência |
 | Alcance do aparelho | app, função (usuário → câmaras e versões a mais) | fiscalização (K8) |

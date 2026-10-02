@@ -103,8 +103,11 @@ da aplicabilidade.
 ## K6 — Peças registradas pelos apps
 
 **Decision**: registro em memória `checklists/pecas.py`, carregado no `AppConfig.ready` dos apps:
-- `registrar_saida(codigo, app, nome, dados)`: `dados` é a lista de (nome, tipo) que a saída recebe
-  (ex.: `fiscalizacao.determinacao`: texto, prazo em dias);
+- `registrar_saida(codigo, app, nome, dados, depende_de=None)`: `dados` é a lista de (nome, tipo)
+  que a saída recebe (ex.: `fiscalizacao.determinacao`: texto, prazo em dias); `depende_de` é o código
+  de outra saída que precisa sair da mesma resposta junto com ela (ex.: a determinação depende da NC).
+  A validação do modelo (K2) recusa a resposta que declara a dependente sem a outra ou com condições
+  que não incluem as dela (R-checklists-013);
 - `registrar_contexto(codigo, app, nome, tipo)` (ex.: `caterf.rodovia_fiscalizacao`);
 - `registrar_modo(codigo, app, nome, tipo)`: `tipo` é um dos dois modos do motor, `lista` ou
   `avulso` (R-checklists-012); a fiscalização registra a vistoria por unidade, a CATERF a ocorrência.

@@ -505,6 +505,9 @@ Cada regra segue o molde `formatos/spec-modulo.md` da spec 003. O identificador 
     referência às fotos;
   - a seção **"Não conformidades"**, com a tabela: item, rodovia, KM, sentido, não conformidade,
     cláusula não atendida, prazo e observação;
+  - o "item" de cada tabela é o número da constatação e o da NC na numeração contínua da fiscalização
+    (R-fiscalizacao-008), com os registros na ordem que o app registra: item do PER, rodovia e KM;
+    o modelo não declara determinação nem recomendação, e o laudo não tem essas seções;
   - os registros fotográficos, "Figura n – legenda";
   - a paginação.
 
@@ -512,7 +515,8 @@ Cada regra segue o molde `formatos/spec-modulo.md` da spec 003. O identificador 
 - **Comportamento atual**: o gerador de relatórios escolhe o modelo da DTR pelo tipo de módulo e
   monta as seções "VIII – Constatações" e "IX – Não conformidades", com as colunas de rodovia,
   sentido, descrição, não conformidade, não atendimento, prazo e observação. Quando a ocorrência não
-  tem cláusula ou prazo, busca no tipo pelo texto, e mostra a gravidade quando há.
+  tem cláusula ou prazo, busca no tipo pelo texto, e mostra a gravidade quando há. O item é a posição
+  na tabela, de 1 a n, ordenada por item do PER, rodovia e KM, e não é gravado.
 - **Motivo da diferença**: layout da câmara fora do app comum (R-fiscalizacao-016,
   R-fiscalizacao-025); os dados vêm da versão do tipo, e não da busca pelo texto.
 - **Objetos do catálogo**: `coluna:unidades_fiscalizadas.nao_atendimento`,

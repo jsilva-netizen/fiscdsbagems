@@ -98,7 +98,8 @@ A unidade vistoriada ou o registro avulso.
 | item_versao_id | UUID, opcional | modo avulso: versão do item escolhida; vazio no item livre |
 | item_livre | JSON, opcional | modo avulso com item livre: níveis de agrupamento escolhidos ou digitados e a descrição (R-fiscalizacao-004) |
 | resposta | texto, opcional | modo avulso: código da resposta declarada |
-| tipo_avulso | texto, opcional | código registrado pelo app da câmara (F7) |
+| tipo_avulso | texto, opcional | código registrado pelo app da câmara (F7); define o critério de ordem dos registros avulsos (F5) |
+| numero_constatacao | inteiro, opcional | modo avulso, quando a resposta gera constatação: C<n> na fiscalização (F5) |
 | nome | texto | |
 | codigo | texto | único na fiscalização quando preenchido |
 | endereco | texto, opcional | |
@@ -149,8 +150,8 @@ A unidade vistoriada ou o registro avulso.
 |---|---|---|
 | id | UUID | estável enquanto a origem existir (F4) |
 | registro | → RegistroCampo | |
-| origem | texto | `resposta:<id>` ou `constatacao:<id>`; única por registro |
-| resposta | → Resposta, opcional | uma das duas obrigatória: a constatação que a NC referencia |
+| origem | texto | `resposta:<id>`, `constatacao:<id>` ou, no modo avulso, `registro:<id>`; única por registro |
+| resposta | → Resposta, opcional | a constatação da mesma origem que a NC referencia, quando o modelo gera as duas |
 | constatacao_manual | → ConstatacaoManual, opcional | |
 | descricao | texto | "Constatação C<n>: ..."; o número acompanha a numeração |
 | dispositivo | texto, opcional | |
@@ -163,7 +164,7 @@ A unidade vistoriada ou o registro avulso.
 | id | UUID | |
 | registro | → RegistroCampo | |
 | origem | texto | única por registro |
-| nao_conformidade | → NaoConformidade | obrigatória: a NC que a determinação manda sanar; religada na consolidação |
+| nao_conformidade | → NaoConformidade | obrigatória (a determinação depende da NC, R-checklists-013): a NC da mesma origem que ela manda sanar; religada na consolidação |
 | descricao | texto | "Sanar NC<n>. <texto>"; o número acompanha a numeração |
 | texto_editado | booleano | a consolidação preserva |
 | prazo_dias | inteiro | > 0; padrão do item ou 30 |

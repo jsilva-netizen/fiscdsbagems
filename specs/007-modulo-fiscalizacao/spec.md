@@ -694,11 +694,17 @@ da spec 003.
   - textos editados pela equipe e a ordem definida são preservados;
   - registro cuja origem deixou de gerar a saída (resposta voltou para Sim) é removido.
 
-  **Referências** (gravadas como vínculo e citadas no texto pelo número):
-  - toda **NC** referencia a constatação que a originou ("Constatação C<n>: ...");
-  - toda **determinação** referencia a NC que manda sanar ("Sanar NC<n>. ..."); não existe
-    determinação sem NC;
-  - toda **recomendação** referencia a constatação de origem.
+  **Referências** (gravadas como vínculo e citadas no texto pelo número): uma saída referencia a
+  outra **da mesma origem**, conforme o que este app registrou no motor (R-checklists-013):
+  - a **NC** referencia a constatação da mesma origem, quando o modelo gera as duas ("Constatação
+    C<n>: ..."); nos modelos da DSB isso sempre acontece; na CATERF, a NC vem da resposta "Não
+    conformidade", sem constatação, e não tem a quem referenciar;
+  - a **determinação** depende da NC: referencia a NC que manda sanar ("Sanar NC<n>. ..."), e não
+    existe determinação sem NC;
+  - a **recomendação** depende da constatação de origem.
+
+  Um modelo que não declara determinação nem recomendação (o da CATERF, hoje) simplesmente não as
+  gera; se passar a declarar, as referências valem sem mudança no app.
 
   A consolidação roda no servidor ao receber mudanças da unidade, na finalização e antes do
   relatório. O aparelho mostra o mesmo resultado pela mesma regra, para o trabalho sem rede. A
@@ -736,18 +742,21 @@ da spec 003.
 
 ### R-fiscalizacao-008 — Numeração
 
-- **Comportamento desejado**: constatações (C), NCs, determinações (D) e recomendações (R) têm
-  numeração **contínua e sequencial em toda a fiscalização**, da primeira à última unidade: cada
-  sequência começa em 1 e não recomeça a cada unidade (ex.: se a unidade 1 termina em C5, NC3, D3 e
-  R1, a unidade 2 começa em C6, NC4, D4 e R2). Vale para todas as câmaras; a DSB usa hoje, e as
-  outras usarão quando tiverem fiscalização no sistema.
+- **Comportamento desejado**: cada tipo de saída registrado por este app (constatação, NC,
+  determinação, recomendação) tem a sua **sequência própria, contínua em toda a fiscalização**, do
+  primeiro ao último registro: começa em 1 e não recomeça a cada unidade (ex.: se a unidade 1 termina
+  em C5, NC3, D3 e R1, a unidade 2 começa em C6, NC4, D4 e R2). Só existem as sequências dos tipos que
+  o modelo gera: na CATERF, hoje, constatações e NCs. A regra é do app e vale para qualquer câmara,
+  sem configuração; a forma de mostrar o número é do layout (na DSB, "C6", "NC4"; no laudo da
+  CATERF, a coluna "item" de cada tabela).
 
   **Ordem**:
-  - das **unidades** (e dos registros avulsos): a definida pela equipe, reordenável; por padrão, a de
-    criação;
+  - dos **registros**: vem do modo do catálogo. Na vistoria por unidade, a definida pela equipe,
+    reordenável (por padrão, a de criação). No registro avulso, o critério que o app da câmara
+    registra (na CATERF, item do PER, rodovia e KM, como o laudo de hoje), sem reordenação manual;
   - dentro da unidade, das **constatações**: a definida pelo fiscal, juntando as respostas com texto
     de constatação e as constatações manuais;
-  - das **NCs**: a das constatações que as originaram;
+  - das **NCs**: a das constatações que as originaram ou, sem constatação, a dos registros;
   - das **determinações**: a das NCs que mandam sanar; várias da mesma NC, na ordem definida pela
     equipe;
   - das **recomendações**: a definida pela equipe dentro da unidade; por padrão, a de criação.
@@ -763,6 +772,9 @@ da spec 003.
   - o relatório, a tela do termo e a análise refazem cada um a numeração na montagem, contínua na
     fiscalização, pela ordem das unidades (ordem e criação), com as determinações na ordem das NCs;
     é essa numeração que aparece nos documentos emitidos;
+  - no laudo da DTR, constatações e NCs são duas tabelas, cada uma com o "item" de 1 a n, na ordem de
+    item do PER, rodovia e KM; não há determinações nem recomendações (a consulta delas existe, mas
+    nada as cria);
   - por isso o número gravado no banco difere do número do relatório a partir da segunda unidade.
 - **Motivo da diferença**: uma só numeração, contínua como nos documentos de hoje, gravada e igual
   na tela, no relatório, no termo, na AM e no auto ("Determinação D<n> não atendida"), sem depender

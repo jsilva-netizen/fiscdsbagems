@@ -57,8 +57,11 @@ arquivo).
 interpreta (R-checklists-019), cada um com os dados que recebe:
 - `fiscalizacao.constatacao` (texto);
 - `fiscalizacao.nc` (dispositivo, descrição);
-- `fiscalizacao.determinacao` (texto, prazo em dias);
-- `fiscalizacao.recomendacao` (texto).
+- `fiscalizacao.determinacao` (texto, prazo em dias), `depende_de` = `fiscalizacao.nc`;
+- `fiscalizacao.recomendacao` (texto), `depende_de` = `fiscalizacao.constatacao`.
+
+Cada um tem a sua sequência de numeração e o seu prefixo (C, NC, D, R), definidos aqui, no app, e
+não no motor (F5).
 
 O registro do modo "lista por unidade" também é dela. Para montar a unidade, ela pede ao motor as
 versões vigentes do catálogo na data de criação da unidade e guarda, em cada resposta, a versão
@@ -100,11 +103,15 @@ acontecer com contas feitas à parte.
 
 ## F5 — Numeração
 
-**Decision**: a função `numerar(fiscalizacao)` percorre os registros pela `ordem` (depois pela
-criação) com quatro contadores que **não recomeçam** a cada registro, e atribui:
+**Decision**: a função `numerar(fiscalizacao)` percorre os registros com um contador por tipo de
+saída registrado, que **não recomeça** a cada registro. A ordem dos registros vem do modo: na lista
+por unidade, a `ordem` (depois a criação); no avulso, a chave de ordenação que o app da câmara
+registrou para o `tipo_avulso` (`registrar_ordem_registros`, contrato de extensões; a CATERF registra
+item do PER, rodovia e KM). Ela atribui:
 - as constatações, pela `ordem_constatacao` dentro do registro (respostas com texto de constatação e
   constatações manuais juntas);
-- as NCs, na ordem das constatações que as originaram;
+- as NCs, na ordem das constatações que as originaram ou, sem constatação na origem (modo avulso
+  da CATERF), na ordem dos registros;
 - as determinações, na ordem das NCs que mandam sanar e, na mesma NC, pela `ordem` delas;
 - as recomendações, pela `ordem` delas dentro do registro.
 
@@ -399,7 +406,7 @@ checklists e o app da CATERF. Regras:
 - as fiscalizações ganham `origem = migrada`, sem atividade;
 - o número do termo migra como está; os de C, NC, D e R são recalculados por `numerar`, que
   reproduz a conta do relatório de hoje (registros por ordem e criação; constatações pelo número
-  gravado e pela criação; NCs pela constatação; determinações pela NC), e os gravados ficam no
+  gravado e pela criação; NCs pela constatação; determinações pela NC; nos registros avulsos da CATERF, item do PER, rodovia e KM, como o laudo), e os gravados ficam no
   `legado`; a numeração das finalizadas fica congelada;
 - a origem das NCs é reconstruída: com `resposta_checklist_id`, `resposta:<id>`; sem ela, pela
   constatação manual da mesma unidade com NC, na ordem do número;

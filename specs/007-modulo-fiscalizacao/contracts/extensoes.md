@@ -13,6 +13,7 @@ câmara.
 | `registrar_tipo_registro_avulso(codigo, app, serializador_extensao, apagar_extensao)` | o serializador dos dados próprios do registro avulso, gravados no modelo do app da câmara, e a remoção deles | `servicos.criar_registro_avulso(fiscalizacao, dados_comuns, dados_extensao)` valida o comum (catálogo no modo avulso, item, resposta, ponto, fotos), grava, chama o serializador da câmara na mesma transação e consolida |
 | `registrar_extensao_fiscalizacao(app, serializador_extensao)` | o serializador dos dados próprios da câmara sobre a fiscalização (ex.: contrato e rodovia da CATERF), gravados no modelo do app da câmara | `servicos.criar_fiscalizacao` aceita os dados da extensão e chama o serializador na mesma transação; sem rede, o aparelho envia a extensão pela sincronização do app da câmara, depois da fiscalização |
 | `registrar_verificacao_documento(app, funcao)` | função que diz se a fiscalização tem documento do app (termo, auto, remessa) | a exclusão da fiscalização é recusada se alguma disser que sim (R-fiscalizacao-015) |
+| `registrar_ordem_registros(tipo_avulso, app, chave)` | a função que devolve a chave de ordenação de um registro avulso a partir dos dados próprios (ex.: item do PER, rodovia, KM) | a numeração contínua da fiscalização ordena os registros avulsos por ela (F5); a mesma função existe no aparelho |
 | `registrar_campos_marca_dagua(app, campos)` | nomes e descrições dos campos que o app acrescenta às linhas da marca d'água (ex.: `{rodovia}`, `{km}`, `{sentido}`) | a tela de configuração oferece os campos; o aparelho preenche (abaixo) |
 
 ## No aparelho (`frontend/src/fiscalizacao/extensoes.ts`)
@@ -22,6 +23,7 @@ câmara.
 | enriquecedor do ponto | função que recebe o ponto (lat, lng, precisão) e devolve os dados próprios (ex.: rodovia, KM, sentido, KM impreciso), sem rede | chamada ao registrar o ponto e cada foto; os dados vão ao app da câmara pela sincronização dele |
 | valores dos campos da marca d'água | função que devolve os valores dos campos registrados, para a foto | desenhados com as linhas da configuração da câmara |
 | telas do registro avulso | as telas de captura (ex.: frente → item do PER → descrição → etapa → constatação ou NC → sentido → observação) | abertas no lugar da vistoria por unidade quando o catálogo é do modo avulso do tipo registrado |
+| ordem dos registros avulsos | a mesma chave de ordenação do servidor, para numerar sem rede | numeração no aparelho (F5) |
 | camadas do mapa | camadas sobre o mapa-base (ex.: traçado KML) | mapa da fiscalização |
 | participante da sincronização | rota de baixar (`sync/<app>`), fila de envio e ordem | a sincronização completa da área de campo envia e baixa os dados do app junto com os da fiscalização (F19) |
 | verificação de prontidão | função que, para uma atividade ou fiscalização, diz o que o app precisa no aparelho e o que falta | a conferência de prontidão da área de campo (R-fiscalizacao-027) |

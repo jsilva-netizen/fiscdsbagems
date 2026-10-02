@@ -557,7 +557,14 @@ da spec 003. As regras descrevem só peças genéricas; o que cada câmara faz h
 
   Os identificadores de saída (constatação, NC, determinação, recomendação...) são definidos pelo app
   que aplica o catálogo; o motor os guarda e entrega sem interpretar. Assim, o motor não sabe o que é
-  uma NC: quem gera os registros é a fiscalização, a partir do que o modelo declarou.
+  uma NC: quem gera os registros, os numera e os liga uns aos outros é a fiscalização, a partir do que
+  o modelo declarou.
+
+  **Dependência entre saídas**: o app que registra uma saída pode dizer que ela **depende** de outra
+  (ex.: a fiscalização registra que a determinação depende da NC). O motor só confere a declaração:
+  recusa o modelo em que uma resposta declara a saída dependente sem a outra, ou com condições que não
+  incluem as da outra (a dependente poderia sair sozinha). Um modelo que não declara a saída
+  dependente (ex.: o da CATERF, sem determinação) não é afetado.
 - **Comportamento atual**: as regras estão fixas no código de telas diferentes. Na DSB, as respostas
   são `SIM` e `NAO` (o servidor aceita também `NÃO`), e a regra "Não gera NC se o item gera NC;
   determinação se houver texto, senão recomendação" está no código. Na DTR, a ocorrência grava
@@ -740,8 +747,13 @@ implantação, cada câmara a mantém na tela de montagem.
   - Sim → constatação, com "constatação Sim", se ela estiver preenchida.
   - Não → constatação, com "constatação Não", se ela estiver preenchida; NC, se "gera NC" e
     "constatação Não" preenchida, descrita por "dispositivo normativo" (ou "artigo aplicável" se
-    vazio); determinação com "determinação" e "prazo", se "gera NC" e "determinação" preenchida;
-    recomendação com "recomendação", se "gera NC", "determinação" vazia e "recomendação" preenchida.
+    vazio); determinação com "determinação" e "prazo", se "gera NC", "constatação Não" e
+    "determinação" preenchidas; recomendação com "recomendação", se "gera NC", "constatação Não"
+    preenchida, "determinação" vazia e "recomendação" preenchida. A condição "constatação Não
+    preenchida" na determinação e na recomendação é nova (varredura de 2026-10-02): garante que toda
+    determinação tem a NC que manda sanar e toda recomendação, a constatação de origem; hoje um item
+    com "gera NC", sem "constatação Não" e com determinação gera uma determinação sem NC ("Sanar
+    NC?").
   - Não se aplica → nenhuma saída. A resposta é gravada e conta no progresso da vistoria. Hoje o
     botão "N/A" existe na tela, mas não é gravado (decisão do responsável, 2026-10-01: passa a ser
     resposta gravada).

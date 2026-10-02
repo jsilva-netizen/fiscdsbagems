@@ -29,7 +29,7 @@ da spec.
 | campos do item | pergunta (texto longo, obrigatório, papel título); constatação Sim; constatação Não; gera NC (sim/não, padrão sim); dispositivo normativo; texto da NC; determinação; prazo em dias (inteiro positivo, padrão 30); recomendação |
 | respostas | Sim, Não, Não se aplica (gravada, sem saída; decisão de 2026-10-01) |
 | saídas de Sim | constatação com "constatação Sim", se preenchida |
-| saídas de Não | constatação com "constatação Não", se preenchida; NC se "gera NC" e a constatação preenchida, descrita por "dispositivo normativo" (ou "artigo aplicável" se vazio); determinação com "determinação" e "prazo" se "gera NC" e "determinação" preenchida; recomendação com "recomendação" se "gera NC", "determinação" vazia e "recomendação" preenchida |
+| saídas de Não | constatação com "constatação Não", se preenchida; NC se "gera NC" e a constatação preenchida, descrita por "dispositivo normativo" (ou "artigo aplicável" se vazio); determinação com "determinação" e "prazo" se "gera NC", "constatação Não" e "determinação" preenchidas; recomendação com "recomendação" se "gera NC", "constatação Não" preenchida, "determinação" vazia e "recomendação" preenchida (R-checklists-013: toda determinação com a sua NC) |
 | saídas de Não se aplica | nenhuma |
 | planilha | serviço, código do tipo, nome do tipo, ordem, pergunta, constatação Sim, constatação Não, dispositivo normativo, determinação, recomendação, texto da NC, prazo; cria os catálogos que não existem; chave: catálogo + ordem |
 

@@ -62,5 +62,6 @@ serializadores registrados pela CATERF ([research C6](../research.md)).
 | fiscalização | `registrar_layout_relatorio("caterf.laudo_rodovia", ...)` | template e contexto do laudo |
 | fiscalização (aparelho) | enriquecedor do ponto; valores da marca d'água; telas do registro avulso; camada do traçado no mapa | C5, C6, C7 |
 | fiscalização (aparelho) | participante da sincronização (`sync/caterf`, depois da fiscalização) e telas da área de campo (registro de ocorrência, mapa do traçado) | F19 da spec 007; R-core-027 |
+| fiscalização (servidor e aparelho) | ordem dos registros avulsos: item do PER, rodovia e KM, para a numeração contínua de constatações e NCs | R-fiscalizacao-008, R-dtr-011 |
 | fiscalização (aparelho) | verificação de prontidão: o pacote do traçado vigente de cada rodovia das atividades escaladas e das fiscalizações em andamento está no aparelho | R-fiscalizacao-027 |
 | core | telas e painéis (R-core-025) | Definições (traçados), painéis da CATERF |
